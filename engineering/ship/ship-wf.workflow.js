@@ -93,6 +93,8 @@ You are running in an ISOLATED git worktree on your own branch — your commits 
 
 This issue is status: ready-for-agent — the issue body is the spec. Do NOT ask for confirmation; the AC are the priority.
 
+Start from first principles.
+
 Follow the /tdd skill discipline:
 - Existing-test scan first: for each AC, skip if already covered (note it), else write a test.
 - Vertical tracer bullets: one test -> minimal code -> repeat. Never write all tests then all code.

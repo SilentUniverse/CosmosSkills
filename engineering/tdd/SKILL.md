@@ -58,6 +58,8 @@ For each AC in the issue, search the project's test files for existing coverage.
 
 **Issue-based runs only.** Interview mode (no issue) writes none — run `/to-issues` afterward and mark the issue `done`.
 
+Run an adversarial review.
+
 **Before marking done** — glance over `git diff`: every change should trace to this issue's AC. Revert what doesn't; if something out-of-scope is genuinely required, say why first.
 
 When all AC pass — and for `ready-for-human`, hands-on verification is confirmed — set the frontmatter `status:` to `done` and append to `## Comments`:
@@ -86,6 +88,8 @@ all implementation.
 ## Workflow
 
 ### 1. Planning
+
+Start from first principles.
 
 When exploring the codebase, use the project's domain glossary so that test names and interface vocabulary match the project's language, and respect ADRs in the area you're touching.
 

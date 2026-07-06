@@ -36,6 +36,8 @@ Sketch out the seams at which the feature will be tested. Existing seams should 
 
 ### 3. Write the PRD
 
+Start from first principles.
+
 Write the PRD using the template below, then save it under `.scratch/<feat>/`. Every PRD carries YAML frontmatter per [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md) (§PRD files — `type`/`feature`/`version`/`supersedes`/`created`).
 
 - Option (a): write `PRD.md` (version 1, no `supersedes`)
@@ -99,5 +101,7 @@ Any further notes about the feature.
 </prd-template>
 
 ### 4. Hand off to /to-issues
+
+Run an adversarial review.
 
 After writing the PRD, tell the user the next step is to run `/to-issues` against the new PRD. If this PRD supersedes an older one, `/to-issues` will produce a reconciliation report against existing issues automatically.

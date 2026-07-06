@@ -94,6 +94,8 @@ results are a floor, not the ceiling — say so rather than implying the impact 
 
 ### 3. Draft vertical slices
 
+Start from first principles.
+
 Break the plan into **tracer bullet** issues. Each issue is a thin vertical slice that cuts through ALL integration layers end-to-end, NOT a horizontal slice of one layer.
 
 Each slice has a state: `ready-for-agent` (fire-and-forget OK) or `ready-for-human` (needs hands-on judgment / design taste / manual / device testing). **Default to `ready-for-agent`** — only mark `ready-for-human` when there is a specific reason that an agent can't fully verify (architectural choice, UX taste, real-device verification, external account).
@@ -105,6 +107,8 @@ Each slice has a state: `ready-for-agent` (fire-and-forget OK) or `ready-for-hum
 </vertical-slice-rules>
 
 ### 4. Quiz the user
+
+Run an adversarial review.
 
 Present the proposed breakdown as a numbered list. For each slice, show:
 
