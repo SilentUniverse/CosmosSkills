@@ -1,6 +1,7 @@
 ---
 name: to-issues
-description: Break a plan, spec, or PRD into independently-grabbable issues using vertical slices. For a change that touches existing code, first runs an impact-detection pass (blast radius + regression risk) before slicing. When a PRD is re-run after revision, produces a reconciliation report against existing issues (kept / redo / edit / delete / new). Use to convert a plan into issues, to extend/deepen an existing feature, or to re-derive issues after a PRD revision.
+description: Break a plan, spec, or PRD into independently-grabbable issues using vertical slices. For a change that touches existing code, first runs an impact-detection pass (blast radius + regression risk) before slicing. When a PRD is re-run after revision, produces a reconciliation report against existing issues (kept / redo / edit / delete / new).
+disable-model-invocation: true
 ---
 
 # To Issues
@@ -59,6 +60,8 @@ If no existing issues directory, skip to step 1.
 
 Work from the latest non-superseded `PRD*.md` in the feature directory. If the user passes an explicit issue path or PRD path as an argument, use that.
 
+If the PRD carries a **尚未明确（Fog of War）** section, test each item's sharpness — can you phrase it precisely enough to slice *now*? Graduate the sharp ones into slices in step 3 (record the lineage in the issue's `## 上级`); leave the rest to ride forward to the next PRD. The PRD stays untouched — report which items graduated in the step 4 quiz.
+
 ### 2. Detect impact (coupling check — before slicing)
 
 **One cheap probe gates this whole step; scale the response to the blast radius it reveals.** Don't
@@ -96,6 +99,8 @@ results are a floor, not the ceiling — say so rather than implying the impact 
 
 Start from first principles.
 
+**Prefactor first if it helps** — "make the change easy, then make the easy change." When a cheap restructuring unlocks cleaner slices, sequence it as the first issue(s) the rest are `blocked_by`.
+
 Break the plan into **tracer bullet** issues. Each issue is a thin vertical slice that cuts through ALL integration layers end-to-end, NOT a horizontal slice of one layer.
 
 Each slice has a state: `ready-for-agent` (fire-and-forget OK) or `ready-for-human` (needs hands-on judgment / design taste / manual / device testing). **Default to `ready-for-agent`** — only mark `ready-for-human` when there is a specific reason that an agent can't fully verify (architectural choice, UX taste, real-device verification, external account).
@@ -105,6 +110,8 @@ Each slice has a state: `ready-for-agent` (fire-and-forget OK) or `ready-for-hum
 - A completed slice is demoable or verifiable on its own
 - Prefer many thin slices over few thick ones
 </vertical-slice-rules>
+
+**Wide refactors are the exception to slicing.** When step 2's impact probe lands in the top tier — a mechanical change (rename a column, retype a shared symbol) whose blast radius fans across the whole codebase, so no vertical slice can land green — sequence it **expand → contract** instead of forcing a tracer bullet: an *expand* issue adds the new form beside the old so nothing breaks; *migrate* issues then move call sites over in batches sized by blast radius (per package / dir), each `blocked_by` the expand and each staying green because the old form still stands; a *contract* issue finally deletes the old form, `blocked_by` every migrate batch. If a batch can't stay green alone, let the batches share an integration branch, with green promised only at a final integrate-and-verify issue they all block.
 
 ### 4. Quiz the user
 

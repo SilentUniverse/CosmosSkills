@@ -1,6 +1,7 @@
 ---
 name: ship
-description: Orchestrate a feature's ready-for-agent issues to completion. Reads the dependency DAG from frontmatter, topologically sorts, dispatches independent issues to subagents running /tdd (same-module work serialized, cross-module parallelized), enforces a build+test verification gate before each commit, and collects ready-for-human issues into a hands-on checklist. Use when a feature has several ready-for-agent issues and you want them built unattended.
+description: Orchestrate a feature's ready-for-agent issues to completion. Reads the dependency DAG from frontmatter, topologically sorts, dispatches independent issues to subagents running /tdd (same-module work serialized, cross-module parallelized), enforces a build+test verification gate before each commit, and collects ready-for-human issues into a hands-on checklist.
+disable-model-invocation: true
 argument-hint: "Feature slug (optional; omit to pick from INDEX)"
 ---
 
@@ -74,7 +75,9 @@ only branches that pass the two-phase review proceed. Then **merge the surviving
 the main branch serially** (one `git merge --no-ff` at a time). The next wave branches from that
 updated main, so `blocked_by` dependencies see the prior wave's work. If a merge conflicts (the plan
 mis-grouped two issues that actually share a module), abort it (`git merge --abort`, leaving main
-clean) and report that issue `failed` — never force a conflicted merge. After the wave's branches
+clean) and report that issue `failed` — never force a conflicted merge in an unattended run. (To
+finish such a merge deliberately afterward, attend it with the `/resolving-merge-conflicts` skill, or
+re-run the issue.) After the wave's branches
 are all merged, run the **full suite + build** once against the updated main to catch cross-module
 regressions the scoped per-issue gates missed; report any failure. Worktree subagents must not touch
 `INDEX.md`; regenerate it once after the last wave.
@@ -99,22 +102,22 @@ state reaches main only when the branch merges back.
 
 **3b. Two-phase review (a fresh subagent, before merge-back).** Build-green is necessary, not
 sufficient — passing tests don't prove the diff matches the spec or reads cleanly. After a branch
-clears 3a, spawn a **fresh** reviewer subagent (it did not write the code, so it isn't anchored to
-the implementer's assumptions). It inspects **only the branch diff** (`git diff HEAD...<branch>`)
-against the issue body, and returns a verdict on **two axes — both must pass**:
+clears 3a, run the `/code-review` skill against the branch diff (`git diff HEAD...<branch>`) with the
+issue as the spec source. `/code-review` spawns its own **fresh** reviewer sub-agents (a reviewer
+that didn't write the code isn't anchored to the implementer's assumptions) and returns verdicts on
+its **two axes — both must pass**:
 
-- **Spec compliance** — every acceptance criterion is met, with **no over-build** (features,
-  abstractions, or config beyond the AC — scope creep is a fail) and **no under-build** (a missing
-  AC).
-- **Code quality** — matches existing style, no leftover debug/commented-out code, no obvious
-  defects, and the new tests verify behavior through public interfaces (not implementation details,
-  not tautologies).
+- **Spec** — every acceptance criterion is met, with **no over-build** (features, abstractions, or
+  config beyond the AC — scope creep is a fail) and **no under-build** (a missing AC).
+- **Standards** — matches existing style and accepted ADRs, no leftover debug/commented-out code,
+  clears the Fowler smell baseline, and the new tests verify behavior through public interfaces (not
+  implementation details, not tautologies).
 
-If both pass, the branch proceeds to merge-back. If either fails, the branch is **not merged**: the
-issue is reported `failed` with the reviewer's concrete findings and left `ready-for-agent` (its
-branch stays in git, unmerged, so the work is inspectable). A review failure behaves exactly like a
-3a failure for scheduling — it doesn't abort the wave unless a dependent needs it. Review is
-read-only; the reviewer never edits, commits, or merges.
+If both pass, the branch proceeds to merge-back. If either reports a blocking finding, the branch is
+**not merged**: the issue is reported `failed` with `/code-review`'s concrete findings and left
+`ready-for-agent` (its branch stays in git, unmerged, so the work is inspectable). A review failure
+behaves exactly like a 3a failure for scheduling — it doesn't abort the wave unless a dependent
+needs it. `/code-review` is read-only; only this orchestrator merges or aborts.
 
 `INDEX.md` is regenerated once after the final wave (or by `/tidy`), not per issue.
 
@@ -183,8 +186,8 @@ What it does, faithfully to this skill:
   each in its own git worktree** (`isolation: 'worktree'`) so there are no git-index races. Each is
   bound by the hard verification gate: it commits on its own branch + sets `status: done` only if
   build + tests pass, otherwise returns `failed`. After a wave's parallel builds finish, each
-  built branch is **reviewed by a fresh subagent** (two-phase: spec compliance + code quality, both
-  must pass — see §3b) in parallel; only branches that pass review proceed. The orchestrator then
+built branch is **reviewed via `/code-review`** (two axes: Spec + Standards, both must pass — see
+    §3b) in parallel; only branches that pass review proceed. The orchestrator then
   **merges the surviving branches back to main serially** (one `git merge --no-ff` at a time);
   the next wave branches from that updated main so `blocked_by` holds. Worktree agents never touch
   `INDEX.md` — the orchestrator regenerates it once at the end.

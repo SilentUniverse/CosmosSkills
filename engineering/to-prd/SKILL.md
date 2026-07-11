@@ -1,6 +1,7 @@
 ---
 name: to-prd
-description: Turn the current conversation context into a PRD and write it under .scratch/<feat>/. Detects existing related PRDs first; if found, defaults to writing a superseding PRD-vN.md rather than editing the old one. Use when the user wants to create or revise a PRD from the current context.
+description: Turn the current conversation context into a PRD and write it under .scratch/<feat>/. Detects existing related PRDs first; if found, defaults to writing a superseding PRD-vN.md rather than editing the old one.
+disable-model-invocation: true
 ---
 
 This skill takes the current conversation context and codebase understanding and writes a PRD under `.scratch/<feat>/`. Do NOT interview the user before writing — just synthesize what you already know. The only mandatory user interaction is **step 0** (overlap detection), since the choice between create / supersede / append affects file layout.
@@ -41,7 +42,7 @@ Start from first principles.
 Write the PRD using the template below, then save it under `.scratch/<feat>/`. Every PRD carries YAML frontmatter per [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md) (§PRD files — `type`/`feature`/`version`/`supersedes`/`created`).
 
 - Option (a): write `PRD.md` (version 1, no `supersedes`)
-- Option (b): write `PRD-vN.md` (N = highest existing + 1) with `version: N` and `supersedes:` pointing at the previous filename, plus the `取代理由` block
+- Option (b): write `PRD-vN.md` (N = highest existing + 1) with `version: N` and `supersedes:` pointing at the previous filename, plus the `取代理由` block; carry forward the superseded PRD's still-open `尚未明确` items (drop ones already graduated into issues)
 - Option (c): append a dated entry under `## 修订` at the bottom of the existing PRD (frontmatter unchanged)
 
 Do **not** create issue files in this step — that's `/to-issues`'s job. Likewise, do not assign a `Status:` to the PRD itself; the `Status:` field only applies to issue files under `issues/`.
@@ -89,6 +90,12 @@ Exception: if a prototype produced a snippet that encodes a decision more precis
 - A description of what makes a good test (only test external behavior, not implementation details)
 - Which modules will be tested
 - Prior art for the tests (similar tests in the codebase)
+
+## 尚未明确（Fog of War）
+
+In-scope questions you can see coming but can't yet phrase sharply enough to slice — the **fog** ahead of the plan. Test: can you state the question precisely *now* (not answer it)? If yes, it's an Implementation Decision or an issue; if no, park it here. Not Out of Scope (that's ruled out) — this is in scope, just not sharp. `/to-issues` graduates each item once it sharpens; a superseding PRD carries the rest forward.
+
+- <one line per open question — the area, and what must resolve before it sharpens>
 
 ## 不在本次范围内（Out of Scope）
 
