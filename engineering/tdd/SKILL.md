@@ -97,8 +97,7 @@ Before writing any code:
 
 - [ ] Confirm with user what interface changes are needed *(autonomous mode: skip — issue's 实现决策 is the spec)*
 - [ ] Confirm with user which behaviors to test *(autonomous mode: skip — AC are the priority)*
-- [ ] Identify opportunities for [deep modules](deep-modules.md) (small interface, deep implementation)
-- [ ] Design interfaces for [testability](interface-design.md)
+- [ ] Shape deep modules + testable interfaces — run the `/codebase-design` skill for the deep-vs-shallow vocabulary and testability patterns
 - [ ] List the behaviors to test (not implementation steps)
 - [ ] Get user approval on the plan *(autonomous mode: skip)*
 

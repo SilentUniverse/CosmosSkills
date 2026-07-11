@@ -100,13 +100,15 @@ pwsh -NoProfile -File install.ps1 -Force                       # 跳过备份直
                                 ↓
    ┌──────────────────────────────────────────────────────────────┐
    │ /to-prd                    .scratch/<feat>/PRD.md            │
-   │  └─ 重跑默认写 PRD-v2.md（带 Supersedes 头），旧的不动        │
+   │  ├─ 重跑默认写 PRD-v2.md（带 Supersedes 头），旧的不动        │
+   │  └─「尚未明确」段：看得见但问不清的问题先存着，后续再毕业     │
    └────────────────────────────┬─────────────────────────────────┘
                                 ↓
    ┌──────────────────────────────────────────────────────────────┐
    │ /to-issues                 .scratch/<feat>/issues/NN-*.md     │
    │  ├─ 默认 status: ready-for-agent，带 frontmatter + 依赖 DAG   │
    │  ├─ 碰已有代码先做影响面探测：爆炸半径 + 回归风险报告         │
+   │  ├─ 宽重构（爆炸半径大）走 expand→contract，不硬拆切片        │
    │  ├─ 重跑时给"对账报告"：留 / 改 / redo / 删 / 新增            │
    │  └─ 加细节：/to-issues "在 NN 上加 X" → detail 类，refines 指回 │
    └────────────────────────────┬─────────────────────────────────┘
@@ -330,7 +332,7 @@ A、B 两条线都流到这里。下面按真实场景排。
 |---|---|---|
 | 领域概念 / 术语没定 | `/grill-with-docs`（落盘）或 `/grill-me`（不落盘） | —— |
 | 怎么设计才塞得进去（有真权衡） | `/prototype` 验证完再继续 | 别 grill 领域——你已经懂领域，纠结的是实现 |
-| 这改动会碰到/弄坏哪些现有行为 | 直接 `/to-issues`，它**先廉价探一道、按爆炸半径缩放**（小则一行带过，真耦合才出报告；见[修改已有需求](#修改已有需求)） | 别靠 PRD——它照不到影响面 |
+| 这改动会碰到/弄坏哪些现有行为 | 直接 `/to-issues`，它**先廉价探一道、按爆炸半径缩放**（小则一行带过，真耦合才出报告，宽重构走 expand→contract；见[修改已有需求](#修改已有需求)） | 别靠 PRD——它照不到影响面 |
 | 啥都清楚，只是要拆成可执行单元 | 直接 `/to-issues`（碰到 `done` 的自动触发对账） | 别为它新开 PRD |
 | 只给某一个切片加子行为 | `/to-issues "在 NN 上加 X"` → `detail` issue | 别走完整流程 |
 
@@ -517,12 +519,13 @@ adb logcat -b crash -d                                 # 抓 crash / ANR
 | [hys-setup](engineering/hys-setup/SKILL.md) | 项目首次接入跑一次，配置 issue tracker / 状态 / 文档布局；Case 5 迁移旧文件到 frontmatter |
 | [grill-me](productivity/grill-me/SKILL.md) / [grill-with-docs](engineering/grill-with-docs/SKILL.md) | 拷问方案逼出决策。`grill-me` 只拷问不落盘（临时想清楚）；`grill-with-docs` 拷问 + 把术语/决策写进 CONTEXT.md/ADR（要长期留档）。底层同一个 [grilling](productivity/grilling/SKILL.md) 引擎 |
 | [prototype](engineering/prototype/SKILL.md) | 写代码前造一次性原型验证方案（用在 `/to-prd` **之前**） |
-| [to-prd](engineering/to-prd/SKILL.md) | 对话变 PRD（版本化意图快照，重跑默认 supersede） |
-| [to-issues](engineering/to-issues/SKILL.md) | 拆 issue（frontmatter + 依赖 DAG，重跑给对账报告，支持 detail 子切片）；碰已有代码先做影响面探测（[impact-detection.md](engineering/to-issues/impact-detection.md)） |
+| [to-prd](engineering/to-prd/SKILL.md) | 对话变 PRD（版本化意图快照，重跑默认 supersede）；PRD 带「尚未明确（Fog of War）」段——看得见但还问不清的问题先存着，`/to-issues` 变清晰后再毕业成切片 |
+| [to-issues](engineering/to-issues/SKILL.md) | 拆 issue（frontmatter + 依赖 DAG，重跑给对账报告，支持 detail 子切片）；碰已有代码先做影响面探测（[impact-detection.md](engineering/to-issues/impact-detection.md)）；能 prefactor 就先铺垫，宽重构（爆炸半径铺满全仓）走 expand→contract |
 | [ship](engineering/ship/SKILL.md) | 编排一个 feature 的 ready-for-agent issue 跑完（拓扑排序 + 验证门，tdd 之上的一层） |
 | [tdd](engineering/tdd/SKILL.md) | 跑红绿循环：`<path>` 单条 · 裸跑串行排空所有 ready · `<feat>` 排空单 feature |
 | [tidy](engineering/tidy/SKILL.md) | 垃圾回收：归档 done、重生成 SUMMARY、审计测试 + 孤儿 issue |
 | [diagnose](engineering/diagnose/SKILL.md) | 6 阶段诊断硬 bug |
+| [resolving-merge-conflicts](engineering/resolving-merge-conflicts/SKILL.md) | 解决 merge/rebase 冲突：先摸清双方意图再尽量都保留；`ship` merge-back 冲突后的人工收尾 |
 | [zoom-out](engineering/zoom-out/SKILL.md) | 不熟的代码请求"地图视角"；可落盘进 `CODEBASE.md` 供开机加载 |
 | [improve-codebase-architecture](engineering/improve-codebase-architecture/SKILL.md) | 阶段性回顾找架构深化机会（架构词汇调 [codebase-design](engineering/codebase-design/SKILL.md)） |
 
@@ -530,19 +533,21 @@ adb logcat -b crash -d                                 # 抓 crash / ANR
 
 ### 共享引擎（通常被上面的 skill 调用，也可单独喊）
 
-这三个是把重复内容抽出来的「单一事实源」。`grill-*`、`improve-codebase-architecture` 都是薄壳，运行时 `/调用` 它们。好处：词汇/纪律只定义一处，改一处全仓生效；SKILL.md 更短，prompt cache 命中更好。它们没设 `disable-model-invocation`，所以**你也能单独喊**——当只想用其中一块能力、不必启动整个工作流时。
+这些是把重复内容/纪律抽出来的「单一事实源」。`grill-*`、`improve-codebase-architecture`、`ship` 都是薄壳/编排层，运行时 `/调用` 它们。好处：词汇/纪律只定义一处，改一处全仓生效；SKILL.md 更短，prompt cache 命中更好。它们没设 `disable-model-invocation`，所以**你也能单独喊**——当只想用其中一块能力、不必启动整个工作流时。
 
 | skill | 承载什么 | 工作流里谁调它 | 你单独喊它的场景 |
 |---|---|---|---|
 | [grilling](productivity/grilling/SKILL.md) | 裸采访循环（逐条走决策树，一次一问）。auto-invoke | grill-me / grill-with-docs / improve-codebase-architecture | 等价 `/grill-me`：临时拷问想清楚一件事，不落盘 |
 | [domain-modeling](engineering/domain-modeling/SKILL.md) | CONTEXT.md/ADR 维护纪律 + **draft 模式**（首次空仓一次性起草术语表）+ 格式约定 | grill-with-docs（拷问时落盘 / 老项目建术语表走 draft）；improve-codebase-architecture（定新模块名、否决建议记 ADR） | 只想补/整理术语表或补一条 ADR，不必走完整拷问 |
 | [codebase-design](engineering/codebase-design/SKILL.md) | deep-module 词汇表（module/interface/depth/seam/adapter/leverage/locality）+ 深化纪律 + design-it-twice | improve-codebase-architecture（全程用其词汇；探索接口时调 design-it-twice 并行起 subagent） | 设计单个新模块的接口、纠结 seam 放哪、想让代码更可测，但不必走完整架构回顾 |
+| [code-review](engineering/code-review/SKILL.md) | 两轴评审纪律：Standards（仓库规范 + Fowler 味道基线）+ Spec（比对 issue/PRD），两轴各起并行 subagent 互不污染 | ship（merge-back 前的 pre-merge 门，§3b 调它） | 想评审某段 diff / 分支 / PR，或“review since X”，不必走 ship |
 
 > **使用时**：走完整工作流就不用管这些引擎——喊 `/grill-with-docs`、`/improve-codebase-architecture` 即可，它们内部调谁是它们的事。只想用单块能力时，按上表最后一列单独喊。
 >
 > **维护/扩展这套 skill 时**才需要知道：内容只在引擎里定义一次，要改就改引擎那一处——
 > - 改架构词汇（给 `seam` 补定义、加新术语）→ 只改 `codebase-design/SKILL.md`
 > - 改术语 / ADR 纪律（如"何时该写 ADR"的判据）→ 只改 `domain-modeling/SKILL.md`
+> - 改评审纪律（Fowler 味道基线、两轴口径）→ 只改 `code-review/SKILL.md`（`ship` §3b 调它，不再内联）
 > - **别在消费方（`improve-codebase-architecture` 等）里再抄一份词汇定义**——那会让两处漂移。
 
 ### 元工作流
