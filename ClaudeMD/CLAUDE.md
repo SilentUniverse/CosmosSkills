@@ -41,7 +41,7 @@ Security, validation, accessibility are never on the chopping block.
 ## 5. Goal-Driven Execution
 
 Transform tasks into verifiable goals. Loop until verified.
-- Multi-step: state plan as `Step → verify: check` lines.
+- Multi-step: state plan as `Step → why → verify` lines; flag the 1–2 shakiest steps (assumptions that, if wrong, break the plan).
 - Adversarial review: attack your own work before declaring done.
 - Anti-thrash: after ~2 failed fixes on the same failure, stop — switch approach (or `/diagnose`), or ask.
 
