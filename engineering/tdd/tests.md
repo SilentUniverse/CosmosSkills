@@ -59,3 +59,18 @@ test("createUser makes user retrievable", async () => {
   expect(retrieved.name).toBe("Alice");
 });
 ```
+
+**Tautological tests**: the assertion recomputes the expected value the same way the code does, so it passes by construction and can never disagree with the code — zero confidence. Distinct from the implementation-coupling smell above. Expected values must come from an *independent* source of truth: a known-good literal, a worked example, or the spec.
+
+```typescript
+// BAD: asserts the code against itself
+test("applyDiscount computes the discounted price", () => {
+  const price = 100, rate = 0.2;
+  expect(applyDiscount(price, rate)).toBe(price - price * rate); // same formula as the impl
+});
+
+// GOOD: expected value from an independent worked example
+test("applyDiscount takes 20% off 100 → 80", () => {
+  expect(applyDiscount(100, 0.2)).toBe(80); // known-good literal
+});
+```
