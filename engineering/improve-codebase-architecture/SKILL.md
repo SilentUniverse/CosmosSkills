@@ -17,6 +17,11 @@ This skill is _informed_ by the project's domain model and built on a shared des
 
 ### 1. Explore
 
+**Scope before you scan — YAGNI.** Deepening pays off by making *future* changes easier, so weight the parts that have recently changed. Decide where to look before looking:
+
+- If the user named a direction (a module, subsystem, pain point), take it — skip the inference below.
+- Otherwise, walk back a stretch of `git log --oneline` for the hot spots — the files/areas that keep recurring — and let those pull your attention first. If changes are scattered with no clear hot spot, widen the net.
+
 Read the project's domain glossary and any ADRs in the area you're touching first.
 
 Then use the Agent tool with `subagent_type=Explore` to walk the codebase. Don't follow rigid heuristics — explore organically and note where you experience friction:
