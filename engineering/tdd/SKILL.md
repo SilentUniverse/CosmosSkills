@@ -85,6 +85,11 @@ Tests verify behavior through public interfaces, not implementation details — 
 and [mocking.md](mocking.md). Write one test at a time (vertical slices), never batch all tests then
 all implementation.
 
+**Murphy before done.** Green only proves the cases you wrote tests for. Before marking done,
+cover each chosen behavior's failure modes too — null/empty input, boundary values, error paths,
+and where relevant concurrency/timeouts. Occam trims during dev (no speculative features, per the
+cycle checklist); Murphy expands during verification — an untested failure path ships as a bug.
+
 ## Workflow
 
 ### 1. Planning
