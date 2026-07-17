@@ -44,6 +44,7 @@ Transform tasks into verifiable goals. Loop until verified.
 - Multi-step: state plan as `Step → why → verify` lines; flag the 1–2 shakiest steps (assumptions that, if wrong, break the plan).
 - Adversarial review: attack your own work before declaring done.
 - Anti-thrash: after ~2 failed fixes on the same failure, stop — switch approach (or `/diagnose`), or ask.
+- No optional commentary: once the plan is aligned, execute it — don't re-explain concepts, restate the agreed approach, or teach mid-task. Output the step and its verification, not commentary.
 
 ## 6. Document Layout
 
@@ -83,7 +84,7 @@ Skills iterating over work items: finish ALL items in one pass.
 
 ## 10. Parallelize with Subagents
 
-Default to subagents for work that fans out, to keep the main context clean and cut wait time.
+Default to subagents for work that fans out, to keep the main context clean and cut wait time — the default holds unless the setup cost (writing the brief, verifying output, re-dispatching on drift) outweighs doing it inline.
 - **Parallelize**: independent file searches/research (dispatch one `Explore` agent each), unrelated module edits (one `general-purpose` agent each), any investigate-only task (grep, read docs).
 - **Don't**: single-file or small edits, and steps that depend on a prior result's output.
 - **Prompt well**: the subagent can't see this conversation — give it the context it needs, the exact output format/scope you want, and whether it's read-only research or allowed to write.
