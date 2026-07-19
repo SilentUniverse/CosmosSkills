@@ -4,4 +4,6 @@ description: A relentless interview to sharpen a plan or design that also keeps 
 disable-model-invocation: true
 ---
 
-Run a `/grilling` session, using the `/domain-modeling` skill to capture terminology and decisions as they crystallise.
+Run a `/grilling` session, using `/domain-modeling` to keep domain docs current.
+
+Allowed writes: resolved glossary terms in `CONTEXT.md`, and ADRs that pass `/domain-modeling`'s ADR gate. Do not write PRDs, issues, code, or submit. End with decisions, docs changed (or none), route-changing assumptions, and next skill.
