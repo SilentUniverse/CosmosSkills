@@ -37,6 +37,7 @@ Security, validation, accessibility are never on the chopping block.
 - Match existing style. Mention dead code, don't delete it.
 - Remove orphans YOUR changes created. Don't remove pre-existing dead code.
 - Test: every changed line traces directly to the user's request.
+- Submit workflow: `/commit`. Ordinary coding/planning/review stops at validated changes. `/ship` may submit in worktrees. Otherwise do not submit.
 
 ## 5. Goal-Driven Execution
 

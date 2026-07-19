@@ -4,7 +4,7 @@ description: Turn the current conversation context into a PRD and write it under
 disable-model-invocation: true
 ---
 
-This skill takes the current conversation context and codebase understanding and writes a PRD under `.scratch/<feat>/`. Do NOT interview the user before writing — just synthesize what you already know. The only mandatory user interaction is **step 0** (overlap detection), since the choice between create / supersede / append affects file layout.
+This skill takes the current conversation context and codebase understanding and writes a PRD under `.scratch/<feat>/`. Do NOT interview before writing — synthesize what you know. Ask only for overlap choice and test seam confirmation; skip seam confirmation if `/grilling` settled it.
 
 The issue tracker has been provided to you — run `/hys-setup` if not.
 
@@ -28,6 +28,8 @@ If no hits, skip to step 1 with option (a).
 ### 1. Explore
 
 Explore the repo to understand the current state of the codebase, if you haven't already. Use the project's domain glossary vocabulary throughout the PRD, and respect any ADRs in the area you're touching.
+
+Stay scoped: start from any named module/path/pain point; stop once you can name the behavior, affected modules/interfaces, and test seams. Use `/zoom-out` only when local context can't supply those.
 
 If the feature spans several disjoint modules, **dispatch one Explore subagent per module in parallel** rather than reading everything inline — each returns just the seams and current shape the PRD needs, keeping the heavy reading out of this session's context. (Skip it for a single-module feature, or when `CODEBASE.md` already supplies the map.)
 

@@ -548,6 +548,7 @@ adb logcat -b crash -d                                 # 抓 crash / ANR
 > - 改架构词汇（给 `seam` 补定义、加新术语）→ 只改 `codebase-design/SKILL.md`
 > - 改术语 / ADR 纪律（如"何时该写 ADR"的判据）→ 只改 `domain-modeling/SKILL.md`
 > - 改评审纪律（Fowler 味道基线、两轴口径）→ 只改 `code-review/SKILL.md`（`ship` §3b 调它，不再内联）
+> - 改普通工作流的提交入口 → 只改 [ClaudeMD/CLAUDE.md](ClaudeMD/CLAUDE.md) 的 `Submit workflow:` 行；消费方只引用这个标签，不写死命令名
 > - **别在消费方（`improve-codebase-architecture` 等）里再抄一份词汇定义**——那会让两处漂移。
 
 ### 元工作流

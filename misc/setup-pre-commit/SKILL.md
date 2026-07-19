@@ -78,11 +78,11 @@ Only create if no Prettier config exists. Use these defaults:
 - [ ] `prettier` config exists
 - [ ] Run `npx lint-staged` to verify it works
 
-### 8. Commit
+### 8. Hand off to submit workflow
 
-Stage all changed/created files and commit with message: `Add pre-commit hooks (husky + lint-staged + prettier)`
+Do not stage or submit here. Tell the user to run the Submit workflow named in `CLAUDE.md` with summary: `Add pre-commit hooks (husky + lint-staged + prettier)`.
 
-This will run through the new pre-commit hooks — a good smoke test that everything works.
+That workflow will exercise the hooks again; Verify is the local smoke test.
 
 ## Notes
 
