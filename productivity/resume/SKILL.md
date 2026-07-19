@@ -44,10 +44,13 @@ Also check working-tree cleanliness; if dirty, surface `git status` briefly befo
 
 ### 3. Execute the 开机动作序列
 
-Read the handoff's six sections. Section 5 (开机动作序列) is the script: read the listed files, run
+Read the handoff's seven sections. Section 5 (开机动作序列) is the script: read the listed files, run
 the listed commands, confirm the stated first decision. Section 4 (关键口径清单) is the load-bearing
 context — treat those decisions and invariants as binding. Don't re-explore what the handoff already
-decided; that's the whole point of the document.
+decided; that's the whole point of the document. Section 7 (反思与归因), if present, holds lessons
+from this session's corrections — the reusable ones were already routed to ADR / `CLAUDE.md` at
+write time (so session-start loads them automatically); everything else stays in the section body,
+so still give it a read.
 
 If the handoff names a feature, also glance at `.scratch/<feat>/INDEX.md` row and any
 `status: ready-for-*` issues so you know the live working set.
