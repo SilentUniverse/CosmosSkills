@@ -24,7 +24,7 @@ argument-hint: "Issue path, feature slug, or nothing to drain all ready issues"
 1. Enumerate candidates: bare scans `.scratch/*/issues/*.md` (top level, never `archive/`); `<feat>` scans only `.scratch/<feat>/issues/*.md`. Read each one's `status:` and `blocked_by:` with `yq --front-matter=extract`.
 2. Keep only `status: ready-for-agent`. Order them so every issue runs after its `blocked_by` blockers. Skip (don't fail) any issue still blocked by a `ready-for-human` or unfinished issue — report it as deferred at the end.
 3. Run each, **one at a time**, through the autonomous-mode loop below (§Workflow). Per-issue gate: mark `status: done` only if build + the touched module's **scoped** tests pass (not the whole suite); on failure leave it `ready-for-agent`, note why, and **continue** to the next (a red issue doesn't abort the drain unless others depend on it).
-4. After the last issue takes the active set to empty, run the **full suite + build once** as the batch's closing check (§5) and regenerate `.scratch/INDEX.md`. Report shipped, failed, deferred, full-suite result, and each shipped issue's `代码讲解`. If a feature's `done` count crossed ~8, suggest `/tidy`.
+4. After the last issue takes the active set to empty, run the **full suite + build once** as the batch's closing check (§5) and regenerate `.scratch/INDEX.md`. Report shipped, failed, deferred, and the full-suite result; explain each shipped issue's changed code flow in the chat window. If a feature's `done` count crossed ~8, suggest `/tidy`.
 
 Drain mode never spawns worktrees or parallel subagents — that's `/ship`'s job. It's deliberately the dumb-but-legible serial path.
 
@@ -70,11 +70,10 @@ When all AC pass — and for `ready-for-human`, hands-on verification is confirm
 - 新增测试：<list of test files + case counts>
 - 验收：N/M ✅
 - 跳过的 AC：#X 由 <existing test path> 已覆盖（如有）
-- 代码讲解：<这块代码现在做什么；为什么这样改；如何解决 AC；读这块代码应从哪里开始>
 - 备注：<optional one-liner — e.g. real-device check passed on Pixel 6>
 ```
 
-Tell the user the same `代码讲解`: teach the changed flow, why this design solves the issue, and where to start reading. Not a file-by-file diff. In drain mode, summarize per issue plus a final tally.
+After validation, explain in the chat window what the changed flow does, why this design solves the issue, and where to start reading. In drain mode, give one concise explanation per issue plus a final tally.
 
 Standalone `/tdd` does **not** submit. It stops at validated changes + completion records. Use the Submit workflow named in `CLAUDE.md`; `/ship` may submit in worktrees.
 
