@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Test-driven development with red-green-refactor loop. Four invocation forms — `/tdd <issue-path>` runs one issue (mode chosen by frontmatter `status:`); bare `/tdd` drains every ready-for-agent issue serially in dependency order; `/tdd <feat>` drains just that feature; a natural-language ask without an issue falls back to interview-driven flow. Use when user wants to build features or fix bugs using TDD, mentions "red-green-refactor", wants integration tests, or asks for test-first development.
+description: Test-driven development with red-green-refactor loop. Runs one issue, drains a feature's (or all) ready-for-agent issues in dependency order, or interviews when asked without an issue. Use when user wants to build features or fix bugs using TDD, mentions "red-green-refactor", wants integration tests, or asks for test-first development.
 argument-hint: "Issue path, feature slug, or nothing to drain all ready issues"
 ---
 
@@ -14,19 +14,14 @@ argument-hint: "Issue path, feature slug, or nothing to drain all ready issues"
 - `/tdd --full` — run build + the whole suite now (the manual full-suite check, §5); combine with any form above.
 - Natural-language ask without an issue (e.g. "write tests for the parser") — fall back to **interview mode** (jump to Workflow §1).
 
-> **`/tdd` drain vs `/ship`.** Both finish the `ready-for-agent` backlog. Use **bare `/tdd`** for a
-> small backlog you want to supervise serially in this session. Use **`/ship`** when you want
-> parallel worktree builds, merge-back, deferred-issue handling, and auto-tidy — i.e. volume or
-> unattended runs. Same issues, same verification gate; drain is the no-ceremony serial version.
-
 ### Drain mode (bare `/tdd` or `/tdd <feat>`)
 
 1. Enumerate candidates: bare scans `.scratch/*/issues/*.md` (top level, never `archive/`); `<feat>` scans only `.scratch/<feat>/issues/*.md`. Read each one's `status:` and `blocked_by:` with `yq --front-matter=extract`.
 2. Keep only `status: ready-for-agent`. Order them so every issue runs after its `blocked_by` blockers. Skip (don't fail) any issue still blocked by a `ready-for-human` or unfinished issue — report it as deferred at the end.
 3. Run each, **one at a time**, through the autonomous-mode loop below (§Workflow). Per-issue gate: mark `status: done` only if build + the touched module's **scoped** tests pass (not the whole suite); on failure leave it `ready-for-agent`, note why, and **continue** to the next (a red issue doesn't abort the drain unless others depend on it).
-4. After the last issue takes the active set to empty, run the **full suite + build once** as the batch's closing check (§5) and regenerate `.scratch/INDEX.md`. Report shipped, failed, deferred, and the full-suite result; explain each shipped issue's changed code flow in the chat window. If a feature's `done` count crossed ~8, suggest `/tidy`.
+4. After the last issue takes the active set to empty, run the **full suite + build once** as the batch's closing check (§5). Report shipped, failed, deferred, and the full-suite result; explain each shipped issue's changed code flow in the chat window. If a feature's `done` count crossed ~8, suggest `/tidy`.
 
-Drain mode never spawns worktrees or parallel subagents — that's `/ship`'s job. It's deliberately the dumb-but-legible serial path.
+Drain mode never spawns worktrees or parallel subagents — it's deliberately the dumb-but-legible serial path.
 
 ### Status guard (issue-driven invocation)
 
@@ -75,9 +70,9 @@ When all AC pass — and for `ready-for-human`, hands-on verification is confirm
 
 After validation, explain in the chat window what the changed flow does, why this design solves the issue, and where to start reading. In drain mode, give one concise explanation per issue plus a final tally.
 
-Standalone `/tdd` does **not** submit. It stops at validated changes + completion records. Use the Submit workflow named in `CLAUDE.md`; `/ship` may submit in worktrees.
+Standalone `/tdd` does **not** submit. It stops at validated changes + completion records. Use the Submit workflow named in `CLAUDE.md`.
 
-Then regenerate `.scratch/INDEX.md` so the feature's state counts reflect the new `done` (per [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md)). The issue file itself stays in `issues/` — `/tidy` moves it to `issues/archive/` later, not `/tdd`.
+The issue file itself stays in `issues/` — `/tidy` moves it to `issues/archive/` later, not `/tdd`.
 
 If the run is aborted (test framework broken, environment unfixable), revert `status:` to its original value and append a brief failure note to `## Comments`.
 
@@ -107,6 +102,8 @@ Before writing any code:
 - [ ] Shape deep modules + testable interfaces — run the `/codebase-design` skill for the deep-vs-shallow vocabulary and testability patterns
 - [ ] List the behaviors to test (not implementation steps)
 - [ ] Get user approval on the plan *(autonomous mode: skip)*
+
+**Pre-issue statement (autonomous mode).** Before writing the first test, state in 2–3 lines: what this slice requires, which interface you'll shape, which behaviors you'll test first. Don't wait for a reply — keep going. This is the user's cheapest point to catch a wrong understanding, before any code exists.
 
 Ask: "What should the public interface look like? Which behaviors are most important to test?"
 
@@ -163,7 +160,7 @@ After all tests pass, look for [refactor candidates](refactoring.md):
 Per-cycle and per-issue runs stay scoped (§3) for speed, so they can't see cross-module
 regressions. The full suite + build (commands cached in `docs/agents/domain.md`) runs at two points:
 
-- **Automatic, once per batch.** When a drain / ship run takes its **last** issue to `done` — i.e.
+- **Automatic, once per batch.** When a drain run takes its **last** issue to `done` — i.e.
   the active set is empty — run the full suite + build one time as the batch's closing check. Not
   per issue; per batch. Report a wider failure rather than letting it pass silently.
 - **Manual, on demand.** `/tdd --full` (or "run the full suite") runs build + the whole suite now,

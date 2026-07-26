@@ -37,7 +37,7 @@ Security, validation, accessibility are never on the chopping block.
 - Match existing style. Mention dead code, don't delete it.
 - Remove orphans YOUR changes created. Don't remove pre-existing dead code.
 - Test: every changed line traces directly to the user's request.
-- Submit workflow: `/commit`. Ordinary coding/planning/review stops at validated changes. `/ship` may submit in worktrees. Otherwise do not submit.
+- Submit workflow: `/commit`. Ordinary coding/planning/review stops at validated changes. Otherwise do not submit.
 
 ## 5. Goal-Driven Execution
 
@@ -45,6 +45,7 @@ Transform tasks into verifiable goals. Loop until verified.
 - Multi-step: state plan as `Step → why → verify` lines; flag the 1–2 shakiest steps (assumptions that, if wrong, break the plan).
 - Adversarial review: attack your own work before declaring done.
 - Anti-thrash: after ~2 failed fixes on the same failure, stop — switch approach (or `/diagnose`), or ask.
+- Corrections persist: when the user corrects your understanding mid-task, write the correction into the governing artifact (issue AC / PRD / `CODEBASE.md` invariant) before continuing — chat evaporates, artifacts don't.
 - No optional commentary: once the plan is aligned, execute it — don't re-explain concepts, restate the agreed approach, or teach mid-task. Output the step and its verification, not commentary.
 
 ## 6. Document Layout

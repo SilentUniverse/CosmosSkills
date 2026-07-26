@@ -12,3 +12,5 @@ Interview me relentlessly about every aspect of this plan until we reach a share
 Split what's in front of you into two piles: **facts** — anything you could settle by exploring the environment (codebase, files, tools, docs), look those up yourself; and **decisions** — the calls only I can make, put each one to me with your recommended answer and wait.
 
 Ask the questions one at a time, waiting for feedback on each question before continuing. Asking multiple questions at once is bewildering.
+
+When a decision's options are enumerable, present it via the AskUserQuestion tool with your recommended option first; otherwise ask in free text.

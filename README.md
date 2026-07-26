@@ -42,7 +42,7 @@ curl -fsSL https://raw.githubusercontent.com/SilentUniverse/HysSkills/main/Claud
 | `bat` | cat | 终端看文件（脚本里用 `bat -pp`） |
 | `eza` | ls / dir | 终端列目录 |
 | `jq` | — | JSON 查询/改写 |
-| `yq` | sed/awk 处理 yaml | **抽取 issue frontmatter 的 status / blocked_by / refines** —— `/ship`、`/tidy` 读 DAG 靠它 |
+| `yq` | sed/awk 处理 yaml | **抽取 issue frontmatter 的 status / blocked_by / refines** —— `/tdd`、`/tidy` 读 DAG 靠它 |
 | `ast-grep`（命令 `sg`） | grep 找代码 | 按语法树结构搜索/改写（如找 `as Type` 断言） |
 | `sd` | sed 替换 | 批量 find-replace |
 
@@ -114,11 +114,9 @@ pwsh -NoProfile -File install.ps1 -Force                       # 跳过备份直
    └────────────────────────────┬─────────────────────────────────┘
                                 ↓
    ┌──────────────────────────────────────────────────────────────┐
-   │ /ship <feat>   编排：拓扑分波 → 派 subagent 跑 /tdd → 验证门  │
-   │  ├─ 同波次各自 git worktree 并行跑，跑完过两阶段 review 再 merge │
-   │  ├─ ready-for-agent 自动跑完，ready-for-human 汇成人工清单     │
-   │  └─ done 攒够 → 提示 /tidy；context 紧 → 自动 /handoff         │
-   │  · 两种跑法：/ship（会话内）· /ship-wf（后台编排 workflow）    │
+   │ /tdd           红绿循环：<path> 单条 · 裸跑 / <feat> 串行排空  │
+   │  ├─ 按依赖顺序跑完 ready-for-agent，ready-for-human 留给你     │
+   │  └─ 批末跑一次全量 suite + build；done 攒够 → 提示 /tidy       │
    └────────────────────────────┬─────────────────────────────────┘
                                 ↓
    ┌──────────────────────────────────────────────────────────────┐
@@ -156,7 +154,7 @@ rg '^status: ready-for-agent' -g '**/issues/*.md' .scratch    # 可丢 agent 的
 rg '^status: ready-for-human' -g '**/issues/*.md' .scratch    # 我亲自做的
 ```
 
-想确定性读某 issue 的单个字段（状态 / 依赖 / refines），用 `yq --front-matter=extract '.status' <file>`，别手撸正则。要看 done / archived 的计数与全局花名册，读 `.scratch/INDEX.md`（自动维护）；要看某 feature「已建成什么」，读 `.scratch/<feat>/SUMMARY.md`（自动重生成）。
+想确定性读某 issue 的单个字段（状态 / 依赖 / refines），用 `yq --front-matter=extract '.status' <file>`，别手撸正则。要看某 feature「已建成什么」，读 `.scratch/<feat>/SUMMARY.md`（`/tidy` 重生成）；done / archived 的历史直接列 `issues/archive/`。
 
 ---
 
@@ -168,11 +166,11 @@ rg '^status: ready-for-human' -g '**/issues/*.md' .scratch    # 我亲自做的
 |---|---|---|---|
 | **项目级** | 仓库根 | `CONTEXT.md`（术语）、`CODEBASE.md`（结构地图） | 一个项目一份，开机加载，长期 |
 | **项目级长期文档** | `docs/` | `docs/adr/`（架构决策）、`docs/agents/`（含 `domain.md` 测试/构建命令缓存） | 长期保留，随项目增长 |
-| **feature 工作态** | `.scratch/` | `<feat>/PRD.md`、`<feat>/issues/`、`<feat>/SUMMARY.md`、`<feat>/handoff.md`、`INDEX.md` | 跟着 feature 走，活跃 issue 在顶层、`done` 的进 `issues/archive/` |
+| **feature 工作态** | `.scratch/` | `<feat>/PRD.md`、`<feat>/issues/`、`<feat>/SUMMARY.md`、`<feat>/handoff.md` | 跟着 feature 走，活跃 issue 在顶层、`done` 的进 `issues/archive/` |
 
 **几个要点：**
 - `.scratch/` 不是"临时丢弃"——它被 git 跟踪（只有 `.scratch/tmp/` 被 ignore）。它是"feature 级工作态"：PRD/issues 是活的工作产物。
-- `INDEX.md` 由多个 skill 在改 issue 状态时重生成；`SUMMARY.md` 只由 `/tidy`（或 `/ship` 收尾触发 `/tidy`）从 done issue 的 `### 完成` 记录聚合重生成——所以 done 了但还没跑 `/tidy` 时，`SUMMARY.md` 会落后于实际。
+- `SUMMARY.md` 只由 `/tidy` 从 done issue 的 `### 完成` 记录聚合重生成——所以 done 了但还没跑 `/tidy` 时，`SUMMARY.md` 会落后于实际。活跃状态不落盘缓存，要看就现查：`rg '^status:' -g '**/issues/*.md' .scratch`。
 - `docs/agents/domain.md` 虽然是 agent 读的（缓存项目测试命令），但它是项目级长期配置，归 `docs/`——配置类文档放这里，不强求 `docs/` 纯人读。
 - `done` 的 issue 不删、进 `archive/`；ADR 被取代只标 superseded 不改原文。详见 [ARTIFACT-FORMAT.md](engineering/ARTIFACT-FORMAT.md)。
 
@@ -186,25 +184,18 @@ rg '^status: ready-for-human' -g '**/issues/*.md' .scratch    # 我亲自做的
 
 ---
 
-## 自动化阶梯（手动 → 全自动，全保留）
+## 自动化阶梯（手动 → 批量，全保留）
 
-同一批 `ready-for-agent` issue、同一道验证门，从全程手动到无人值守有四个层级。按"量有多大、你想盯多紧"挑，没有哪个取代哪个：
+同一批 `ready-for-agent` issue、同一道验证门，按"量有多大、你想盯多紧"挑：
 
 | 层级 | 命令 | 形态 | 何时用 |
 |---|---|---|---|
 | 单条手动 | `/tdd <issue-path>` | 跑指定一条，全程可见 | 想盯着做某一条 |
-| 串行排空 | `/tdd`（裸跑）/ `/tdd <feat>` | 按依赖顺序**串行**跑完所有 ready，无 worktree、无并行、无 tidy | 少量收尾，想在本会话逐条看着排空 |
-| 会话内编排 | `/ship <feat>` | 分波、**各自 worktree 并行**、两阶段 review 后串行 merge-back、自动 tidy | 一两个 wave 的量、想盯着、随时打断；再大就上 `/ship-wf`（占主 context） |
-| 后台编排 | `/ship-wf` | 同 `/ship`，后台 workflow、结构化 agent、不占主 context | 一次无人值守把一个 feature 跑完 |
+| 串行排空 | `/tdd`（裸跑）/ `/tdd <feat>` | 按依赖顺序**串行**跑完所有 ready，批末跑一次全量 suite + build | 把积攒的 backlog 一次跑完 |
 
-**两条易混的线：**
+**典型节奏：** 搜 `^status: ready-for-human` 挑一条手动做；积了一批 ready-for-agent 就 `/tdd <feat>`（或裸 `/tdd`）串行排空。
 
-- **裸 `/tdd` vs `/ship`** —— 都排空 backlog。裸 `/tdd` 是"笨而清晰的串行"（无并行、无收拢、无清理，全在当前会话）；`/ship` 是"聪明的编排"（worktree 并行 + 两阶段 review + merge-back + 自动 tidy）。同样的 issue、同样的 build+测试门；`/ship` 在 merge 前多一道 fresh subagent 的两阶段 review（spec 合规 + 代码质量）。
-- **`/ship` vs `/ship-wf`** —— 同一套编排逻辑的两种运行时：会话内 skill（看得见、可打断）、后台 workflow（不占主 context）。`/ship-wf` 是把 `.claude/workflows/ship-wf.js` 自动注册成的原生动态命令（直接敲 `/ship-wf`，不是 `/workflow ship-wf`；`/workflows` 复数是浏览运行记录）。命名 `ship-wf` 是为了不和 `/ship` skill 撞车。
-
-**典型节奏：** 周一上午搜 `^status: ready-for-human` 挑一条手动做；周五下午 `/ship <feat>`（或量特别大时 `/ship-wf`）然后下班；少量零散收尾直接裸 `/tdd` 串行排空。
-
-> 所有层级都只碰 `ready-for-agent`。定方向（`grill` / `to-prd` / `to-issues`）和每个 `ready-for-human` 门永远留给你。
+> 两个层级都只碰 `ready-for-agent`。定方向（`grill` / `to-prd` / `to-issues`）和每个 `ready-for-human` 门永远留给你。
 
 ---
 
@@ -233,7 +224,7 @@ rg '^status: ready-for-human' -g '**/issues/*.md' .scratch    # 我亲自做的
 2. 方案有不确定的设计点 → `/prototype` 造一次性原型验证（用完扔）
 3. `/to-prd` 写 `.scratch/<feat>/PRD.md`——**显式写明"涉及 `<具体路径>`"**，给后续 skill 留路标
 4. `/to-issues` 拆成 `.scratch/<feat>/issues/NN-*.md`，默认 `status: ready-for-agent`（带 frontmatter + 依赖 DAG）
-5. `/ship <feat>` 一次跑完所有 ready-for-agent 的；或 `/tdd <issue-path>` 单跑一条
+5. `/tdd <feat>` 一次跑完该 feature 所有 ready-for-agent 的；或 `/tdd <issue-path>` 单跑一条
 
 **第 3 步 — 维护好两件套:`CONTEXT.md`(术语) + `CODEBASE.md`(理解)**
 
@@ -316,9 +307,9 @@ A、B 两条线都流到这里。下面按真实场景排。
 | 场景 | 第一句敲什么 |
 |---|---|
 | 继续做某条已有 issue | `/tdd <issue-path>` |
-| 一次跑完某 feature 的 ready-for-agent issue | `/ship <feat>` |
+| 一次跑完某 feature 的 ready-for-agent issue | `/tdd <feat>` |
 | 上一 session 留了 handoff | `/resume`（自动找最近 active handoff、校验 baseline、按"开机动作序列"续） |
-| 不记得做到哪了 | 终端跑 `rg '^status:' -g '**/issues/*.md' .scratch` 或读 `.scratch/INDEX.md`（眼睛看，**不**让 agent 看） |
+| 不记得做到哪了 | 终端跑 `rg '^status:' -g '**/issues/*.md' .scratch`（眼睛看，**不**让 agent 看） |
 | 全新需求 | 见 [新需求来了](#新需求来了) |
 | 修改老需求 | 见 [修改已有需求](#修改已有需求) |
 
@@ -338,7 +329,7 @@ A、B 两条线都流到这里。下面按真实场景排。
 
 - **`/grill-me` vs `/grill-with-docs`**：二选一不是两步。同一个 grilling 引擎，只差落不落盘。口诀：**聊完三天后还要有人知道"为什么这么定" → `grill-with-docs`；只是当下想清楚 → `grill-me`**。
 - **`/to-prd` 何时才需要**：它是版本化的*意图快照*，**只在意图真的变了时才写**。在已懂的领域里加东西、意图没变，直接 `/to-issues` 是正路，不是抄近道。
-- 拆完 → `/ship <feat>` 一次跑完 ready-for-agent 的；或 `/tdd <issue-path>` 单跑一条。
+- 拆完 → `/tdd <feat>` 一次跑完 ready-for-agent 的；或 `/tdd <issue-path>` 单跑一条。
 
 > **防漏靠的不是 PRD**：担心"小功能直接 to-issues 会漏"——救你的是 to-issues 第 4 步的切片清单 quiz（粒度对吗/依赖对吗）和 AC 纪律，不是那份 PRD。耦合改动真正会漏的是*影响面*，那由下面的影响面探测兜，PRD 同样照不到。
 
@@ -367,7 +358,7 @@ A、B 两条线都流到这里。下面按真实场景排。
 | 状态 | 怎么改 |
 |---|---|
 | `ready-for-agent` / `ready-for-human` | 直接编辑文件 / 加新文件 / 删文件——还没承诺过，没历史包袱 |
-| `done` | **不可改**。流程：`/to-prd` 重跑（默认写 `PRD-v2.md`） → `/to-issues` 重跑给对账报告（哪些留 / 哪些 redo / 哪些删 / 哪些新增）→ `/ship` 或 `/tdd <new-redo-issue>` 跑新切片 |
+| `done` | **不可改**。流程：`/to-prd` 重跑（默认写 `PRD-v2.md`） → `/to-issues` 重跑给对账报告（哪些留 / 哪些 redo / 哪些删 / 哪些新增）→ `/tdd <new-redo-issue>` 跑新切片 |
 
 **架构整体反转**（不只一个 feature 变了，是底层决策反转）：先 `/grill-with-docs` 写新 ADR 标 `Supersedes:` 旧 ADR，再走"老 issue 已完工"流程。
 
@@ -388,7 +379,7 @@ A、B 两条线都流到这里。下面按真实场景排。
 
 2. **`/improve-codebase-architecture`（架构回顾时）** —— 当你**否决一个重构建议、且理由有分量**时，它会问要不要记成 ADR，用来**钉住一个"不要这么做"的决定**，免得以后的回顾重复建议。临时理由（"现在没空"）不写。
 
-**什么时候不会写：** `/to-prd`、`/to-issues`、`/tdd`、`/ship` 都不写 ADR；可逆、显而易见、或纯属当下偷懒的理由也跳过。
+**什么时候不会写：** `/to-prd`、`/to-issues`、`/tdd` 都不写 ADR；可逆、显而易见、或纯属当下偷懒的理由也跳过。
 
 **三件套的分工（别混）：**
 
@@ -423,7 +414,7 @@ A、B 两条线都流到这里。下面按真实场景排。
 /handoff <下个 session 要干啥>
 ```
 
-写 6 段骨架的交接文档：**feature 相关**的滚动写到 `.scratch/<feat>/handoff.md`（带 frontmatter，和该 feature 的 PRD/issue 同处，永远不散落）；**跨 feature** 的滚动写到 `.scratch/handoff.md`（`.scratch/` 根，单文件覆盖）。**第 4 段"关键口径清单"是核心**——决策可以丢，决策的"为什么"不能丢。handoff 只记状态供恢复，不管提交——手动改动由人最终提交，自动改动由 `/ship` 编排提交。
+写 6 段骨架的交接文档：**feature 相关**的滚动写到 `.scratch/<feat>/handoff.md`（带 frontmatter，和该 feature 的 PRD/issue 同处，永远不散落）；**跨 feature** 的滚动写到 `.scratch/handoff.md`（`.scratch/` 根，单文件覆盖）。**第 4 段"关键口径清单"是核心**——决策可以丢，决策的"为什么"不能丢。handoff 只记状态供恢复，不管提交——提交由人走 `/commit`。
 
 **下一个 session 怎么续**：直接敲一句（不需要任何前置仪式、不用记路径）：
 
@@ -435,7 +426,7 @@ A、B 两条线都流到这里。下面按真实场景排。
 
 > **频率建议**：长任务每天结束前留一份；快跑的小任务做完直接关；多 session 跨越的 epic 在每次切换前都留一份。
 >
-> **反例**：上一 session 工作已完整结束（issue 已 `status: done`）→ **不要写 handoff**，也不要 `/resume` 续上。下个 session 直接 `/tdd <next-issue-path>` 或 `/ship <feat>` 进下一条。handoff 是给"半截工作"留的桥，不是切 session 的仪式。
+> **反例**：上一 session 工作已完整结束（issue 已 `status: done`）→ **不要写 handoff**，也不要 `/resume` 续上。下个 session 直接 `/tdd <next-issue-path>`（或 `/tdd <feat>`）进下一条。handoff 是给"半截工作"留的桥，不是切 session 的仪式。
 
 ### 省 token 的几条姿势
 
@@ -521,11 +512,10 @@ adb logcat -b crash -d                                 # 抓 crash / ANR
 | [prototype](engineering/prototype/SKILL.md) | 写代码前造一次性原型验证方案（用在 `/to-prd` **之前**） |
 | [to-prd](engineering/to-prd/SKILL.md) | 对话变 PRD（版本化意图快照，重跑默认 supersede）；PRD 带「尚未明确（Fog of War）」段——看得见但还问不清的问题先存着，`/to-issues` 变清晰后再毕业成切片 |
 | [to-issues](engineering/to-issues/SKILL.md) | 拆 issue（frontmatter + 依赖 DAG，重跑给对账报告，支持 detail 子切片）；碰已有代码先做影响面探测（[impact-detection.md](engineering/to-issues/impact-detection.md)）；能 prefactor 就先铺垫，宽重构（爆炸半径铺满全仓）走 expand→contract |
-| [ship](engineering/ship/SKILL.md) | 编排一个 feature 的 ready-for-agent issue 跑完（拓扑排序 + 验证门，tdd 之上的一层） |
 | [tdd](engineering/tdd/SKILL.md) | 跑红绿循环：`<path>` 单条 · 裸跑串行排空所有 ready · `<feat>` 排空单 feature |
 | [tidy](engineering/tidy/SKILL.md) | 垃圾回收：归档 done、重生成 SUMMARY、审计测试 + 孤儿 issue |
 | [diagnose](engineering/diagnose/SKILL.md) | 6 阶段诊断硬 bug |
-| [resolving-merge-conflicts](engineering/resolving-merge-conflicts/SKILL.md) | 解决 merge/rebase 冲突：先摸清双方意图再尽量都保留；`ship` merge-back 冲突后的人工收尾 |
+| [resolving-merge-conflicts](engineering/resolving-merge-conflicts/SKILL.md) | 解决 merge/rebase 冲突：先摸清双方意图再尽量都保留 |
 | [zoom-out](engineering/zoom-out/SKILL.md) | 不熟的代码请求"地图视角"；可落盘进 `CODEBASE.md` 供开机加载 |
 | [improve-codebase-architecture](engineering/improve-codebase-architecture/SKILL.md) | 阶段性回顾找架构深化机会（架构词汇调 [codebase-design](engineering/codebase-design/SKILL.md)） |
 
@@ -533,21 +523,21 @@ adb logcat -b crash -d                                 # 抓 crash / ANR
 
 ### 共享引擎（通常被上面的 skill 调用，也可单独喊）
 
-这些是把重复内容/纪律抽出来的「单一事实源」。`grill-*`、`improve-codebase-architecture`、`ship` 都是薄壳/编排层，运行时 `/调用` 它们。好处：词汇/纪律只定义一处，改一处全仓生效；SKILL.md 更短，prompt cache 命中更好。它们没设 `disable-model-invocation`，所以**你也能单独喊**——当只想用其中一块能力、不必启动整个工作流时。
+这些是把重复内容/纪律抽出来的「单一事实源」。`grill-*`、`improve-codebase-architecture` 都是薄壳/编排层，运行时 `/调用` 它们。好处：词汇/纪律只定义一处，改一处全仓生效；SKILL.md 更短，prompt cache 命中更好。它们没设 `disable-model-invocation`，所以**你也能单独喊**——当只想用其中一块能力、不必启动整个工作流时。
 
 | skill | 承载什么 | 工作流里谁调它 | 你单独喊它的场景 |
 |---|---|---|---|
 | [grilling](productivity/grilling/SKILL.md) | 裸采访循环（逐条走决策树，一次一问）。auto-invoke | grill-me / grill-with-docs / improve-codebase-architecture | 等价 `/grill-me`：临时拷问想清楚一件事，不落盘 |
 | [domain-modeling](engineering/domain-modeling/SKILL.md) | CONTEXT.md/ADR 维护纪律 + **draft 模式**（首次空仓一次性起草术语表）+ 格式约定 | grill-with-docs（拷问时落盘 / 老项目建术语表走 draft）；improve-codebase-architecture（定新模块名、否决建议记 ADR） | 只想补/整理术语表或补一条 ADR，不必走完整拷问 |
 | [codebase-design](engineering/codebase-design/SKILL.md) | deep-module 词汇表（module/interface/depth/seam/adapter/leverage/locality）+ 深化纪律 + design-it-twice | improve-codebase-architecture（全程用其词汇；探索接口时调 design-it-twice 并行起 subagent） | 设计单个新模块的接口、纠结 seam 放哪、想让代码更可测，但不必走完整架构回顾 |
-| [code-review](engineering/code-review/SKILL.md) | 两轴评审纪律：Standards（仓库规范 + Fowler 味道基线）+ Spec（比对 issue/PRD），两轴各起并行 subagent 互不污染 | ship（merge-back 前的 pre-merge 门，§3b 调它） | 想评审某段 diff / 分支 / PR，或“review since X”，不必走 ship |
+| [code-review](engineering/code-review/SKILL.md) | 两轴评审纪律：Standards（仓库规范 + Fowler 味道基线）+ Spec（比对 issue/PRD），两轴各起并行 subagent 互不污染 | —（独立使用） | 想评审某段 diff / 分支 / PR，或“review since X” |
 
 > **使用时**：走完整工作流就不用管这些引擎——喊 `/grill-with-docs`、`/improve-codebase-architecture` 即可，它们内部调谁是它们的事。只想用单块能力时，按上表最后一列单独喊。
 >
 > **维护/扩展这套 skill 时**才需要知道：内容只在引擎里定义一次，要改就改引擎那一处——
 > - 改架构词汇（给 `seam` 补定义、加新术语）→ 只改 `codebase-design/SKILL.md`
 > - 改术语 / ADR 纪律（如"何时该写 ADR"的判据）→ 只改 `domain-modeling/SKILL.md`
-> - 改评审纪律（Fowler 味道基线、两轴口径）→ 只改 `code-review/SKILL.md`（`ship` §3b 调它，不再内联）
+> - 改评审纪律（Fowler 味道基线、两轴口径）→ 只改 `code-review/SKILL.md`
 > - 改普通工作流的提交入口 → 只改 [ClaudeMD/CLAUDE.md](ClaudeMD/CLAUDE.md) 的 `Submit workflow:` 行；消费方只引用这个标签，不写死命令名
 > - **别在消费方（`improve-codebase-architecture` 等）里再抄一份词汇定义**——那会让两处漂移。
 

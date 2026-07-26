@@ -1,7 +1,7 @@
 ---
 name: tidy
 description: Garbage-collect a feature's issue directory — archive done issues, regenerate SUMMARY.md from completion records, audit for zombie/duplicate tests, and flag orphan issues with no PRD or refines link. Use when a feature's done issues pile up (≈8+), when the working set feels cluttered, or after a redo to clean up superseded tests.
-argument-hint: "Feature slug (optional; omit to pick from INDEX)"
+argument-hint: "Feature slug (optional; omit to survey .scratch)"
 ---
 
 # Tidy
@@ -14,8 +14,8 @@ view and clears history out of the live set. All artifacts follow [ARTIFACT-FORM
 ## Invocation
 
 - `/tidy <feat>` — tidy that feature.
-- `/tidy` — read `.scratch/INDEX.md`, list features whose `done` count is high relative to
-  active issues, and ask which to tidy.
+- `/tidy` — survey `.scratch` (`rg '^status:' -g '**/issues/*.md' .scratch`), list features whose
+  `done` count is high relative to active issues, and ask which to tidy.
 
 ## When to run
 
@@ -65,10 +65,5 @@ Show one preview covering all four actions, then wait for confirmation (yes-all 
 - **Test audit** — for zombie tests (those a `redo`/`fix` slice replaced) and duplicates the user confirmed, delete the test files (or the specific cases). Run the test suite after deletion to confirm nothing green turned red unexpectedly.
 - **Orphan resolution** — for each flagged orphan, apply the user's choice: add a `refines:` field,
   fold it into a PRD revision (hand off to `/to-prd`), or relabel `category: detail` and archive.
-
-### 4. Update the index
-
-Regenerate `.scratch/INDEX.md` — the `done` counts drop, `archived` counts rise, active columns now
-reflect only live work.
 
 Report what moved, what was deleted, and any orphans left unresolved for the user to decide later.
