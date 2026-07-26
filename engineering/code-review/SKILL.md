@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Two-axis review of the diff since a fixed point (commit, branch, tag, merge-base) — Standards (house coding standards + a Fowler code-smell baseline) and Spec (does the diff faithfully implement the originating issue / PRD?). Runs the two axes as parallel sub-agents so neither pollutes the other, then reports them side by side. Use when the user wants to review a branch / PR / work-in-progress, asks to "review since X", or when an orchestrator (e.g. /ship) needs a pre-merge gate.
+description: Two-axis review of the diff since a fixed point (commit, branch, tag, merge-base) — Standards (house coding standards + a Fowler code-smell baseline) and Spec (does the diff faithfully implement the originating issue / PRD?). Runs the two axes as parallel sub-agents so neither pollutes the other, then reports them side by side. Use when the user wants to review a branch / PR / work-in-progress, or asks to "review since X".
 ---
 
 # Code Review
@@ -85,7 +85,3 @@ If the spec is missing, skip the Spec sub-agent and note it in the final report.
 ### 5. Aggregate
 
 Present the two reports under `## Standards` and `## Spec` headings, verbatim or lightly cleaned; keep the axes separate (see *Why two axes*). End with a one-line summary: total findings per axis, and the worst issue **within each axis** (if any).
-
-## Called by an orchestrator
-
-`/ship`'s pre-merge gate invokes this skill against each built branch (`git diff HEAD...<branch>`, the issue as spec). In that mode the **verdict gates the merge**: any blocking Standards violation or Spec miss means the branch is not merged and the issue is reported `failed` with the concrete findings. The orchestrator — never this skill — decides merge vs. abort.

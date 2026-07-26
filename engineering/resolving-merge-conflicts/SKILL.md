@@ -1,6 +1,6 @@
 ---
 name: resolving-merge-conflicts
-description: Resolve an in-progress git merge or rebase conflict by understanding each side's original intent, then preserving both where possible. Use when a merge/rebase is mid-conflict, when the user asks to resolve conflicts, or after a /ship merge-back was aborted and they want to finish the merge by hand.
+description: Resolve an in-progress git merge or rebase conflict by understanding each side's original intent, then preserving both where possible. Use when a merge/rebase is mid-conflict, or when the user asks to resolve conflicts.
 ---
 
 # Resolving Merge Conflicts
@@ -21,4 +21,4 @@ Resolve conflicts by understanding *why* each side changed the code, not by patt
 
 The default is to **resolve**, never `git merge --abort`: the whole point of an attended conflict pass is to reconcile the two intents, and aborting throws that away.
 
-The one exception is an **unattended orchestration**. `/ship`'s merge-back runs with no human watching, so on a conflict it *aborts* (leaving `main` clean) and reports the issue `failed` rather than letting an agent guess and corrupt `main`. That's correct there. This skill is the **attended** counterpart: reach for it when a human is present to adjudicate the trade-offs — e.g. to finish by hand a merge that `/ship` aborted.
+The one exception is **unattended automation**: an agent merging with no human watching should *abort* (leaving `main` clean) rather than guess and corrupt `main`. This skill is the **attended** counterpart: reach for it when a human is present to adjudicate the trade-offs.

@@ -49,8 +49,8 @@ the listed commands, confirm the stated first decision. Section 4 (关键口径�
 context — treat those decisions and invariants as binding. Don't re-explore what the handoff already
 decided; that's the whole point of the document.
 
-If the handoff names a feature, also glance at `.scratch/<feat>/INDEX.md` row and any
-`status: ready-for-*` issues so you know the live working set.
+If the handoff names a feature, also glance at its live working set:
+`rg '^status: ready-for-' -g '*.md' .scratch/<feat>/issues`.
 
 ### 4. Mark consumed when the work is finished
 

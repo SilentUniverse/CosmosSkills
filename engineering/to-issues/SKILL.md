@@ -1,6 +1,7 @@
 ---
 name: to-issues
 description: Break a plan, spec, or PRD into independently-grabbable issues using vertical slices. For a change that touches existing code, first runs an impact-detection pass (blast radius + regression risk) before slicing. When a PRD is re-run after revision, produces a reconciliation report against existing issues (kept / redo / edit / delete / new).
+argument-hint: "PRD/issue path, or a detail ask like \"在 03-slug 上加 X\"; nothing to use the latest PRD"
 disable-model-invocation: true
 ---
 
@@ -175,8 +176,6 @@ Avoid specific file paths or code snippets — they go stale fast. Exception: if
 
 </issue-template>
 
-**Frontmatter** — fill every field per the schema in [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md). The three fields that drive this skill's output: `category` (`enhancement` default; `detail`/`redo`/`fix` for later sub-behaviour / re-work, which MUST also set `refines:`), `blocked_by` (sibling slugs that must reach `done` first — `/ship` topologically sorts on it), and `refines` (parent slug, set for non-top-level slices so incremental work stays traceable instead of orphaned).
-
-After writing the issues, regenerate `.scratch/INDEX.md` (see [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md)) so the feature's state counts reflect the new files.
+**Frontmatter** — fill every field per the schema in [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md). The three fields that drive this skill's output: `category` (`enhancement` default; `detail`/`redo`/`fix` for later sub-behaviour / re-work, which MUST also set `refines:`), `blocked_by` (sibling slugs that must reach `done` first — `/tdd`'s drain mode topologically sorts on it), and `refines` (parent slug, set for non-top-level slices so incremental work stays traceable instead of orphaned).
 
 Do NOT modify any parent PRD or upstream issue.
