@@ -7,7 +7,7 @@ Issues and PRDs for this repo live as markdown files in `.scratch/`.
 - One feature per directory: `.scratch/<feature-slug>/`
 - The PRD is `.scratch/<feature-slug>/PRD.md`. Newer versions that supersede it are `PRD-v2.md`, `PRD-v3.md`, etc.
 - Implementation issues are `.scratch/<feature-slug>/issues/<NN>-<slug>.md`, numbered from `01`
-- Each issue carries YAML frontmatter (`type` / `feature` / `status` / `category` / `blocked_by` / `refines` / `created`); full schema in the `to-issues` skill's `ARTIFACT-FORMAT.md`. Three states only: `ready-for-agent`, `ready-for-human`, `done` (see `state-vocabulary.md`)
+- Each issue carries YAML frontmatter (`type` / `feature` / `status` / `category` / `blocked_by` / `refines` / `created`); full schema in `ARTIFACT-FORMAT.md` at the skills root, `~/.claude/skills/ARTIFACT-FORMAT.md`. Three states only: `ready-for-agent`, `ready-for-human`, `done` (see `state-vocabulary.md`)
 - `done` issues are moved to `.scratch/<feature-slug>/issues/archive/` by `/tidy`; the active working set is the top-level `issues/*.md`
 - `.scratch/<feat>/SUMMARY.md` (generated) is the current-reality view aggregated from `done` issues
 - Comments and history append to the bottom of each issue file under a `## Comments` heading

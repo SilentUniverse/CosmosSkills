@@ -8,7 +8,7 @@ argument-hint: "Feature slug (optional; omit to use the latest active handoff)"
 
 The inverse of `/handoff` — locate the active handoff, verify its baseline, continue from its 开机动作序列.
 Handoffs live under `.scratch/` (feature-scoped `.scratch/<feat>/handoff.md` or cross-feature
-`.scratch/handoff.md`); frontmatter per [ARTIFACT-FORMAT.md](../../engineering/ARTIFACT-FORMAT.md).
+`.scratch/handoff.md`); frontmatter per `ARTIFACT-FORMAT.md` (installed: `~/.claude/skills/ARTIFACT-FORMAT.md`; repo: `engineering/ARTIFACT-FORMAT.md`).
 
 ## Invocation
 

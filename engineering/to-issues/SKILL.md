@@ -15,7 +15,7 @@ The issue tracker has been provided to you — run `/hys-setup` if not.
 
 ### 0. Reconcile against existing issues (MANDATORY when issues exist for this feature)
 
-Before drafting slices, check `.scratch/<feat>/issues/`. If there are existing issues, produce a **reconciliation report** comparing the new plan against them, then ask the user to confirm before doing anything.
+Before drafting slices, check `.scratch/<feat>/issues/`. If there are existing issues, produce a **reconciliation report** comparing the new plan against them, then ask the user to confirm before doing anything. Delivered work may already be archived: also read `SUMMARY.md` and `issues/archive/`, so a `done` slice the new plan invalidates is classified as 需返工 (redo), not mistaken for 全新切片.
 
 Classify every existing issue into one bucket:
 
@@ -112,11 +112,11 @@ Each slice has a state: `ready-for-agent` (fire-and-forget OK) or `ready-for-hum
 - Prefer many thin slices over few thick ones
 </vertical-slice-rules>
 
-**Wide refactors are the exception to slicing.** When step 2's impact probe lands in the top tier — a mechanical change (rename a column, retype a shared symbol) whose blast radius fans across the whole codebase, so no vertical slice can land green — sequence it **expand → contract** instead of forcing a tracer bullet: an *expand* issue adds the new form beside the old so nothing breaks; *migrate* issues then move call sites over in batches sized by blast radius (per package / dir), each `blocked_by` the expand and each staying green because the old form still stands; a *contract* issue finally deletes the old form, `blocked_by` every migrate batch. If a batch can't stay green alone, let the batches share an integration branch, with green promised only at a final integrate-and-verify issue they all block.
+**Wide refactors are the exception to slicing.** When step 2's impact probe lands in the top tier — a mechanical change (rename a column, retype a shared symbol) whose blast radius fans across the whole codebase, so no vertical slice can land green — sequence it **expand → contract** instead of forcing a tracer bullet: an *expand* issue adds the new form beside the old so nothing breaks; *migrate* issues then move call sites over in batches sized by blast radius (per package / dir), each `blocked_by` the expand and each staying green because the old form still stands; a *contract* issue finally deletes the old form, `blocked_by` every migrate batch. If a batch can't stay green alone, resize or merge batches until each does; if that's genuinely impossible, mark those issues `ready-for-human`.
 
 ### 4. Quiz the user
 
-Run an adversarial review.
+Run an adversarial review: check every PRD 用户场景/实现决策 item; list any no slice covers, each with a disposition (fold into a slice / Out of Scope / 尚未明确).
 
 Present the proposed breakdown as a numbered list. For each slice, show:
 

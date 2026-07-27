@@ -13,6 +13,9 @@ Skills I use daily for code work.
 - **[to-issues](./to-issues/SKILL.md)** — Break any plan or PRD into independently-grabbable issues (默认本地 `.scratch/`, frontmatter + dependency DAG) using vertical slices. Reconciles against existing issues on re-runs.
 - **[to-prd](./to-prd/SKILL.md)** — Turn the current conversation context into a versioned PRD under `.scratch/<feat>/`. Defaults to writing a superseding `PRD-vN.md` when an existing PRD matches.
 - **[zoom-out](./zoom-out/SKILL.md)** — Tell the agent to zoom out and give broader context or a higher-level perspective on an unfamiliar section of code.
+- **[research](./research/SKILL.md)** — Delegate a research question to a background read-only subagent working from primary sources; findings land as a cited markdown file while the main thread keeps working.
+- **[code-review](./code-review/SKILL.md)** — Two-axis review of a diff since a fixed point: Standards (house rules + Fowler smell baseline) and Spec (does the diff implement the originating issue/PRD?), run as parallel sub-agents.
+- **[resolving-merge-conflicts](./resolving-merge-conflicts/SKILL.md)** — Resolve an in-progress merge/rebase by understanding each side's original intent, preserving both where possible.
 - **[prototype](./prototype/SKILL.md)** — Build a throwaway prototype to flesh out a design — either a runnable terminal app for state/business-logic questions, or several radically different UI variations toggleable from one route.
 
 The artifact contract every skill reads/writes (frontmatter schemas, index files, directory layout) lives in **[ARTIFACT-FORMAT.md](./ARTIFACT-FORMAT.md)**.

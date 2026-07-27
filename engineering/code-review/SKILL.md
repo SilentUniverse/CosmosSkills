@@ -1,6 +1,7 @@
 ---
 name: code-review
 description: Two-axis review of the diff since a fixed point (commit, branch, tag, merge-base) — Standards (house coding standards + a Fowler code-smell baseline) and Spec (does the diff faithfully implement the originating issue / PRD?). Runs the two axes as parallel sub-agents so neither pollutes the other, then reports them side by side. Use when the user wants to review a branch / PR / work-in-progress, or asks to "review since X".
+argument-hint: "Fixed point (commit/branch/tag); optional spec path (issue/PRD)"
 ---
 
 # Code Review
@@ -83,5 +84,7 @@ Dispatch two sub-agents in one turn — one per axis — so their contexts stay 
 If the spec is missing, skip the Spec sub-agent and note it in the final report.
 
 ### 5. Aggregate
+
+Before presenting, verify each finding's quoted hunk / spec line appears in the diff / spec; drop or mark 未验证 any that don't.
 
 Present the two reports under `## Standards` and `## Spec` headings, verbatim or lightly cleaned; keep the axes separate (see *Why two axes*). End with a one-line summary: total findings per axis, and the worst issue **within each axis** (if any).
