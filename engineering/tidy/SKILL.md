@@ -62,7 +62,7 @@ Show one preview covering all four actions, then wait for confirmation (yes-all 
 - **Archive** — `git mv .scratch/<feat>/issues/NN-*.md .scratch/<feat>/issues/archive/` for each
   confirmed `done` issue. Create `archive/` if absent. Never edit the body or `status` — immutability holds.
 - **Regenerate `SUMMARY.md`** — aggregate the `### 完成` blocks into `.scratch/<feat>/SUMMARY.md` per the format doc.
-- **Test audit** — for zombie tests (those a `redo`/`fix` slice replaced) and duplicates the user confirmed, delete the test files (or the specific cases). Run the test suite after deletion to confirm nothing green turned red unexpectedly.
+- **Test audit** — for zombie tests (those a `redo`/`fix` slice replaced) and duplicates the user confirmed, delete the test files (or the specific cases). Run the test suite after deletion to confirm nothing green turned red unexpectedly — in a subagent, or redirected to `.scratch/tmp/`, pulling back only the pass tally and failing cases.
 - **Orphan resolution** — for each flagged orphan, apply the user's choice: add a `refines:` field,
   fold it into a PRD revision (hand off to `/to-prd`), or relabel `category: detail` and archive.
 

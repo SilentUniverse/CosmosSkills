@@ -8,7 +8,7 @@ Write a minimal recoverable snapshot so the next session can continue from the c
 
 ## Where to save
 
-Per the layout in the `to-issues` skill's `ARTIFACT-FORMAT.md`:
+Per `ARTIFACT-FORMAT.md` §Handoff files (installed: `~/.claude/skills/ARTIFACT-FORMAT.md`; repo: `engineering/ARTIFACT-FORMAT.md`):
 
 - **Feature-scoped work** → `.scratch/<feat>/handoff.md` (rolling — overwrite in place each time; git keeps history). Lives next to that feature's PRD and issues so it never gets lost.
 - **Cross-feature work** → `.scratch/handoff.md` (a single rolling file at the `.scratch/` root).

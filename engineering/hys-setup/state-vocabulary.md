@@ -8,7 +8,7 @@ This project uses a minimal 3-state workflow tuned for **solo dev + agent assist
 | `ready-for-human` | `ready-for-human`     | Fully specified, but needs hands-on judgment / design taste / manual / device testing |
 | `done`            | `done`                | Completed. **Immutable** — git has the commit. To revise, create a new redo issue. |
 
-The state lives in the YAML frontmatter `status:` field at the top of each issue file under `.scratch/<feat>/issues/`, e.g. `status: ready-for-agent` (full schema in the `to-issues` skill's `ARTIFACT-FORMAT.md`).
+The state lives in the YAML frontmatter `status:` field at the top of each issue file under `.scratch/<feat>/issues/`, e.g. `status: ready-for-agent` (full schema in `ARTIFACT-FORMAT.md` at the skills root, `~/.claude/skills/ARTIFACT-FORMAT.md`).
 
 ## How to inspect / change state
 

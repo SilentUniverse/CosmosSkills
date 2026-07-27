@@ -125,6 +125,7 @@ Required before declaring done:
 
 - [ ] Original repro no longer reproduces (re-run the Phase 1 loop)
 - [ ] Regression test passes (or absence of seam is documented)
+- [ ] Existing tests of the touched module(s) still green — full suite if the fix crossed modules (commands cached in `docs/agents/domain.md`)
 - [ ] All `[DEBUG-...]` instrumentation removed (`rg` the prefix)
 - [ ] Throwaway prototypes / repro scripts deleted from `.scratch/tmp/`
 - [ ] The hypothesis that turned out correct is stated in the commit / PR message — so the next debugger learns

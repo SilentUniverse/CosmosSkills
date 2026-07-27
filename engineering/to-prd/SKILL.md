@@ -44,7 +44,7 @@ Start from first principles.
 Write the PRD using the template below, then save it under `.scratch/<feat>/`. Every PRD carries YAML frontmatter per [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md) (§PRD files — `type`/`feature`/`version`/`supersedes`/`created`).
 
 - Option (a): write `PRD.md` (version 1, no `supersedes`)
-- Option (b): write `PRD-vN.md` (N = highest existing + 1) with `version: N` and `supersedes:` pointing at the previous filename, plus the `取代理由` block; carry forward the superseded PRD's still-open `尚未明确` items (drop ones already graduated into issues)
+- Option (b): write `PRD-vN.md` (N = highest existing + 1) with `version: N` and `supersedes:` pointing at the previous filename, plus the `取代理由` block; carry forward the superseded PRD's still-open `尚未明确` items (drop ones already graduated into issues — check `SUMMARY.md`'s 已交付切片 and `issues/archive/` too, since graduated slices may already be archived)
 - Option (c): append a dated entry under `## 修订` at the bottom of the existing PRD (frontmatter unchanged)
 
 Do **not** create issue files in this step — that's `/to-issues`'s job. Likewise, do not assign a `Status:` to the PRD itself; the `Status:` field only applies to issue files under `issues/`.
@@ -111,6 +111,6 @@ Any further notes about the feature.
 
 ### 4. Hand off to /to-issues
 
-Run an adversarial review.
+Run an adversarial review: name the vaguest 用户场景 and the shakiest 实现决策 — tighten them, or move to 尚未明确.
 
 After writing the PRD, tell the user the next step is to run `/to-issues` against the new PRD. If this PRD supersedes an older one, `/to-issues` will produce a reconciliation report against existing issues automatically.

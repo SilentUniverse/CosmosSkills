@@ -9,7 +9,7 @@ The full frontmatter schema, naming/location conventions, and generated-file for
 Before working, load the project's orientation layer if present:
 1. `CODEBASE.md` and `CONTEXT.md` in full (the map is kept tiny — only what the code can't be grepped for; in big repos the root `CODEBASE.md` is just a roster, so read the roster and pull a per-area `src/<area>/CODEBASE.md` only when you work there).
 2. `docs/adr/` **titles only** (pull an ADR body only when you touch the area it governs).
-3. Compare each `CODEBASE.md` section's `git_base` against HEAD; treat drifted sections as stale and offer to refresh via `/zoom-out`.
+3. Check each `CODEBASE.md` section for drift: drifted = commits since its `git_base` touched that section's area (`git log <git_base>..HEAD -- <area paths>`) — HEAD moving alone is not drift. Offer to refresh drifted sections via `/zoom-out` (those sections only).
 4. Skip silently anything absent — this self-disables in repos that don't use these conventions.
 5. If **none** of the three exists yet (a fresh checkout of a repo that's never been oriented), don't keep silent: say so once and offer to build the layer (`/grill-with-docs` for the glossary, `/zoom-out` for the map) — then proceed either way.
 

@@ -13,7 +13,7 @@ Matt Pocock 工程方法论的本地化改造，面向 **Claude Code + 单人开
 
 ## 全局配置（一次性，写进 `~/.claude/CLAUDE.md`）
 
-完整模板就是本仓库的 [`ClaudeMD/CLAUDE.md`](ClaudeMD/CLAUDE.md)（10 节：语言约定 / Think Before Coding / Simplicity First / Surgical Changes / Goal-Driven / 文档布局 / CLI 工具链 / Run to Completion / Parallelize with Subagents / Token 预算）。直接整份拷到 `~/.claude/CLAUDE.md`（Windows 是 `C:\Users\<你>\.claude\CLAUDE.md`）。所有 skill 都继承这几节，**各 skill 内不再重复语言约定和路径布局**——这是省 context 的关键。
+完整模板就是本仓库的 [`ClaudeMD/CLAUDE.md`](ClaudeMD/CLAUDE.md)（10 节：语言约定 / Think Before Coding / Simplicity First / Surgical Changes / Goal-Driven / 文档布局 / CLI 工具链 / Text Encoding (Windows) / Run to Completion / Parallelize with Subagents）。直接整份拷到 `~/.claude/CLAUDE.md`（Windows 是 `C:\Users\<你>\.claude\CLAUDE.md`）。所有 skill 都继承这几节，**各 skill 内不再重复语言约定和路径布局**——这是省 context 的关键。
 
 一行拉取（raw 链接，按需替换分支）：
 
@@ -517,6 +517,7 @@ adb logcat -b crash -d                                 # 抓 crash / ANR
 | [diagnose](engineering/diagnose/SKILL.md) | 6 阶段诊断硬 bug |
 | [resolving-merge-conflicts](engineering/resolving-merge-conflicts/SKILL.md) | 解决 merge/rebase 冲突：先摸清双方意图再尽量都保留 |
 | [zoom-out](engineering/zoom-out/SKILL.md) | 不熟的代码请求"地图视角"；可落盘进 `CODEBASE.md` 供开机加载 |
+| [research](engineering/research/SKILL.md) | 资料调研派给后台只读 subagent 对一手来源做，结论落成带引用的 markdown，主线程不中断 |
 | [improve-codebase-architecture](engineering/improve-codebase-architecture/SKILL.md) | 阶段性回顾找架构深化机会（架构词汇调 [codebase-design](engineering/codebase-design/SKILL.md)） |
 
 > 所有产物的 frontmatter / 索引 / 目录契约见 [ARTIFACT-FORMAT.md](engineering/ARTIFACT-FORMAT.md)。

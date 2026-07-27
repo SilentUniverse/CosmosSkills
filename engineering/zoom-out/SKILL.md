@@ -1,6 +1,7 @@
 ---
 name: zoom-out
 description: Tell the agent to zoom out and give broader context or a higher-level perspective. Use when you're unfamiliar with a section of code or need to understand how it fits into the bigger picture. Can optionally persist the structural map to CODEBASE.md so future sessions don't re-explore.
+argument-hint: "Path/module to map (optional; --all = whole repo, --save = persist to CODEBASE.md)"
 disable-model-invocation: true
 ---
 

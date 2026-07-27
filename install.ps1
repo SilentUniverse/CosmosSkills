@@ -144,6 +144,15 @@ foreach ($s in $skills) {
     }
 }
 
+# --- Report orphan links: reparse points in $Target that resolve into this repo but match no current skill
+#     (the source skill was renamed/removed). Report-only; delete manually. ---
+$linkedNames = $skills | ForEach-Object { $_.Name }
+Get-ChildItem -LiteralPath $Target -Directory -Force | Where-Object {
+    $_.LinkTarget -and $_.LinkTarget -like "$root*" -and $linkedNames -notcontains $_.Name
+} | ForEach-Object {
+    Write-Host ("Orphan link (source skill gone/renamed) - delete manually: {0}" -f $_.FullName) -ForegroundColor Yellow
+}
+
 Write-Host ""
 
 # --- Distribute ARTIFACT-FORMAT.md to the skills root so engineering skills' `../ARTIFACT-FORMAT.md`
