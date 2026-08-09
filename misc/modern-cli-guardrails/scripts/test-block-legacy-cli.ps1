@@ -30,6 +30,7 @@ Test-Case 'cat'           'cat file'             2
 Test-Case 'ls'            'ls -la'               2
 Test-Case 'sed'           'sed -i s/a/b/ f'      2
 Test-Case 'pipe-cat'      'rg foo | cat'         2
+Test-Case 'multiline-ls'  "echo hi`nls -la"      2
 
 # Should ALLOW (exit 0) — modern tools.
 Test-Case 'rg'            'rg foo'               0

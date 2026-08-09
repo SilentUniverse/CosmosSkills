@@ -38,7 +38,7 @@ foreach ($old in $map.Keys) {
     # after a pipe / && / ; / (. The tool name must be followed by whitespace or
     # end-of-string so ripgrep, fdfind, pcre2grep, paths like src/cat/x, and the
     # quoted string "cat" are NOT treated as a match.
-    $pattern = "(?:^|\||&&|;|\()\s*$old(?:\s|$)"
+    $pattern = "(?m)(?:^|\||&&|;|\()\s*$old(?:\s|$)"
     if ($command -match $pattern) {
         [Console]::Error.WriteLine(
             "BLOCKED: '$old' is forbidden (CLAUDE.md " + [char]0xA7 + "7). Use '$($map[$old])' instead. " +

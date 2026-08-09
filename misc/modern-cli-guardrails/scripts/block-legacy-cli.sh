@@ -15,7 +15,7 @@ if [ -z "$COMMAND" ]; then
 fi
 
 # Escape hatch: allow when the command explicitly opts out.
-if echo "$COMMAND" | grep -qE '^[[:space:]]*#[[:space:]]*force-legacy' || [ "$ALLOW_LEGACY_CLI" = "1" ]; then
+if [[ "$COMMAND" =~ ^[[:space:]]*#[[:space:]]*force-legacy ]] || [ "$ALLOW_LEGACY_CLI" = "1" ]; then
   exit 0
 fi
 
