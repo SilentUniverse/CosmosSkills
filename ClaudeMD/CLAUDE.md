@@ -73,7 +73,6 @@ Transform tasks into verifiable goals. Loop until verified.
 Optional hard enforcement: the `modern-cli-guardrails` skill installs a `PreToolUse` hook that blocks any `Bash` command invoking a forbidden legacy tool, turning this soft rule into a blocking one. Unavoidable case? Prefix the command with `# force-legacy` or set `ALLOW_LEGACY_CLI=1`.
 
 → Full mapping, escape hatch & details: `~/.claude/references/cli-tools.md`
-→ Hook install & `settings.json` config: `modern-cli-guardrails` skill (`misc/modern-cli-guardrails/SKILL.md`)
 
 ## 8. Text Encoding (Windows)
 
