@@ -98,7 +98,7 @@ results are a floor, not the ceiling — say so rather than implying the impact 
 
 ### 3. Draft vertical slices
 
-Start from first principles.
+Start from first principles about the plan.
 
 **Prefactor first if it helps** — "make the change easy, then make the easy change." When a cheap restructuring unlocks cleaner slices, sequence it as the first issue(s) the rest are `blocked_by`.
 
