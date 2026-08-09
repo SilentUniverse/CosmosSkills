@@ -11,7 +11,7 @@ argument-hint: "Issue path, feature slug, or nothing to drain all ready issues"
 - `/tdd <issue-path>` — run that one issue. Read its frontmatter `status:` first (per [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd)) and obey the guard below. Fully visible, one slice.
 - `/tdd` (bare) — **drain mode (serial)**: run *every* `ready-for-agent` issue across `.scratch/`, one at a time, in dependency order, to completion. The dumb-but-legible batch path — no worktrees, all in the current session so you can watch each one.
 - `/tdd <feat>` — drain mode scoped to one feature's `issues/` directory.
-- `/tdd --parallel [<feat>]` — **drain mode (parallel)**: run each dependency-free *wave* of ready issues concurrently, one subagent per issue on its own worktree. Collapses the wall-clock of independent slices toward a single slice's time — the batch speedup. See [DRAIN.md](DRAIN.md).
+- `/tdd --parallel [<feat>]` (short alias `-p`) — **drain mode (parallel)**: run each dependency-free *wave* of ready issues concurrently, one subagent per issue on its own worktree. Collapses the wall-clock of independent slices toward a single slice's time — the batch speedup. See [DRAIN.md](DRAIN.md).
 - `/tdd --full` — run build + the whole suite now (the manual full-suite check, §5); combine with any form above.
 - Natural-language ask without an issue (e.g. "write tests for the parser") — fall back to **interview mode** (jump to Workflow §1).
 
@@ -19,7 +19,7 @@ argument-hint: "Issue path, feature slug, or nothing to drain all ready issues"
 
 Enumerate `ready-for-agent` issues, topologically sort on `blocked_by`, run the batch through the
 autonomous loop (§Workflow), then close with one full suite + build. Two paths: **serial** (default —
-legible, one issue at a time) and **parallel** (`--parallel` — independent waves fan out to
+legible, one issue at a time) and **parallel** (`--parallel`, short `-p` — independent waves fan out to
 subagents for the big wall-clock win). Full algorithm, subagent brief, worktree integration, and the
 serial-vs-parallel judgement: **[DRAIN.md](DRAIN.md)**.
 

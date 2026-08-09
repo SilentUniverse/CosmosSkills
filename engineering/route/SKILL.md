@@ -20,7 +20,7 @@ keep long workflows fast — a bloated window is slow *and* makes the model reas
 PRD 定了，要拆成可执行切片 ──────────────► /to-issues    (→ issues/NN-*.md + DAG)
         │
 切片就绪，要写代码 ──────────────────────► /tdd
-        │   ├─ 切片互相独立（宽波）─────► /tdd --parallel   (并发，最省墙钟)
+        │   ├─ 切片互相独立（宽波）─────► /tdd -p          (并发，最省墙钟)
         │   └─ 一条依赖长链 / 要盯过程 ─► /tdd (serial)
         │
 写完了，要审 ────────────────────────────► /code-review  (Standards + Spec 并行)
