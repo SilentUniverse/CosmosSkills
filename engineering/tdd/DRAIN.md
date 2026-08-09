@@ -1,13 +1,13 @@
 # Drain mode
 
-Reached from bare `/tdd`, `/tdd <feat>`, or `/tdd --parallel [<feat>]` (short alias `-p`). Runs a whole
+Reached from bare `/tdd`, `/tdd <feat>`, or `/tdd -p [<feat>]`. Runs a whole
 batch of `ready-for-agent` issues to completion in dependency order. Two paths — serial
 (default, legible) and parallel (fast). Pick by the flag; the enumeration and the batch
 close are shared.
 
 ## Shared: enumerate the batch
 
-1. Enumerate candidates: bare / `--parallel` (`-p`) scans `.scratch/*/issues/*.md` (top level, never
+1. Enumerate candidates: bare / `-p` scans `.scratch/*/issues/*.md` (top level, never
    `archive/`); a `<feat>` argument scans only `.scratch/<feat>/issues/*.md`. Read each one's
    `status:` and `blocked_by:` with `yq --front-matter=extract`.
 2. Keep only `status: ready-for-agent`. Topologically sort on `blocked_by` so every issue runs
@@ -24,7 +24,7 @@ Per-issue gate: mark `status: done` only if build + the touched module's **scope
 (not the whole suite); on failure leave it `ready-for-agent`, note why in `## Comments`, and
 **continue** to the next (a red issue doesn't abort the drain unless others depend on it).
 
-## Parallel path (`/tdd --parallel [<feat>]`, short `-p`)
+## Parallel path (`/tdd -p [<feat>]`)
 
 Same DAG, but instead of walking it one node at a time, run every **ready wave** concurrently. A
 wave is the set of `ready-for-agent` issues whose `blocked_by` are all already `done`. This
@@ -53,18 +53,11 @@ Loop until the ready set is empty:
    `blocked_by` it stays blocked, so it simply never enters a later wave (report it deferred).
 4. **Recompute** the ready set (newly-`done` issues may unblock the next wave) and repeat.
 
-**When to prefer serial over parallel.** One long dependency chain (each slice `blocked_by` the
-previous) has waves of size 1 — parallel buys nothing and costs worktree overhead, so use serial.
-Reach for `-p` when a feature has several **independent** slices (wide waves). When unsure,
-serial is the safe default.
-
-**Recommend the mode after enumerating.** The topological sort (§Shared) already reveals the DAG's
-shape — the widest wave's size is the whole signal. Before running, state the recommendation in one
-line when the invoked mode doesn't match that shape, then proceed as invoked (don't silently switch):
-- Bare/serial `/tdd` but the widest wave is ≥2 independent slices → *"6 issues, 5 independent — `-p`
-  would cut wall-clock to ~1 slice; proceeding serial as invoked. Re-run with `-p` to parallelise."*
-- `-p` but every wave is size 1 (a pure chain) → *"these slices form one chain — parallel degenerates
-  to one wave at a time (worktree overhead, no speedup); proceeding as invoked. Bare `/tdd` is simpler here."*
+**Mode fit — recommend, don't switch.** The widest wave's size (from the §Shared sort) is the
+whole signal: a pure chain (every wave size 1) gets no speedup from `-p`, only worktree overhead,
+while several **independent** slices (wide waves) are where `-p` collapses wall-clock toward one
+slice. If the invoked mode doesn't fit, say so in one line, then proceed as invoked — serial is
+the safe default when unsure.
 
 ## Shared: close the batch
 
