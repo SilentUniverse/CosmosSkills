@@ -21,7 +21,7 @@ source every session. Load in tiers — not everything is worth the same context
   body only when you actually touch the area it governs.
 
 If a file doesn't exist, **proceed silently** — don't flag its absence; the producers create them
-lazily (`/grill-with-docs` for `CONTEXT.md`/ADRs, `/zoom-out` for `CODEBASE.md`). But if **none** of
+lazily (`/grill` for `CONTEXT.md`/ADRs, `/zoom-out` for `CODEBASE.md`). But if **none** of
 the three exists (a repo never oriented), say so once and offer to build the layer, then proceed
 either way — don't leave the user unaware the mechanism exists.
 
@@ -39,7 +39,7 @@ section only). Don't silently trust a drifted section.
 - **`CONTEXT-MAP.md`** at the repo root if it exists — it points at one `CONTEXT.md` per context. Read each one relevant to the topic.
 - **`docs/adr/`** — read ADRs that touch the area you're about to work in. In multi-context repos, also check `src/<context>/docs/adr/` for context-scoped decisions.
 
-If any of these files don't exist, **proceed silently**. Don't flag their absence; don't suggest creating them upfront. The producer skills (`/grill-with-docs` for `CONTEXT.md`/ADRs, `/zoom-out` for `CODEBASE.md`) create them lazily when terms, decisions, or structure actually get resolved.
+If any of these files don't exist, **proceed silently**. Don't flag their absence; don't suggest creating them upfront. The producer skills (`/grill` for `CONTEXT.md`/ADRs, `/zoom-out` for `CODEBASE.md`) create them lazily when terms, decisions, or structure actually get resolved.
 
 ## Issue-state artifacts (generated, do not hand-edit)
 
@@ -96,7 +96,7 @@ Multi-context repo (presence of `CONTEXT-MAP.md` at the root):
 
 When your output names a domain concept (in an issue title, a refactor proposal, a hypothesis, a test name), use the term as defined in `CONTEXT.md`. Don't drift to synonyms the glossary explicitly avoids.
 
-If the concept you need isn't in the glossary yet, that's a signal — either you're inventing language the project doesn't use (reconsider) or there's a real gap (note it for `/grill-with-docs`).
+If the concept you need isn't in the glossary yet, that's a signal — either you're inventing language the project doesn't use (reconsider) or there's a real gap (note it for `/grill`).
 
 ## Flag ADR conflicts
 

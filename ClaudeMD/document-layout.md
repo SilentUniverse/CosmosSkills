@@ -11,7 +11,7 @@ Before working, load the project's orientation layer if present:
 2. `docs/adr/` **titles only** (pull an ADR body only when you touch the area it governs).
 3. Check each `CODEBASE.md` section for drift: drifted = commits since its `git_base` touched that section's area (`git log <git_base>..HEAD -- <area paths>`) — HEAD moving alone is not drift. Offer to refresh drifted sections via `/zoom-out` (those sections only).
 4. Skip silently anything absent — this self-disables in repos that don't use these conventions.
-5. If **none** of the three exists yet (a fresh checkout of a repo that's never been oriented), don't keep silent: say so once and offer to build the layer (`/grill-with-docs` for the glossary, `/zoom-out` for the map) — then proceed either way.
+5. If **none** of the three exists yet (a fresh checkout of a repo that's never been oriented), don't keep silent: say so once and offer to build the layer (`/grill` for the glossary, `/zoom-out` for the map) — then proceed either way.
 
 This load happens every session unconditionally; `/resume` reuses it and layers a handoff on top, it doesn't own it. Per-repo layout (single/multi-context) lives in `docs/agents/domain.md`.
 

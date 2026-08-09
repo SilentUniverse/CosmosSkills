@@ -9,6 +9,7 @@ Sections ending in `→` point to `~/.claude/references/`. Those files are **not
 - Thinking, code, identifiers, file names, search queries: English
 - All responses to the user: Chinese
 - Written artifacts: Chinese body + English term names matching code identifiers
+- When the user signals they didn't follow (e.g. "等等"/"没懂"/"再说一遍"): add the missing context first (what we're doing, what led here), then re-explain in simpler terms. Don't just rephrase.
 
 ## 2. Think Before Coding
 

@@ -67,7 +67,7 @@ First ordered actions after /clear (which files to read, which command to run, w
 What was actively discarded (dead-end explorations, failed approaches) — let the user do a final scan to confirm nothing critical was dropped.
 
 ## Suggested skills
-Skills appropriate for the next session (e.g. `/tdd`, `/diagnose`, `/grill-with-docs`), one sentence each on why.
+Skills appropriate for the next session (e.g. `/tdd`, `/diagnose`, `/grill`), one sentence each on why.
 ```
 
 Section 4 is the core. If the user passed arguments, treat them as the focus of the next session and tailor the document accordingly.
