@@ -12,7 +12,7 @@ Its job:
 3. Save it where it fits the research's lifespan:
    - **Feature-scoped** (answers a question for a specific feature) → `.scratch/<feat>/research-<topic>.md`.
    - **Project-wide reference** (facts the whole project keeps returning to) → ask once; consider whether it belongs in `CODEBASE.md` (operational invariants) rather than a standalone note.
-   - **Pre-feature / exploratory** (before any feature exists — "should we do this, how might it work") → don't park it as a standalone file. Carry the findings into `/grill-with-docs` (decisions) or an ADR (hard calls) and let the file go. A durable doc nobody navigates to is noise.
+   - **Pre-feature / exploratory** (before any feature exists — "should we do this, how might it work") → don't park it as a standalone file. Carry the findings into `/grill` (decisions) or an ADR (hard calls) and let the file go. A durable doc nobody navigates to is noise.
    - **Genuinely throwaway** (just needed to unblock the next step) → `.scratch/tmp/` (gitignored).
    - No clear fit? Put it somewhere sensible, say where, let the user move it.
 

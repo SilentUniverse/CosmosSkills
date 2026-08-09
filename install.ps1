@@ -144,13 +144,19 @@ foreach ($s in $skills) {
     }
 }
 
-# --- Report orphan links: reparse points in $Target that resolve into this repo but match no current skill
-#     (the source skill was renamed/removed). Report-only; delete manually. ---
+# --- Clean orphan links: reparse points in $Target that resolve into this repo but match no current skill
+#     (the source skill was renamed/removed). Safe to delete — they're junctions, not real data. ---
 $linkedNames = $skills | ForEach-Object { $_.Name }
 Get-ChildItem -LiteralPath $Target -Directory -Force | Where-Object {
     $_.LinkTarget -and $_.LinkTarget -like "$root*" -and $linkedNames -notcontains $_.Name
 } | ForEach-Object {
-    Write-Host ("Orphan link (source skill gone/renamed) - delete manually: {0}" -f $_.FullName) -ForegroundColor Yellow
+    if ($DryRun) {
+        Write-Host ("[DryRun] Remove orphan link: {0}" -f $_.FullName) -ForegroundColor Yellow
+    }
+    else {
+        [System.IO.Directory]::Delete($_.FullName)
+        Write-Host ("Removed orphan link: {0}" -f $_.FullName) -ForegroundColor Yellow
+    }
 }
 
 Write-Host ""

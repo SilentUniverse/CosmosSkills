@@ -5,12 +5,16 @@ description: Interview the user relentlessly about a plan or design. Use when th
 
 Start from first principles.
 
-End when the next artifact is obvious: decisions, route-changing assumptions, next skill. No code or submit; write artifacts only when the calling skill owns them.
+Interview me relentlessly about every aspect of this plan until we reach a shared understanding. Map this as a **design tree**: every decision branches into the decisions that depend on it.
 
-Interview me relentlessly about every aspect of this plan until we reach a shared understanding. Walk down each branch of the decision tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
+Work the tree in **rounds**. The **frontier** is every decision whose prerequisites are already settled — the questions you can ask now without guessing at answers you haven't heard. Ask the whole frontier at once: number each question, give your recommended answer. Then wait for my answers before the next round.
 
-Split what's in front of you into two piles: **facts** — anything you could settle by exploring the environment (codebase, files, tools, docs), look those up yourself; and **decisions** — the calls only I can make, put each one to me with your recommended answer and wait.
-
-Ask the questions one at a time, waiting for feedback on each question before continuing. Asking multiple questions at once is bewildering.
+Split what's in front of you into two piles: **facts** — anything you could settle by exploring the environment (codebase, files, tools, docs), look those up yourself; and **decisions** — the calls only I can make, put each one to me with your recommended answer.
 
 When a decision's options are enumerable, present it via the AskUserQuestion tool with your recommended option first; otherwise ask in free text.
+
+Finding facts is your job, not mine. When a frontier question needs a fact you can't find in the codebase, dispatch a sub-agent. Don't block on it: only the questions downstream of that fact wait — ask the rest of the frontier now.
+
+Each round's answers reshape the tree — settled decisions push the frontier outward. Recompute and continue.
+
+End when the next artifact is obvious: decisions, route-changing assumptions, next skill. No code or submit; write artifacts only when the calling skill owns them.
