@@ -91,7 +91,7 @@ cycle checklist); Murphy expands during verification — an untested failure pat
 
 ### 1. Planning
 
-Start from first principles.
+Start from first principles about the approach.
 
 When exploring the codebase, use the project's domain glossary so that test names and interface vocabulary match the project's language, and respect ADRs in the area you're touching.
 
