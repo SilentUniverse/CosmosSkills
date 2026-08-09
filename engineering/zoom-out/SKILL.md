@@ -47,7 +47,7 @@ file (see persist rules below).
 After printing the map, if it's worth keeping, offer to persist: _"Want me to save this to
 CODEBASE.md so the next session skips re-exploring?"_ Write only on a yes (or `/zoom-out --save`).
 
-**What to write is governed by the CODEBASE.md schema in [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md)**
+**What to write is governed by the CODEBASE.md schema in [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#codebasemd--repo-root-generated-not-authored)**
 — read it before writing rather than restating it here. The one judgment call that drives everything:
 
 > **The "can't rg it" test** — persist a fact only if a fresh agent *couldn't* rebuild it with a

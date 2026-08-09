@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Test-driven development with red-green-refactor loop. Runs one issue, drains a feature's (or all) ready-for-agent issues in dependency order, or interviews when asked without an issue. Use when user wants to build features or fix bugs using TDD, mentions "red-green-refactor", wants integration tests, or asks for test-first development.
+description: Test-driven development with red-green-refactor loop. Runs one issue, drains a feature's (or all) ready-for-agent issues in dependency order (serially, or in parallel waves with -p), or interviews when asked without an issue. Use when user wants to build features or fix bugs using TDD, mentions "red-green-refactor", wants integration tests, or asks for test-first development.
 argument-hint: "Issue path, feature slug, or nothing to drain all ready issues"
 ---
 
@@ -8,20 +8,20 @@ argument-hint: "Issue path, feature slug, or nothing to drain all ready issues"
 
 ## Invocation
 
-- `/tdd <issue-path>` — run that one issue. Read its frontmatter `status:` first (per [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md)) and obey the guard below. Fully visible, one slice.
-- `/tdd` (bare) — **drain mode**: run *every* `ready-for-agent` issue across `.scratch/`, serially, in dependency order, to completion. This is the simple batch path — no worktrees, no parallelism, no tidy, all in the current session so you can watch each one. See "Drain mode" below.
+- `/tdd <issue-path>` — run that one issue. Read its frontmatter `status:` first (per [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd)) and obey the guard below. Fully visible, one slice.
+- `/tdd` (bare) — **drain mode (serial)**: run *every* `ready-for-agent` issue across `.scratch/`, one at a time, in dependency order, to completion. The dumb-but-legible batch path — no worktrees, all in the current session so you can watch each one.
 - `/tdd <feat>` — drain mode scoped to one feature's `issues/` directory.
+- `/tdd -p [<feat>]` — **drain mode (parallel)**: farm ready issues out to subagents (one per issue) so each issue's verbose output stays isolated and independent slices finish in parallel. Decoupled slices edit the shared tree directly; a worktree is used only when two in-flight issues would touch the same files. See [DRAIN.md](DRAIN.md).
 - `/tdd --full` — run build + the whole suite now (the manual full-suite check, §5); combine with any form above.
 - Natural-language ask without an issue (e.g. "write tests for the parser") — fall back to **interview mode** (jump to Workflow §1).
 
-### Drain mode (bare `/tdd` or `/tdd <feat>`)
+### Drain mode
 
-1. Enumerate candidates: bare scans `.scratch/*/issues/*.md` (top level, never `archive/`); `<feat>` scans only `.scratch/<feat>/issues/*.md`. Read each one's `status:` and `blocked_by:` with `yq --front-matter=extract`.
-2. Keep only `status: ready-for-agent`. Order them so every issue runs after its `blocked_by` blockers. Skip (don't fail) any issue still blocked by a `ready-for-human` or unfinished issue — report it as deferred at the end.
-3. Run each, **one at a time**, through the autonomous-mode loop below (§Workflow). Per-issue gate: mark `status: done` only if build + the touched module's **scoped** tests pass (not the whole suite); on failure leave it `ready-for-agent`, note why, and **continue** to the next (a red issue doesn't abort the drain unless others depend on it).
-4. After the last issue takes the active set to empty, run the **full suite + build once** as the batch's closing check (§5). Report shipped, failed, deferred, and the full-suite result; explain each shipped issue's changed code flow in the chat window. Suggest `/code-review` for an independent Spec recheck (batch is uncommitted: fixed point HEAD, working-tree diff). If a feature's `done` count crossed ~8, suggest `/tidy`.
-
-Drain mode never spawns worktrees or parallel subagents — it's deliberately the dumb-but-legible serial path.
+Enumerate `ready-for-agent` issues, topologically sort on `blocked_by`, run the batch through the
+autonomous loop (§Workflow), then close with one full suite + build. Two paths: **serial** (default —
+legible, one issue at a time) and **parallel** (`-p` — ready issues fan out to
+subagents; decoupled slices edit in place, worktree only when they'd collide). Full algorithm,
+subagent brief, and the edit-in-place-vs-worktree call: **[DRAIN.md](DRAIN.md)**.
 
 ### Status guard (issue-driven invocation)
 
@@ -51,30 +51,9 @@ For each AC in the issue, search the project's test files for existing coverage.
 
 ## Completion record
 
-**Issue-based runs only.** Interview mode (no issue) writes none — run `/to-issues` afterward and mark the issue `done`.
+**Issue-based runs only.** When all AC pass (and `ready-for-human` hands-on verification is confirmed), run an adversarial review, check `git diff` traces to this issue's AC, set `status: done`, and append a `### 完成` block to `## Comments`. Full procedure + template: **[COMPLETION-RECORD.md](COMPLETION-RECORD.md)**.
 
-Run an adversarial review.
-
-**Before marking done** — glance over `git diff`: every change should trace to this issue's AC. Revert what doesn't; if something out-of-scope is genuinely required, say why first.
-
-When all AC pass — and for `ready-for-human`, hands-on verification is confirmed — set the frontmatter `status:` to `done` and append to `## Comments`:
-
-```markdown
-### 完成 — YYYY-MM-DD
-
-- 新增测试：<list of test files + case counts>
-- 验收：N/M ✅
-- 跳过的 AC：#X 由 <existing test path> 已覆盖（如有）
-- 备注：<optional one-liner — e.g. real-device check passed on Pixel 6>
-```
-
-After validation, explain in the chat window what the changed flow does, why this design solves the issue, and where to start reading. In drain mode, give one concise explanation per issue plus a final tally.
-
-Standalone `/tdd` does **not** submit. It stops at validated changes + completion records. Use the Submit workflow named in `CLAUDE.md`.
-
-The issue file itself stays in `issues/` — `/tidy` moves it to `issues/archive/` later, not `/tdd`.
-
-If the run is aborted (test framework broken, environment unfixable), revert `status:` to its original value and append a brief failure note to `## Comments`.
+Interview mode (no issue) writes none — run `/to-issues` afterward and mark the issue `done`. Standalone `/tdd` does **not** submit; use the Submit workflow named in `CLAUDE.md`.
 
 ## Test philosophy
 
@@ -160,32 +139,10 @@ After all tests pass, look for [refactor candidates](refactoring.md):
 
 Per-cycle and per-issue runs stay scoped (§3) for speed, so they can't see cross-module
 regressions. The full suite + build (commands cached in `docs/agents/domain.md`) runs at two points:
-
-- **Automatic, once per batch.** When a drain run takes its **last** issue to `done` — i.e.
-  the active set is empty — run the full suite + build one time as the batch's closing check. Not
-  per issue; per batch. Report a wider failure rather than letting it pass silently.
-- **Manual, on demand.** `/tdd --full` (or "run the full suite") runs build + the whole suite now,
-  for an interactive session that wants the wide signal without finishing a batch.
-
-**Keep test/build output out of context.** A full suite or build can emit thousands of lines —
-passing-test noise, progress bars, ANSI codes — and all of it bloats the context if piped straight
-back. Redirect the verbose output to `.scratch/tmp/` and pull only what you need into context: the
-pass/fail tally, and the failing cases' messages (e.g. `<cmd> > .scratch/tmp/suite.log 2>&1` then
-grep the failures, or use the runner's quiet/summary reporter). Read the full log only when a
-failure's cause isn't clear from the summary. Same for `git diff` / search dumps — summarise, don't
-inline the whole thing.
-
-**Run the full suite in a subagent (forks green vs red).** A full suite is slow and its output is
-dense — run it in a subagent so the main session stays free (and can do other work while it runs).
-The verbose output stays in the subagent — it does NOT need the `.scratch/tmp/` redirect above (that
-rule is for the main session running a command directly). The subagent keeps what it needs and
-reports back only by outcome:
-- **Green** → one line: pass tally. The main session absorbs nothing else.
-- **Red** → failing case names + a trimmed traceback (not the thousands of raw lines). The main
-  session uses that concentrated material to decide: self-diagnose here, or dispatch another subagent.
-
-Scoped (per-cycle) tests stay in-session — they're seconds-long, so the overhead of a subagent
-isn't worth it and failures are easiest to see immediately.
+**automatically once per batch** (when a drain run takes its last issue to `done`) and **manually on
+demand** (`/tdd --full`). Both keep verbose output out of context (redirect to `.scratch/tmp/`, pull
+only the tally + failures) and run in a subagent that reports back green-tally or red-failures.
+Full procedure: **[FULL-SUITE.md](FULL-SUITE.md)**.
 
 ## Checklist Per Cycle
 

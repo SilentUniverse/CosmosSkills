@@ -41,7 +41,7 @@ Sketch out the seams at which the feature will be tested. Existing seams should 
 
 Start from first principles.
 
-Write the PRD using the template below, then save it under `.scratch/<feat>/`. Every PRD carries YAML frontmatter per [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md) (§PRD files — `type`/`feature`/`version`/`supersedes`/`created`).
+Write the PRD using the template below, then save it under `.scratch/<feat>/`. Every PRD carries YAML frontmatter per [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#prd-files--scratchfeatprdmd--prd-vnmd) (§PRD files — `type`/`feature`/`version`/`supersedes`/`created`).
 
 - Option (a): write `PRD.md` (version 1, no `supersedes`)
 - Option (b): write `PRD-vN.md` (N = highest existing + 1) with `version: N` and `supersedes:` pointing at the previous filename, plus the `取代理由` block; carry forward the superseded PRD's still-open `尚未明确` items (drop ones already graduated into issues — check `SUMMARY.md`'s 已交付切片 and `issues/archive/` too, since graduated slices may already be archived)
