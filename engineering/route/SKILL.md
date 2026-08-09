@@ -19,9 +19,9 @@ keep long workflows fast — a bloated window is slow *and* makes the model reas
         │
 PRD 定了，要拆成可执行切片 ──────────────► /to-issues    (→ issues/NN-*.md + DAG)
         │
-切片就绪，要写代码 ──────────────────────► /tdd 或 /implement
+切片就绪，要写代码 ──────────────────────► /tdd
         │   ├─ 切片互相独立（宽波）─────► /tdd --parallel   (并发，最省墙钟)
-        │   └─ 一条依赖长链 / 要盯过程 ─► /tdd (serial) 或 /implement
+        │   └─ 一条依赖长链 / 要盯过程 ─► /tdd (serial)
         │
 写完了，要审 ────────────────────────────► /code-review  (Standards + Spec 并行)
         │
@@ -41,8 +41,8 @@ reasons sharply. Past it, quality drops before the hard limit — so treat the s
 context limit, as the ceiling.
 
 **Keep grill → to-prd → to-issues in one unbroken window** — the grilling, PRD, and slices all
-build on the same thinking, so don't compact or clear between them. Then **each `/tdd` (or
-`/implement`) slice starts fresh** from its issue file — a slice carries no context from the
+build on the same thinking, so don't compact or clear between them. Then **each `/tdd` slice
+starts fresh** from its issue file — a slice carries no context from the
 planning session, so a clean window per slice is both faster and sharper.
 
 At a phase boundary, pick the cheapest option that loses nothing:

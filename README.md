@@ -129,7 +129,7 @@ pwsh -NoProfile -File install.ps1 -Force                       # 跳过备份直
    └──────────────────────────────────────────────────────────────┘
 ```
 
-> `/route` 是这张图的路由 + context 边界管家：拿不准下一步跑哪个技能、或会话变长时调它——它按 grill→to-prd→to-issues→tdd→code-review→tidy 指路，并决定 continue / clear / compact / handoff / subagent，让长会话留在 smart zone（更快也更准）。`/implement` 是薄组合技能：按预定 seam 驱动 `/tdd`、收尾 `/code-review`，只管执行不管规划。
+> `/route` 是这张图的路由 + context 边界管家：拿不准下一步跑哪个技能、或会话变长时调它——它按 grill→to-prd→to-issues→tdd→code-review→tidy 指路，并决定 continue / clear / compact / handoff / subagent，让长会话留在 smart zone（更快也更准）。
 
 需求又变 → 回到 `/grill` 写新 ADR（标 `Supersedes:` 旧决策）→ `/to-prd` 写 `PRD-v2.md` → `/to-issues` 给对账报告。`done` 的 issue 永远不动；要改的话新建 `redo-X.md`。
 
@@ -519,7 +519,6 @@ adb logcat -b crash -d                                 # 抓 crash / ANR
 | [to-prd](engineering/to-prd/SKILL.md) | 对话变 PRD（版本化意图快照，重跑默认 supersede）；PRD 带「尚未明确（Fog of War）」段——看得见但还问不清的问题先存着，`/to-issues` 变清晰后再毕业成切片 |
 | [to-issues](engineering/to-issues/SKILL.md) | 拆 issue（frontmatter + 依赖 DAG，重跑给对账报告，支持 detail 子切片）；碰已有代码先做影响面探测（[impact-detection.md](engineering/to-issues/impact-detection.md)）；能 prefactor 就先铺垫，宽重构（爆炸半径铺满全仓）走 expand→contract |
 | [tdd](engineering/tdd/SKILL.md) | 跑红绿循环：`<path>` 单条 · 裸跑串行排空所有 ready · `<feat>` 排空单 feature · `--parallel` 无依赖切片并发排空（详见 [DRAIN.md](engineering/tdd/DRAIN.md)） |
-| [implement](engineering/implement/SKILL.md) | 薄组合：按预定 seam 驱动 `/tdd`、收尾 `/code-review`，只执行不规划 |
 | [route](engineering/route/SKILL.md) | 拿不准下一步跑哪个 skill、或会话变长时喊它——路由到下一步 + 管 context 边界（smart zone / continue / clear / compact / handoff / subagent），让长会话更快更准 |
 | [tidy](engineering/tidy/SKILL.md) | 垃圾回收：归档 done、重生成 SUMMARY、审计测试 + 孤儿 issue |
 | [diagnose](engineering/diagnose/SKILL.md) | 6 阶段诊断硬 bug |
