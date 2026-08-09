@@ -26,38 +26,39 @@ Per-issue gate: mark `status: done` only if build + the touched module's **scope
 
 ## Parallel path (`/tdd -p [<feat>]`)
 
-Same DAG, but instead of walking it one node at a time, run every **ready wave** concurrently. A
-wave is the set of `ready-for-agent` issues whose `blocked_by` are all already `done`. This
-collapses the wall-clock of N independent slices toward the time of a single slice — the largest
-speedup available when a feature's slices don't all chain.
+`-p` farms the ready issues out to **subagents** instead of running them inline. The point is
+context isolation: each issue's verbose red-green output stays in its own window and never floods
+the main session, and independent slices finish in parallel. Same DAG, same per-issue gate — `-p`
+only adds two per-issue judgements: **hand this issue to a subagent, and does it need its own
+worktree?**
 
 Loop until the ready set is empty:
 
 1. **Compute the wave.** From the remaining `ready-for-agent` issues, take every one whose blockers
    are all `done`. These have no ordering constraint between them.
-2. **Fan out — one subagent per issue, dispatched in a single turn.** Give each a `general-purpose`
-   subagent working on its **own git worktree / branch** (`tdd/<NN>-<slug>`), so their edits never
-   collide. The subagent brief must be self-contained (it can't see this conversation): the issue
-   file path, its `## 上级` PRD/parent, the project's scoped-test + build commands from
-   `docs/agents/domain.md`, the domain glossary pointer, and the instruction to run the full
-   autonomous red-green loop and report back **only** by outcome —
-   - **Green** → one line: which tests it added (files + case counts) + scoped pass tally. Leave the
-     branch for the main session to integrate.
+2. **Fan out — one subagent per issue, dispatched in a single turn.** Each `general-purpose` subagent
+   runs the full autonomous red-green loop for its issue. Where it edits depends on coupling:
+   - **Decoupled (the common case) → edit in place.** Slices that touch disjoint files can't collide,
+     so their subagents edit the **shared working tree directly** — no worktree, no branch, nothing to
+     merge afterwards.
+   - **Would collide → isolate in a worktree.** Only when two in-flight issues genuinely touch the
+     same files, give those a git worktree / branch (`tdd/<NN>-<slug>`) so their edits don't stomp
+     each other; the main session merges them back in dependency order (`/resolving-merge-conflicts`
+     for any conflict).
+
+   The brief must be self-contained (it can't see this conversation): the issue file path, its
+   `## 上级` PRD/parent, the project's scoped-test + build commands from `docs/agents/domain.md`, the
+   domain glossary pointer, and the instruction to report back **only** by outcome —
+   - **Green** → one line: which tests it added (files + case counts) + scoped pass tally.
    - **Red / blocked** → failing case names + a trimmed traceback (not thousands of raw lines) and
      what it tried. Leave `status: ready-for-agent`.
-   The verbose test output stays in the subagent — it does not flow back into the main context.
-3. **Collect + integrate the wave.** For each green subagent, fast-forward / merge its branch into
-   the working branch in dependency order; resolve any conflict with `/resolving-merge-conflicts`.
-   Set each integrated issue's `status: done` only after its branch lands cleanly and its scoped
-   tests still pass on the merged tree. A red issue stays `ready-for-agent` — and anything that was
-   `blocked_by` it stays blocked, so it simply never enters a later wave (report it deferred).
-4. **Recompute** the ready set (newly-`done` issues may unblock the next wave) and repeat.
 
-**Mode fit — recommend, don't switch.** The widest wave's size (from the §Shared sort) is the
-whole signal: a pure chain (every wave size 1) gets no speedup from `-p`, only worktree overhead,
-while several **independent** slices (wide waves) are where `-p` collapses wall-clock toward one
-slice. If the invoked mode doesn't fit, say so in one line, then proceed as invoked — serial is
-the safe default when unsure.
+   The verbose test output stays in the subagent — it does not flow back into the main context.
+3. **Collect the wave.** Set each green issue's `status: done` only after its scoped tests pass on the
+   tree (for the worktree exception, after its branch lands cleanly and still passes on the merged
+   tree). A red issue stays `ready-for-agent` — and anything that was `blocked_by` it stays blocked,
+   so it simply never enters a later wave (report it deferred).
+4. **Recompute** the ready set (newly-`done` issues may unblock the next wave) and repeat.
 
 ## Shared: close the batch
 

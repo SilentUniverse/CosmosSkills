@@ -102,13 +102,3 @@ Iterate until the user approves the breakdown.
 For each approved slice, write a new file `.scratch/<feat>/issues/<NN>-<slug>.md` (next number, kebab-case slug), in dependency order (blockers first). Frontmatter follows [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd); the body template + the three driving frontmatter fields (`category` / `blocked_by` / `refines`): **[ISSUE-TEMPLATE.md](ISSUE-TEMPLATE.md)**.
 
 Do NOT modify any parent PRD or upstream issue.
-
-### 6. Recommend how to drain
-
-You just built the DAG, so this is the cheapest moment to tell the user how to build the slices — the widest wave's size is the whole signal:
-
-- **Several independent slices (a wave of ≥2 issues with no `blocked_by` between them)** → recommend `/tdd -p [<feat>]` (parallel): fans out one subagent per issue, collapsing wall-clock toward a single slice.
-- **One dependency chain (each slice `blocked_by` the previous — every wave is size 1)** → recommend serial `/tdd <feat>`; parallel buys nothing there.
-- **Mixed / unsure** → serial `/tdd <feat>` is the safe default.
-
-Just name the recommended command — do NOT run `/tdd` from here.
