@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Test-driven development with red-green-refactor loop. Runs one issue, drains a feature's (or all) ready-for-agent issues in dependency order, or interviews when asked without an issue. Use when user wants to build features or fix bugs using TDD, mentions "red-green-refactor", wants integration tests, or asks for test-first development.
+description: Test-driven development with red-green-refactor loop. Runs one issue, drains a feature's (or all) ready-for-agent issues in dependency order (serially, or in parallel waves with --parallel), or interviews when asked without an issue. Use when user wants to build features or fix bugs using TDD, mentions "red-green-refactor", wants integration tests, or asks for test-first development.
 argument-hint: "Issue path, feature slug, or nothing to drain all ready issues"
 ---
 
@@ -9,19 +9,19 @@ argument-hint: "Issue path, feature slug, or nothing to drain all ready issues"
 ## Invocation
 
 - `/tdd <issue-path>` — run that one issue. Read its frontmatter `status:` first (per [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md)) and obey the guard below. Fully visible, one slice.
-- `/tdd` (bare) — **drain mode**: run *every* `ready-for-agent` issue across `.scratch/`, serially, in dependency order, to completion. This is the simple batch path — no worktrees, no parallelism, no tidy, all in the current session so you can watch each one. See "Drain mode" below.
+- `/tdd` (bare) — **drain mode (serial)**: run *every* `ready-for-agent` issue across `.scratch/`, one at a time, in dependency order, to completion. The dumb-but-legible batch path — no worktrees, all in the current session so you can watch each one.
 - `/tdd <feat>` — drain mode scoped to one feature's `issues/` directory.
+- `/tdd --parallel [<feat>]` — **drain mode (parallel)**: run each dependency-free *wave* of ready issues concurrently, one subagent per issue on its own worktree. Collapses the wall-clock of independent slices toward a single slice's time — the batch speedup. See [DRAIN.md](DRAIN.md).
 - `/tdd --full` — run build + the whole suite now (the manual full-suite check, §5); combine with any form above.
 - Natural-language ask without an issue (e.g. "write tests for the parser") — fall back to **interview mode** (jump to Workflow §1).
 
-### Drain mode (bare `/tdd` or `/tdd <feat>`)
+### Drain mode
 
-1. Enumerate candidates: bare scans `.scratch/*/issues/*.md` (top level, never `archive/`); `<feat>` scans only `.scratch/<feat>/issues/*.md`. Read each one's `status:` and `blocked_by:` with `yq --front-matter=extract`.
-2. Keep only `status: ready-for-agent`. Order them so every issue runs after its `blocked_by` blockers. Skip (don't fail) any issue still blocked by a `ready-for-human` or unfinished issue — report it as deferred at the end.
-3. Run each, **one at a time**, through the autonomous-mode loop below (§Workflow). Per-issue gate: mark `status: done` only if build + the touched module's **scoped** tests pass (not the whole suite); on failure leave it `ready-for-agent`, note why, and **continue** to the next (a red issue doesn't abort the drain unless others depend on it).
-4. After the last issue takes the active set to empty, run the **full suite + build once** as the batch's closing check (§5). Report shipped, failed, deferred, and the full-suite result; explain each shipped issue's changed code flow in the chat window. Suggest `/code-review` for an independent Spec recheck (batch is uncommitted: fixed point HEAD, working-tree diff). If a feature's `done` count crossed ~8, suggest `/tidy`.
-
-Drain mode never spawns worktrees or parallel subagents — it's deliberately the dumb-but-legible serial path.
+Enumerate `ready-for-agent` issues, topologically sort on `blocked_by`, run the batch through the
+autonomous loop (§Workflow), then close with one full suite + build. Two paths: **serial** (default —
+legible, one issue at a time) and **parallel** (`--parallel` — independent waves fan out to
+subagents for the big wall-clock win). Full algorithm, subagent brief, worktree integration, and the
+serial-vs-parallel judgement: **[DRAIN.md](DRAIN.md)**.
 
 ### Status guard (issue-driven invocation)
 
