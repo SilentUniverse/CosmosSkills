@@ -70,7 +70,9 @@ Transform tasks into verifiable goals. Loop until verified.
 **Built-in tools first**: `Grep`, `Glob`, `Read` for routine search/read.
 **Shell fallback — modern tools only**: `rg` `fd` `bat` `eza` `sd` `jq` `yq` `sg`. Never `grep` `find` `cat` `ls` `sed`.
 
-→ Full mapping & details: `~/.claude/references/cli-tools.md`
+Hard-enforced: a `PreToolUse` hook (skill `modern-cli-guardrails`) blocks any `Bash` command that invokes a forbidden legacy tool. Unavoidable case? Prefix the command with `# force-legacy` or set `ALLOW_LEGACY_CLI=1`.
+
+→ Full mapping, escape hatch & details: `~/.claude/references/cli-tools.md`
 
 ## 8. Text Encoding (Windows)
 

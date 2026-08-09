@@ -1,5 +1,19 @@
 # Modern CLI Tooling Reference
 
+## Forbidden → modern (hard-enforced)
+
+CLAUDE.md §7 is enforced by a `PreToolUse` hook (skill `modern-cli-guardrails`): a `Bash` command that invokes a legacy tool in command position is blocked (exit 2) before it runs.
+
+| Forbidden | Use instead |
+|---|---|
+| `grep` | `rg` (or the built-in `Grep`) |
+| `find` | `fd` |
+| `cat` | `bat` (or the built-in `Read`) |
+| `ls` | `eza` |
+| `sed` | `sd` |
+
+**Escape hatch** for genuinely unavoidable cases (third-party Makefiles, inlined scripts, a `git` subcommand that shells out): prefix the command with a `# force-legacy` comment line, or set `ALLOW_LEGACY_CLI=1`. Only the leading tool name in command position (start, or after `|` / `&&` / `;` / `(`) is checked, so `ripgrep`, `fdfind`, and paths like `bat cat/notes.md` are not blocked.
+
 ## Layering principle
 
 The harness already exposes ripgrep-backed `Grep`, `Glob`, and `Read` tools with permission integration. Use those for routine agent search/read; only drop to a shell tool when the built-in can't express the need.
