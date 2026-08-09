@@ -10,7 +10,6 @@ The concrete `settings.json` `PreToolUse` config, hook script install locations,
 |---|---|
 | `grep` | `rg` (or the built-in `Grep`) |
 | `find` | `fd` |
-| `cat` | `bat` (or the built-in `Read`) |
 | `ls` | `eza` |
 | `sed` | `sd` |
 

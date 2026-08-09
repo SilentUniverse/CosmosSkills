@@ -1,13 +1,13 @@
 ---
 name: modern-cli-guardrails
-description: Set up a Claude Code PreToolUse hook that blocks legacy CLI tools (grep, find, cat, ls, sed) in Bash commands, enforcing CLAUDE.md §7 modern tooling. Use when the user wants to hard-enforce rg/fd/bat/eza/sd, forbid legacy CLI tools, or turn the §7 soft rule into a blocking hook.
+description: Set up a Claude Code PreToolUse hook that blocks legacy CLI tools (grep, find, ls, sed) in Bash commands, enforcing CLAUDE.md §7 modern tooling. Use when the user wants to hard-enforce rg/fd/eza/sd, forbid legacy CLI tools, or turn the §7 soft rule into a blocking hook.
 ---
 
 # Setup Modern CLI Guardrails
 
 Turns CLAUDE.md §7 (Modern CLI Tooling) from a soft guideline into a hard rule: a
 PreToolUse hook intercepts every `Bash` tool call and blocks it before execution
-if the command invokes a legacy tool (`grep`, `find`, `cat`, `ls`, `sed`).
+if the command invokes a legacy tool (`grep`, `find`, `ls`, `sed`).
 
 > Windows default: use the bundled `.ps1` script invoked via `pwsh`. Unix/WSL users use the `.sh` script.
 
@@ -19,7 +19,6 @@ Legacy tool in command position (start of command, or right after `|`, `&&`, `;`
 |---|---|
 | `grep` | `rg` (or the built-in Grep tool) |
 | `find` | `fd` |
-| `cat` | `bat` (or the built-in Read tool) |
 | `ls` | `eza` |
 | `sed` | `sd` |
 
