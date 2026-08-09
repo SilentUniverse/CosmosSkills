@@ -34,48 +34,18 @@ Classify the repo into one of four cases based on what step 1 found, and announc
 
 **Case 1 — Clean repo.** No `.scratch/`, no `docs/agents/`, no existing `## Agent skills` block. Skip migration; proceed to step 3.
 
-**Case 2 — Already on hys conventions.** `.scratch/<feat>/issues/*.md` files have `Status:` lines (or frontmatter) that already match the 3-state vocabulary in `state-vocabulary.md` (`ready-for-agent` / `ready-for-human` / `done`). Tell the user setup will refresh `docs/agents/*.md` only, leaving issue files untouched. If the issue files still carry only a bare `Status:` line (no YAML frontmatter), also run the **Case 5 frontmatter migration** before proceeding. Otherwise proceed to step 3.
+**Case 2 — Already on hys conventions.** `.scratch/<feat>/issues/*.md` files have `Status:` lines (or frontmatter) that already match the 3-state vocabulary in `state-vocabulary.md` (`ready-for-agent` / `ready-for-human` / `done`). Tell the user setup will refresh `docs/agents/*.md` only, leaving issue files untouched. If the issue files still carry only a bare `Status:` line (no YAML frontmatter), also run the **Case 5 frontmatter migration** ([MIGRATION.md](MIGRATION.md)) before proceeding. Otherwise proceed to step 3.
 
-**Case 3 — Old setup detected (`mattpocock/skills` 5-state, or earlier hys 6-state).** Either `docs/agents/issue-tracker.md` references `gh` / `glab` CLI, or existing issue files use deprecated states (`needs-triage`, `needs-info`, `wontfix`, `inbox`, `blocked`, `doing`, `shelved`). Offer:
-
-- (a) **Switch to local-markdown + 3-state vocabulary.** Rewrite `docs/agents/*.md`. For each existing issue with a deprecated state, **ask the user one-by-one** what to do: promote to `ready-for-agent` / `ready-for-human` / mark `done` (if commit already exists) / delete. Do not silently rewrite the `Status:` line.
-- (b) **Keep the old GitHub/GitLab tracker.** User explicitly chose `Other` in Section A.
+**Case 3 — Old setup detected.** `docs/agents/issue-tracker.md` references `gh` / `glab` CLI, or issue files use deprecated states (`needs-triage`, `needs-info`, `wontfix`, `inbox`, `blocked`, `doing`, `shelved`). Offer to switch to local-markdown + 3-state, or keep the old tracker — full procedure in [MIGRATION.md](MIGRATION.md).
 
 **Case 4 — PRD/issue-like files at non-default paths.** Surface the paths found. Offer two options, recommending (i) by default since it is non-destructive:
 
 - (i) **Configure paths in place.** Write the actual paths into `docs/agents/issue-tracker.md` so the skills read/write there. No file moves.
 - (ii) **Adopt new layout.** Help the user move/symlink existing files into `.scratch/<feat>/` structure. Show the planned moves before executing; use `git mv` where possible.
 
+**Case 5 — Frontmatter migration (bare `Status:` lines).** Triggered from Case 2 (or on its own) when `.scratch/` issues use the legacy bare `Status:` line instead of YAML frontmatter, or `issues/archive/` is missing. Idempotent, dry-run-first upgrade to the [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md) contract — full scan → preview → execute procedure in [MIGRATION.md](MIGRATION.md).
+
 In all cases, present what was found and the proposed migration plan for the user to confirm before any file is changed. Do not silently rewrite existing user content.
-
-**Case 5 — Frontmatter migration (bare `Status:` lines).** Triggered from Case 2 (or runnable on its own) when `.scratch/` issues use the legacy bare `Status:` line instead of YAML frontmatter, or when `issues/archive/` is missing. This upgrades the repo to the [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md) contract. It is **idempotent** (skip any file that already has a `---` frontmatter fence) and **dry-run-first** (never touch a file before showing the plan).
-
-Steps:
-
-1. **Scan.** For every `.scratch/<feat>/issues/*.md`, classify: already has frontmatter (skip), or bare `Status:` line (migrate). Note each file's current state string and whether it is `done`.
-2. **Build the plan** and print it as a single preview, no writes yet:
-
-   ```
-   📋 Frontmatter 迁移计划（dry-run，未落盘）
-   ──────────────────────────────────────────────────────────────
-   加 frontmatter（bare Status: → YAML）:
-     .scratch/balance/issues/01-init-schema.md   (done)
-     .scratch/balance/issues/04-cache.md          (ready-for-agent)
-   已有 frontmatter（跳过）:
-     .scratch/auth/issues/01-login.md
-   移动到 archive/（done issue，git mv 保历史）:
-     .scratch/balance/issues/01-init-schema.md → issues/archive/01-init-schema.md
-   生成索引:
-     .scratch/balance/SUMMARY.md   (从 done issue 的 ## Comments 完成记录聚合)
-   ──────────────────────────────────────────────────────────────
-   确认执行？(y / 逐项挑)
-   ```
-
-3. **On confirm, execute.** For each bare-`Status:` file, derive the frontmatter fields from the [issue schema](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd): `type: issue`; `feature` from the directory name; `status` from the old `Status:` line; `category: enhancement` (default — the user can refine later); `blocked_by` parsed from any existing `前置依赖` section if filenames are referenced, else `[]`; `created` from `git log --diff-filter=A --format=%as -- <file>` (fall back to today). Remove the now-redundant bare `Status:` line. Do not touch the body otherwise (surgical — frontmatter only).
-4. **Archive done issues** with `git mv` into `issues/archive/` so history is preserved and the active working set shrinks. Skip if the user opted out of archiving during migration.
-5. **Generate** each feature's `.scratch/<feat>/SUMMARY.md` per the format doc.
-
-Report what changed. If `refines` can't be inferred for a non-top-level issue, leave it unset and note it — the orphan check in `/tidy` will surface it later.
 
 ### 3. Present findings and ask
 

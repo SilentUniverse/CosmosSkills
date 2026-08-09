@@ -1,0 +1,48 @@
+# to-issues — Issue file template
+
+Loaded on demand by [`/to-issues`](SKILL.md) step 5, at the moment issues are actually written to
+`.scratch/<feat>/issues/<NN>-<slug>.md`. Frontmatter follows [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd); the body uses the template below.
+
+Write issues in dependency order (blockers first) so you can reference real filenames in both the
+`blocked_by` frontmatter field and the `前置依赖` section.
+
+<issue-template>
+
+---
+# frontmatter per ARTIFACT-FORMAT.md — type / feature / status / category / blocked_by / refines / created
+# a fresh slice defaults to status: ready-for-agent, category: enhancement
+---
+
+## 上级（Parent）
+
+A reference to the parent PRD or issue (path or filename), if the source was an existing artifact.
+
+## 做什么（What to build）
+
+A concise description of this vertical slice. Describe the end-to-end behavior, not layer-by-layer implementation.
+
+Avoid specific file paths or code snippets — they go stale fast. Exception: if a prototype produced a snippet that encodes a decision more precisely than prose can (state machine, reducer, schema, type shape), inline it here and note briefly that it came from a prototype.
+
+## 验收标准（Acceptance Criteria）
+
+- [ ] 具体、可验证的条目 1
+- [ ] 具体、可验证的条目 2
+- [ ] 具体、可验证的条目 3
+
+**写 AC 的两条规则：**
+1. **只写本切片新增的行为**。上一切片已提供的能力（schema、已存在的授权、已覆盖的校验）不要重复列出——靠 `blocked_by` 串联。
+2. **验收要可独立验证**（“执行 X 后能看到 Y”），不是“应该工作正常”。
+
+## 前置依赖（Blocked by）
+
+- A reference to the blocking issue file (e.g. `01-init-schema.md`), or "无". Keep this in sync with the `blocked_by` frontmatter list.
+
+## Comments
+
+<!-- agent briefs, completion records, post-implementation notes append here. -->
+
+</issue-template>
+
+**Frontmatter** — fill every field per the schema in [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd). The three fields that drive this skill's output: `category` (`enhancement` default; `detail`/`redo`/`fix` for later sub-behaviour / re-work, which MUST also set `refines:`), `blocked_by` (sibling slugs that must reach `done` first — `/tdd`'s drain mode topologically sorts on it), and `refines` (parent slug, set for non-top-level slices so incremental work stays traceable instead of orphaned).
+
+Do NOT modify any parent PRD or upstream issue.
