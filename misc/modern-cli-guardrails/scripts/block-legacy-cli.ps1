@@ -28,7 +28,6 @@ if ($command -match '(?m)^\s*#\s*force-legacy' -or $env:ALLOW_LEGACY_CLI -eq '1'
 $map = [ordered]@{
     'grep' = 'rg'
     'find' = 'fd'
-    'cat'  = 'bat (or the built-in Read tool)'
     'ls'   = 'eza'
     'sed'  = 'sd'
 }

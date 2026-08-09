@@ -69,7 +69,7 @@ Transform tasks into verifiable goals. Loop until verified.
 ## 7. Modern CLI Tooling
 
 **Built-in tools first**: `Grep`, `Glob`, `Read` for routine search/read.
-**Shell fallback — modern tools only**: `rg` `fd` `bat` `eza` `sd` `jq` `yq` `sg`. Never `grep` `find` `cat` `ls` `sed`.
+**Shell fallback — modern tools only**: `rg` `fd` `bat` `eza` `sd` `jq` `yq` `sg`. Never `grep` `find` `ls` `sed`.
 
 Optional hard enforcement: the `modern-cli-guardrails` skill installs a `PreToolUse` hook that blocks any `Bash` command invoking a forbidden legacy tool, turning this soft rule into a blocking one. Unavoidable case? Prefix the command with `# force-legacy` or set `ALLOW_LEGACY_CLI=1`.
 

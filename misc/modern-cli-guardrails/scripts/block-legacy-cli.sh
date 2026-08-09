@@ -20,8 +20,8 @@ if [[ "$COMMAND" =~ ^[[:space:]]*#[[:space:]]*force-legacy ]] || [ "$ALLOW_LEGAC
 fi
 
 # Legacy tool -> modern replacement (parallel arrays; order matters only for output).
-LEGACY_TOOLS=("grep" "find" "cat" "ls" "sed")
-MODERN_TOOLS=("rg" "fd" "bat (or the built-in Read tool)" "eza" "sd")
+LEGACY_TOOLS=("grep" "find" "ls" "sed")
+MODERN_TOOLS=("rg" "fd" "eza" "sd")
 
 for i in "${!LEGACY_TOOLS[@]}"; do
   old="${LEGACY_TOOLS[$i]}"
