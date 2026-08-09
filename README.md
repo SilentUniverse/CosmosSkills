@@ -216,7 +216,7 @@ rg '^status: ready-for-human' -g '**/issues/*.md' .scratch    # 我亲自做的
 按需配两个一次性 skill：
 
 - 用 git？跑 [`git-guardrails-claude-code`](misc/git-guardrails-claude-code/SKILL.md) 拦 `git push --force` 等危险命令
-- 想把 §7 现代工具约束变硬？跑 [`modern-cli-guardrails`](misc/modern-cli-guardrails/SKILL.md) 拦 Bash 里的 `grep`/`find`/`cat`/`ls`/`sed`
+- 想把 §7 现代工具约束变硬？跑 [`modern-cli-guardrails`](misc/modern-cli-guardrails/SKILL.md) 拦 Bash 里的 `grep`/`find`/`cat`/`ls`/`sed`（钩子安装与 `settings.json` 配置细节见该 SKILL.md）
 - 用 npm/pnpm？跑 [`setup-pre-commit`](misc/setup-pre-commit/SKILL.md) 装 commit 钩子
 
 **第 2 步 — 第一个 feature**
@@ -556,6 +556,6 @@ adb logcat -b crash -d                                 # 抓 crash / ANR
 | skill | 干啥 |
 |---|---|
 | [git-guardrails-claude-code](misc/git-guardrails-claude-code/SKILL.md) | Claude Code 钩子，拦 `git push --force` / `reset --hard` / `clean -fd` 等危险命令，**防 agent 闯祸** |
-| [modern-cli-guardrails](misc/modern-cli-guardrails/SKILL.md) | Claude Code 钩子，拦 Bash 里的旧工具 `grep`/`find`/`cat`/`ls`/`sed`，把 CLAUDE.md §7 从软约束变**硬强制**（可用 `# force-legacy` 豁免） |
+| [modern-cli-guardrails](misc/modern-cli-guardrails/SKILL.md) | Claude Code 钩子，拦 Bash 里的旧工具 `grep`/`find`/`cat`/`ls`/`sed`，把 CLAUDE.md §7 从软约束变**硬强制**（可用 `# force-legacy` 豁免；`settings.json` 配置细节见 SKILL.md） |
 | [setup-pre-commit](misc/setup-pre-commit/SKILL.md) | Husky + lint-staged，commit 时自动跑 prettier / typecheck / test |
 | [migrate-to-shoehorn](misc/migrate-to-shoehorn/SKILL.md) | TS 测试 codemod：`as Type` → `fromPartial({})`，类型安全。**仅限 TS 项目** |
