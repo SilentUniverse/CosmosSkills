@@ -64,7 +64,7 @@ line when the invoked mode doesn't match that shape, then proceed as invoked (do
 - Bare/serial `/tdd` but the widest wave is ≥2 independent slices → *"6 issues, 5 independent — `-p`
   would cut wall-clock to ~1 slice; proceeding serial as invoked. Re-run with `-p` to parallelise."*
 - `-p` but every wave is size 1 (a pure chain) → *"these slices form one chain — parallel degenerates
-  to serial; running serially."*
+  to one wave at a time (worktree overhead, no speedup); proceeding as invoked. Bare `/tdd` is simpler here."*
 
 ## Shared: close the batch
 
