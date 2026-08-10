@@ -46,25 +46,33 @@ Loop until the ready set is empty:
      each other; the main session merges them back in dependency order (`/resolving-merge-conflicts`
      for any conflict).
 
-   The brief must be self-contained (it can't see this conversation): the issue file path, its
-   `## 上级` PRD/parent, the project's scoped-test + build commands from `docs/agents/domain.md`, the
-   domain glossary pointer, and the instruction to report back **only** by outcome —
-   - **Green** → one line: which tests it added (files + case counts) + scoped pass tally.
-   - **Red / blocked** → failing case names + a trimmed traceback (not thousands of raw lines) and
-     what it tried. Leave `status: ready-for-agent`.
+   The brief must be self-contained (it can't see this conversation):
+   - **Invoke `/tdd <issue-path>`** — this loads the full workflow (status guard, existing-test scan,
+     red-green-refactor discipline, Murphy check, completion record). The issue is `ready-for-agent`
+     → autonomous mode: skip all "confirm with user" prompts.
+   - Its `## 上级` PRD/parent, the project's scoped-test + build commands from `docs/agents/domain.md`,
+     and the domain glossary pointer.
+   - Report back **only** by outcome —
+     - **Green** → one line: which tests it added (files + case counts) + scoped pass tally. The
+       subagent writes the completion record and sets `status: done` itself.
+     - **Red / blocked** → failing case names + a trimmed traceback (not thousands of raw lines) and
+       what it tried. Leave `status: ready-for-agent`.
 
    The verbose test output stays in the subagent — it does not flow back into the main context.
-3. **Collect the wave.** Set each green issue's `status: done` only after its scoped tests pass on the
-   tree (for the worktree exception, after its branch lands cleanly and still passes on the merged
-   tree). A red issue stays `ready-for-agent` — and anything that was `blocked_by` it stays blocked,
-   so it simply never enters a later wave (report it deferred).
+3. **Collect the wave.** Each green subagent has already written its completion record and set
+   `status: done`; verify by re-running the scoped tests on the tree (for the worktree exception,
+   after its branch lands cleanly and still passes on the merged tree). If they fail — e.g. a
+   concurrent edit conflicted — revert to `ready-for-agent` and note why. A red issue stays
+   `ready-for-agent` — and anything that was `blocked_by` it stays blocked, so it simply never
+   enters a later wave (report it deferred).
 4. **Recompute** the ready set (newly-`done` issues may unblock the next wave) and repeat.
 
 ## Shared: close the batch
 
 After the last issue takes the active set to empty, run the **full suite + build once** as the
-batch's closing check (SKILL.md §5) — in a subagent, forking green (one-line tally) vs red (failing
-names + trimmed traceback). Report shipped, failed, deferred, and the full-suite result; explain
+batch's closing check (**[FULL-SUITE.md](FULL-SUITE.md)**) — in a subagent, forking green (one-line
+tally) vs red (failing names + trimmed traceback). Report shipped, failed, deferred, and the
+full-suite result; explain
 each shipped issue's changed code flow in the chat window. Suggest `/code-review` for an independent
 Spec recheck (batch is uncommitted: fixed point HEAD, working-tree diff). If a feature's `done`
 count crossed ~8, suggest `/tidy`.

@@ -137,12 +137,10 @@ After all tests pass, look for [refactor candidates](refactoring.md):
 
 ### 5. Full-suite check
 
-Per-cycle and per-issue runs stay scoped (§3) for speed, so they can't see cross-module
-regressions. The full suite + build (commands cached in `docs/agents/domain.md`) runs at two points:
-**automatically once per batch** (when a drain run takes its last issue to `done`) and **manually on
-demand** (`/tdd --full`). Both keep verbose output out of context (redirect to `.scratch/tmp/`, pull
-only the tally + failures) and run in a subagent that reports back green-tally or red-failures.
-Full procedure: **[FULL-SUITE.md](FULL-SUITE.md)**.
+Scoped per-cycle tests (§3) can't see cross-module regressions. The full suite + build runs
+**automatically once per batch** (when drain takes its last issue to `done`) and **manually**
+(`/tdd --full`). Both run in a subagent that keeps verbose output out of context. Full procedure:
+**[FULL-SUITE.md](FULL-SUITE.md)**.
 
 ## Checklist Per Cycle
 

@@ -1,8 +1,7 @@
 # tdd — Completion record (issue-based runs)
 
 Loaded on demand by [`/tdd`](SKILL.md) at the end of an **issue-based** run, when it's time to write
-the completion record. Interview mode (no issue) writes none — run `/to-issues` afterward and mark
-the issue `done`.
+the completion record.
 
 Run an adversarial review.
 
