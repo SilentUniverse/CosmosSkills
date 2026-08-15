@@ -1,6 +1,7 @@
 # Human-in-the-loop reproduction loop (Windows / PowerShell).
-# Copy this file, edit the steps below, and run it:
-#   pwsh -NoProfile -File hitl-loop.template.ps1
+# Copy this file to .scratch/tmp/hitl-<bug>.ps1 (never edit the template in place),
+# edit the steps below, and run it:
+#   pwsh -NoProfile -File .scratch/tmp/hitl-<bug>.ps1
 # The agent runs the script; the user follows prompts in their terminal.
 #
 # Two helpers:
@@ -25,15 +26,20 @@ function Capture([string]$name, [string]$question) {
 
 # --- edit below ---------------------------------------------------------
 
-Step "Open the app at http://localhost:3000 and sign in."
+try {
+    Step "Open the app at http://localhost:3000 and sign in."
 
-Capture "ERRORED" "Click the 'Export' button. Did it throw an error? (y/n)"
+    Capture "ERRORED" "Click the 'Export' button. Did it throw an error? (y/n)"
 
-Capture "ERROR_MSG" "Paste the error message (or 'none'):"
+    Capture "ERROR_MSG" "Paste the error message (or 'none'):"
+}
 
 # --- edit above ---------------------------------------------------------
 
-Write-Host "`n--- Captured ---"
-foreach ($key in $captured.Keys) {
-    Write-Host "$key=$($captured[$key])"
+# finally runs on normal exit AND on Ctrl-C — partial captures are never lost.
+finally {
+    Write-Host "`n--- Captured ---"
+    foreach ($key in $captured.Keys) {
+        Write-Host "$key=$($captured[$key])"
+    }
 }

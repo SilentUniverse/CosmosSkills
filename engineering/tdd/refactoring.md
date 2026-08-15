@@ -1,5 +1,7 @@
 # Refactor Candidates
 
+Loaded on demand by `/tdd` §4 (Refactor).
+
 After TDD cycle, look for:
 
 - **Duplication** → Extract function/class

@@ -22,7 +22,7 @@ Problems with `as` in tests:
 ## Install
 
 ```bash
-npm i @total-typescript/shoehorn
+npm i -D @total-typescript/shoehorn   # devDependency — test code only
 ```
 
 ## Migration patterns
@@ -112,11 +112,11 @@ getUser(fromAny({ body: { id: 123 } }));
    - Do they need to pass intentionally wrong data for error testing?
 
 2. **Install and migrate**:
-   - [ ] Install: `npm i @total-typescript/shoehorn`
+   - [ ] Install: `npm i -D @total-typescript/shoehorn`
    - [ ] Find `as` assertions in test files (structural, cross-platform):
-     - **ast-grep (preferred):** `sg -p '$EXPR as $TYPE' -l ts` — matches real cast nodes, skips `as` in strings/comments. For double-casts: `sg -p '$EXPR as unknown as $TYPE' -l ts`.
+     - **ast-grep (preferred):** `sg -p '$EXPR as $TYPE' -l ts --globs '*.test.ts' --globs '*.spec.ts'` — same scope as the rg fallback. For double-casts: `sg -p '$EXPR as unknown as $TYPE' -l ts --globs '*.test.ts' --globs '*.spec.ts'`.
      - **Fallback (rg):** `rg ' as [A-Z]' -g '*.test.ts' -g '*.spec.ts'`
    - [ ] Replace `as Type` with `fromPartial()`
    - [ ] Replace `as unknown as Type` with `fromAny()`
    - [ ] Add imports from `@total-typescript/shoehorn`
-   - [ ] Run type check to verify
+   - [ ] Run type check **and the affected test files** to verify

@@ -13,8 +13,8 @@ Split what's in front of you into two piles: **facts** — anything you could se
 
 When a decision's options are enumerable, present it via the AskUserQuestion tool with your recommended option first; otherwise ask in free text.
 
-Finding facts is your job, not mine. When a frontier question needs a fact you can't find in the codebase, dispatch a sub-agent. Don't block on it: only the questions downstream of that fact wait — ask the rest of the frontier now.
+Finding facts is your job, not mine. When a frontier question needs a fact you can't find in the codebase, dispatch `/research`; only the questions downstream of that fact wait — ask the rest of the frontier now.
 
 Each round's answers reshape the tree — settled decisions push the frontier outward. Recompute and continue.
 
-End when the next artifact is obvious: decisions, route-changing assumptions, next skill. No code or submit; write artifacts only when the calling skill owns them.
+End when the next artifact is obvious: decisions, route-changing assumptions, next skill. A design question needing a concrete artifact: note it, recommend `/prototype` at the end. No code or submit; write artifacts only when the calling skill owns them — invoked bare, grilling writes nothing.

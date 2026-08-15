@@ -1,5 +1,7 @@
 # Good and Bad Tests
 
+Loaded on demand by `/tdd` when writing tests.
+
 ## Good Tests
 
 **Integration-style**: Test through real interfaces, not mocks of internal parts.

@@ -9,35 +9,7 @@ Actively build and sharpen the project's domain model as you design. This is the
 
 ## File structure
 
-Most repos have a single context:
-
-```
-/
-├── CONTEXT.md
-├── docs/
-│   └── adr/
-│       ├── 0001-event-sourced-orders.md
-│       └── 0002-postgres-for-write-model.md
-└── src/
-```
-
-If a `CONTEXT-MAP.md` exists at the root, the repo has multiple contexts. The map points to where each one lives:
-
-```
-/
-├── CONTEXT-MAP.md
-├── docs/
-│   └── adr/                          ← system-wide decisions
-├── src/
-│   ├── ordering/
-│   │   ├── CONTEXT.md
-│   │   └── docs/adr/                 ← context-specific decisions
-│   └── billing/
-│       ├── CONTEXT.md
-│       └── docs/adr/
-```
-
-Create files lazily — only when you have something to write. If no `CONTEXT.md` exists, create one when the first term is resolved. If no `docs/adr/` exists, create it when the first ADR is needed.
+Layout: **[CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md)**. Create files lazily — only when you have something to write. If no `CONTEXT.md` exists, create one when the first term is resolved. If no `docs/adr/` exists, create it when the first ADR is needed.
 
 ## First pass (draft mode)
 
@@ -45,7 +17,7 @@ Create files lazily — only when you have something to write. If no `CONTEXT.md
 
 **Steps:**
 
-1. Explore the code to identify the domain concepts worth capturing.
+1. Explore the code to identify the domain concepts worth capturing. Big repo: one `Explore` subagent per area; draft from their reports.
 2. Draft the **entire** glossary in one shot, applying your recommended term for every concept. Follow [CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md). Pick canonical terms, list synonyms under `_Avoid_`.
 3. Write it to `CONTEXT.md` (or the relevant per-context file), with each term tagged `(draft)`.
 4. Present the **whole draft at once** for the user to edit — one review gate, not N interruptions, and never zero review (boundaries / naming are what automation gets wrong). Drop the `(draft)` tags once the user confirms.
@@ -79,10 +51,4 @@ When a term is resolved, update `CONTEXT.md` right there. Don't batch these up �
 
 ### Offer ADRs sparingly
 
-Only offer to create an ADR when all three are true:
-
-1. **Hard to reverse** — the cost of changing your mind later is meaningful
-2. **Surprising without context** — a future reader will wonder "why did they do it this way?"
-3. **The result of a real trade-off** — there were genuine alternatives and you picked one for specific reasons
-
-If any of the three is missing, skip the ADR. Use the format in [ADR-FORMAT.md](./ADR-FORMAT.md).
+Only per the three-condition gate in **[ADR-FORMAT.md](./ADR-FORMAT.md)** — if any condition is missing, skip. Same file for the format.

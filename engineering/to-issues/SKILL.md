@@ -46,7 +46,7 @@ re-run — a checkpoint you show the user, not a silent decision:
 
 1. **Static reachability** — callers/importers of the anchored symbols, and which existing tests
    cover them. Machine-determinable — query it, don't eyeball it. Per-language commands + their
-   confidence: [impact-detection.md](./impact-detection.md) (also in `docs/agents/domain.md`).
+   confidence: [impact-detection.md](./impact-detection.md) (also recorded in `docs/agents/domain.md`).
 2. **Semantic coupling** — behaviour the change might break that no import edge shows (invariants
    like "amount ≥ 0", ordering constraints). **Deterministic tools first**: run the runtime /
    coverage commands recorded in `docs/agents/domain.md` (they catch dynamic coupling) and pull
@@ -94,11 +94,14 @@ Ask the user:
 - 粒度合适吗？（太粗 / 太细）
 - 依赖关系对不对？
 - `ready-for-agent` / `ready-for-human` 标记对吗？
+- 这批切片共同建立在哪条假设上？它错了会塌什么？
 
 Iterate until the user approves the breakdown.
 
 ### 5. Write issues to `.scratch/<feat>/issues/`
 
-For each approved slice, write a new file `.scratch/<feat>/issues/<NN>-<slug>.md` (next number, kebab-case slug), in dependency order (blockers first). Frontmatter follows [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd); the body template + the three driving frontmatter fields (`category` / `blocked_by` / `refines`): **[ISSUE-TEMPLATE.md](ISSUE-TEMPLATE.md)**.
+For each approved slice, write a new file `.scratch/<feat>/issues/<NN>-<slug>.md` (next number, kebab-case slug), in dependency order (blockers first). Frontmatter follows [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd); the body template + the three driving frontmatter fields (`category` / `blocked_by` / `refines`): **[ISSUE-TEMPLATE.md](ISSUE-TEMPLATE.md)**. Fill `## 上级`'s PRD extract and `touches:` from the step-2 probe; omit `touches:` if the probe skipped.
 
 Do NOT modify any parent PRD or upstream issue.
+
+**Post-write integrity check (mandatory).** One pass: every `blocked_by` / `refines` target resolves to a sibling file, `NN` unique, `blocked_by` edges acyclic.

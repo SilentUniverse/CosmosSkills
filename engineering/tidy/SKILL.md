@@ -27,9 +27,9 @@ view and clears history out of the live set. All artifacts follow [ARTIFACT-FORM
 
 ### 1. Survey
 
-Read `.scratch/<feat>/issues/*.md` (top level only, not `archive/`). Group by frontmatter `status`.
-Read the `### 完成` block of each `done` issue. Read the latest non-superseded `PRD*.md` and note
-which user stories / slices it covers.
+Survey by extraction: one `rg '^status:' -g '*.md' .scratch/<feat>/issues` pass, each `done`
+issue's `### 完成` block, and the latest non-superseded `PRD*.md` in full. Never read whole issue
+bodies.
 
 ### 2. Present the plan (dry-run, no writes)
 
@@ -61,8 +61,13 @@ Show one preview covering all four actions, then wait for confirmation (yes-all 
 
 - **Archive** — `git mv .scratch/<feat>/issues/NN-*.md .scratch/<feat>/issues/archive/` for each
   confirmed `done` issue. Create `archive/` if absent. Never edit the body or `status` — immutability holds.
-- **Regenerate `SUMMARY.md`** — aggregate the `### 完成` blocks into `.scratch/<feat>/SUMMARY.md` per the format doc.
-- **Test audit** — for zombie tests (those a `redo`/`fix` slice replaced) and duplicates the user confirmed, delete the test files (or the specific cases). Run the test suite after deletion to confirm nothing green turned red unexpectedly — in a subagent, or redirected to `.scratch/tmp/`, pulling back only the pass tally and failing cases.
+- **Regenerate `SUMMARY.md`** — aggregate the `### 完成` blocks (excluding 审查 lines) of all
+  done issues, top-level **plus `issues/archive/`**, into `.scratch/<feat>/SUMMARY.md` per the
+  format doc.
+- **Test audit** — **zombie = a test in the parent's `### 完成` 新增测试 that the redo's
+  `### 完成` did not carry forward**; derive it by diffing the two lists. For confirmed zombies
+  and duplicates, delete the tests, then run the **full suite** (subagent, or redirect to
+  `.scratch/tmp/`). On unexpected red: `git checkout -- <file>`, re-run, re-audit.
 - **Orphan resolution** — for each flagged orphan, apply the user's choice: add a `refines:` field,
   fold it into a PRD revision (hand off to `/to-prd`), or relabel `category: detail` and archive.
 

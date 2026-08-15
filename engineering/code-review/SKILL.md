@@ -30,12 +30,14 @@ git log  <fixed-point>..HEAD --oneline   # the commit list
 
 Before spawning anything, confirm the ref resolves (`git rev-parse <fixed-point>`) and the diff is non-empty. A bad ref or empty diff must fail **here**, not inside two parallel sub-agents.
 
+Working-tree mode — uncommitted changes (e.g. a drain batch before commit): `git diff HEAD`, fixed point `HEAD`.
+
 ### 2. Identify the spec source
 
 Look for the originating spec, in this order:
 
 1. A path the user (or caller) passed as an argument — an issue file or PRD.
-2. The issue referenced by the branch / feature slug: `.scratch/<feat>/issues/NN-*.md` (its `## AC` block is the spec). For a `redo`/`fix` issue, also read the parent named by `refines:`.
+2. The issue referenced by the branch / feature slug: `.scratch/<feat>/issues/NN-*.md` (its `## 验收标准（AC）` block is the spec). For a `redo`/`fix` issue, also read the parent named by `refines:`. Multi-issue batch on one branch: review per issue, or ask the user for one spec.
 3. The feature PRD: `.scratch/<feat>/PRD.md`.
 4. If nothing is found, ask the user where the spec is. If they say there isn't one, the **Spec** sub-agent skips and reports "无 spec 可比对".
 
@@ -45,25 +47,7 @@ Look for the originating spec, in this order:
 
 Anything in the repo documenting how code should be written: `CODING_STANDARDS.md`, `CONTRIBUTING.md`, the domain language in `CONTEXT.md`, and the decisions in `docs/adr/` (a diff that violates an accepted ADR is a Standards finding).
 
-On top of whatever the repo documents, the Standards axis always carries the **smell baseline** below — a fixed set of Fowler code smells (_Refactoring_, ch.3) that applies even when a repo documents nothing. Two rules bind it:
-
-- **The repo overrides.** A documented repo standard (or ADR) always wins; where it endorses something the baseline would flag, suppress the smell.
-- **Always a judgement call.** Each smell is a labelled heuristic ("possible Feature Envy"), never a hard violation — and, like any standard here, skip anything tooling already enforces.
-
-Each smell reads *what it is* → *how to fix*; match it against the diff:
-
-- **Mysterious Name** — a function, variable, or type whose name doesn't reveal what it does or holds. → rename it; if no honest name comes, the design's murky.
-- **Duplicated Code** — the same logic shape appears in more than one hunk or file in the change. → extract the shared shape, call it from both.
-- **Feature Envy** — a method that reaches into another object's data more than its own. → move the method onto the data it envies.
-- **Data Clumps** — the same few fields or params keep travelling together (a type wanting to be born). → bundle them into one type, pass that.
-- **Primitive Obsession** — a primitive or string standing in for a domain concept that deserves its own type. → give the concept its own small type (use the `CONTEXT.md` name).
-- **Repeated Switches** — the same `switch`/`if`-cascade on the same type recurs across the change. → replace with polymorphism, or one map both sites share.
-- **Shotgun Surgery** — one logical change forces scattered edits across many files in the diff. → gather what changes together into one module.
-- **Divergent Change** — one file or module is edited for several unrelated reasons. → split so each module changes for one reason.
-- **Speculative Generality** — abstraction, parameters, or hooks added for needs the spec doesn't have. → delete it; inline back until a real need shows.
-- **Message Chains** — long `a.b().c().d()` navigation the caller shouldn't depend on. → hide the walk behind one method on the first object.
-- **Middle Man** — a class or function that mostly just delegates onward. → cut it, call the real target direct.
-- **Refused Bequest** — a subclass or implementer that ignores or overrides most of what it inherits. → drop the inheritance, use composition.
+On top of whatever the repo documents, the Standards axis always carries a **smell baseline** — 12 Fowler code smells (_Refactoring_, ch.3), two binding rules (repo overrides; always a judgement call). Full list: **[SMELL-BASELINE.md](SMELL-BASELINE.md)** — the Standards sub-agent reads the file; never paste or duplicate.
 
 ### 4. Spawn both sub-agents in parallel
 
@@ -72,7 +56,7 @@ Dispatch two sub-agents in one turn — one per axis — so their contexts stay 
 **Standards sub-agent** — give it:
 
 - The full diff command and commit list.
-- The standards-source files found in step 3, **plus the smell baseline from step 3 pasted in full** — the sub-agent has no other access to it.
+- The standards-source files found in step 3, plus the path to read: `~/.claude/skills/code-review/SMELL-BASELINE.md` (junctioned install).
 - The brief: "Report — per file/hunk where relevant — (a) every place the diff violates a documented standard or an accepted ADR: cite the standard (file + rule); and (b) any baseline smell you spot: name it (English) and quote the hunk. Distinguish hard violations from judgement calls — documented-standard/ADR breaches can be hard, baseline smells are always judgement calls, and a documented repo standard overrides the baseline. Skip anything tooling enforces. Under 400 words."
 
 **Spec sub-agent** — give it:

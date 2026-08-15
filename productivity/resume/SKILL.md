@@ -39,6 +39,9 @@ Compare the handoff's `git_base` against current `git rev-parse --short HEAD`.
 - **Diverged** — commits landed since the handoff was written. Warn the user and show
   `git log --oneline <git_base>..HEAD` so they can see what changed, then ask whether to proceed.
   The handoff's "关键口径清单" may be stale relative to those commits.
+- **Unknown revision** — `git_base` no longer resolves (rebase / force-push / branch switch). Show
+  `git reflog -15`, ask the user which commit to anchor to, offer to rewrite `git_base` before
+  continuing.
 
 Also check working-tree cleanliness; if dirty, surface `git status` briefly before acting.
 
@@ -50,7 +53,7 @@ context — treat those decisions and invariants as binding. Don't re-explore wh
 decided; that's the whole point of the document.
 
 If the handoff names a feature, also glance at its live working set:
-`rg '^status: ready-for-' -g '*.md' .scratch/<feat>/issues`.
+`rg '^status: ready-for-' -g '*.md' -g '!**/archive/**' .scratch/<feat>/issues`.
 
 ### 4. Mark consumed when the work is finished
 

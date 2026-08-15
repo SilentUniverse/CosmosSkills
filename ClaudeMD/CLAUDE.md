@@ -80,7 +80,7 @@ Optional hard enforcement: the `modern-cli-guardrails` skill's `PreToolUse` hook
 
 Windows console defaults to GBK (cp936); `PYTHONUTF8=1` is injected via settings — everything else takes explicit encoding. Two verified hard rules:
 
-1. **Directory truth before destructive ops.** `fd`/Glob/Grep hide gitignored+hidden+dot files by default — before delete/move/overwrite of a directory, verify with `cmd //c dir /a /b <path>` or `Get-ChildItem -Force` (plain `dir` without `/a` misses hidden files).
+1. **Directory truth before destructive ops.** `fd`/Glob/Grep hide gitignored+hidden+dot files by default — before delete/move/overwrite of a directory, verify with `cmd //c dir /a /b <path>` (git-bash spelling; in PowerShell use `cmd /c …`) or `Get-ChildItem -Force` (plain `dir` without `/a` misses hidden files).
 2. **Explicit UTF-8 when invoking PowerShell from bash.** Raw `pwsh`/`powershell.exe` mangles Chinese output unpredictably; always wrap:
    ```
    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; <cmd>"
@@ -97,6 +97,7 @@ Skills iterating over work items: finish ALL items in one pass.
 - No mid-pass pauses, per-item summaries, or "shall I continue?" checkpoints.
 - One summary at the end, not one per item.
 - If an item fails or blocks: mark it, move on, include it in the final summary. Don't stop to negotiate.
+- Precedence with §2: plan-level uncertainty halts and asks; per-item failure marks and continues.
 - Autonomy until done.
 
 ## 10. Parallelize with Subagents

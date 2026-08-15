@@ -16,7 +16,7 @@ disable-model-invocation: true
 
 2. **Draft the skill** - create:
    - SKILL.md with concise instructions
-   - Additional reference files if content exceeds 500 lines
+   - Additional reference files if content exceeds 100 lines
    - Utility scripts if deterministic operations needed
 
 3. **Review with user** - present draft and ask:
@@ -29,8 +29,8 @@ disable-model-invocation: true
 ```
 skill-name/
 ├── SKILL.md           # Main instructions (required)
-├── REFERENCE.md       # Detailed docs (if needed)
-├── EXAMPLES.md        # Usage examples (if needed)
+├── <Semantic>.md      # Detailed docs if >100 lines — semantic names (PEDAGOGY.md,
+│                      #   not REFERENCE.md); header: "Loaded on demand … when"
 └── scripts/           # Utility scripts (if needed)
     └── helper.js
 ```
@@ -40,7 +40,9 @@ skill-name/
 ```md
 ---
 name: skill-name
-description: Brief description of capability. Use when [specific triggers].
+description: Brief description of capability. Use when [specific triggers]. Keep under 100 words.
+argument-hint: "What the argument means"     # optional — for /name <arg> skills
+disable-model-invocation: true               # optional — user-typed only, model can't auto-invoke
 ---
 
 # Skill Name
