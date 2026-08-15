@@ -180,6 +180,20 @@ if (Test-Path -LiteralPath $afSource) {
     }
 }
 
+# --- Ship the artifact gate scripts next to ARTIFACT-FORMAT.md (same distribution reason). ---
+foreach ($gate in @("verify-artifacts.ps1", "verify-artifacts.sh")) {
+    $gSrc = Join-Path $root "engineering/$gate"
+    if (-not (Test-Path -LiteralPath $gSrc)) { continue }
+    $gTarget = Join-Path $Target $gate
+    if ($DryRun) {
+        Write-Host ("[DryRun] Copy gate {0} -> {1}" -f $gate, $gTarget) -ForegroundColor Yellow
+    }
+    else {
+        Copy-Item -LiteralPath $gSrc -Destination $gTarget -Force
+        Write-Host ("Gate: copied {0} -> {1}" -f $gate, $gTarget) -ForegroundColor Green
+    }
+}
+
 
 # --- Distribute global guidelines: ClaudeMD/CLAUDE.md -> ~/.claude/CLAUDE.md, and the
 #     reference files -> ~/.claude/references/. CLAUDE.md is auto-loaded every session; the

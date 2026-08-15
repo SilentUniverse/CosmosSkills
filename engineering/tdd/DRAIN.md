@@ -15,6 +15,18 @@ close are shared.
    after its blockers. Skip (don't fail) any issue still blocked by a `ready-for-human` or
    unfinished issue — report it as deferred at the end.
 
+## Shared: blocked 纪律
+
+Issues have no `blocked` state — blocked is a **report classification**. A report may call an
+issue blocked only when all three hold:
+
+1. **Specific condition** — the exact command, the exact error, what exactly is missing
+   (environment, dependency, access).
+2. **Survived one approach switch** — the same condition persisted after a *different* angle was
+   tried (CLAUDE.md §5 anti-thrash), not after one identical retry.
+3. **Everything outside the blocked path is green** — hard, slow, or partly unclear is red with a
+   note, not blocked.
+
 ## Serial path (default: bare `/tdd`, `/tdd <feat>`)
 
 Run each issue, **one at a time**, through the autonomous-mode loop (SKILL.md §Workflow), all in
@@ -53,17 +65,21 @@ Loop until the ready set is empty:
      `docs/agents/domain.md` and the domain glossary pointer.
    - The **tests-so-far manifest** (earlier waves' 新增测试): don't write tests it already covers —
      report duplicates instead.
-   - Report back **only** by outcome —
-     - **Green** → one line: which tests it added (files + case counts) + scoped pass tally. The
+   - Report back **only** by outcome, in this fixed shape — a free-form reply is not a result:
+     - **`result: green`** → which tests it added (files + case counts) + scoped pass tally. The
        subagent writes the completion record and sets `status: done` itself.
-     - **Red / blocked** → failing case names + a trimmed traceback (not thousands of raw lines) and
-       what it tried. Leave `status: ready-for-agent`.
+     - **`result: red` / `result: blocked`** → failing case names + a trimmed traceback (not
+       thousands of raw lines) + what it tried + what it had already confirmed before failing.
+       Leave `status: ready-for-agent`.
 
    The verbose test output stays in the subagent — it does not flow back into the main context.
 3. **Collect the wave.** Each green subagent has already written its completion record and set
    `status: done`. Verify **once per wave, after all subagents land**: run the union of the
    touched modules' scoped tests in one pass. For the worktree exception, verify
-   after its branch lands and passes on the merged tree. On failure: map failing tests to issues
+   after its branch lands and passes on the merged tree. **Wave-fatal ≠ per-issue red**: a defect in
+   the wave itself — the brief named a nonexistent issue, the tests-so-far manifest contradicts
+   the tree, the base build is broken — stops the whole wave and surfaces immediately. On failure:
+   map failing tests to issues
    via each `### 完成` 新增测试 list, revert matched issues to `ready-for-agent` with a note,
    report the mapping. A red issue stays `ready-for-agent` — anything `blocked_by` it never enters
    a later wave (report it deferred). Merge each green issue's 新增测试 into the **tests-so-far

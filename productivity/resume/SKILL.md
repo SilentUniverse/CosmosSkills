@@ -50,7 +50,8 @@ Also check working-tree cleanliness; if dirty, surface `git status` briefly befo
 Read the handoff's six sections. Section 5 (开机动作序列) is the script: read the listed files, run
 the listed commands, confirm the stated first decision. Section 4 (关键口径清单) is the load-bearing
 context — treat those decisions and invariants as binding. Don't re-explore what the handoff already
-decided; that's the whole point of the document.
+decided. Confirm any claim you're about to act on (a test passes, a file exists, a command works)
+against the workspace first — the handoff is a bounded handoff, not truth.
 
 If the handoff names a feature, also glance at its live working set:
 `rg '^status: ready-for-' -g '*.md' -g '!**/archive/**' .scratch/<feat>/issues`.

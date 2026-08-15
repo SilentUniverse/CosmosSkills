@@ -104,4 +104,4 @@ For each approved slice, write a new file `.scratch/<feat>/issues/<NN>-<slug>.md
 
 Do NOT modify any parent PRD or upstream issue.
 
-**Post-write integrity check (mandatory).** One pass: every `blocked_by` / `refines` target resolves to a sibling file, `NN` unique, `blocked_by` edges acyclic.
+**Post-write integrity check (mandatory).** Run the machine gate — `../verify-artifacts.ps1` (or `verify-artifacts.sh`) against the repo root: `blocked_by` / `refines` resolution, `NN` uniqueness, acyclicity, and the rest of the mechanical contract ([ARTIFACT-FORMAT.md §Machine gate](../ARTIFACT-FORMAT.md#machine-gate)). Script unavailable? Do the same checks by hand in one pass.
