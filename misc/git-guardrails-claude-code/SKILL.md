@@ -11,13 +11,15 @@ Sets up a PreToolUse hook that intercepts and blocks dangerous git commands befo
 
 ## What Gets Blocked
 
-- `git push` (all variants including `--force`)
-- `git reset --hard`
-- `git clean -f` / `git clean -fd`
-- `git branch -D`
-- `git checkout .` / `git restore .`
+Matching is **token-level**: every `git` in command position (segment-initial, or right after `sudo`/`env`/`nohup`/`nice`/`timeout`/`xargs`) is checked with its subcommand and flags — flag reordering, double spaces, and `--` long forms all match:
 
-When blocked, Claude sees a message telling it that it does not have authority to access these commands.
+- `git push` — all variants, including `--force`
+- `git reset --hard`
+- `git clean` with any force flag (`-f`, `-fd`, `-xdf`, `--force`)
+- `git branch -D` (and `--delete --force`)
+- `git checkout .` / `git restore .` (including `-- .`)
+
+Quoted strings and heredoc bodies are data (`rg "git push" docs` never blocks). **No escape hatch by design.**
 
 ## Steps
 
@@ -89,23 +91,21 @@ If the settings file already exists, merge the hook into existing `hooks.PreTool
 
 ### 4. Ask about customization
 
-Ask if user wants to add or remove any patterns from the blocked list. Edit the copied script accordingly.
+Ask if the user wants to add or remove subcommands from the blocked set. Edit the `switch ($sub)` / `case "$sub"` rule table in the copied script, then re-run the test suite.
 
 ### 5. Verify
 
-Run a quick test.
-
-**Windows / PowerShell:**
+**Windows / PowerShell** — run the bundled regression suite:
 
 ```powershell
-'{"tool_input":{"command":"git push origin main"}}' | pwsh -NoProfile -File <path-to-script.ps1>
-$LASTEXITCODE   # expect 2
+pwsh -NoProfile -File scripts\test-block-dangerous-git.ps1   # expect "All tests passed."
 ```
 
-**Unix / WSL:**
+**Unix / WSL** (the `.sh` needs `jq` on PATH — missing jq fails open):
 
 ```bash
 echo '{"tool_input":{"command":"git push origin main"}}' | <path-to-script.sh>
+echo $?   # expect 2
 ```
 
-Should exit with code 2 and print a BLOCKED message to stderr.
+A blocked command exits 2 and prints a BLOCKED message to stderr; an allowed command exits 0 with no output.

@@ -17,3 +17,9 @@ Its job:
    - No clear fit? Put it somewhere sensible, say where, let the user move it.
 
 Keep the subagent read-only — it investigates and writes the one file, nothing else.
+
+## Done criteria (when the subagent returns)
+
+1. The findings file exists at the reported path.
+2. Spot-check 2–3 citations resolve.
+3. Report file path + one-line takeaway to the user.

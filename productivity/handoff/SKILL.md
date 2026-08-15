@@ -22,7 +22,7 @@ Every handoff carries YAML frontmatter:
 type: handoff
 feature: balance      # the feature slug, or null for cross-feature work
 git_base: 3451766     # `git rev-parse --short HEAD` at write time
-status: active        # active when written; /resume flips it to consumed
+status: active        # active when written; /resume sets consumed when the bridged work finishes, not at pickup
 date: 2026-06-18
 ---
 ```
@@ -71,3 +71,7 @@ Skills appropriate for the next session (e.g. `/tdd`, `/diagnose`, `/grill`), on
 ```
 
 Section 4 is the core. If the user passed arguments, treat them as the focus of the next session and tailor the document accordingly.
+
+## Done criteria
+
+Report the saved path and `git_base`; confirm §1 and §5 are non-empty before finishing.

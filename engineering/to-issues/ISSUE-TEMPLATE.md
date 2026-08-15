@@ -9,17 +9,17 @@ Write issues in dependency order (blockers first) so you can reference real file
 <issue-template>
 
 ---
-# frontmatter per ARTIFACT-FORMAT.md — type / feature / status / category / blocked_by / refines / created
+# frontmatter per ARTIFACT-FORMAT.md — type / feature / status / category / blocked_by / refines / touches / created
 # a fresh slice defaults to status: ready-for-agent, category: enhancement
 ---
 
-## 上级（Parent）
+## 上级
 
-A reference to the parent PRD or issue (path or filename), if the source was an existing artifact.
+Parent PRD path + the PRD lines governing this slice: 用户场景 + related 实现决策, verbatim, ≤5 lines. `detail` / `redo` / `fix`: the parent issue path + its relevant AC lines instead. `/tdd` reads the issue, never the PRD.
 
 ## 做什么（What to build）
 
-A concise description of this vertical slice. Describe the end-to-end behavior, not layer-by-layer implementation.
+≤3 sentences of end-to-end behavior, not layer-by-layer implementation. Never paste PRD text — point to its section; `## 上级` carries the extract.
 
 Avoid specific file paths or code snippets — they go stale fast. Exception: if a prototype produced a snippet that encodes a decision more precisely than prose can (state machine, reducer, schema, type shape), inline it here and note briefly that it came from a prototype.
 
@@ -29,9 +29,10 @@ Avoid specific file paths or code snippets — they go stale fast. Exception: if
 - [ ] 具体、可验证的条目 2
 - [ ] 具体、可验证的条目 3
 
-**写 AC 的两条规则：**
+**写 AC 的三条规则：**
 1. **只写本切片新增的行为**。上一切片已提供的能力（schema、已存在的授权、已覆盖的校验）不要重复列出——靠 `blocked_by` 串联。
 2. **验收要可独立验证**（“执行 X 后能看到 Y”），不是“应该工作正常”。
+3. **至少一条写失败/边界行为**（空值、越界、错误路径）。
 
 ## 前置依赖（Blocked by）
 

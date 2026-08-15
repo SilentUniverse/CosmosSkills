@@ -7,10 +7,15 @@
     frontmatter field `name`, and creates a directory junction in target folder:
     <target>/<name> -> <repo>/<category>/<skill>
 
+    It also distributes the global layer to $ClaudeRoot (default ~/.claude):
+    ClaudeMD/CLAUDE.md -> ~/.claude/CLAUDE.md; ClaudeMD/*.md -> ~/.claude/references/
+    (pruning removed ones); ARTIFACT-FORMAT.md -> <target>; hook scripts (explicit
+    list) -> ~/.claude/hooks/. These are COPIES, not links — re-run after edits.
+
     Behavior:
     - Existing link: recreate it.
     - Existing real directory: backup to _backup-<timestamp> unless -Force.
-    - No admin needed (uses mklink /J).
+    - No admin needed (junctions need none).
 
 .PARAMETER Target
     Target skills folder. Default: ~/.claude/skills
@@ -29,6 +34,7 @@
 [CmdletBinding()]
 param(
     [string]$Target = (Join-Path $HOME ".claude/skills"),
+    [string]$ClaudeRoot = (Join-Path $HOME ".claude"),
     [switch]$DryRun,
     [switch]$Force
 )
@@ -42,10 +48,8 @@ function New-JunctionCompat {
         [string]$TargetPath
     )
 
-    & cmd.exe /c "mklink /J `"$LinkPath`" `"$TargetPath`"" | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        throw "Failed to create junction: $LinkPath -> $TargetPath"
-    }
+    # In-process junction creation (PS 5.1+) — no cmd.exe spawn per link.
+    New-Item -ItemType Junction -Path $LinkPath -Target $TargetPath | Out-Null
 }
 
 function Get-SkillName {
@@ -180,7 +184,8 @@ if (Test-Path -LiteralPath $afSource) {
 # --- Distribute global guidelines: ClaudeMD/CLAUDE.md -> ~/.claude/CLAUDE.md, and the
 #     reference files -> ~/.claude/references/. CLAUDE.md is auto-loaded every session; the
 #     references are read on demand via the `→ ~/.claude/references/...` pointers inside it. ---
-$claudeRoot = Split-Path $Target -Parent   # $Target is ~/.claude/skills -> parent is ~/.claude
+# Explicit distribution root; a custom -Target must not move it.
+$claudeRoot = $ClaudeRoot
 $cmSource = Join-Path $root "ClaudeMD"
 if (Test-Path -LiteralPath $cmSource) {
     $cmMain = Join-Path $cmSource "CLAUDE.md"
@@ -205,6 +210,11 @@ if (Test-Path -LiteralPath $cmSource) {
             foreach ($ref in $refFiles) {
                 Copy-Item -LiteralPath $ref.FullName -Destination (Join-Path $refTarget $ref.Name) -Force
             }
+            # Prune deployed references whose source was removed from ClaudeMD/ (stale
+            # copies would outlive their → pointers in CLAUDE.md).
+            Get-ChildItem -LiteralPath $refTarget -Filter "*.md" -File |
+                Where-Object { $refFiles.Name -notcontains $_.Name } |
+                Remove-Item -Force
             Write-Host ("References: copied {0} file(s) -> {1}" -f $refFiles.Count, $refTarget) -ForegroundColor Green
         }
     }
@@ -221,7 +231,10 @@ $hooksTarget = Join-Path $claudeRoot "hooks"
 $copiedHooks = 0
 foreach ($rel in $hookScripts) {
     $src = Join-Path $root $rel
-    if (-not (Test-Path -LiteralPath $src)) { continue }
+    if (-not (Test-Path -LiteralPath $src)) {
+        Write-Error "Listed hook script not found: $src — fix the list or restore the file."
+        exit 1
+    }
     if ($DryRun) {
         Write-Host ("[DryRun] Copy hook {0} -> {1}" -f $rel, $hooksTarget) -ForegroundColor Yellow
     }

@@ -18,8 +18,12 @@ COMMAND=$(cat | jq -r '.tool_input.command // empty' 2>/dev/null)
 # Malformed / empty input (or jq missing) — don't block.
 [ -z "$COMMAND" ] && exit 0
 
-# Escape hatch: allow when the command explicitly opts out.
-[[ "$COMMAND" =~ ^[[:space:]]*#[[:space:]]*force-legacy ]] && exit 0
+# Escape hatch: any line starting with '# force-legacy' opts the whole command
+# out (line-anchored, matching the .ps1's (?m) semantics — bash =~ ^ only
+# anchors the first line).
+while IFS= read -r _hline; do
+  [[ "$_hline" =~ ^[[:space:]]*#[[:space:]]*force-legacy ]] && exit 0
+done <<< "$COMMAND"
 [ "$ALLOW_LEGACY_CLI" = "1" ] && exit 0
 
 # Drop heredoc bodies: lines between <<'EOF' and the matching delimiter are
@@ -44,9 +48,10 @@ done <<< "$COMMAND"
 
 # Split into segments, quote-aware: a separator inside '...'/"..." belongs to
 # the quoted string (the device command in adb shell "..."), not to the host
-# shell. Unquoted | & ; ( and newlines split; each segment's first word is its
-# command position.
-SEGMENTS=""
+# shell. Unquoted | & ; ( and newlines split. Segments are collected in an
+# ARRAY — a real newline inside a quoted argument stays inside that segment
+# and must never become a segment boundary.
+declare -a SEGMENTS=()
 quote=""
 seg=""
 len=${#STRIPPED}
@@ -72,7 +77,7 @@ while [ "$i" -lt "$len" ]; do
         i=$((i + 2))
         continue ;;
       '|'|'&'|';'|'('|$'\n')
-        SEGMENTS+="$seg"$'\n'
+        SEGMENTS+=("$seg")
         seg="" ;;
       *)
         seg+="$c" ;;
@@ -80,20 +85,20 @@ while [ "$i" -lt "$len" ]; do
   fi
   i=$((i + 1))
 done
-SEGMENTS+="$seg"
+SEGMENTS+=("$seg")
 
-re_legacy="^(grep|find|sed)([^[:alnum:]_./-].*)?$"
-while IFS= read -r t; do
+re_legacy="^(grep|find|ls|sed)([^[:alnum:]_./-].*)?$"
+for t in "${SEGMENTS[@]}"; do
   t="${t#"${t%%[![:space:]]*}"}"   # trim leading whitespace
   [ -z "$t" ] && continue
   if [[ "$t" =~ $re_legacy ]]; then
     old="${t%%[!a-z]*}"
     case "$old" in
-      grep) new=rg ;; find) new=fd ;; sed) new=sd ;;
+      grep) new=rg ;; find) new=fd ;; ls) new=eza ;; sed) new=sd ;;
     esac
     echo "BLOCKED: '$old' is forbidden on the host shell (CLAUDE.md section 7). Use '$new' instead. For routine search/read prefer the built-in Grep/Glob/Read tools. If truly unavoidable, put '# force-legacy' on its own line first, or set ALLOW_LEGACY_CLI=1." >&2
     exit 2
   fi
-done <<< "$SEGMENTS"
+done
 
 exit 0

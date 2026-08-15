@@ -16,7 +16,7 @@ Before writing anything, scan `.scratch/` for related work:
 
 1. Extract 3–5 keywords from the new request: feature/module names, domain terms (use `CONTEXT.md` vocabulary), affected components.
 2. Search `.scratch/**/PRD*.md` and `.scratch/**/issues/*.md` for those keywords (case-insensitive).
-3. If hits found, read each hit's `问题` and `方案` sections plus any existing `## 修订` block. Summarise findings in one short list to the user.
+3. If hits found, read each hit's `问题` and `方案` sections plus any existing `## 修订` block — independent files, batch the reads in parallel. Summarise findings in one short list to the user.
 4. Ask the user which path applies, presenting three options. **Default is (b) supersede** — a deliberate `/to-prd` re-run is a strong signal that the plan has changed.
 
 - **(a) New feature** — unrelated to anything found. Create a new directory `.scratch/<feature-slug>/PRD.md`.
@@ -48,6 +48,8 @@ Write the PRD using the template below, then save it under `.scratch/<feat>/`. E
 - Option (c): append a dated entry under `## 修订` at the bottom of the existing PRD (frontmatter unchanged)
 
 Do **not** create issue files in this step — that's `/to-issues`'s job. Likewise, do not assign a `Status:` to the PRD itself; the `Status:` field only applies to issue files under `issues/`.
+
+After option (b), one `rg '^(version|supersedes):' .scratch/<feat>/PRD*.md` pass: `version` = highest+1 and `supersedes:` target exists.
 
 <prd-template>
 
@@ -111,6 +113,6 @@ Any further notes about the feature.
 
 ### 4. Hand off to /to-issues
 
-Run an adversarial review: name the vaguest 用户场景 and the shakiest 实现决策 — tighten them, or move to 尚未明确.
+Run an adversarial review: name the vaguest 用户场景 and the shakiest 实现决策 — tighten them, or move to 尚未明确. Done criterion: every named item is rewritten or moved to 尚未明确.
 
 After writing the PRD, tell the user the next step is to run `/to-issues` against the new PRD. If this PRD supersedes an older one, `/to-issues` will produce a reconciliation report against existing issues automatically.

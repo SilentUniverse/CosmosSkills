@@ -13,13 +13,11 @@ The state lives in the YAML frontmatter `status:` field at the top of each issue
 ## How to inspect / change state
 
 ```bash
-# Inspect active working set — archive/ excluded by the glob
-rg '^status: ready-for-agent' -g '**/issues/*.md' .scratch
-rg '^status: ready-for-human' -g '**/issues/*.md' .scratch
+# Active working set (archive/ excluded by the glob):
+rg '^status: ready-for-' -g '**/issues/*.md' .scratch
 
 # Read one field deterministically: yq --front-matter=extract '.status' <file>
 # Done/archived history: list .scratch/<feat>/issues/archive/
-# Or VS Code: Ctrl+Shift+F, regex on, search '^status: ready-for-agent'
 ```
 
 State changes are usually automatic:
@@ -31,13 +29,5 @@ Manual changes are rare — only when toggling between `ready-for-agent` and `re
 
 ## Migrating from older vocabularies
 
-If this repo previously used a richer state machine, drop these states:
-
-| Old              | What to do                                                |
-| ---------------- | --------------------------------------------------------- |
-| `inbox`          | Either flesh out to `ready-for-agent`/`ready-for-human` or delete |
-| `needs-triage`   | Same as `inbox`                                           |
-| `needs-info` / `blocked` | Either resolve and promote to ready, or delete    |
-| `doing`          | Set back to `ready-for-X` (state was a transient pointer) |
-| `wontfix` / `shelved` | Delete the file (reason can live in a commit message or ADR) |
+Old→new mapping: `MIGRATION.md`. `doing` reverts to `ready-for-X`; promote or delete the rest per that table.
 

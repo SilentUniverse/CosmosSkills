@@ -32,7 +32,7 @@ subagent brief, and the edit-in-place-vs-worktree call: **[DRAIN.md](DRAIN.md)**
 | `done`            | **Refuse.** Print: "this issue is `done`; create a redo issue or set `status:` back to `ready-for-X` first." Stop. |
 | anything else     | Refuse with the same guidance.                                                                      |
 
-Edge case — `status: ready-for-X` AND `## Comments` already contains a `### 完成` block from a prior run: pause and ask the user "(a) iterate on existing code, or (b) start over?" before proceeding.
+Edge case — `status: ready-for-X` AND `## Comments` already contains a `### 完成` block from a prior run: pause and ask the user "(a) iterate on existing code, or (b) start over?" before proceeding. *(autonomous mode: (a), recorded in `### 完成`)*
 
 Edge case — issue `category` is `redo` / `fix` (or filename matches `*-redo-*` / `*-fix-*`): the parent slice is named by the `refines:` frontmatter field (fall back to stripping the prefix, e.g. `05-redo-balance-api.md` → `02-balance-api.md`). Read the parent's `### 完成` block and list the test files it added. Show the user:
 
@@ -41,13 +41,13 @@ Edge case — issue `category` is `redo` / `fix` (or filename matches `*-redo-*`
 >
 > The new spec changes the API shape. These tests will likely break. Want me to (a) update them in place / (b) delete them and write fresh / (c) leave them and let red signals guide you?"
 
-Wait for the user's choice before starting the red-green loop. This avoids leaving zombie tests after a redo.
+Wait for the user's choice before starting the red-green loop. This avoids leaving zombie tests after a redo. *(autonomous mode: (a) refines, (b) replaces; record the choice in `### 完成`)*
 
 ### Existing-test scan (before writing any new test)
 
-Identify the project's test convention from `docs/agents/domain.md`. If not specified there, infer from project config files (`pytest.ini` / `pyproject.toml`, `package.json` test script, `build.gradle` `testOptions`, etc.) and ask the user to confirm — then suggest writing it into `domain.md` so future runs skip this step.
+Identify the project's test convention from `docs/agents/domain.md`. If not specified there, infer from project config files (`pytest.ini` / `pyproject.toml`, `package.json` test script, `build.gradle` `testOptions`, etc.) and ask the user to confirm — then suggest writing it into `domain.md` so future runs skip this step. *(autonomous mode: adopt the inferred convention, note it in `### 完成`)*
 
-For each AC in the issue, search the project's test files for existing coverage. Report briefly: AC already covered (skip; append a one-line note like `AC #3 covered by tests/auth.test.ts:45` to the issue's `## Comments`) vs uncovered (will write new tests).
+For each AC in the issue, find existing coverage. Drain `-p`: the brief carries the **tests-so-far manifest** — check AC against it, scan the filesystem only for what it can't show. Serial drain: earlier issues' `### 完成` blocks are already in context — check against them. Interactive: scan directly. Report covered vs uncovered briefly in chat; record covered ACs in the `### 完成` block's 跳过的 AC field.
 
 ## Completion record
 
@@ -76,13 +76,13 @@ When exploring the codebase, use the project's domain glossary so that test name
 
 Before writing any code:
 
-- [ ] Confirm with user what interface changes are needed *(autonomous mode: skip — the spec is the issue's 做什么/AC plus the parent PRD's 实现决策, reached via the issue's ## 上级; read it before shaping an interface)*
+- [ ] Confirm with user what interface changes are needed *(autonomous mode: skip — the spec is the issue's 做什么/AC plus the PRD extract in `## 上级`)*
 - [ ] Confirm with user which behaviors to test *(autonomous mode: skip — AC are the priority)*
 - [ ] Shape deep modules + testable interfaces — run the `/codebase-design` skill for the deep-vs-shallow vocabulary and testability patterns
 - [ ] List the behaviors to test (not implementation steps)
 - [ ] Get user approval on the plan *(autonomous mode: skip)*
 
-**Pre-issue statement (autonomous mode).** Before writing the first test, state in 2–3 lines: what this slice requires, which interface you'll shape, which behaviors you'll test first. Don't wait for a reply — keep going. This is the user's cheapest point to catch a wrong understanding, before any code exists.
+**Pre-issue statement (autonomous mode).** Before writing the first test, state in 2–3 lines: what this slice requires, which interface you'll shape, which behaviors you'll test first, and the biggest assumption it rests on. Don't wait for a reply — keep going. This is the user's cheapest point to catch a wrong understanding, before any code exists.
 
 Ask: "What should the public interface look like? Which behaviors are most important to test?"
 
@@ -116,11 +116,7 @@ Rules:
 - Don't anticipate future tests
 - Keep tests focused on observable behavior
 
-**What to run each cycle.** Run only the test you just wrote, plus the tests of the module you're
-touching — not the whole suite (`pytest path/test_x.py`, `vitest run src/x`, `go test ./x/...`). A
-seconds-long loop is the point. Run the full suite + build only when you want a wider check — see
-§5. Cache the project's full-suite / scoped / build commands in `docs/agents/domain.md` so neither
-this run nor the next has to re-derive them.
+**What to run each cycle.** RED/GREEN runs execute only the test you just wrote (`pytest path/test_x.py::test_y`). The touched module's tests run once per slice, at GREEN completion before refactor. The full suite stays batch-level (§5). Cache scoped-test / module-test / build commands in `docs/agents/domain.md`.
 
 ### 4. Refactor
 

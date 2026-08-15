@@ -1,5 +1,7 @@
 # When to Mock
 
+Loaded on demand by `/tdd` when a test needs mocks.
+
 Mock at **system boundaries** only:
 
 - External APIs (payment, email, etc.)

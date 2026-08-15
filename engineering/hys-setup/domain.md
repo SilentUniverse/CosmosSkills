@@ -2,44 +2,9 @@
 
 How the engineering skills should consume this repo's domain documentation when exploring the codebase.
 
-## Session start — load orientation automatically
+## Orientation load
 
-At the start of a session (and whenever you're about to work in an unfamiliar area), load the
-project's orientation layer **before** exploring code. This is the cheap way to avoid re-reading
-source every session. Load in tiers — not everything is worth the same context cost:
-
-- **`CODEBASE.md`** (repo root) — read **in full**. The structural map — but only the *operational*
-  understanding the code can't hand you (invariants, seam judgment, cross-module synthesis), kept tiny
-  on purpose, so "in full" is cheap. Concept→code location is *not* stored here — matching names are
-  grep's job; a code name that betrays its concept is an invariant — record it in CODEBASE.md. **Big repos**: the
-  root file is just a roster (one line per area → a per-area `src/<area>/CODEBASE.md`). Read the
-  roster in full; pull an area's file on demand when you work there, not upfront.
-- **`CONTEXT.md`** (repo root) — read **in full**. The glossary (terms only, no code paths). It's
-  small, and `CODEBASE.md` is written *in its vocabulary* — without it the map's nouns are ungrounded.
-- **`docs/adr/`** — read the **titles only** (an index of which decisions exist and what each
-  governs). ADRs grow unbounded and are mostly irrelevant to any one task; pull a specific ADR's
-  body only when you actually touch the area it governs.
-
-If a file doesn't exist, **proceed silently** — don't flag its absence; the producers create them
-lazily (`/grill` for `CONTEXT.md`/ADRs, `/zoom-out` for `CODEBASE.md`). But if **none** of
-the three exists (a repo never oriented), say so once and offer to build the layer, then proceed
-either way — don't leave the user unaware the mechanism exists.
-
-### Check CODEBASE.md for drift
-
-`CODEBASE.md` is generated and can go stale. Each `## ` section carries a `git_base` comment. When
-you rely on a section, compare its `git_base` against current HEAD; if commits have landed in that
-area since, treat the section as possibly stale and offer to refresh it via `/zoom-out` (that
-section only). Don't silently trust a drifted section.
-
-## Before exploring, read these
-
-- **`CODEBASE.md`** at the repo root — the structural map (if present).
-- **`CONTEXT.md`** at the repo root, or
-- **`CONTEXT-MAP.md`** at the repo root if it exists — it points at one `CONTEXT.md` per context. Read each one relevant to the topic.
-- **`docs/adr/`** — read ADRs that touch the area you're about to work in. In multi-context repos, also check `src/<context>/docs/adr/` for context-scoped decisions.
-
-If any of these files don't exist, **proceed silently**. Don't flag their absence; don't suggest creating them upfront. The producer skills (`/grill` for `CONTEXT.md`/ADRs, `/zoom-out` for `CODEBASE.md`) create them lazily when terms, decisions, or structure actually get resolved.
+The session-start protocol (what to load, tiers, `git_base` drift check) is owned by CLAUDE.md §6 + `~/.claude/references/document-layout.md`; not restated here. Same tiers apply mid-session in unfamiliar areas. Absent files: proceed silently; `/grill` and `/zoom-out` create them lazily.
 
 ## Issue-state artifacts (generated, do not hand-edit)
 

@@ -4,7 +4,10 @@ setlocal
 set "SCRIPT_DIR=%~dp0"
 
 echo [HysSkills] Start one-click install...
-powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%install.ps1"
+rem Prefer pwsh: orphan-link cleanup needs $_.LinkTarget (null on PS 5.1).
+set "PS=pwsh"
+where pwsh >nul 2>nul || set "PS=powershell"
+%PS% -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%install.ps1"
 set "EXIT_CODE=%ERRORLEVEL%"
 
 if not "%EXIT_CODE%"=="0" (

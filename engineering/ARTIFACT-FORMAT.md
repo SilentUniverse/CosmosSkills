@@ -163,10 +163,14 @@ Field rules:
 - **refines** — slug of the parent slice this elaborates. Required for `detail`/`redo`/`fix`,
   omitted for top-level `enhancement` slices. `/tidy`'s orphan check flags any non-top-level
   issue with neither a PRD user-story link nor a `refines`.
+- **touches** — top-level dirs/modules this slice is expected to edit, at directory granularity —
+  never file paths. Written by `/to-issues` from its impact probe; `/tdd -p` groups waves by
+  overlap. Optional.
 - **created** — ISO date, set once at creation, never changed.
 
 The body keeps the existing section headings from `/to-issues`. The completion record still
-appends to `## Comments` (see below) — frontmatter `status` and the `### 完成` block move together.
+appends to `## Comments` — schema + template: `tdd/COMPLETION-RECORD.md`; frontmatter `status` and
+the `### 完成` block move together.
 
 ## Handoff files — `.scratch/<feat>/handoff.md` or `.scratch/handoff.md`
 
@@ -189,7 +193,7 @@ date: 2026-06-18
 ---
 
 # Handoff: <topic> (<date>)
-## 1. 当前状态 ... (6 fixed sections, unchanged)
+## 1. 当前状态 ... (6 fixed sections — schema in the `/handoff` skill)
 ```
 
 Field rules:

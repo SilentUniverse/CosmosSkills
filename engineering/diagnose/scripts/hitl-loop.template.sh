@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Human-in-the-loop reproduction loop.
-# Copy this file, edit the steps below, and run it.
+# Copy this file to .scratch/tmp/hitl-<bug>.sh (never edit the template in place),
+# edit the steps below, and run it.
 # The agent runs the script; the user follows prompts in their terminal.
 #
 # Usage:
@@ -14,16 +15,24 @@
 
 set -euo pipefail
 
+_captured=()
+
 step() {
   printf '\n>>> %s\n' "$1"
-  read -r -p "    [Enter when done] " _
+  read -r -p "    [Enter when done] " _ || true   # Ctrl-D here: move on to the next prompt
 }
 
 capture() {
   local var="$1" question="$2" answer
   printf '\n>>> %s\n' "$question"
-  read -r -p "    > " answer
+  # Ctrl-D (EOF) here means the user bailed — print what we have so far, don't lose it.
+  if ! read -r -p "    > " answer; then
+    printf '\n--- Captured (partial) ---\n'
+    for _v in ${_captured[@]+"${_captured[@]}"}; do printf '%s=%s\n' "$_v" "${!_v}"; done
+    exit 1
+  fi
   printf -v "$var" '%s' "$answer"
+  _captured+=("$var")
 }
 
 # --- edit below ---------------------------------------------------------

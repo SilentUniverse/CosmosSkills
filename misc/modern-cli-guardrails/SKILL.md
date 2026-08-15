@@ -56,7 +56,7 @@ Copy the one matching the user's shell to the target location based on scope:
 
 On Unix, make the `.sh` executable with `chmod +x`. The `.ps1` needs no chmod; it is invoked through `pwsh`. The `.sh` needs `jq` on PATH — with jq missing it fails open (allows everything).
 
-> In this repo, `install.ps1` already distributes the hook scripts to `~/.claude/hooks/` — the manual copy is for other machines.
+> In this repo, `install.ps1` distributes the `.ps1` hook scripts to `~/.claude/hooks/` (re-run it after editing anything under `scripts/`; the `.sh` stays repo-only for Unix). The manual copy is for other machines.
 
 ### 3. Add hook to settings
 

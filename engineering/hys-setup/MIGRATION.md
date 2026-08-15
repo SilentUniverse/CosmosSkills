@@ -45,7 +45,7 @@ Steps:
    确认执行？(y / 逐项挑)
    ```
 
-3. **On confirm, execute.** For each bare-`Status:` file, derive the frontmatter fields from the [issue schema](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd): `type: issue`; `feature` from the directory name; `status` from the old `Status:` line; `category: enhancement` (default — the user can refine later); `blocked_by` parsed from any existing `前置依赖` section if filenames are referenced, else `[]`; `created` from `git log --diff-filter=A --format=%as -- <file>` (fall back to today). Remove the now-redundant bare `Status:` line. Do not touch the body otherwise (surgical — frontmatter only).
+3. **On confirm, execute.** For each bare-`Status:` file, derive the frontmatter fields from the [issue schema](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd): `type: issue`; `feature` from the directory name; `status` from the old `Status:` line; `category: enhancement` (default — the user can refine later); `blocked_by` parsed from any existing `前置依赖` section if filenames are referenced, else `[]`; `created` from one `git log --diff-filter=A --name-only --format=%as -- <issues dir>` pass (paths→dates; today if unseen by git). Remove the now-redundant bare `Status:` line. Do not touch the body otherwise (surgical — frontmatter only).
 4. **Archive done issues** with `git mv` into `issues/archive/` so history is preserved and the active working set shrinks. Skip if the user opted out of archiving during migration.
 5. **Generate** each feature's `.scratch/<feat>/SUMMARY.md` per the format doc.
 

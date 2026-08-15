@@ -134,4 +134,4 @@ For a non-default issue tracker (the user explicitly chose "Other"), write `docs
 
 ### 6. Done
 
-Tell the user the setup is complete and which engineering skills will now read from these files. Mention they can edit `docs/agents/*.md` directly later — re-running this skill is only necessary if they want to switch issue trackers or restart from scratch.
+Verify first: `## Agent skills` appears exactly once in the chosen file; `docs/agents/*.md` exist non-empty. Then tell the user the setup is complete and which engineering skills will now read from these files. Mention they can edit `docs/agents/*.md` directly later — re-running this skill is only necessary if they want to switch issue trackers or restart from scratch.
