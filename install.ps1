@@ -210,6 +210,31 @@ if (Test-Path -LiteralPath $cmSource) {
     }
 }
 
+# --- Distribute hook scripts -> ~/.claude/hooks/. Explicit list, not a glob:
+#     scripts/ also holds non-hook helpers (diagnose templates) that must not
+#     land in hooks/. Keeps repo and deployed hooks from drifting apart. ---
+$hookScripts = @(
+    "misc/modern-cli-guardrails/scripts/block-legacy-cli.ps1",
+    "misc/git-guardrails-claude-code/scripts/block-dangerous-git.ps1"
+)
+$hooksTarget = Join-Path $claudeRoot "hooks"
+$copiedHooks = 0
+foreach ($rel in $hookScripts) {
+    $src = Join-Path $root $rel
+    if (-not (Test-Path -LiteralPath $src)) { continue }
+    if ($DryRun) {
+        Write-Host ("[DryRun] Copy hook {0} -> {1}" -f $rel, $hooksTarget) -ForegroundColor Yellow
+    }
+    else {
+        if (-not (Test-Path -LiteralPath $hooksTarget)) { New-Item -ItemType Directory -Path $hooksTarget -Force | Out-Null }
+        Copy-Item -LiteralPath $src -Destination $hooksTarget -Force
+        $copiedHooks++
+    }
+}
+if (-not $DryRun -and $copiedHooks -gt 0) {
+    Write-Host ("Hooks: copied {0} script(s) -> {1}" -f $copiedHooks, $hooksTarget) -ForegroundColor Green
+}
+
 if ($DryRun) {
     Write-Host "Dry run done. Remove -DryRun to apply." -ForegroundColor Yellow
 }

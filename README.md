@@ -40,7 +40,6 @@ curl -fsSL https://raw.githubusercontent.com/SilentUniverse/HysSkills/main/Claud
 | `rg`（ripgrep） | grep / Select-String | 扫 `^status:` 等 frontmatter 行、文本搜索 |
 | `fd` | find | shell 管道里找文件 |
 | `bat` | cat | 终端看文件（脚本里用 `bat -pp`） |
-| `eza` | ls / dir | 终端列目录 |
 | `jq` | — | JSON 查询/改写 |
 | `yq` | sed/awk 处理 yaml | **抽取 issue frontmatter 的 status / blocked_by / refines** —— `/tdd`、`/tidy` 读 DAG 靠它 |
 | `ast-grep`（命令 `sg`） | grep 找代码 | 按语法树结构搜索/改写（如找 `as Type` 断言） |
@@ -52,7 +51,7 @@ curl -fsSL https://raw.githubusercontent.com/SilentUniverse/HysSkills/main/Claud
 
 ```powershell
 winget install -e --id BurntSushi.ripgrep.MSVC --id sharkdp.fd --id sharkdp.bat `
-  --id eza-community.eza --id MikeFarah.yq --id ast-grep.ast-grep --id chmln.sd `
+  --id MikeFarah.yq --id ast-grep.ast-grep --id chmln.sd `
   --accept-package-agreements --accept-source-agreements
 # jq 通常已随其他工具进来；没有就： winget install -e --id jqlang.jq
 ```
@@ -60,10 +59,10 @@ winget install -e --id BurntSushi.ripgrep.MSVC --id sharkdp.fd --id sharkdp.bat 
 装完**重开终端**让 PATH 生效，然后自检：
 
 ```powershell
-foreach ($t in 'rg','fd','bat','jq','yq','sg','eza','sd') { "$t -> $((Get-Command $t -ErrorAction SilentlyContinue).Source)" }
+foreach ($t in 'rg','fd','bat','jq','yq','sg','sd') { "$t -> $((Get-Command $t -ErrorAction SilentlyContinue).Source)" }
 ```
 
-> macOS：`brew install ripgrep fd bat eza jq yq ast-grep sd`
+> macOS：`brew install ripgrep fd bat jq yq ast-grep sd`
 > Linux：用发行版包管理器或 `cargo install`（需 Rust ≥ 支持 edition2024，否则 `ast-grep` / `sd` 走二进制发行版）。
 
 工具使用的分层规则（内置 Grep/Glob/Read 优先，落 shell 才用 rg/fd/yq/ast-grep）已写进 [`ClaudeMD/CLAUDE.md`](ClaudeMD/CLAUDE.md) §7，随模板一起拷到 `~/.claude/CLAUDE.md`，这里不重抄。
