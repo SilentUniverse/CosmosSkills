@@ -19,7 +19,7 @@ err() { echo "  $1"; viol=$((viol + 1)); }
 # Suggest the sibling the bad ref most likely meant: same name-part first, then same NN.
 ref_suggest() { # $1 bad slug; candidates = keys of byslug; prints one suggestion or nothing
     local bad="$1" name nn c cname
-    name="${bad#*-}"; [ "$name" = "$bad" ] && name=""
+    name="$bad"; [[ "$bad" =~ ^[0-9]+- ]] && name="${bad#*-}"
     [[ "$bad" =~ ^([0-9]+)- ]] && nn="${BASH_REMATCH[1]}" || nn=""
     if [ ${#name} -ge 3 ]; then
         for c in "${!byslug[@]}"; do

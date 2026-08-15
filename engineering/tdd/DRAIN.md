@@ -51,7 +51,8 @@ Loop until the ready set is empty:
    are all `done`. These have no ordering constraint between them.
 2. **Fan out — one subagent per issue, dispatched in a single turn.** Before dispatch, record the
    wave baseline (`git status --porcelain` output); wave-fatal recovery restores touched files to
-   it (`git checkout -- <files>`). Each `general-purpose` subagent
+   it — `git checkout -- <files>` for modified files, `rm` for files the wave added (never
+   `git clean`). Each `general-purpose` subagent
    runs the full autonomous red-green loop for its issue. Coupling comes from `touches:` overlap
    (absent → judge from 做什么/AC):
    - **Disjoint → edit in place.** Subagents edit the shared tree directly.
