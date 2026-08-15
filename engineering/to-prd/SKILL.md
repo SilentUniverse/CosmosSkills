@@ -49,7 +49,7 @@ Write the PRD using the template below, then save it under `.scratch/<feat>/`. E
 
 Do **not** create issue files in this step — that's `/to-issues`'s job. Likewise, do not assign a `Status:` to the PRD itself; the `Status:` field only applies to issue files under `issues/`.
 
-After option (b), one `rg '^(version|supersedes):' .scratch/<feat>/PRD*.md` pass: `version` = highest+1 and `supersedes:` target exists.
+After option (b), run the machine gate (`../verify-artifacts.ps1` / `.sh` — [ARTIFACT-FORMAT.md §Machine gate](../ARTIFACT-FORMAT.md#machine-gate)): PRD `version` matches the filename, every `supersedes:` target exists, exactly one live head remains. Script unavailable? One `rg '^(version|supersedes):' .scratch/<feat>/PRD*.md` pass by hand.
 
 <prd-template>
 

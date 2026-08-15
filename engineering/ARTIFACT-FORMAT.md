@@ -295,6 +295,20 @@ yq --front-matter=extract '.blocked_by[]' .scratch/balance/issues/02-api.md
 
 To see history, list `issues/archive/` explicitly.
 
+## Machine gate
+
+The mechanically checkable subset of this contract ships as a script next to this file
+(`verify-artifacts.ps1` / `verify-artifacts.sh`): required frontmatter fields and enum values,
+`NN` uniqueness per directory, `blocked_by` / `refines` resolution + acyclicity, `feature` vs
+directory name, PRD `version` vs filename, `supersedes` target existence, single live PRD head,
+handoff field shape. Empty or missing `.scratch/` passes clean. Run it wherever state could drift
+— `/to-issues` post-write, `/tidy` before regenerating, or any time the state looks off:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File verify-artifacts.ps1 [-Root <repo>]
+    bash verify-artifacts.sh [<repo-root>]
+
+Prompt-enforced remainder: body sections, AC quality, `touches` honesty.
+
 ## Migration
 
 Repos created before frontmatter existed carry a bare `Status:` line.

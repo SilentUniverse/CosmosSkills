@@ -87,14 +87,14 @@ while [ "$i" -lt "$len" ]; do
 done
 SEGMENTS+=("$seg")
 
-re_legacy="^(grep|find|ls|sed)([^[:alnum:]_./-].*)?$"
+re_legacy="^(grep|find|sed)([^[:alnum:]_./-].*)?$"
 for t in "${SEGMENTS[@]}"; do
   t="${t#"${t%%[![:space:]]*}"}"   # trim leading whitespace
   [ -z "$t" ] && continue
   if [[ "$t" =~ $re_legacy ]]; then
     old="${t%%[!a-z]*}"
     case "$old" in
-      grep) new=rg ;; find) new=fd ;; ls) new=eza ;; sed) new=sd ;;
+      grep) new=rg ;; find) new=fd ;; sed) new=sd ;;
     esac
     echo "BLOCKED: '$old' is forbidden on the host shell (CLAUDE.md section 7). Use '$new' instead. For routine search/read prefer the built-in Grep/Glob/Read tools. If truly unavoidable, put '# force-legacy' on its own line first, or set ALLOW_LEGACY_CLI=1." >&2
     exit 2

@@ -30,4 +30,5 @@ Submit workflow named in `CLAUDE.md`.
 The issue file itself stays in `issues/` — `/tidy` moves it to `issues/archive/` later, not `/tdd`.
 
 If the run is aborted (test framework broken, environment unfixable), revert `status:` to its
-original value and append a brief failure note to `## Comments`.
+original value and append a brief failure note to `## Comments` — the note names the specific
+blocker (exact command + error + what's missing) and any facts already confirmed before the abort.

@@ -6,6 +6,11 @@ argument-hint: "What will the next session be used for?"
 
 Write a minimal recoverable snapshot so the next session can continue from the current node by reading this one file. This is **not** a conversation summary — extract current state, key decisions, and next actions. Discard exploration; preserve decisions.
 
+## Fidelity rules
+
+- **6 个固定节一个不删**：某节无内容写 `（无）`。
+- **精确字符串逐字保留**：路径、命令、错误信息、标识符、签名。
+
 ## Where to save
 
 Per `ARTIFACT-FORMAT.md` §Handoff files (installed: `~/.claude/skills/ARTIFACT-FORMAT.md`; repo: `engineering/ARTIFACT-FORMAT.md`):
