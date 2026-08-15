@@ -95,6 +95,10 @@ Exception: if a prototype produced a snippet that encodes a decision more precis
 - Which modules will be tested
 - Prior art for the tests (similar tests in the codebase)
 
+## 端到端验证（End-to-End Verification）
+
+The runnable procedure demonstrating the whole feature works — commands/steps plus the expected observable outcome. Per-slice AC live in issues; this is the feature-level demo path; the drain batch close runs it.
+
 ## 尚未明确（Fog of War）
 
 In-scope questions you can see coming but can't yet phrase sharply enough to slice — the **fog** ahead of the plan. Test: can you state the question precisely *now* (not answer it)? If yes, it's an Implementation Decision or an issue; if no, park it here. Not Out of Scope (that's ruled out) — this is in scope, just not sharp. `/to-issues` graduates each item once it sharpens; a superseding PRD carries the rest forward.

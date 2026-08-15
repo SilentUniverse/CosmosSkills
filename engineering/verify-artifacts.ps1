@@ -61,6 +61,22 @@ function Get-Frontmatter {
     return $fm
 }
 
+# Suggest the sibling the bad ref most likely meant: same name-part first, then same NN.
+function Get-RefSuggestion {
+    param([string]$Bad, [string[]]$Candidates)
+    $name = $Bad -replace '^\d+-', ''
+    if ($name.Length -ge 3) {
+        foreach ($c in $Candidates) {
+            if (("$c" -replace '^\d+-', '') -eq $name) { return "$c" }
+        }
+    }
+    if ($Bad -cmatch '^(\d+)-') {
+        $nn = $Matches[1]
+        foreach ($c in $Candidates) { if ("$c" -cmatch "^$nn-") { return "$c" } }
+    }
+    return $null
+}
+
 function Check-Handoff {
     param([string]$Path, [string]$ExpectedFeature)  # '' = cross-feature: feature must be null/absent
     $script:nHandoffs++
@@ -169,14 +185,20 @@ foreach ($fd in @(Get-ChildItem -LiteralPath $scratch -Directory | Sort-Object N
             $deps = @()
             foreach ($b in @($fm['blocked_by'])) {
                 if ("$b" -eq '') { continue }
-                if (-not $bySlug.ContainsKey("$b")) { $errors.Add("$($f.FullName): blocked_by '$b' resolves to no sibling file") }
+                if (-not $bySlug.ContainsKey("$b")) {
+                    $sug = Get-RefSuggestion "$b" @($bySlug.Keys)
+                    $errors.Add("$($f.FullName): blocked_by '$b' resolves to no sibling file$(if ($sug) { " (did you mean '$sug'?)" })")
+                }
                 elseif ("$b" -eq $f.BaseName) { $errors.Add("$($f.FullName): blocked_by itself") }
                 else { $deps += "$b" }
             }
             $graph[$f.BaseName] = $deps
             if (@('detail', 'redo', 'fix') -contains $cat) {
                 if ("$($fm['refines'])") {
-                    if (-not $bySlug.ContainsKey("$($fm['refines'])")) { $errors.Add("$($f.FullName): refines '$($fm['refines'])' resolves to no sibling file") }
+                    if (-not $bySlug.ContainsKey("$($fm['refines'])")) {
+                        $sug = Get-RefSuggestion "$($fm['refines'])" @($bySlug.Keys)
+                        $errors.Add("$($f.FullName): refines '$($fm['refines'])' resolves to no sibling file$(if ($sug) { " (did you mean '$sug'?)" })")
+                    }
                 }
                 else { $errors.Add("$($f.FullName): category '$cat' requires refines:") }
             }
