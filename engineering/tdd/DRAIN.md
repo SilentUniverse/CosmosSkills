@@ -50,9 +50,9 @@ Loop until the ready set is empty:
 1. **Compute the wave.** From the remaining `ready-for-agent` issues, take every one whose blockers
    are all `done`. These have no ordering constraint between them.
 2. **Fan out — one subagent per issue, dispatched in a single turn.** Before dispatch, record the
-   wave baseline (`git status --porcelain` output); wave-fatal recovery restores touched files to
-   it — `git checkout -- <files>` for modified files, `rm` for files the wave added (never
-   `git clean`). Each `general-purpose` subagent
+   wave baseline (`git status --porcelain` output). Wave-fatal recovery: files clean in the
+   baseline and modified now → `git checkout -- <file>`; files the wave added → `rm`; files
+   already modified in the baseline → report, don't restore. Each `general-purpose` subagent
    runs the full autonomous red-green loop for its issue. Coupling comes from `touches:` overlap
    (absent → judge from 做什么/AC):
    - **Disjoint → edit in place.** Subagents edit the shared tree directly.
@@ -77,8 +77,8 @@ Loop until the ready set is empty:
 
    The verbose test output stays in the subagent — it does not flow back into the main context.
 3. **Collect the wave.** Each green subagent has already written its completion record and set
-   `status: done`. Near-miss report (fields present, shape imperfect): extract the fields, note
-   the deviation, don't re-dispatch. Verify **once per wave, after all subagents land**: run the union of the
+   `status: done`. Near-miss green report (fields present, shape imperfect): extract the fields,
+   note the deviation, don't re-dispatch. Verify **once per wave, after all subagents land**: run the union of the
    touched modules' scoped tests in one pass. For the worktree exception, verify
    after its branch lands and passes on the merged tree. **Wave-fatal ≠ per-issue red**: a defect in
    the wave itself — the brief named a nonexistent issue, the tests-so-far manifest contradicts
@@ -98,8 +98,9 @@ tally) vs red (failing names + trimmed traceback). **If the closing suite is red
 failing case to its issue via that issue's `### 完成` 新增测试 list; revert matched issues to
 `ready-for-agent` with a note — `done` does not survive a red close; report unmapped failures as
 unowned regressions. Closing assertions: every dispatched issue accounted for (shipped / failed /
-deferred); no worktree left unmerged; no subagent still running; if the PRD defines 端到端验证,
-run it (or state why not). Report shipped, failed, deferred, and the full-suite result; explain the
+deferred); no worktree left unmerged; no subagent still running. For each drained feature whose
+PRD's 端到端验证 is not `（无）`: run it; on failure, report it against that feature's batch
+result. Report shipped, failed, deferred, and the full-suite result; explain the
 batch's changed flow in one consolidated write-up. Batches of ≥2 issues **run the Spec axis by
 default**, dispatched in parallel with the closing suite — one read-only subagent: `git diff
 HEAD` + the shipped issue paths, reports per issue under-build / over-build /
