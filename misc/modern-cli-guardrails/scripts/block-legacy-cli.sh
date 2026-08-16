@@ -48,9 +48,9 @@ done <<< "$COMMAND"
 
 # Split into segments, quote-aware: a separator inside '...'/"..." belongs to
 # the quoted string (the device command in adb shell "..."), not to the host
-# shell. Unquoted | & ; ( and newlines split. Segments are collected in an
-# ARRAY — a real newline inside a quoted argument stays inside that segment
-# and must never become a segment boundary.
+# shell. Unquoted | & ; ( ` (command substitution) and newlines split. Segments
+# are collected in an ARRAY — a real newline inside a quoted argument stays
+# inside that segment and must never become a segment boundary.
 declare -a SEGMENTS=()
 quote=""
 seg=""
@@ -76,7 +76,7 @@ while [ "$i" -lt "$len" ]; do
         [ $((i + 1)) -lt "$len" ] && seg+=${STRIPPED:$((i + 1)):1}
         i=$((i + 2))
         continue ;;
-      '|'|'&'|';'|'('|$'\n')
+      '|'|'&'|';'|'('|'`'|$'\n')
         SEGMENTS+=("$seg")
         seg="" ;;
       *)
@@ -88,8 +88,29 @@ done
 SEGMENTS+=("$seg")
 
 re_legacy="^(grep|find|sed)([^[:alnum:]_./-].*)?$"
+# Before the command word, skip shell keywords (`do find ...`), wrappers with
+# their flags and args (`sudo find`, `timeout 5 find`, `env -i find`), and
+# VAR=val prefixes (`MSYS_NO_PATHCONV=1 find ...`) - the legacy tool still
+# runs, so the match must see it. Flags/numbers/VAR=val skip only after a
+# keyword or wrapper, so a plain segment starting with `-` is kept.
 for t in "${SEGMENTS[@]}"; do
   t="${t#"${t%%[![:space:]]*}"}"   # trim leading whitespace
+  [ -z "$t" ] && continue
+  skipped=0
+  while [ -n "$t" ]; do
+    first="${t%%[[:space:]]*}"
+    case "$first" in
+      do|then|else|'!'|'{'|sudo|env|nohup|nice|timeout|time|xargs) skip=1 ;;
+      [A-Za-z_]*) [[ "$first" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]] && skip=1 || skip=0 ;;
+      -*) [ "$skipped" = 1 ] && skip=1 || skip=0 ;;
+      [0-9]*) [[ "$first" =~ ^[0-9]+([.][0-9]+)?[smh]?$ && "$skipped" = 1 ]] && skip=1 || skip=0 ;;
+      *) skip=0 ;;
+    esac
+    [ "$skip" = 0 ] && break
+    skipped=1
+    t="${t#"$first"}"
+    t="${t#"${t%%[![:space:]]*}"}"
+  done
   [ -z "$t" ] && continue
   if [[ "$t" =~ $re_legacy ]]; then
     old="${t%%[!a-z]*}"

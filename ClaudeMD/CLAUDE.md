@@ -78,18 +78,19 @@ Optional hard enforcement: the `modern-cli-guardrails` skill's `PreToolUse` hook
 
 ## 8. Windows Command Line
 
-Windows console defaults to GBK (cp936); `PYTHONUTF8=1` is injected via settings — everything else takes explicit encoding. Two verified hard rules:
+Windows console defaults to GBK (cp936); `PYTHONUTF8=1` is injected via settings — everything else takes explicit encoding. Three hard rules:
 
 1. **Directory truth before destructive ops.** `fd`/Glob/Grep hide gitignored+hidden+dot files by default — before delete/move/overwrite of a directory, verify with `cmd //c dir /a /b <path>` (git-bash spelling; in PowerShell use `cmd /c …`) or `Get-ChildItem -Force` (plain `dir` without `/a` misses hidden files).
-2. **Explicit UTF-8 when invoking PowerShell from bash.** Raw `pwsh`/`powershell.exe` mangles Chinese output unpredictably; always wrap:
+2. **Explicit UTF-8 when invoking PowerShell from bash.** Raw `pwsh`/`powershell.exe` mangles Chinese in both directions; always wrap:
    ```
-   powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; <cmd>"
+   powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "[Console]::InputEncoding=[System.Text.Encoding]::UTF8; [Console]::OutputEncoding=[System.Text.Encoding]::UTF8; <cmd>"
    ```
-   File I/O inside `<cmd>` also takes explicit encoding: `Get-Content -Encoding UTF8` / `Out-File -Encoding utf8`.
+   Reading files inside `<cmd>` takes `Get-Content -Encoding UTF8`.
+3. **PS/cmd never write files.** PS5.1 defaults: `>` / `Out-File` → UTF-16LE; `-Encoding utf8` → UTF-8 **with BOM**; bare `Set-Content` → GBK. cmd `>` is always GBK. Write files with the `Write` tool or bash `>`; inside PS the only safe form is `[IO.File]::WriteAllText($p, $s)`. PS5.1 parses a BOM-less `.ps1` as ANSI — Chinese literals in it corrupt before `-File` runs.
 
 Prefer built-in `Read`/`Write`/`Edit`/`Grep`/`Glob` when they can do the job — they bypass both encoding and quoting hazards.
 
-→ PS vs bash decision table, experiment notes: `~/.claude/references/windows-cli.md`
+→ PS vs bash decision table, observed behavior: `~/.claude/references/windows-cli.md`
 
 ## 9. Run to Completion
 
