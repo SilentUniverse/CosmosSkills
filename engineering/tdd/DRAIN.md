@@ -50,9 +50,7 @@ Loop until the ready set is empty:
 1. **Compute the wave.** From the remaining `ready-for-agent` issues, take every one whose blockers
    are all `done`. These have no ordering constraint between them.
 2. **Fan out — one subagent per issue, dispatched in a single turn.** Before dispatch, record the
-   wave baseline (`git status --porcelain` output). Wave-fatal recovery: files clean in the
-   baseline and modified now → `git checkout -- <file>`; files the wave added → `rm`; files
-   already modified in the baseline → report, don't restore. Each `general-purpose` subagent
+   wave baseline (`git status --porcelain` output). Each `general-purpose` subagent
    runs the full autonomous red-green loop for its issue. Coupling comes from `touches:` overlap
    (absent → judge from 做什么/AC):
    - **Disjoint → edit in place.** Subagents edit the shared tree directly.
@@ -78,16 +76,18 @@ Loop until the ready set is empty:
    The verbose test output stays in the subagent — it does not flow back into the main context.
 3. **Collect the wave.** Each green subagent has already written its completion record and set
    `status: done`. Near-miss green report (fields present, shape imperfect): extract the fields,
-   note the deviation, don't re-dispatch. Verify **once per wave, after all subagents land**: run the union of the
-   touched modules' scoped tests in one pass. For the worktree exception, verify
-   after its branch lands and passes on the merged tree. **Wave-fatal ≠ per-issue red**: a defect in
-   the wave itself — the brief named a nonexistent issue, the tests-so-far manifest contradicts
-   the tree, the base build is broken — stops the whole wave and surfaces immediately. On failure:
-   map failing tests to issues
-   via each `### 完成` 新增测试 list, revert matched issues to `ready-for-agent` with a note,
-   report the mapping. A red issue stays `ready-for-agent` — anything `blocked_by` it never enters
-   a later wave (report it deferred). Merge each green issue's 新增测试 into the **tests-so-far
-   manifest** and carry it into every later wave's brief.
+   note the deviation, don't re-dispatch. Verify **once per wave, after all subagents land**: run
+   the union of the touched modules' scoped tests in one pass. For the worktree exception, verify
+   after its branch lands and passes on the merged tree. **Wave-fatal ≠ per-issue red**: a defect
+   in the wave itself — the brief named a nonexistent issue, the tests-so-far manifest contradicts
+   the tree, the base build is broken — stops the whole wave and surfaces immediately. Wave-fatal
+   recovery against the step-2 baseline: files clean in the baseline and modified now →
+   `git checkout -- <file>`; files the wave added → `rm`; files already modified in the baseline
+   → report, don't restore. On failure: map failing tests to issues via each `### 完成` 新增测试
+   list, revert matched issues to `ready-for-agent` with a note, report the mapping. A red issue
+   stays `ready-for-agent` — anything `blocked_by` it never enters a later wave (report it
+   deferred). Merge each green issue's 新增测试 into the **tests-so-far manifest** and carry it
+   into every later wave's brief.
 4. **Recompute** the ready set (newly-`done` issues may unblock the next wave) and repeat.
 
 ## Shared: close the batch

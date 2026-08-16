@@ -97,7 +97,9 @@ Exception: if a prototype produced a snippet that encodes a decision more precis
 
 ## 端到端验证（End-to-End Verification）
 
-The runnable procedure demonstrating the whole feature works — commands/steps plus the expected observable outcome (`（无）` for non-runnable features). Per-slice AC live in issues; the drain batch close runs it.
+The runnable procedure demonstrating the whole feature works — commands/steps plus the expected
+observable outcome (`（无）` for non-runnable features). Per-slice AC live in issues; the drain
+batch close runs it.
 
 ## 尚未明确（Fog of War）
 

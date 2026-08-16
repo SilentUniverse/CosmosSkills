@@ -32,14 +32,18 @@ if (-not (Test-Path -LiteralPath $scratch -PathType Container)) {
 $errors = [System.Collections.Generic.List[string]]::New()
 $nIssues = 0; $nPrds = 0; $nHandoffs = 0; $nSummaries = 0
 
+# Case-sensitive key lookups, matching bash and the lowercase slug contract.
+function New-OrdinalTable {
+    [System.Collections.Hashtable]::new([System.StringComparer]::Ordinal)
+}
+
 function Get-Frontmatter {
     param([string]$Path)
     # Scalars -> string; flow ([a, b]) and block ("- a") lists -> string[].
     # Returns $null when frontmatter is absent or unterminated.
     $lines = @(Get-Content -LiteralPath $Path -Encoding UTF8)
     if ($lines.Count -lt 2 -or "$($lines[0])".Trim() -ne "---") { return $null }
-    # Ordinal comparer: key lookups are case-sensitive, matching bash and the lowercase contract.
-    $fm = [System.Collections.Hashtable]::new([System.StringComparer]::Ordinal)
+    $fm = New-OrdinalTable
     $i = 1
     for (; $i -lt $lines.Count; $i++) {
         $line = "$($lines[$i])"
@@ -99,7 +103,7 @@ function Check-Handoff {
 # Kahn peeling: slugs that survive are in (or feed into) a blocked_by cycle.
 function Find-CyclicSlugs {
     param([hashtable]$Graph)
-    $remaining = [System.Collections.Hashtable]::new([System.StringComparer]::Ordinal)
+    $remaining = New-OrdinalTable
     foreach ($k in $Graph.Keys) {
         $remaining[$k] = @($Graph[$k] | Where-Object { $Graph.ContainsKey($_) })
     }
@@ -121,8 +125,9 @@ foreach ($fd in @(Get-ChildItem -LiteralPath $scratch -Directory | Sort-Object N
     # --- PRD files ---
     $prdFiles = @(Get-ChildItem -LiteralPath $fd.FullName -File -Filter "PRD*.md")
     if ($prdFiles.Count -gt 0) {
-        $names = [System.Collections.Hashtable]::new([System.StringComparer]::Ordinal); foreach ($p in $prdFiles) { $names[$p.Name] = $true }
-        $parsed = [System.Collections.Hashtable]::new([System.StringComparer]::Ordinal)
+        $names = New-OrdinalTable
+        foreach ($p in $prdFiles) { $names[$p.Name] = $true }
+        $parsed = New-OrdinalTable
         foreach ($p in $prdFiles) {
             $nPrds++
             $fm = Get-Frontmatter $p.FullName
@@ -141,7 +146,7 @@ foreach ($fd in @(Get-ChildItem -LiteralPath $scratch -Directory | Sort-Object N
             }
         }
         if ($prdFiles.Count -gt 1) {
-            $superseded = [System.Collections.Hashtable]::new([System.StringComparer]::Ordinal)
+            $superseded = New-OrdinalTable
             foreach ($e in $parsed.Values) { if ($e -and "$($e['supersedes'])") { $superseded["$($e['supersedes'])"] = $true } }
             $live = @($prdFiles | Where-Object { -not $superseded.ContainsKey($_.Name) } | ForEach-Object { $_.Name })
             if ($live.Count -ne 1) { $errors.Add("$($fd.FullName): PRD chain must leave exactly one live head, found: $($live -join ', ')") }
@@ -162,7 +167,7 @@ foreach ($fd in @(Get-ChildItem -LiteralPath $scratch -Directory | Sort-Object N
     $iDir = Join-Path $fd.FullName "issues"
     if (Test-Path -LiteralPath $iDir -PathType Container) {
         $files = @(Get-ChildItem -LiteralPath $iDir -File -Filter "*.md")   # top level only; archive/ excluded
-        $bySlug = [System.Collections.Hashtable]::new([System.StringComparer]::Ordinal); $nnSeen = [System.Collections.Hashtable]::new([System.StringComparer]::Ordinal)
+        $bySlug = New-OrdinalTable; $nnSeen = New-OrdinalTable
         foreach ($f in $files) {
             $slug = $f.BaseName
             $bySlug[$slug] = $f.FullName
@@ -173,7 +178,7 @@ foreach ($fd in @(Get-ChildItem -LiteralPath $scratch -Directory | Sort-Object N
             }
             else { $errors.Add("$($f.FullName): filename not NN-slug") }
         }
-        $graph = [System.Collections.Hashtable]::new([System.StringComparer]::Ordinal)
+        $graph = New-OrdinalTable
         foreach ($f in $files) {
             $nIssues++
             $fm = Get-Frontmatter $f.FullName
