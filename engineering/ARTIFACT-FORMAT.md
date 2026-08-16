@@ -9,6 +9,9 @@ grepping prose.
 All frontmatter is YAML between `---` fences at the very top of the file. The human-readable
 body (Chinese, per `~/.claude/CLAUDE.md`) follows below the closing `---`.
 
+New fields are optional at introduction; a field becomes required only via a `/hys-setup`
+migration pass.
+
 ## Naming & location conventions
 
 Where an artifact lives and how it is cased are not arbitrary — both follow rules. When you add a

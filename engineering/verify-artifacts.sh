@@ -16,6 +16,27 @@ n_issues=0; n_prds=0; n_handoffs=0; n_sums=0
 
 err() { echo "  $1"; viol=$((viol + 1)); }
 
+# Suggest the sibling the bad ref most likely meant: same name-part first, then same NN.
+ref_suggest() { # $1 bad slug, $2 self slug; candidates = keys of byslug; prints one suggestion or nothing
+    local bad="$1" self="$2" name nn c cname
+    name="$bad"; [[ "$bad" =~ ^[0-9]+- ]] && name="${bad#*-}"
+    [[ "$bad" =~ ^([0-9]+)- ]] && nn="${BASH_REMATCH[1]}" || nn=""
+    if [ ${#name} -ge 3 ]; then
+        for c in "${!byslug[@]}"; do
+            [ "$c" = "$self" ] && continue
+            cname="${c#*-}"
+            [ "$cname" = "$name" ] && { echo "$c"; return; }
+        done
+    fi
+    if [ -n "$nn" ]; then
+        for c in "${!byslug[@]}"; do
+            [ "$c" = "$self" ] && continue
+            [[ "$c" =~ ^$nn- ]] && { echo "$c"; return; }
+        done
+    fi
+    return 0
+}
+
 # fm_parse <file> -> fills assoc FM (key -> value; lists space-joined), sets FM_PRESENT=1.
 declare -A FM
 FM_PRESENT=0
@@ -126,6 +147,7 @@ for fdir in "$SCRATCH"/*/; do
         if [ -e "${files[0]}" ]; then
             declare -A byslug nnseen graph
             for f in "${files[@]}"; do
+                [ -f "$f" ] || continue
                 slug="$(basename "$f" .md)"
                 byslug["$slug"]="$f"
                 if [[ "$slug" =~ ^([0-9]{2,})- ]]; then
@@ -136,6 +158,7 @@ for fdir in "$SCRATCH"/*/; do
                 fi
             done
             for f in "${files[@]}"; do
+                [ -f "$f" ] || continue
                 n_issues=$((n_issues + 1))
                 fm_parse "$f"
                 [ "$FM_PRESENT" = 1 ] || { err "$f: no YAML frontmatter"; continue; }
@@ -153,7 +176,10 @@ for fdir in "$SCRATCH"/*/; do
                 deps=""
                 for b in ${FM[blocked_by]:-}; do
                     [ -n "$b" ] || continue
-                    if [ -z "${byslug[$b]:-}" ]; then err "$f: blocked_by '$b' resolves to no sibling file"
+                    if [ -z "${byslug[$b]:-}" ]; then
+                        s=$(ref_suggest "$b" "$(basename "$f" .md)")
+                        if [ -n "$s" ]; then err "$f: blocked_by '$b' resolves to no sibling file (did you mean '$s'?)"
+                        else err "$f: blocked_by '$b' resolves to no sibling file"; fi
                     elif [ "$b" = "$(basename "$f" .md)" ]; then err "$f: blocked_by itself"
                     else deps="$deps $b"; fi
                 done
@@ -162,7 +188,11 @@ for fdir in "$SCRATCH"/*/; do
                     detail|redo|fix)
                         ref="${FM[refines]:-}"
                         if [ -n "$ref" ]; then
-                            [ -n "${byslug[$ref]:-}" ] || err "$f: refines '$ref' resolves to no sibling file"
+                            if [ -z "${byslug[$ref]:-}" ]; then
+                                s=$(ref_suggest "$ref" "$(basename "$f" .md)")
+                                if [ -n "$s" ]; then err "$f: refines '$ref' resolves to no sibling file (did you mean '$s'?)"
+                                else err "$f: refines '$ref' resolves to no sibling file"; fi
+                            fi
                         else
                             err "$f: category '$cat' requires refines:"
                         fi ;;

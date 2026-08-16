@@ -32,13 +32,18 @@ if (-not (Test-Path -LiteralPath $scratch -PathType Container)) {
 $errors = [System.Collections.Generic.List[string]]::New()
 $nIssues = 0; $nPrds = 0; $nHandoffs = 0; $nSummaries = 0
 
+# Case-sensitive key lookups, matching bash and the lowercase slug contract.
+function New-OrdinalTable {
+    [System.Collections.Hashtable]::new([System.StringComparer]::Ordinal)
+}
+
 function Get-Frontmatter {
     param([string]$Path)
     # Scalars -> string; flow ([a, b]) and block ("- a") lists -> string[].
     # Returns $null when frontmatter is absent or unterminated.
     $lines = @(Get-Content -LiteralPath $Path -Encoding UTF8)
     if ($lines.Count -lt 2 -or "$($lines[0])".Trim() -ne "---") { return $null }
-    $fm = @{}
+    $fm = New-OrdinalTable
     $i = 1
     for (; $i -lt $lines.Count; $i++) {
         $line = "$($lines[$i])"
@@ -61,6 +66,22 @@ function Get-Frontmatter {
     return $fm
 }
 
+# Suggest the sibling the bad ref most likely meant: same name-part first, then same NN.
+function Get-RefSuggestion {
+    param([string]$Bad, [string[]]$Candidates, [string]$Self)
+    $name = $Bad -replace '^\d+-', ''
+    if ($name.Length -ge 3) {
+        foreach ($c in $Candidates) {
+            if ("$c" -ne $Self -and (("$c" -replace '^\d+-', '') -eq $name)) { return "$c" }
+        }
+    }
+    if ($Bad -cmatch '^(\d+)-') {
+        $nn = $Matches[1]
+        foreach ($c in $Candidates) { if ("$c" -ne $Self -and "$c" -cmatch "^$nn-") { return "$c" } }
+    }
+    return $null
+}
+
 function Check-Handoff {
     param([string]$Path, [string]$ExpectedFeature)  # '' = cross-feature: feature must be null/absent
     $script:nHandoffs++
@@ -75,14 +96,14 @@ function Check-Handoff {
         $script:errors.Add("${Path}: feature '$feat' != directory '$ExpectedFeature'")
     }
     if (-not "$($fm['git_base'])") { $script:errors.Add("${Path}: git_base missing") }
-    if (@('active', 'consumed') -notcontains "$($fm['status'])") { $script:errors.Add("${Path}: status '$($fm['status'])' not in active|consumed") }
+    if (@('active', 'consumed') -cnotcontains "$($fm['status'])") { $script:errors.Add("${Path}: status '$($fm['status'])' not in active|consumed") }
     if ("$($fm['date'])" -notmatch '^\d{4}-\d{2}-\d{2}$') { $script:errors.Add("${Path}: date not ISO YYYY-MM-DD") }
 }
 
 # Kahn peeling: slugs that survive are in (or feed into) a blocked_by cycle.
 function Find-CyclicSlugs {
     param([hashtable]$Graph)
-    $remaining = @{}
+    $remaining = New-OrdinalTable
     foreach ($k in $Graph.Keys) {
         $remaining[$k] = @($Graph[$k] | Where-Object { $Graph.ContainsKey($_) })
     }
@@ -104,8 +125,9 @@ foreach ($fd in @(Get-ChildItem -LiteralPath $scratch -Directory | Sort-Object N
     # --- PRD files ---
     $prdFiles = @(Get-ChildItem -LiteralPath $fd.FullName -File -Filter "PRD*.md")
     if ($prdFiles.Count -gt 0) {
-        $names = @{}; foreach ($p in $prdFiles) { $names[$p.Name] = $true }
-        $parsed = @{}
+        $names = New-OrdinalTable
+        foreach ($p in $prdFiles) { $names[$p.Name] = $true }
+        $parsed = New-OrdinalTable
         foreach ($p in $prdFiles) {
             $nPrds++
             $fm = Get-Frontmatter $p.FullName
@@ -124,7 +146,7 @@ foreach ($fd in @(Get-ChildItem -LiteralPath $scratch -Directory | Sort-Object N
             }
         }
         if ($prdFiles.Count -gt 1) {
-            $superseded = @{}
+            $superseded = New-OrdinalTable
             foreach ($e in $parsed.Values) { if ($e -and "$($e['supersedes'])") { $superseded["$($e['supersedes'])"] = $true } }
             $live = @($prdFiles | Where-Object { -not $superseded.ContainsKey($_.Name) } | ForEach-Object { $_.Name })
             if ($live.Count -ne 1) { $errors.Add("$($fd.FullName): PRD chain must leave exactly one live head, found: $($live -join ', ')") }
@@ -145,7 +167,7 @@ foreach ($fd in @(Get-ChildItem -LiteralPath $scratch -Directory | Sort-Object N
     $iDir = Join-Path $fd.FullName "issues"
     if (Test-Path -LiteralPath $iDir -PathType Container) {
         $files = @(Get-ChildItem -LiteralPath $iDir -File -Filter "*.md")   # top level only; archive/ excluded
-        $bySlug = @{}; $nnSeen = @{}
+        $bySlug = New-OrdinalTable; $nnSeen = New-OrdinalTable
         foreach ($f in $files) {
             $slug = $f.BaseName
             $bySlug[$slug] = $f.FullName
@@ -156,27 +178,33 @@ foreach ($fd in @(Get-ChildItem -LiteralPath $scratch -Directory | Sort-Object N
             }
             else { $errors.Add("$($f.FullName): filename not NN-slug") }
         }
-        $graph = @{}
+        $graph = New-OrdinalTable
         foreach ($f in $files) {
             $nIssues++
             $fm = Get-Frontmatter $f.FullName
             if ($null -eq $fm) { $errors.Add("$($f.FullName): no YAML frontmatter"); continue }
             if ("$($fm['type'])" -ne 'issue') { $errors.Add("$($f.FullName): type '$($fm['type'])' != issue") }
             if ("$($fm['feature'])" -ne $feat) { $errors.Add("$($f.FullName): feature '$($fm['feature'])' != directory '$feat'") }
-            if (@('ready-for-agent', 'ready-for-human', 'done') -notcontains "$($fm['status'])") { $errors.Add("$($f.FullName): status '$($fm['status'])' not in ready-for-agent|ready-for-human|done") }
+            if (@('ready-for-agent', 'ready-for-human', 'done') -cnotcontains "$($fm['status'])") { $errors.Add("$($f.FullName): status '$($fm['status'])' not in ready-for-agent|ready-for-human|done") }
             $cat = "$($fm['category'])"
-            if (@('enhancement', 'detail', 'redo', 'fix') -notcontains $cat) { $errors.Add("$($f.FullName): category '$cat' not in enhancement|detail|redo|fix") }
+            if (@('enhancement', 'detail', 'redo', 'fix') -cnotcontains $cat) { $errors.Add("$($f.FullName): category '$cat' not in enhancement|detail|redo|fix") }
             $deps = @()
             foreach ($b in @($fm['blocked_by'])) {
                 if ("$b" -eq '') { continue }
-                if (-not $bySlug.ContainsKey("$b")) { $errors.Add("$($f.FullName): blocked_by '$b' resolves to no sibling file") }
+                if (-not $bySlug.ContainsKey("$b")) {
+                    $sug = Get-RefSuggestion "$b" @($bySlug.Keys) $f.BaseName
+                    $errors.Add("$($f.FullName): blocked_by '$b' resolves to no sibling file$(if ($sug) { " (did you mean '$sug'?)" })")
+                }
                 elseif ("$b" -eq $f.BaseName) { $errors.Add("$($f.FullName): blocked_by itself") }
                 else { $deps += "$b" }
             }
             $graph[$f.BaseName] = $deps
-            if (@('detail', 'redo', 'fix') -contains $cat) {
+            if (@('detail', 'redo', 'fix') -ccontains $cat) {
                 if ("$($fm['refines'])") {
-                    if (-not $bySlug.ContainsKey("$($fm['refines'])")) { $errors.Add("$($f.FullName): refines '$($fm['refines'])' resolves to no sibling file") }
+                    if (-not $bySlug.ContainsKey("$($fm['refines'])")) {
+                        $sug = Get-RefSuggestion "$($fm['refines'])" @($bySlug.Keys) $f.BaseName
+                        $errors.Add("$($f.FullName): refines '$($fm['refines'])' resolves to no sibling file$(if ($sug) { " (did you mean '$sug'?)" })")
+                    }
                 }
                 else { $errors.Add("$($f.FullName): category '$cat' requires refines:") }
             }
