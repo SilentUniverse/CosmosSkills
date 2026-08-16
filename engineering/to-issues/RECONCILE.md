@@ -11,8 +11,7 @@ Produce a **reconciliation report** comparing the new plan against the existing 
 user to confirm before doing anything. Classify every existing issue into one bucket:
 
 ```
-📋 对账报告
-──────────────────────────────────────────────────────────────
+对账报告
 仍然有效（不动）:
   ✓ 01-add-schema.md (done)
   ✓ 03-mobile-ui.md (ready-for-human)
@@ -31,13 +30,12 @@ user to confirm before doing anything. Classify every existing issue into one bu
 
 全新切片（新建）:
   ➕ 07-dark-mode.md (ready-for-human)
-──────────────────────────────────────────────────────────────
 ```
 
 Classification rules:
 
 - **仍然有效** — the existing issue's behavior is unchanged in the new PRD.
-- **已完工但需返工** — issue is `done` AND the new PRD invalidates the implementation. Hard rule: never edit a `done` issue. Always produce a new `NN-redo-X.md` (`category: redo`, `refines:` pointing at the original slug). The old file stays as a historical record.
+- **已完工但需返工** — issue is `done` AND the new PRD invalidates the implementation. Hard rule: never edit a `done` issue. Always produce a new `NN-redo-X.md` (`category: redo`, `refines:` pointing at the original slug).
 - **未做且范围变了** — issue is `ready-for-X` AND the new PRD changes its scope or AC. Edit the file in place and refresh its `## 上级` extract from the new PRD — there's no `done` history to preserve.
 - **未做但不需要了** — issue is `ready-for-X` AND the new PRD no longer requires it. Delete the file.
 - **全新切片** — nothing existing covers this part of the new PRD.

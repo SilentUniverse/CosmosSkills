@@ -168,7 +168,7 @@ curl -fsSL https://raw.githubusercontent.com/SilentUniverse/HysSkills/main/Claud
 
 `/resume` 找最近 `status: active` 的 handoff，校验 `git_base`（HEAD 动过会警告；存档点消失了会拿 reflog 问你怎么锚定），执行开机动作序列，收尾后标 `consumed`。
 
-> **反例**：上一 session 已完整结束（issue 已 done）→ 不要写 handoff，直接 `/tdd <next-issue>`。handoff 是给"半截工作"留的桥。
+> **反例**：上一 session 已完整结束（issue 已 done）→ 不要写 handoff，直接 `/tdd <next-issue>`。
 > **频率**：长任务每天收工前一份；跨 session 的 epic 每次切换前一份。
 
 ### 状态机（三状态，仅此而已）

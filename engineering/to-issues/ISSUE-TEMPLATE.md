@@ -21,7 +21,7 @@ Parent PRD path + the PRD lines governing this slice: 用户场景 + related 实
 
 ≤3 sentences of end-to-end behavior, not layer-by-layer implementation. Never paste PRD text — point to its section; `## 上级` carries the extract.
 
-Avoid specific file paths or code snippets — they go stale fast. Exception: if a prototype produced a snippet that encodes a decision more precisely than prose can (state machine, reducer, schema, type shape), inline it here and note briefly that it came from a prototype.
+Avoid specific file paths or code snippets. Exception: if a prototype produced a snippet that encodes a decision more precisely than prose can (state machine, reducer, schema, type shape), inline it here and note briefly that it came from a prototype.
 
 ## 验收标准（Acceptance Criteria）
 
@@ -44,6 +44,6 @@ Avoid specific file paths or code snippets — they go stale fast. Exception: if
 
 </issue-template>
 
-**Frontmatter** — fill every field per the schema in [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd). The three fields that drive this skill's output: `category` (`enhancement` default; `detail`/`redo`/`fix` for later sub-behaviour / re-work, which MUST also set `refines:`), `blocked_by` (sibling slugs that must reach `done` first — `/tdd`'s drain mode topologically sorts on it), and `refines` (parent slug, set for non-top-level slices so incremental work stays traceable instead of orphaned).
+**Frontmatter** — fill every field per the schema in [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd). The three fields that drive this skill's output: `category` (`enhancement` default; `detail`/`redo`/`fix` for later sub-behaviour / re-work, which MUST also set `refines:`), `blocked_by` (sibling slugs that must reach `done` first — `/tdd`'s drain mode topologically sorts on it), and `refines` (parent slug, set for non-top-level slices).
 
 Do NOT modify any parent PRD or upstream issue.

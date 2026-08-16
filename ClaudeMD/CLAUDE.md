@@ -47,7 +47,7 @@ Transform tasks into verifiable goals. Loop until verified.
 - Adversarial review: attack your own work before declaring done.
 - Anti-thrash: after ~2 failed fixes on the same failure, stop — switch approach (or `/diagnose`), or ask.
 - Corrections persist: when the user corrects your understanding mid-task, write the correction into the governing artifact (issue AC / PRD / `CODEBASE.md` invariant) before continuing.
-- No optional commentary: once the plan is aligned, execute it — don't teach, re-explain, or restate mid-task; output the step and its verification, not commentary.
+- No optional commentary: once the plan is aligned, execute it — don't teach, re-explain, or restate mid-task; output the step and its verification.
 
 ## 6. Document Layout
 
@@ -102,13 +102,13 @@ Skills iterating over work items: finish ALL items in one pass.
 
 ## 10. Parallelize with Subagents
 
-Default to subagents for fan-out work — keeps the main context clean and cuts wait time — unless the setup cost (brief, verification, re-dispatch on drift) outweighs doing it inline.
+Default to subagents for fan-out work unless the setup cost (brief, verification, re-dispatch on drift) outweighs doing it inline.
 - **Parallelize**: independent file searches/research (one `Explore` agent each), unrelated module edits (one `general-purpose` agent each), any investigate-only task (search, read docs).
 - **Don't**: single-file or small edits; steps that depend on a prior result's output.
 - **Prompt well**: the subagent can't see this conversation — give it the context it needs, the exact output format/scope you want, and whether it's read-only research or allowed to write.
 
 ## 11. Android / ADB
 
-`adb` on this host is trap-dense: git-bash rewrites device-bound `/path` args (breaking pull/push and unquoted shell commands), output carries CRLF (corrupts redirected binaries), stream commands (`logcat`, `top`, `screenrecord`) never exit. Before nontrivial `adb` work, read the reference — don't work from memory.
+`adb` on this host is trap-dense: git-bash rewrites device-bound `/path` args (breaking pull/push and unquoted shell commands), output carries CRLF (corrupts redirected binaries), stream commands (`logcat`, `top`, `screenrecord`) never exit. Before nontrivial `adb` work, read the reference.
 
 → Traps + fixes, logcat slimming, capture loop, uiautomator workflow, cheat sheet: `~/.claude/references/android-adb.md`

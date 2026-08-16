@@ -28,8 +28,7 @@ CLAUDE.md §6 loads the orientation layer at session start, before `/resume` run
 - `/resume` (no arg) → scan `.scratch/**/handoff.md` for `status: active` and pick the newest by
   `date` (tie-break on file mtime). If none is `active`, tell the user there's nothing to resume and
   stop — do not resume a `consumed` handoff without explicit confirmation. (Step 0 has already run,
-  so even with no handoff the session is oriented — say so rather than leaving the user
-  empty-handed.)
+  so even with no handoff the session is oriented — say so.)
 
 ### 2. Verify the baseline
 
@@ -61,5 +60,3 @@ If the handoff names a feature, also glance at its live working set:
 Once the work reaches a natural stopping point (issue `done`, or the user starts something else),
 set the handoff's frontmatter `status:` to `consumed`. If the session itself runs long and needs a
 fresh handoff, write a new one via `/handoff` (overwriting the same rolling file).
-
-Do not mark `consumed` mid-task — only when the bridge has served its purpose.

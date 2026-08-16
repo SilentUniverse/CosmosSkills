@@ -34,7 +34,7 @@ When blocked, Claude sees the message on stderr and retries with the modern tool
   - Prefix the command with a `# force-legacy` comment line, or
   - Set `ALLOW_LEGACY_CLI=1` in the shell that launches Claude Code (an inline `ALLOW_LEGACY_CLI=1 cmd` prefix is invisible to the hook, which runs in its own process).
 
-The hook is failure-safe: malformed input, a missing dependency, or any internal error exits 0 (allow) — it never crashes a tool call.
+The hook is failure-safe: malformed input, a missing dependency, or any internal error exits 0 (allow).
 
 ## Steps
 

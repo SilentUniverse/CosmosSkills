@@ -17,7 +17,7 @@ Rule of thumb: any `/`-leading argument meant for the device gets `//` (pull/pus
 
 ## Output is CRLF — and corrupts binaries
 
-- Every `adb shell` line ends `\r\n` (`pidof` returns `2229\r\n` raw). Before `$(…)` or piping onward: `| tr -d '\r'`.
+- Every `adb shell` line ends `\r\n` (`pidof` returns `2229\r\n` raw). Before `$(…)` or piping: `| tr -d '\r'`.
 - `adb shell screencap -p > x.png` corrupts the PNG from byte 6 onward (`\r` inserted; verified 14052 vs 14050 bytes). Use either:
   - `adb exec-out screencap -p > x.png`, or
   - `adb shell "screencap -p /sdcard/x.png"` + `adb pull //sdcard/x.png`

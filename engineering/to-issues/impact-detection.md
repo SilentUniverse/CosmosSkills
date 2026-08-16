@@ -1,7 +1,7 @@
 # Impact Detection — 影响面探测（按需读）
 
-When a change touches **existing** code, the risk isn't slicing — it's *what this change reaches and
-might break*. This is the per-language playbook for that.
+When a change touches **existing** code, the risk isn't slicing — it's what this change reaches and
+might break. This is the per-language playbook for that.
 
 **Read this only for the third tier** — `to-issues` step 2 gates impact work on a cheap reference
 probe and scales the response to the blast radius: a new change or a small-radius one (a few
@@ -16,7 +16,7 @@ analysis covers; the weaker it is, the more you lean on **runtime** observation 
 selectors — what actually ran). Either way a subagent only fills what those tools miss —
 greppable-invisible assumptions — it never replaces them. TypeScript is near-whitebox — the checker
 resolves which `save()` you mean. Python is dynamic — `getattr`, `**kwargs`, DI, registries, and
-fixtures make callers invisible to static tools, so static results are a lower bound, not complete.
+fixtures make callers invisible to static tools, so static results are a lower bound.
 
 Two kinds of impact, very different confidence:
 
@@ -28,11 +28,11 @@ Two kinds of impact, very different confidence:
 
 ## What gets reused on the second run
 
-- **Static reference points** — NOT stored (re-grep each time; cheap and always current — a stale
-  call graph is worse than none). The `CODEBASE.md` "can't rg it" rule.
-- **Semantic invariants (the expensive part)** — persist to `CODEBASE.md` so they load at session start and
-  the next coupled change in this area skips re-deriving it. So coupled work in an area gets
-  *faster* the more you do — but only if the run writes its findings back. Always offer to.
+- **Static reference points** — NOT stored (re-grep each time; cheap and always current). The
+  `CODEBASE.md` "can't rg it" rule.
+- **Semantic invariants (the expensive part)** — persist to `CODEBASE.md` so they load at session
+  start and the next coupled change in this area skips re-deriving it — but only if the run writes
+  its findings back. Always offer to.
 
 ---
 
@@ -60,12 +60,10 @@ assumption layer that neither compile nor grep can see. **TS report = high confi
 | **Affected tests** | `pytest --testmon` (runtime coverage — reruns only tests that actually executed the changed lines); or `coverage.py` dynamic contexts | **runtime-observed** — catches dynamic coupling static analysis drops |
 
 Note the asymmetry: in a dynamic language **runtime tools are more trustworthy than static ones**,
-because they watch what *actually ran*, not what *looks* reachable. `testmon` is the compensation
-for what `pyright` can't see.
+because they watch what actually ran, not what looks reachable.
 
 **Python report MUST state: "static + runtime coverage below; dynamic-dispatch paths may be
-missed — scan manually."** Never imply the list is complete. No tool guarantees 100% on a dynamic
-language — and saying so is the difference between a useful report and false safety.
+missed — scan manually."** Never imply the list is complete.
 
 ---
 

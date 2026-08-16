@@ -13,7 +13,7 @@ Layout: **[CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md)**. Create files lazily — on
 
 ## First pass (draft mode)
 
-**When:** `CONTEXT.md` is absent or empty — onboarding a fresh repo. Don't interrogate term-by-term on the first pass; that's exhausting and most terms have an obvious recommended name. Switch to draft mode: it trades per-term interrogation for a single review gate — never for zero review.
+**When:** `CONTEXT.md` is absent or empty — onboarding a fresh repo. Don't interrogate term-by-term on the first pass — most terms have an obvious recommended name. Switch to draft mode: it trades per-term interrogation for a single review gate.
 
 **Steps:**
 
@@ -47,7 +47,7 @@ When the user states how something works, check whether the code agrees. If you 
 
 When a term is resolved, update `CONTEXT.md` right there. Don't batch these up — capture them as they happen. Use the format in [CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md).
 
-`CONTEXT.md` should be totally devoid of implementation details. Do not treat `CONTEXT.md` as a spec, a scratch pad, or a repository for implementation decisions. It is a glossary and nothing else.
+`CONTEXT.md` is a glossary and nothing else — no implementation details, no spec, no scratch pad.
 
 ### Offer ADRs sparingly
 

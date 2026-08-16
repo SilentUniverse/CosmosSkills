@@ -3,7 +3,7 @@
 Loaded on demand by `/code-review` (and its Standards sub-agent) only — not part of the skill body.
 
 On top of whatever the repo documents, the Standards axis always carries this fixed set of Fowler
-code smells (_Refactoring_, ch.3) — it applies even when a repo documents nothing. Two rules bind it:
+code smells (_Refactoring_, ch.3). Two rules bind it:
 
 - **The repo overrides.** A documented repo standard (or ADR) always wins; where it endorses
   something the baseline would flag, suppress the smell.
