@@ -98,8 +98,8 @@ tally) vs red (failing names + trimmed traceback). **If the closing suite is red
 failing case to its issue via that issue's `### 完成` 新增测试 list; revert matched issues to
 `ready-for-agent` with a note — `done` does not survive a red close; report unmapped failures as
 unowned regressions. Closing assertions: every dispatched issue accounted for (shipped / failed /
-deferred); no worktree left unmerged; no subagent still running. For each drained feature whose
-PRD's 端到端验证 is not `（无）`: run it; on failure, report it against that feature's batch
+deferred); no worktree left unmerged; no subagent still running. For each drained feature, run
+its PRD's 端到端验证 unless absent or `（无）`; on failure, report it against that feature's batch
 result. Report shipped, failed, deferred, and the full-suite result; explain the
 batch's changed flow in one consolidated write-up. Batches of ≥2 issues **run the Spec axis by
 default**, dispatched in parallel with the closing suite — one read-only subagent: `git diff

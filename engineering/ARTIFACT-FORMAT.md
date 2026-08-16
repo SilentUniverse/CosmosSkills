@@ -10,7 +10,7 @@ All frontmatter is YAML between `---` fences at the very top of the file. The hu
 body (Chinese, per `~/.claude/CLAUDE.md`) follows below the closing `---`.
 
 New fields are optional at introduction; a field becomes required only via a `/hys-setup`
-migration pass — older artifacts must keep passing the machine gate.
+migration pass.
 
 ## Naming & location conventions
 
