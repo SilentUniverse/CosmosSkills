@@ -11,7 +11,7 @@ Compress all Chinese output. Keep all technical substance. Kill all filler.
 
 ## Persistence
 
-ACTIVE on every response once triggered. Never revert after many turns. Never drift back to verbose. Still active if unsure. Off only when user says "退出极简" / "正常模式" / "stop caveman".
+ACTIVE on every response once triggered. Never revert or drift back to verbose, even after many turns; if unsure, stay active. Off only when user says "退出极简" / "正常模式" / "stop caveman".
 
 ## Rules
 

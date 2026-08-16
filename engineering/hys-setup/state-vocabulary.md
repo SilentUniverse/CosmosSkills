@@ -1,6 +1,6 @@
 # Issue States
 
-This project uses a minimal 3-state workflow tuned for **solo dev + agent assistance**. There is no triage, no inbox, no blocked. Every issue is either ready to do, ready to do hands-on, or done. Issues that turn out unwanted are deleted; superseded work is recorded by creating new redo issues, never by editing old ones.
+This project uses a minimal 3-state workflow tuned for **solo dev + agent assistance**. There is no triage, no inbox, no blocked. Issues that turn out unwanted are deleted; superseded work is recorded by creating new redo issues, never by editing old ones.
 
 | Canonical role    | String in our tracker | Meaning                                                                |
 | ----------------- | --------------------- | ---------------------------------------------------------------------- |
@@ -25,9 +25,9 @@ State changes are usually automatic:
 - `/tdd` flips the issue to `done` and appends a completion record when all acceptance criteria pass.
 - `/tidy` moves `done` issues into `issues/archive/` (it never edits their bodies).
 
-Manual changes are rare — only when toggling between `ready-for-agent` and `ready-for-human`, or (rarely) reverting a `done` to `ready-for-X` to acknowledge that this issue needs revision (in which case `/tdd` will pause and ask whether you intend incremental edit or full rework).
+Manual changes only: toggling between `ready-for-agent` and `ready-for-human`, or reverting a `done` to `ready-for-X` (then `/tdd` will pause and ask whether you intend incremental edit or full rework).
 
 ## Migrating from older vocabularies
 
-Old→new mapping: `MIGRATION.md`. `doing` reverts to `ready-for-X`; promote or delete the rest per that table.
+Deprecated states: `/hys-setup` Case 3 (`MIGRATION.md`) asks one-by-one — `doing` reverts to `ready-for-X`; the rest are promoted or deleted with the user.
 

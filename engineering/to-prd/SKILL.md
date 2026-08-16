@@ -85,7 +85,7 @@ A list of decisions:
 - API contracts
 - Specific interactions
 
-Do NOT include specific file paths or code snippets — they go stale.
+Do NOT include specific file paths or code snippets.
 
 Exception: if a prototype produced a snippet that encodes a decision more precisely than prose can (state machine, reducer, schema, type shape), inline the decision-rich parts and note briefly that it came from a prototype.
 

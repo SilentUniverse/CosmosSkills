@@ -1,6 +1,6 @@
 # Logic Prototype
 
-A tiny interactive terminal app that lets the user drive a state model by hand. Use this when the question is about **business logic, state transitions, or data shape** — the kind of thing that looks reasonable on paper but only feels wrong once you push it through real cases.
+A tiny interactive terminal app that lets the user drive a state model by hand. Use this when the question is about **business logic, state transitions, or data shape**.
 
 ## When this is the right shape
 
@@ -36,7 +36,7 @@ The right shape depends on the question:
 
 Pick whichever shape best fits the question being asked, *not* whichever is easiest to wire to a TUI. Keep it pure: no I/O, no terminal code, no `console.log` for control flow. The TUI imports it and calls into it; nothing flows the other direction.
 
-This is what makes the prototype useful past its own lifetime. When the question's been answered, the validated reducer / machine / function set can be lifted into the real module — the TUI shell gets deleted.
+When the question's been answered, the validated reducer / machine / function set can be lifted into the real module — the TUI shell gets deleted.
 
 ### 4. Build the smallest TUI that exposes the state
 
@@ -64,7 +64,7 @@ If the host project has no task runner, just put the command at the top of the p
 
 ### 6. Hand it over
 
-Give the user the run command. They'll drive it themselves; the interesting moments are when they say "wait, that shouldn't be possible" or "huh, I assumed X would be different" — those are the bugs in the _idea_, which is the whole point. If they want new actions added, add them. Prototypes evolve.
+Give the user the run command. They'll drive it themselves; the interesting moments are when they say "wait, that shouldn't be possible" or "huh, I assumed X would be different" — those are the bugs in the _idea_. If they want new actions added, add them.
 
 ### 7. Capture the answer
 

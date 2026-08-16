@@ -1,8 +1,7 @@
 # hys-setup — Migration detail (Case 3 & Case 5)
 
 Loaded on demand by [`/hys-setup`](SKILL.md) step 2 **only** when the repo is an old setup (Case 3)
-or its issue files use bare `Status:` lines (Case 5). A clean repo (Case 1) or non-default paths
-(Case 4) never need this file.
+or its issue files use bare `Status:` lines (Case 5).
 
 In all cases, present what was found and the proposed migration plan for the user to confirm before
 any file is changed. Do not silently rewrite existing user content.
@@ -30,8 +29,7 @@ Steps:
 2. **Build the plan** and print it as a single preview, no writes yet:
 
    ```
-   📋 Frontmatter 迁移计划（dry-run，未落盘）
-   ──────────────────────────────────────────────────────────────
+   Frontmatter 迁移计划（dry-run，未落盘）
    加 frontmatter（bare Status: → YAML）:
      .scratch/balance/issues/01-init-schema.md   (done)
      .scratch/balance/issues/04-cache.md          (ready-for-agent)
@@ -41,12 +39,11 @@ Steps:
      .scratch/balance/issues/01-init-schema.md → issues/archive/01-init-schema.md
    生成索引:
      .scratch/balance/SUMMARY.md   (从 done issue 的 ## Comments 完成记录聚合)
-   ──────────────────────────────────────────────────────────────
    确认执行？(y / 逐项挑)
    ```
 
 3. **On confirm, execute.** For each bare-`Status:` file, derive the frontmatter fields from the [issue schema](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd): `type: issue`; `feature` from the directory name; `status` from the old `Status:` line; `category: enhancement` (default — the user can refine later); `blocked_by` parsed from any existing `前置依赖` section if filenames are referenced, else `[]`; `created` from one `git log --diff-filter=A --name-only --format=%as -- <issues dir>` pass (paths→dates; today if unseen by git). Remove the now-redundant bare `Status:` line. Do not touch the body otherwise (surgical — frontmatter only).
-4. **Archive done issues** with `git mv` into `issues/archive/` so history is preserved and the active working set shrinks. Skip if the user opted out of archiving during migration.
+4. **Archive done issues** with `git mv` into `issues/archive/`. Skip if the user opted out of archiving during migration.
 5. **Generate** each feature's `.scratch/<feat>/SUMMARY.md` per the format doc.
 
 Report what changed. If `refines` can't be inferred for a non-top-level issue, leave it unset and note it — the orphan check in `/tidy` will surface it later.

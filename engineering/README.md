@@ -3,7 +3,7 @@
 Skills I use daily for code work.
 
 - **[diagnose](./diagnose/SKILL.md)** — Disciplined diagnosis loop for hard bugs and performance regressions: reproduce → minimise → hypothesise → instrument → fix → regression-test.
-- **[tidy](./tidy/SKILL.md)** — Garbage-collect a feature: archive `done` issues, regenerate `SUMMARY.md` from completion records, audit zombie/duplicate tests, flag orphan issues. Keeps the working set small as detail work accumulates.
+- **[tidy](./tidy/SKILL.md)** — Garbage-collect a feature: archive `done` issues, regenerate `SUMMARY.md` from completion records, audit zombie/duplicate tests, flag orphan issues.
 - **[grill](./grill/SKILL.md)** — A `/grilling` session that runs `/domain-modeling` to keep `CONTEXT.md` and ADRs current when they exist; stateless otherwise. Routes non-conversational questions mid-session: external facts → `/research`, design questions → `/prototype`.
 - **[domain-modeling](./domain-modeling/SKILL.md)** — Actively build and sharpen the project's domain model: challenge terms against the glossary, write `CONTEXT.md` and ADRs inline. First pass on a fresh repo uses draft mode (one review gate, not term-by-term).
 - **[codebase-design](./codebase-design/SKILL.md)** — Shared vocabulary for designing deep modules (module, interface, depth, seam, adapter, leverage, locality). Consumed by `improve-codebase-architecture` and any skill restructuring code.

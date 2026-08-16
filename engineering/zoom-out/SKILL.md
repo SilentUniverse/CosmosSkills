@@ -11,17 +11,14 @@ I don't know this area of code well. Go up a layer of abstraction. Give me a map
 modules and callers, using the project's domain glossary vocabulary (read `CONTEXT.md` first so the
 names line up).
 
-By default this is **read-only, use-and-discard** — print the map, don't write anything. The map is
-the answer to "help me understand this", not a deliverable.
+By default this is **read-only, use-and-discard** — print the map, don't write anything.
 
 Scope first: map the named path/module/question only. Whole-repo mapping requires `/zoom-out --all` or an explicit "whole project" request.
 
 ## First pass (draft mode) — mapping a whole unfamiliar repo
 
 **When:** `CODEBASE.md` is absent or empty and the user wants a map of the *whole* project, not one
-area — onboarding an inherited codebase (`/zoom-out` with no path, or `/zoom-out --all`). This is the
-structural twin of `/domain-modeling`'s draft mode: it trades per-area interrogation for a single
-review gate — never for zero review, and never for one giant context-blowing dump.
+area — onboarding an inherited codebase (`/zoom-out` with no path, or `/zoom-out --all`).
 
 **Steps:**
 

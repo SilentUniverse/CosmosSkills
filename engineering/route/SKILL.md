@@ -6,9 +6,8 @@ disable-model-invocation: true
 
 # Route
 
-Pick the next skill and decide what to do with the context window. Two jobs: **routing**
-(what's next) and **context boundaries** (keep the window inside the smart zone). Both exist to
-keep long workflows fast — a bloated window is slow *and* makes the model reason worse.
+Two jobs: **routing** (what's next) and **context boundaries** (keep the window inside the
+smart zone).
 
 ## 1. Route to the next skill
 
@@ -40,10 +39,8 @@ The **smart zone** is the window (~150k tokens on current models) within which t
 reasons sharply. Past it, quality drops before the hard limit — so treat the smart zone, not the
 context limit, as the ceiling.
 
-**Keep grill → to-prd → to-issues in one unbroken window** — the grilling, PRD, and slices all
-build on the same thinking, so don't compact or clear between them. Then **each `/tdd` slice
-starts fresh** from its issue file — a slice carries no context from the
-planning session, so a clean window per slice is both faster and sharper.
+**Keep grill → to-prd → to-issues in one unbroken window** — don't compact or clear between
+them. Then **each `/tdd` slice starts fresh** from its issue file.
 
 At a phase boundary, pick the cheapest option that loses nothing:
 

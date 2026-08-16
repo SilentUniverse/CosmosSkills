@@ -62,7 +62,7 @@ disable-model-invocation: true               # optional — user-typed only, mod
 
 ## Description Requirements
 
-The description is **the only thing your agent sees** when deciding which skill to load. It's surfaced in the system prompt alongside all other installed skills. Your agent reads these descriptions and picks the relevant skill based on the user's request.
+The description is **the only thing your agent sees** when deciding which skill to load. It's surfaced in the system prompt alongside all other installed skills.
 
 **Goal**: Give your agent just enough info to know:
 

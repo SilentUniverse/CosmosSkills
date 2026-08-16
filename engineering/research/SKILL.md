@@ -7,7 +7,7 @@ Spin up a **background subagent** to do the research, so you keep working while 
 
 Its job:
 
-1. Investigate the question against **primary sources** — official docs, source code, specs, first-party APIs — not a secondary write-up of them. Follow every claim back to the source that owns it; if you can't reach the owning source, say so rather than parroting a blog's paraphrase.
+1. Investigate the question against **primary sources** — official docs, source code, specs, first-party APIs. Follow every claim back to the source that owns it; if you can't reach the owning source, say so.
 2. Write the findings to a single Markdown file, citing each claim's source (URL + section, or file:line for in-repo sources).
 3. Save it where it fits the research's lifespan:
    - **Feature-scoped** (answers a question for a specific feature) → `.scratch/<feat>/research-<topic>.md`.

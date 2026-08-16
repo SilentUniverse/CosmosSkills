@@ -7,21 +7,13 @@ argument-hint: "Feature slug (optional; omit to survey .scratch)"
 # Tidy
 
 A periodic garbage-collection pass over a feature, so the active working set stays small and
-`SUMMARY.md` reflects what's actually been built. This is the reverse-direction counterpart to the
-forward pipeline (`to-prd` → `to-issues` → `tdd`): it folds delivered work back into a current-reality
-view and clears history out of the live set. All artifacts follow [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md).
+`SUMMARY.md` reflects what's actually been built. All artifacts follow [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md).
 
 ## Invocation
 
 - `/tidy <feat>` — tidy that feature.
 - `/tidy` — survey `.scratch` (`rg '^status:' -g '**/issues/*.md' .scratch`), list features whose
   `done` count is high relative to active issues, and ask which to tidy.
-
-## When to run
-
-- A feature has roughly 8+ `done` issues cluttering `issues/`.
-- Right after a `redo`/`fix` slice lands, to retire the tests it superseded.
-- Any time the live working set feels noisy and you want reality re-summarized.
 
 ## Process
 
@@ -36,8 +28,7 @@ bodies.
 Show one preview covering all four actions, then wait for confirmation (yes-all or item-by-item):
 
 ```
-📋 Tidy 计划：balance（dry-run，未落盘）
-──────────────────────────────────────────────────────────────
+Tidy 计划：balance（dry-run，未落盘）
 归档 done issue（git mv → issues/archive/，body 不动）:
   01-init-schema.md, 02-balance-api.md, 05-redo-balance-api.md  (3)
 
@@ -53,7 +44,6 @@ Show one preview covering all four actions, then wait for confirmation (yes-all 
 孤儿检测:
   ⚠ 04-cache.md (category: detail) 既无 refines 也不在任何 PRD 用户故事下
       建议：补 refines / 并入 PRD-vN / 标 detail 归档
-──────────────────────────────────────────────────────────────
 确认执行？(y / 逐项挑)
 ```
 

@@ -2,7 +2,7 @@
 
 Loaded on demand by [`/teach`](SKILL.md) when **designing a lesson** — how to pitch difficulty, split
 knowledge vs skills, and route wisdom. The main skill's workspace layout and per-lesson output
-conventions don't need this; read it when shaping what a lesson should contain.
+conventions don't need this.
 
 ## Philosophy
 
@@ -43,13 +43,13 @@ The user may specify an exact thing they want to learn. If they don't, figure ou
 
 Lessons should be designed around a skill the user is going to learn. The knowledge in the lesson should be only what's required to acquire that skill. You teach the knowledge first, then get the user to practice the skills via an interactive feedback loop.
 
-Knowledge should first be gathered from trusted resources. Use `RESOURCES.md` to keep track of them. Lessons should be littered with citations - links to external resources to back up any claim made. This increases the trustworthiness of the lesson.
+Knowledge should first be gathered from trusted resources. Use `RESOURCES.md` to keep track of them. Lessons should be littered with citations - links to external resources to back up any claim made.
 
 For acquiring knowledge, difficulty is the enemy. It eats working memory you need for understanding.
 
 ## Skills
 
-If knowledge is all about acquisition, skills are about durability and flexibility. Make the knowledge stick.
+If knowledge is all about acquisition, skills are about durability and flexibility.
 
 For skill acquisition, difficulty is the tool. Effortful retrieval is what builds storage strength. Skills should be taught through interactive lessons. There are several tools at your disposal:
 

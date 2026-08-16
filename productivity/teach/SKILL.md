@@ -41,7 +41,7 @@ Each lesson should link via HTML anchors to other lessons and reference document
 
 Each lesson should recommend a primary source for the user to read or watch. This should be the most high-quality, high-trust resource you found on the topic.
 
-Each lesson should contain a reminder to ask followup questions to the agent. The agent is their teacher, and can assist with anything that's unclear.
+Each lesson should contain a reminder to ask followup questions to the agent.
 
 ## The Mission
 
@@ -49,7 +49,7 @@ Every lesson should be tied into the mission - the reason that the user is inter
 
 If the user is unclear about the mission, or the `MISSION.md` is not populated, your first job should be to question the user on why they want to learn this.
 
-Failing to understand the mission will mean knowledge acquisition is not grounded in real-world goals. Lessons will feel too abstract. You will have no way of judging what the user should do next.
+Failing to understand the mission will mean knowledge acquisition is not grounded in real-world goals.
 
 Missions may change as the user develops more skills and knowledge. This is normal - make sure to update the `MISSION.md` and add a learning record to capture the change. Confirm with the user before changing the mission.
 

@@ -13,15 +13,15 @@ regressions. The full suite + build (commands cached in `docs/agents/domain.md`)
   for an interactive session that wants the wide signal without finishing a batch.
 
 **Keep test/build output out of context.** A full suite or build can emit thousands of lines —
-passing-test noise, progress bars, ANSI codes — and all of it bloats the context if piped straight
-back. Redirect the verbose output to `.scratch/tmp/` and pull only what you need into context: the
+passing-test noise, progress bars, ANSI codes. Redirect the verbose output to `.scratch/tmp/` and
+pull only what you need into context: the
 pass/fail tally, and the failing cases' messages (e.g. `<cmd> > .scratch/tmp/suite.log 2>&1` then
 grep the failures, or use the runner's quiet/summary reporter). Read the full log only when a
 failure's cause isn't clear from the summary. Same for `git diff` / search dumps — summarise, don't
 inline the whole thing.
 
 **Run the full suite in a subagent (forks green vs red).** A full suite is slow and its output is
-dense — run it in a subagent so the main session stays free (and can do other work while it runs).
+dense — run it in a subagent so the main session stays free.
 The verbose output stays in the subagent — it does NOT need the `.scratch/tmp/` redirect above (that
 rule is for the main session running a command directly). The subagent keeps what it needs and
 reports back only by outcome:

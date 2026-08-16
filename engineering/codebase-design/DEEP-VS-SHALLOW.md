@@ -1,8 +1,8 @@
 # Deep vs Shallow — diagrams, testability patterns, rejected framings
 
-On-demand detail for [codebase-design](SKILL.md). The SKILL.md glossary + principles are the
-resident vocabulary; this file holds the illustrative material you only need while actually shaping
-an interface. Read it when you're designing a module, not to learn the terms.
+On-demand detail for [codebase-design](SKILL.md). The glossary + principles are the resident
+vocabulary; this file holds the illustrative material — read it when shaping an interface, not to
+learn the terms.
 
 ## Deep vs shallow, drawn
 

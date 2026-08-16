@@ -14,7 +14,7 @@ Issues and PRDs for this repo live as markdown files in `.scratch/`.
 
 ## Two hard rules
 
-**Rule 1 — `done` is immutable.** Once an issue is `done`, never edit its body and never change its frontmatter `status`. The git commit is the source of truth for what was done. To revise, create a new issue (`NN-redo-foo.md`); the old one stays as a historical record.
+**Rule 1 — `done` is immutable.** Once an issue is `done`, never edit its body and never change its frontmatter `status`. The git commit is the source of truth for what was done. To revise, create a new issue (`NN-redo-foo.md`).
 
 **Rule 2 — Re-running `/to-prd` defaults to supersede.** A new run of `/to-prd` writes a new file `PRD-v2.md` (or v3, v4...) with a `Supersedes:` header pointing at the previous version. The older PRD stays untouched. Append-in-place is reserved for cases where the change only adds detail without invalidating any earlier paragraph; the user must explicitly ask for that mode.
 

@@ -15,10 +15,10 @@ Write a minimal recoverable snapshot so the next session can continue from the c
 
 Per `ARTIFACT-FORMAT.md` §Handoff files (installed: `~/.claude/skills/ARTIFACT-FORMAT.md`; repo: `engineering/ARTIFACT-FORMAT.md`):
 
-- **Feature-scoped work** → `.scratch/<feat>/handoff.md` (rolling — overwrite in place each time; git keeps history). Lives next to that feature's PRD and issues so it never gets lost.
+- **Feature-scoped work** → `.scratch/<feat>/handoff.md` (rolling — overwrite in place each time; git keeps history).
 - **Cross-feature work** → `.scratch/handoff.md` (a single rolling file at the `.scratch/` root).
 
-Do **not** use the OS temp directory — it gets cleared between sessions. If not inside a git repo, fall back to the working directory root.
+Do **not** use the OS temp directory. If not inside a git repo, fall back to the working directory root.
 
 Every handoff carries YAML frontmatter:
 
@@ -59,9 +59,8 @@ commit behind. Skip this if the work touched no structure — don't run `/zoom-o
 ## 3. 下一步分叉
 Candidate options for the user / next session to decide (A / B / C) with tradeoffs. If the path is already decided, state the next concrete step.
 
-## 4. 关键口径清单 ⭐
+## 4. 关键口径清单
 Decisions and invariants that must survive across sessions. Each entry includes a "why".
-This is the core value of the document — exploration can be discarded, decisions cannot.
 - Decision: … | Why: …
 - Invariant: … | Why: …
 

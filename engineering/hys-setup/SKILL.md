@@ -57,7 +57,7 @@ Assume the user does not know what these terms mean. Each section starts with a 
 
 > Explainer: The "issue tracker" is where issues and PRDs live for this repo. `to-issues` and `to-prd` read from and write to it.
 
-Default and recommended: **local markdown**. These skills run fully offline by default, with no network or account dependencies. Pick this unless the user specifically requests otherwise:
+Default and recommended: **local markdown**. Pick this unless the user specifically requests otherwise:
 
 - **Local markdown（default）** — issues live as files under `.scratch/<feature>/`; pure local, zero external dependencies.
 - **Other** (GitHub / GitLab / Jira / Linear, etc.) — only when the user explicitly asks. Have the user describe the workflow in one paragraph; the skill records it verbatim into `docs/agents/issue-tracker.md`. Note: this introduces external CLI/account dependencies, conflicting with the local-first goal; the user is responsible for the corresponding environment setup.
@@ -100,11 +100,9 @@ Let them edit before writing.
 - Else if `AGENTS.md` exists, edit it.
 - If neither exists, ask the user which one to create — don't pick for them.
 
-Never create `AGENTS.md` when `CLAUDE.md` already exists (or vice versa) — always edit the one that's already there.
-
 If an `## Agent skills` block already exists in the chosen file, update its contents in-place rather than appending a duplicate. Don't overwrite user edits to the surrounding sections.
 
-The session-start orientation convention (load `CODEBASE.md`/`CONTEXT.md`, scan ADR titles, check drift) is **not** written here — it lives once in the global `CLAUDE.md` template (§6 "Local document layout"), which every session loads. Don't inject a per-repo copy; this block only records the three per-repo choices below. The consumer detail still lives in `docs/agents/domain.md`.
+The session-start orientation convention (load `CODEBASE.md`/`CONTEXT.md`, scan ADR titles, check drift) is **not** written here — it lives once in the global `CLAUDE.md` template (§6 "Local document layout"), which every session loads. Don't inject a per-repo copy; this block only records the three per-repo choices below.
 
 The block:
 

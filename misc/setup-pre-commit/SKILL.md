@@ -92,6 +92,5 @@ That workflow will exercise the hooks again; Verify is the local smoke test.
 
 ## Notes
 
-- Husky v9+ doesn't need shebangs in hook files
 - `prettier --ignore-unknown` skips files Prettier can't parse (images, etc.)
 - The pre-commit runs lint-staged first (fast, staged-only), then full typecheck and tests

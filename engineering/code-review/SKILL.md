@@ -13,13 +13,13 @@ Two-axis review of the diff between `HEAD` (or a named branch) and a fixed point
 
 All artifacts follow [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md). Report to the user in Chinese (per `~/.claude/CLAUDE.md` §1); keep the Fowler smell **names** in English (they're terms).
 
-> **Why two axes.** A change can pass one and fail the other: code that follows every standard but implements the wrong thing (Standards pass, Spec fail); code that does exactly what the issue asked but breaks conventions (Spec pass, Standards fail). Reporting them separately stops one axis from masking the other — so **never merge or rerank across axes**.
+> **Why two axes.** A change can pass one axis and fail the other — standards-clean code implementing the wrong thing; spec-faithful code breaking conventions. **Never merge or rerank across axes.**
 
 ## Process
 
 ### 1. Pin the fixed point
 
-Whatever the user (or the calling skill) supplied is the fixed point — a commit SHA, branch name, tag, `main`, `HEAD~5`, etc. If none was given, ask for it.
+Whatever the user (or the calling skill) supplied is the fixed point. If none was given, ask for it.
 
 Capture the diff command once. Default to three-dot (compares against the merge-base):
 
@@ -51,7 +51,7 @@ On top of whatever the repo documents, the Standards axis always carries a **sme
 
 ### 4. Spawn both sub-agents in parallel
 
-Dispatch two sub-agents in one turn — one per axis — so their contexts stay separate. Each is read-only — it inspects the diff and reports.
+Dispatch two sub-agents in one turn — one per axis. Each is read-only.
 
 **Standards sub-agent** — give it:
 

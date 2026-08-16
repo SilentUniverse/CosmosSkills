@@ -17,7 +17,7 @@ This skill is _informed_ by the project's domain model and built on a shared des
 
 ### 1. Explore
 
-**Scope before you scan — YAGNI.** Deepening pays off by making *future* changes easier, so weight the parts that have recently changed. Decide where to look before looking:
+**Scope before you scan — YAGNI.** Weight the parts that have recently changed. Decide where to look before looking:
 
 - If the user named a direction (a module, subsystem, pain point), take it — skip the inference below.
 - Otherwise, walk back a stretch of `git log --oneline` for the hot spots — the files/areas that keep recurring — and let those pull your attention first. If changes are scattered with no clear hot spot, widen the net.
@@ -38,7 +38,7 @@ Apply the **deletion test** to anything you suspect is shallow: would deleting i
 
 Write a self-contained HTML file to the OS temp directory so nothing lands in the repo. On Windows resolve the temp dir from `$env:TEMP`; on Unix use `$TMPDIR` falling back to `/tmp`. Write to `<tmpdir>/architecture-review-<timestamp>.html` so each run gets a fresh file. Open it for the user — on Windows run `Start-Process <path>` (PowerShell), on Linux `xdg-open <path>`, on macOS `open <path>` — and tell them the absolute path.
 
-The report uses **Tailwind via CDN** for layout and styling, and **Mermaid via CDN** for diagrams where a graph/flow/sequence reliably communicates the structure. (Both CDNs need network access; if the user is fully offline, fall back to a plain-markdown report instead.) Mix Mermaid with hand-crafted CSS/SVG visuals — use Mermaid when relationships are graph-shaped (call graphs, dependencies, sequences), and hand-built divs/SVG when you want something more editorial (mass diagrams, cross-sections, collapse animations). Each candidate gets a **before/after visualisation**. Be visual.
+The report uses **Tailwind via CDN** for layout and styling, and **Mermaid via CDN** for diagrams where a graph/flow/sequence reliably communicates the structure. (Both CDNs need network access; if the user is fully offline, fall back to a plain-markdown report instead.) Each candidate gets a **before/after visualisation**. Be visual.
 
 For each candidate, render the card defined in [HTML-REPORT.md](./HTML-REPORT.md): files, problem, solution, wins, before/after diagram, recommendation strength.
 
@@ -69,4 +69,4 @@ A deepening that lands changes the structure `CODEBASE.md` describes — so by d
 stale. On wrap-up, if a refactor was actually applied (not just discussed), offer to refresh the
 affected `CODEBASE.md` sections via `/zoom-out`: _"This changed the shape of <module> — want me to
 refresh its CODEBASE.md section so the next session sees the new structure?"_ Only the sections you
-touched, not the whole file. Skip the offer if nothing was applied.
+touched, not the whole file.

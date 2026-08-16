@@ -5,7 +5,7 @@ description: Shared vocabulary for designing deep modules. Use when the user wan
 
 # Codebase Design
 
-Design **deep modules**: a lot of behaviour behind a small interface, placed at a clean seam, testable through that interface. Use this language and these principles wherever code is being designed or restructured. The aim is leverage for callers, locality for maintainers, and testability for everyone.
+Design **deep modules**: a lot of behaviour behind a small interface, placed at a clean seam, testable through that interface. Use this language and these principles wherever code is being designed or restructured.
 
 ## Glossary
 
@@ -27,9 +27,7 @@ Use these terms exactly — don't substitute "component," "service," "API," or "
 
 **Locality** — what maintainers get from depth: change, bugs, knowledge, and verification concentrate in one place rather than spreading across callers. Fix once, fixed everywhere.
 
-**Deep module** = small interface + lots of implementation; **shallow** = large interface doing
-little (avoid). When designing an interface, ask: fewer methods? simpler params? more complexity
-hidden inside? Diagrams, testability patterns, and rejected framings live in
+Diagrams, testability patterns, and rejected framings live in
 [DEEP-VS-SHALLOW.md](DEEP-VS-SHALLOW.md) — read it while shaping an interface, not to learn the terms.
 
 ## Principles

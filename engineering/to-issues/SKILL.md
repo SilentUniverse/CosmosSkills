@@ -17,7 +17,7 @@ The issue tracker has been provided to you — run `/hys-setup` if not.
 
 Before drafting slices, check `.scratch/<feat>/issues/`. If there are existing issues, produce a **reconciliation report** comparing the new plan against them (classify each existing issue into 仍然有效 / 需返工 / 范围变了 / 删除 / 全新切片), then ask the user to confirm before doing anything. Full report format + classification rules: **[RECONCILE.md](RECONCILE.md)**.
 
-**Adding a small detail without a PRD revision.** When the user invokes `/to-issues "在 03-balance-api 上加 X"` to tack a sub-behavior onto an existing slice (rather than re-deriving from a revised PRD), skip the full reconciliation report. Create a single `detail` issue: `category: detail`, `refines: <parent-slug>`, `blocked_by` including the parent if it isn't `done` yet. This is the supported path for incremental detail — it stays traceable to its parent and never silently drifts away from the PRD (痛点 1). `/tidy` later folds these into `SUMMARY.md`.
+**Adding a small detail without a PRD revision.** When the user invokes `/to-issues "在 03-balance-api 上加 X"` to tack a sub-behavior onto an existing slice (rather than re-deriving from a revised PRD), skip the full reconciliation report. Create a single `detail` issue: `category: detail`, `refines: <parent-slug>`, `blocked_by` including the parent if it isn't `done` yet. This is the supported path for incremental detail — it stays traceable to its parent and never silently drifts away from the PRD. `/tidy` later folds these into `SUMMARY.md`.
 
 If no existing issues directory, skip to step 1.
 
