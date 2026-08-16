@@ -1,7 +1,7 @@
 # Android / ADB Reference
 
 CLAUDE.md §11 points here. All rules and lookup tables live in this file.
-All traps verified live on Pixel 3 / Android 12 / Git Bash host (2026-08-16).
+All traps hold on Pixel 3 / Android 12 / Git Bash host.
 
 ## Traps that break commands outright (Git Bash host)
 
@@ -18,13 +18,13 @@ Rule of thumb: any `/`-leading argument meant for the device gets `//` (pull/pus
 ## Output is CRLF — and corrupts binaries
 
 - Every `adb shell` line ends `\r\n` (`pidof` returns `2229\r\n` raw). Before `$(…)` or piping: `| tr -d '\r'`.
-- `adb shell screencap -p > x.png` corrupts the PNG from byte 6 onward (`\r` inserted; verified 14052 vs 14050 bytes). Use either:
+- `adb shell screencap -p > x.png` corrupts the PNG from byte 6 onward (`\r` inserted; 14052 vs 14050 bytes). Use either:
   - `adb exec-out screencap -p > x.png`, or
   - `adb shell "screencap -p /sdcard/x.png"` + `adb pull //sdcard/x.png`
 
 ## Stream commands — never run inline
 
-Verified: bare `adb logcat` under `timeout 3` exits 124 (still streaming when killed).
+Bare `adb logcat` under `timeout 3` exits 124 (still streaming when killed).
 
 | Command | Inline-safe form |
 |---|---|
@@ -67,7 +67,7 @@ rg -i "FATAL|ANR|AndroidRuntime|com.pkg" .scratch/tmp/logcat.txt
 
 ## dumpsys / pm — filter or drown
 
-Verified: `dumpsys activity` raw = 22,750 lines; the filtered lookup below = 2 lines.
+`dumpsys activity` raw = 22,750 lines; the filtered lookup below = 2 lines.
 
 | Want | Command |
 |---|---|

@@ -48,8 +48,8 @@ try {
 
     # Split into segments, quote-aware: a separator inside '...'/"..." belongs to
     # the quoted string (e.g. the device command in adb shell "..."), not to the
-    # host shell. Unquoted | & ; ( and newlines split; each segment's first word
-    # is its command position.
+    # host shell. Unquoted | & ; ( ` (command substitution) and newlines split;
+    # each segment's first word is its command position.
     $segs = [System.Collections.Generic.List[string]]::new()
     $buf = [System.Text.StringBuilder]::new()
     $quote = $null
@@ -71,7 +71,7 @@ try {
         elseif ($c -eq "'" -or $c -eq '"') {
             $quote = $c; [void]$buf.Append($c)
         }
-        elseif ('|', '&', ';', '(', "`n" -contains $c) {
+        elseif ('|', '&', ';', '(', '`', "`n" -contains $c) {
             $segs.Add($buf.ToString()); [void]$buf.Clear()
         }
         else {
@@ -87,9 +87,28 @@ try {
         'sed'  = 'sd'
     }
 
+    # Before the command word, skip shell keywords (`do find ...`), wrappers
+    # with their flags and args (`sudo find`, `timeout 5 find`, `env -i find`),
+    # and VAR=val prefixes (`MSYS_NO_PATHCONV=1 find ...`) - the legacy tool
+    # still runs, so the match must see it. Flags/numbers/VAR=val skip only
+    # after a keyword or wrapper, so a plain segment starting with `-` is kept.
+    $skipWords = @('do', 'then', 'else', '!', '{', 'sudo', 'env', 'nohup', 'nice', 'timeout', 'time', 'xargs')
+
     foreach ($seg in $segs) {
         $t = $seg.Trim()
         if (-not $t) { continue }
+
+        $toks = @($t -split '\s+')
+        $i = 0; $skipped = $false
+        while ($i -lt $toks.Count) {
+            $w = $toks[$i]
+            if ($skipWords -ccontains $w) { $i++; $skipped = $true; continue }
+            if ($w -cmatch '^[A-Za-z_][A-Za-z0-9_]*=') { $i++; $skipped = $true; continue }
+            if ($skipped -and ($w -cmatch '^-' -or $w -cmatch '^\d+(\.\d+)?[smh]?$')) { $i++; continue }
+            break
+        }
+        if ($i -ge $toks.Count) { continue }
+        $t = ($toks[$i..($toks.Count - 1)] -join ' ')
 
         foreach ($old in $map.Keys) {
             # Exact first word: the lookahead rejects ripgrep, fdfind, lsd,
