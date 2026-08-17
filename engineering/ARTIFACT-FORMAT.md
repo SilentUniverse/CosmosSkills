@@ -43,31 +43,20 @@ itself. `.scratch/` is the disposable working tier; its files don't earn ALL-CAP
 even when there's only one. The generated index that *summarizes* that tier (`SUMMARY.md`)
 keeps ALL-CAPS because it is the landmark you navigate to.
 
-## CODEBASE.md — repo root (generated, not authored)
+## CODEBASE.md — structural map (generated, not authored)
 
-The third orientation artifact, alongside `CONTEXT.md` (vocabulary) and `docs/adr/` (hard
-decisions). `CODEBASE.md` is the **structural map**: where the modules live, how they fit, and the
-gotchas — the thing you'd otherwise rebuild by re-reading code at the start of every session. It is
-loaded at session start (see the consumer rule in `hys-setup`'s `domain.md`) so a new session
-orients without re-exploring.
+The third orientation artifact, alongside `CONTEXT.md` (vocabulary) and `docs/adr/` (decisions).
+Root `CODEBASE.md` loads at session start (consumer rule in `hys-setup`'s `domain.md`); per-area
+blocks auto-inject on read (loading rule below).
 
-It is **generated, not authored** — produced and refreshed by `/zoom-out` (which already builds this
-map; it just gains the option to persist it). Treat it like `SUMMARY.md`: regenerate a section
-rather than hand-editing it.
+Generated, not authored — produced and refreshed by `/zoom-out`. Regenerate a block rather than
+hand-editing it.
 
-**Why a separate file from `CONTEXT.md` and ADRs** — the three answer different questions and have
-different lifespans:
+Division of labor: `CONTEXT.md` = term glossary, nothing else. `docs/adr/` = irreversible
+decisions, deliberately rare. `CODEBASE.md` = the operational understanding grep can't give —
+invariants, seams, synthesis, mid-weight why (below ADR weight).
 
-| File | Answers | Lifespan |
-|---|---|---|
-| `CONTEXT.md` | what a concept is called (glossary, nothing else) | edited when the language changes |
-| `CODEBASE.md` | the operational understanding grep can't give: invariants, seams, synthesis, why | regenerated as code drifts |
-| `docs/adr/` | the few hard, irreversible decisions not to re-litigate | immutable once written; deliberately rare |
-
-The mid-weight "why is it shaped this way" reasoning that isn't worth an ADR lives **inline in
-`CODEBASE.md`**, next to the structure it explains — that's the gap CODEBASE fills, so don't force
-such reasoning into an ADR. (`CONTEXT.md` stays a pure glossary; concept→code and invariants are
-covered by the "can't rg it" field rule below.)
+Root (>8 areas):
 
 ```markdown
 ---
@@ -76,58 +65,59 @@ generated: 2026-06-24
 ---
 
 # <repo> — 代码结构地图
+<!-- Maintenance mode: hybrid — 综合段精修；roster/路由由 /zoom-out 再生 -->
 
-<one-paragraph orientation: the shape of the system in CONTEXT.md vocabulary — the synthesis a
-fresh agent couldn't grep, not a directory listing>
+<综合段：3-5 句，CONTEXT.md 词汇——分层、数据流向、2-3 个承重边界>
 
-> Each section records invariants grep can't give — ordering constraints, hidden assumptions,
-> non-obvious seams (the real entry to change), mid-weight why. Locations are grep's job, not here.
+## 路由（做什么 → 去哪）
+| 目标 | 去处 |
+|---|---|
+| <目标> | <路径 / 机制> |
 
-## <Module / area name> <!-- git_base: 7af387c -->
-<!-- Only lines that survive the "can't rg it" test. Omit any line you have nothing non-obvious to
-     say for — a 2-line section is normal and good. Where a path helps, link it; don't transcribe.
-     Concept→code is NOT stored: matching names are grep's job; a name that betrays its concept
-     (订单入账 hidden in FooBarHandler) is an invariant — record it as a line below. -->
-- <an invariant a reader/grep wouldn't catch — ordering constraint, "looks like X but is Y", or a
-  code name that betrays its concept so grep on the term fails>
-- <the real seam to change this, if non-obvious>
-- <mid-weight rationale, only if non-obvious and not an ADR>
-
-## <next module / area> <!-- git_base: 7af387c -->
-...
+## 分区（roster）
+<!-- 每区详情：该区 CLAUDE.md 生成块 -->
+- `<path>/` — <≤10 词职责>
 ```
 
-Field & structure rules:
+Per-area `src/<area>/CLAUDE.md` — marker 外可放该区手写指令；无则整文件即此块：
 
-- **type** — always `codebase`.
-- **generated** — ISO date of the last full regeneration.
-- **One `## ` section per module/area.** Each carries its own `git_base` (HEAD short hash when that
-  section was last written) as an HTML comment after the heading. This is what makes **per-section
-  drift detection** possible: the consumer compares each section's `git_base` against current HEAD
-  and only the stale sections need a `/zoom-out` refresh — the file is never rebuilt wholesale.
-- **Only what the code can't hand you** (the "can't rg it" test in `/zoom-out`). A line belongs here
-  only if a fresh agent *couldn't* rebuild it with a couple of `rg`/`glob` queries. Locations,
-  exports, caller lists, import graphs are grep's job — persisting them creates a stale second copy.
-  Same for concept→code: when the code name matches the term, grep finds it; when the name *betrays*
-  the term (so grep fails), that's an invariant → record it as a line. What belongs here is the
-  *operational* understanding grep can't give: invariants, seam judgment, cross-module synthesis,
-  mid-weight why. (Keeps `CONTEXT.md` a pure glossary with no code paths.) Omit any template line you
-  have nothing non-trivial to fill it with.
-- Use **CONTEXT.md domain vocabulary** for concepts and **codebase-design vocabulary** (module,
-  seam, depth) for structure. Don't drift into "service"/"component".
-- Decisions → ADR; vocabulary → CONTEXT.md; transient task focus and speculation → nowhere.
-- **Budget — it's loaded every session, so keep it tiny.** The "can't rg it" rule already does most
-  of the work: once locations, exports, and caller lists are gone, a section is usually just 2–4
-  lines (a bridge, an invariant or two, maybe a why). Treat **~5 lines as a soft ceiling**, not a quota
-  to fill — a one-line section, or no section at all for an area with nothing non-obvious to say, is
-  the correct outcome. Never pad to look thorough.
-- **Big repos split, they don't bloat.** When there are more areas than fit a screen, the root
-  `CODEBASE.md` becomes a **roster**: one line per area naming it and pointing at its detail
-  (`订单入账 → src/ordering/CODEBASE.md`). The roster is a table of contents, not a place to restate
-  responsibilities — those are in the per-area file or grep-able from the tree. Each area's section
-  moves into a per-area `src/<area>/CODEBASE.md` (same schema, same `git_base` stamping), mirroring
-  how `CONTEXT-MAP.md` splits a multi-context glossary. Session-start load reads only the root
-  roster; an area's detail is pulled on demand when you work there.
+```markdown
+<!-- BEGIN GENERATED codebase (/zoom-out) — do not edit between markers; 再生: /zoom-out <path> -->
+git_base: 7af387c
+- <invariant：顺序约束 / "看着像 X 其实是 Y" / 名字背叛概念>
+- <seam：真入口，非显然时才写>
+- <mid-weight why，非显然且不到 ADR 级>
+<!-- END GENERATED codebase -->
+```
+
+Rules:
+
+- **type** — always `codebase`. **generated** — ISO date of the last full regeneration.
+- **Shape threshold:** >8 areas → root skeleton + per-area blocks; ≤8 areas → single root file,
+  one `## ` section per area (same per-line rules, `git_base` as an HTML comment after the heading).
+- **综合段** — the shape in CONTEXT.md vocabulary: layering, data flow, 2-3 load-bearing boundaries.
+  No directory listing.
+- **路由行** — non-obvious routing only: name betrays concept, real entry ≠ apparent entry,
+  cross-area goals. An empty routing table is valid.
+- **roster 行** — path + ≤10-word responsibility. Every area appears; no silent omissions.
+- **Per-area block** — marker pair + `git_base` + body ≤8 lines. Each line passes the two-axis test
+  in `/zoom-out`: can't rg it AND bites if missing. Locations, exports, caller lists, import graphs
+  are excluded. A 1-line block is normal; an area with no surviving facts gets a roster line only.
+- **Loading:** root is read at session start (CLAUDE.md §6). `src/<area>/CLAUDE.md` auto-injects
+  when Claude Code reads files in that area — no manual pull.
+- **Budgets:** root body ≤40 lines excluding roster lines; area block ≤8 lines. On red: relocate →
+  condense → raise (a raise carries justification in the change). A ceiling is set to the file's
+  size at adoption.
+- **Drift:** each block's `git_base` vs HEAD — code gone → delete the block and its roster line;
+  drifted → refresh + re-stamp; duplicate → merge.
+- **Same-change duty:** a change that alters an area's seam or invariant refreshes that area's
+  block in the same change.
+- **Nested `src/<area>/CLAUDE.md`** is a harness instruction file carrying a generated block —
+  exempt from the ALL-CAPS singleton rule; the block appends at the end of a hand-written file.
+- **Legacy monolith:** a root file with per-area `## ` sections and no roster is rebuilt wholesale
+  by the next `/zoom-out --all`.
+- Use **CONTEXT.md domain vocabulary** and **codebase-design vocabulary** (module, seam, depth).
+  Decisions → ADR; vocabulary → CONTEXT.md; transient focus and speculation → nowhere.
 
 ## Issue files — `.scratch/<feat>/issues/NN-slug.md`
 
@@ -304,7 +294,10 @@ The mechanically checkable subset of this contract ships as a script next to thi
 (`verify-artifacts.ps1` / `verify-artifacts.sh`): required frontmatter fields and enum values,
 `NN` uniqueness per directory, `blocked_by` / `refines` resolution + acyclicity, `feature` vs
 directory name, PRD `version` vs filename, `supersedes` target existence, single live PRD head,
-handoff field shape. Empty or missing `.scratch/` passes clean. Run it wherever state could drift
+handoff field shape. CODEBASE.md leaves: root `type`/`generated` + body budget (excl. roster
+lines; `budget:` frontmatter override), nested generated-block marker pairs + `git_base` + block
+budget, roster↔directory bidirectional check. Missing `.scratch/` and absent `CODEBASE.md` pass
+clean. Run it wherever state could drift
 — `/to-issues` post-write, `/tidy` before regenerating, or any time the state looks off:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File verify-artifacts.ps1 [-Root <repo>]

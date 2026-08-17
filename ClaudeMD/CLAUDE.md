@@ -1,8 +1,8 @@
 # CLAUDE.md
 
-Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions. Loaded every session — keep it lean.
+Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions. Loaded every session — keep it lean: hard budget ≤1,100 words; exceeding means delete, not append.
 Tradeoff: caution over speed. For trivial tasks, use judgment.
-Sections ending in `→` point to `~/.claude/references/` — not auto-loaded; read the named file when the section applies.
+Sections ending in `→` point to `~/.claude/references/` — not auto-loaded; read the named file when the section applies. One home per fact: a rule lives here or in a reference, never both. A soft rule broken twice becomes a hook/skill (`modern-cli-guardrails` pattern) and leaves this file.
 
 ## 1. Think in English, respond in Chinese
 
@@ -10,7 +10,8 @@ Sections ending in `→` point to `~/.claude/references/` — not auto-loaded; r
 - Thinking, code, identifiers, file names, search queries: English
 - All responses to the user: Chinese
 - Written artifacts: Chinese body + English term names matching code identifiers
-- If the user signals they didn't follow ("等等"/"没懂"/"再说一遍"): supply the missing context first (what we're doing, what led here), then re-explain in simpler terms — don't just rephrase.
+- Artifacts state current-state facts — no change narration, no leaked reasoning
+- User signals they didn't follow ("等等"/"没懂"/"再说一遍")? Supply missing context first (what we're doing, what led here), then re-explain simply — don't just rephrase.
 
 ## 2. Think Before Coding
 
@@ -30,6 +31,7 @@ Before writing code, descend this ladder, stop at the first rung that holds:
 6. Only then: write minimum code that works
 
 No features, abstractions, or flexibility beyond what was asked; no error handling for impossible cases.
+Validate only at real boundaries (parse/config/IO/protocol/file/subprocess); trust types inside a typed process. Missing referents fail loud, never silently skipped.
 Security, validation, accessibility are never on the chopping block.
 
 ## 4. Surgical Changes
@@ -43,8 +45,9 @@ Security, validation, accessibility are never on the chopping block.
 ## 5. Goal-Driven Execution
 
 Transform tasks into verifiable goals. Loop until verified.
-- Multi-step: state plan as `Step → why → verify` lines; flag the 1–2 shakiest steps (assumptions that, if wrong, break the plan).
+- Multi-step: state plan as `Step → why → verify` lines; flag the 1–2 shakiest steps (wrong assumptions break the plan).
 - Adversarial review: attack your own work before declaring done.
+- Match evidence to the change: focused tests for behavior, snapshots for user/model-visible output, lint/build for docs and packaging. Never repeat a passing check or default to the full suite; exhaustive runs only on request or where the active workflow schedules them. Related tests come from the diff (changed files → tests importing them), not intuition.
 - Anti-thrash: after ~2 failed fixes on the same failure, stop — switch approach (or `/diagnose`), or ask.
 - Corrections persist: when the user corrects your understanding mid-task, write the correction into the governing artifact (issue AC / PRD / `CODEBASE.md` invariant) before continuing.
 - No optional commentary: once the plan is aligned, execute it — don't teach, re-explain, or restate mid-task; output the step and its verification.
@@ -62,7 +65,7 @@ Transform tasks into verifiable goals. Loop until verified.
 | Temp files | `.scratch/tmp/` |
 
 - **Session start**: if `CODEBASE.md` / `CONTEXT.md` / `docs/adr/` exist, load the orientation layer before working; skip silently if absent.
-- **Immutable**: a `status: done` issue and a superseded ADR are never edited — create a redo issue / new ADR instead.
+- **Immutable**: a `status: done` issue and a superseded ADR are never edited — create a redo issue / new ADR.
 
 → Session-start protocol, immutability details, artifact schema: `~/.claude/references/document-layout.md`
 
@@ -86,7 +89,7 @@ Windows console defaults to GBK (cp936); `PYTHONUTF8=1` is injected via settings
    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "[Console]::InputEncoding=[System.Text.Encoding]::UTF8; [Console]::OutputEncoding=[System.Text.Encoding]::UTF8; <cmd>"
    ```
    Reading files inside `<cmd>` takes `Get-Content -Encoding UTF8`.
-3. **PS/cmd never write files.** PS5.1 defaults: `>` / `Out-File` → UTF-16LE; `-Encoding utf8` → UTF-8 **with BOM**; bare `Set-Content` → GBK. cmd `>` is always GBK. Write files with the `Write` tool or bash `>`; inside PS the only safe form is `[IO.File]::WriteAllText($p, $s)`. PS5.1 parses a BOM-less `.ps1` as ANSI — Chinese literals in it corrupt before `-File` runs.
+3. **PS/cmd never write files.** Their write encodings corrupt content (PS5.1: UTF-16LE/BOM/GBK by form; cmd: always GBK — matrix in the reference). Use the `Write` tool or bash `>`; inside PS the only safe form is `[IO.File]::WriteAllText($p, $s)`. Chinese-bearing `.ps1` needs a BOM.
 
 Prefer built-in `Read`/`Write`/`Edit`/`Grep`/`Glob` when they can do the job — they bypass both encoding and quoting hazards.
 
@@ -95,8 +98,7 @@ Prefer built-in `Read`/`Write`/`Edit`/`Grep`/`Glob` when they can do the job —
 ## 9. Run to Completion
 
 Skills iterating over work items: finish ALL items in one pass.
-- No mid-pass pauses, per-item summaries, or "shall I continue?" checkpoints.
-- One summary at the end, not one per item.
+- No mid-pass pauses, per-item summaries, or "shall I continue?" checkpoints — one summary at the end.
 - If an item fails or blocks: mark it, move on, include it in the final summary. Don't stop to negotiate.
 - Precedence with §2: plan-level uncertainty halts and asks; per-item failure marks and continues.
 - Autonomy until done.
@@ -110,6 +112,6 @@ Default to subagents for fan-out work unless the setup cost (brief, verification
 
 ## 11. Android / ADB
 
-`adb` on this host is trap-dense: git-bash rewrites device-bound `/path` args (breaking pull/push and unquoted shell commands), output carries CRLF (corrupts redirected binaries), stream commands (`logcat`, `top`, `screenrecord`) never exit. Before nontrivial `adb` work, read the reference.
+`adb` on this host is trap-dense: git-bash rewrites device-bound `/path` args, output carries CRLF, stream commands (`logcat`, `top`, `screenrecord`) never exit. Before nontrivial `adb` work, read the reference.
 
 → Traps + fixes, logcat slimming, capture loop, uiautomator workflow, cheat sheet: `~/.claude/references/android-adb.md`

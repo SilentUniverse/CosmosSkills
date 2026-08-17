@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
-# Mechanical gate for the ARTIFACT-FORMAT.md contract (.scratch/ artifacts).
+# Mechanical gate for the ARTIFACT-FORMAT.md contract (.scratch/ artifacts + CODEBASE.md map).
 # PowerShell twin: verify-artifacts.ps1 (canonical). Exit: 0 clean, 1 violations, 2 usage.
 set -u
 if [ "${BASH_VERSINFO[0]:-0}" -lt 4 ]; then echo "verify-artifacts.sh needs bash >= 4" >&2; exit 2; fi
 
 ROOT="${1:-$PWD}"
+ROOT="${ROOT%/}"
 SCRATCH="$ROOT/.scratch"
-if [ ! -d "$SCRATCH" ]; then
-    echo "verify-artifacts: no .scratch/ under $ROOT - nothing to check, clean."
-    exit 0
-fi
+has_scratch=0; [ -d "$SCRATCH" ] && has_scratch=1
+CB="$ROOT/CODEBASE.md"
+has_cb=0; [ -f "$CB" ] && has_cb=1
 
 viol=0
-n_issues=0; n_prds=0; n_handoffs=0; n_sums=0
+n_issues=0; n_prds=0; n_handoffs=0; n_sums=0; n_cb_root=0; n_cb_blocks=0
 
 err() { echo "  $1"; viol=$((viol + 1)); }
 
@@ -94,6 +94,86 @@ check_handoff() { # $1 path, $2 expected feature ('' = must be null/absent)
     case "${FM[status]:-}" in active|consumed) ;; *) err "$path: status '${FM[status]:-}' not in active|consumed";; esac
     [[ "${FM[date]:-}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || err "$path: date not ISO YYYY-MM-DD"
 }
+
+# --- CODEBASE.md structural map (root skeleton + nested generated blocks) ---
+BUDGET=40
+declare -A roster_paths
+if [ "$has_cb" = 1 ]; then
+    n_cb_root=1
+    fm_parse "$CB"
+    if [ "$FM_PRESENT" != 1 ]; then
+        err "$CB: no YAML frontmatter"
+    else
+        [ "${FM[type]:-}" = "codebase" ] || err "$CB: type '${FM[type]:-}' != codebase"
+        [[ "${FM[generated]:-}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || err "$CB: generated not ISO YYYY-MM-DD"
+        [[ "${FM[budget]:-}" =~ ^[0-9]+$ ]] && BUDGET="${FM[budget]}"
+    fi
+    FENQU=$'分区'
+    cbinfo=$(awk -v fq="$FENQU" '
+        NR == 1 { sub(/^\357\273\277/, "") }
+        NR == 1 && /^---[ \t\r]*$/ { infm = 1; next }
+        infm && /^---[ \t\r]*$/ { infm = 0; next }
+        infm { next }
+        /^##[^#]/ || /^##$/ {
+            inroster = (index($0, fq) > 0 || $0 ~ /roster/) ? 1 : 0
+            n++; next
+        }
+        /^[ \t\r]*$/ { next }
+        inroster && /^-/ {
+            line = $0
+            sub(/^-*[ \t]*`/, "", line); sub(/`.*$/, "", line); sub(/\/+$/, "", line)
+            if (line != "") print "ROSTER\t" line
+            next
+        }
+        { n++ }
+        END { print "COUNT\t" n }' "$CB")
+    bodycount="$(printf '%s\n' "$cbinfo" | awk -F'\t' '$1 == "COUNT" { print $2 }')"
+    while IFS=$'\t' read -r tag p; do
+        [ "$tag" = "ROSTER" ] || continue
+        roster_paths["$p"]=1
+        [ -d "$ROOT/$p" ] || err "$CB: roster path '$p' is not an existing directory"
+    done <<< "$cbinfo"
+    if [ "${bodycount:-0}" -gt "$BUDGET" ]; then
+        err "$CB: root body $bodycount lines (excl. roster) > budget $BUDGET - relocate -> condense -> raise (raise carries justification in the change; set 'budget:' in frontmatter to adopt current size)"
+    fi
+fi
+
+if [ "$has_scratch" = 0 ] && [ "$has_cb" = 0 ]; then
+    echo "verify-artifacts: no .scratch/ and no CODEBASE.md under $ROOT - nothing to check, clean."
+    exit 0
+fi
+
+# Pruned walk: -not -path alone still descends into .git/node_modules/build trees and
+# costs seconds on large repos; -prune skips them outright.
+mapfile -t nested_files < <(find "$ROOT" \( -name .git -o -name node_modules -o -name .scratch -o -name .venv -o -name venv -o -name target -o -name dist -o -name build -o -name out -o -name .next -o -name __pycache__ \) -prune -o -name CLAUDE.md -type f -print 2>/dev/null | sort)
+for nf in "${nested_files[@]:-}"; do
+    [ -n "$nf" ] || continue
+    [ "$nf" = "$ROOT/CLAUDE.md" ] && continue
+    begins=$(grep -c '^<!--.*BEGIN GENERATED codebase' "$nf")
+    ends=$(grep -c '^<!--.*END GENERATED codebase' "$nf")
+    [ "$begins" -gt 0 ] || continue
+    if [ "$begins" != "$ends" ]; then err "$nf: BEGIN/END GENERATED marker count mismatch ($begins/$ends)"; continue; fi
+    n_cb_blocks=$((n_cb_blocks + begins))
+    blockreport=$(awk '
+        /^<!--.*BEGIN GENERATED codebase/ { b++; inb = 1; has = 0; c = 0; next }
+        /^<!--.*END GENERATED codebase/ { if (!has) print "nobase\t" b; if (c > 8) print "long\t" b "\t" c; inb = 0; next }
+        inb && /^git_base:[ \t]*[^ \t]/ { has = 1; next }
+        inb && /[^ \t\r]/ { c++ }' "$nf")
+    while IFS=$'\t' read -r tag bn cn; do
+        [ -n "$tag" ] || continue
+        if [ "$tag" = "nobase" ]; then err "$nf: block $bn missing git_base:"
+        elif [ "$tag" = "long" ]; then err "$nf: block $bn has $cn content lines > 8 - relocate -> condense -> raise"
+        fi
+    done <<< "$blockreport"
+    area="${nf#"$ROOT"/}"
+    area="$(dirname "$area")"
+    if [ "$has_cb" = 1 ]; then
+        [ -n "${roster_paths[$area]:-}" ] || err "$nf: generated block but area '$area' not in root roster"
+    else
+        err "$nf: generated block exists but root CODEBASE.md is missing"
+    fi
+done
+unset roster_paths
 
 for fdir in "$SCRATCH"/*/; do
     [ -d "$fdir" ] || continue
@@ -231,5 +311,5 @@ if [ "$viol" -gt 0 ]; then
     echo "verify-artifacts: $viol violation(s)"
     exit 1
 fi
-echo "verify-artifacts: OK - checked $n_issues issue(s), $n_prds PRD(s), $n_handoffs handoff(s), $n_sums summary(s)."
+echo "verify-artifacts: OK - checked $n_issues issue(s), $n_prds PRD(s), $n_handoffs handoff(s), $n_sums summary(s), $n_cb_blocks codebase block(s)."
 exit 0
