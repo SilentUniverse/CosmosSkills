@@ -23,6 +23,11 @@ Only include these when they add genuine value. Most ADRs won't need them.
 - **Considered Options** — when more than the one-clause loser in the core template is worth remembering
 - **Consequences** — only when non-obvious downstream effects need to be called out
 
+## Keeping facts current
+
+A path, symbol, or default an ADR references is rewritten in the same change that moves it. The
+decision itself is never edited — supersede it with a new ADR.
+
 ## Numbering
 
 Scan `docs/adr/` for the highest existing number and increment by one.

@@ -17,46 +17,54 @@ Scope first: map the named path/module/question only. Whole-repo mapping require
 
 ## First pass (draft mode) — mapping a whole unfamiliar repo
 
-**When:** `CODEBASE.md` is absent or empty and the user wants a map of the *whole* project, not one
-area — onboarding an inherited codebase (`/zoom-out` with no path, or `/zoom-out --all`).
+**When:** `CODEBASE.md` is absent or empty — or a legacy monolith (per-area sections, no roster) —
+and the user wants a map of the *whole* project, not one area — onboarding an inherited codebase
+(`/zoom-out` with no path, or `/zoom-out --all`).
 
 **Steps:**
 
-1. **Partition first.** Identify the top-level modules/areas (by directory or domain concept) — the
-   sections the map will have. Confirm the partition with the user *before* deep exploration; that's
-   the cheapest moment to fix wrong boundaries.
-2. **Explore in parallel, isolated.** Dispatch one `Agent` (subagent_type=Explore) per partition so
-   each area's exploration burns a *subagent's* context, not the main session's. Each returns a
-   section bounded by the CODEBASE.md budget in `ARTIFACT-FORMAT.md` — not a brain-dump.
-3. **Assemble the draft.** Write one `## ` section per area, each tagged `(draft)` and stamped with
-   the current `git_base`. Run every section through the persist filter (next section).
-4. **One review gate.** Present the whole draft at once for the user to edit — merge sections that
-   are too granular, drop ones that are wrong, add what's missing, set the level of detail. Drop the
-   `(draft)` tags once confirmed. Never write the file without this gate.
+1. **Partition first.** Identify the top-level areas (by directory or domain concept). Confirm the
+   partition with the user *before* deep exploration.
+2. **Explore in parallel, isolated.** Dispatch one `Agent` (subagent_type=general-purpose,
+   read-only) per partition so each area's exploration burns a *subagent's* context, not the main
+   session's — local files only (Read/Glob/Grep), no web mirrors. Each returns:
+   - a **roster line** — area path + responsibility in ≤10 words;
+   - **candidate facts** — each pre-filtered by the two-axis test below.
+3. **Assemble the final shape directly** — never a monolith first:
+   - **>8 areas:** root `CODEBASE.md` = synthesis + routing table + roster only. Every area with
+     surviving facts → generated block in `src/<area>/CLAUDE.md`. Areas without facts → roster
+     line only, no file.
+   - **≤8 areas:** single root file, one `## ` section per area.
+4. **One review gate.** Present root + all area blocks at once for the user to edit — merge, drop,
+   set the level of detail. Never write the files before this gate.
 5. **Only** loop back on areas where the code structure genuinely confused you — list those few,
    don't re-walk the whole map.
 
-After this baseline exists, later runs work per-area on demand — refresh one section, not the whole
-file (see persist rules below).
+## The two-axis test (what earns a persisted line)
+
+A fact is recorded only if **both** hold:
+
+1. **Can't rg it** — a fresh agent couldn't rebuild it with a couple of `rg`/`glob` queries.
+   Locations, exports, caller lists, import graphs fail this axis.
+2. **Bites if missing** — a normal task in this area goes wrong or takes a wrong turn without it.
+   Curiosities and harmless trivia fail this axis.
+
+Decisions → ADR. Vocabulary → CONTEXT.md.
 
 ## Optionally persist to CODEBASE.md
 
 After printing the map, if it's worth keeping, offer to persist: _"Want me to save this to
 CODEBASE.md so the next session skips re-exploring?"_ Write only on a yes (or `/zoom-out --save`).
 
-**What to write is governed by the CODEBASE.md schema in [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#codebasemd--repo-root-generated-not-authored)**
-— read it before writing rather than restating it here. The one judgment call that drives everything:
+**Schema, templates, and budgets are owned by [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#codebasemd--structural-map-generated-not-authored)** — read it before writing.
 
-> **The "can't rg it" test** — persist a fact only if a fresh agent *couldn't* rebuild it with a
-> couple of `rg`/`glob` queries. Locations, exports, caller lists, import graphs fail the test (grep
-> finds them; a stored copy just goes stale) — drop them. What passes is the operational
-> understanding the code can't hand you: invariants, seam judgment, cross-module synthesis, mid-weight
-> why. Decisions → ADR, vocabulary → CONTEXT.md.
+## Maintaining existing blocks
 
-## Maintaining existing sections
+Re-running on a mapped area, or refreshing after drift:
 
-Re-running on an area already mapped? Diff each section's `git_base` against HEAD:
-
-- **Code gone** (file/symbol deleted) → **delete the section**.
-- **Code drifted** → refresh + re-stamp `git_base`.
-- **Duplicate** (same invariant found twice) → merge.
+- **Drift check:** diff each block's `git_base` against HEAD.
+  - **Code gone** (file/symbol deleted) → delete the block and its roster line.
+  - **Code drifted** → refresh + re-stamp `git_base`.
+  - **Duplicate** → merge.
+- **Same-change refresh:** a change that alters an area's seam or invariant refreshes that area's
+  block in the same change (duty rule in ARTIFACT-FORMAT.md).

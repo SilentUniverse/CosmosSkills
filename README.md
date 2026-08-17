@@ -227,11 +227,13 @@ rg '^status: ready-for-' -g '**/issues/*.md' .scratch   # 活跃集（两种状�
   _Avoid_: Wallet, balance-holder
   ```
 
-- `CODEBASE.md` 只存 **grep 拿不到的操作性理解**（invariant、下手处 seam、跨模块综合判断），每节带 `git_base` 供漂移检测。名字背叛概念、违反会出错的约束，才配进它：
+- `CODEBASE.md` root 只放**骨架**：综合段（≤5 句）+ 路由表（非显然路由）+ 分区 roster（一行一区、≤10 词职责），正文 ≤40 行。区域细节放 `src/<area>/CLAUDE.md` 的 marker 生成块（≤8 行，Claude Code 读该区文件时自动注入），每行过**两轴判据**：rg 不出来 **且** 缺了会咬人：
 
   ```markdown
-  ## Account <!-- git_base: 7af387c -->
+  <!-- BEGIN GENERATED codebase (/zoom-out) -->
+  git_base: 7af387c
   - 余额扣减必须查 frozen 标志，真入口是 `withdraw`（`_debit` 是私有的）
+  <!-- END GENERATED codebase -->
   ```
 
 项目越大回报越大——后面 skill 开机自动加载，不再从根目录扫代码。
@@ -338,4 +340,5 @@ skill 本身栈无关。项目级把测试发现规则、常用命令、栈特�
 - **仓库即全局事实源**：`~/.claude/` 下的 CLAUDE.md / references / hooks 都是 install.ps1 拷出来的；改完仓库要重跑 `install.ps1`。
 - **改 skill**：直接改仓库（junction 即时生效）；SKILL.md 保持 <100 行，超了按 [write-a-skill](productivity/write-a-skill/SKILL.md) 拆参考文件。
 - **改 hook 脚本**：改完必须重跑对应回归套件（`test-block-legacy-cli.ps1` / `test-block-dangerous-git.ps1`）再重跑 install.ps1。
+- **改 verify-artifacts**：重跑 `test-verify-codebase.ps1`（19 用例 × PS/sh 双风味）。
 - **产物格式契约**：[engineering/ARTIFACT-FORMAT.md](engineering/ARTIFACT-FORMAT.md)，单一事实源。

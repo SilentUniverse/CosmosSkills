@@ -5,8 +5,11 @@
 .DESCRIPTION
     Checks issue / PRD / handoff / SUMMARY frontmatter: required fields, enum values,
     NN uniqueness, blocked_by / refines resolution and acyclicity, feature vs directory name,
-    PRD version vs filename, supersedes targets, single live PRD head. A missing or empty
-    .scratch/ passes clean. Contract: ARTIFACT-FORMAT.md (shipped alongside).
+    PRD version vs filename, supersedes targets, single live PRD head. CODEBASE.md leaves:
+    root type/generated + body budget (excl. roster lines, 'budget:' frontmatter override),
+    nested generated-block marker pairs + git_base + block budget, roster<->directory
+    bidirectional check. Missing .scratch/ and absent CODEBASE.md pass clean.
+    Contract: ARTIFACT-FORMAT.md (shipped alongside).
     Exit codes: 0 = clean, 1 = violations found, 2 = usage error.
 
 .PARAMETER Root
@@ -24,13 +27,12 @@ $ErrorActionPreference = "Stop"
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
 
 $scratch = Join-Path $Root ".scratch"
-if (-not (Test-Path -LiteralPath $scratch -PathType Container)) {
-    Write-Output "verify-artifacts: no .scratch/ under $Root - nothing to check, clean."
-    exit 0
-}
+$hasScratch = Test-Path -LiteralPath $scratch -PathType Container
+$cbPath = Join-Path $Root "CODEBASE.md"
+$hasCb = Test-Path -LiteralPath $cbPath -PathType Leaf
 
 $errors = [System.Collections.Generic.List[string]]::New()
-$nIssues = 0; $nPrds = 0; $nHandoffs = 0; $nSummaries = 0
+$nIssues = 0; $nPrds = 0; $nHandoffs = 0; $nSummaries = 0; $nCbRoot = 0; $nCbBlocks = 0
 
 # Case-sensitive key lookups, matching bash and the lowercase slug contract.
 function New-OrdinalTable {
@@ -82,6 +84,31 @@ function Get-RefSuggestion {
     return $null
 }
 
+# Nested CLAUDE.md files that may carry generated codebase blocks (root instructions file
+# excluded). Manual recursion with a skip list: -Recurse/find pay full traversal into
+# .git/node_modules/build trees, which costs seconds on large repos.
+function Get-NestedClaudeFiles {
+    param([string]$Root)
+    $skip = @('.git', 'node_modules', '.scratch', '.venv', 'venv', 'target', 'dist', 'build', 'out', '.next', '__pycache__')
+    $out = @()
+    $stack = [System.Collections.Generic.Stack[string]]::New()
+    $stack.Push($Root)
+    while ($stack.Count -gt 0) {
+        $dir = $stack.Pop()
+        foreach ($e in @(Get-ChildItem -LiteralPath $dir -Force -ErrorAction SilentlyContinue)) {
+            if ($e.PSIsContainer) {
+                if ($skip -contains $e.Name) { continue }
+                $stack.Push($e.FullName)
+            }
+            elseif ($e.Name -eq 'CLAUDE.md') {
+                $rel = $e.FullName.Substring($Root.Length).TrimStart('\', '/') -replace '\\', '/'
+                if ($rel -ne 'CLAUDE.md') { $out += [pscustomobject]@{ Path = $e.FullName; Rel = $rel } }
+            }
+        }
+    }
+    return $out | Sort-Object Rel
+}
+
 function Check-Handoff {
     param([string]$Path, [string]$ExpectedFeature)  # '' = cross-feature: feature must be null/absent
     $script:nHandoffs++
@@ -119,7 +146,82 @@ function Find-CyclicSlugs {
     return @($remaining.Keys)
 }
 
-foreach ($fd in @(Get-ChildItem -LiteralPath $scratch -Directory | Sort-Object Name)) {
+# --- CODEBASE.md structural map (root skeleton + nested generated blocks) ---
+$budget = 40
+$rosterPaths = New-OrdinalTable
+if ($hasCb) {
+    $nCbRoot = 1
+    $fm = Get-Frontmatter $cbPath
+    if ($null -eq $fm) { $errors.Add("${cbPath}: no YAML frontmatter") }
+    else {
+        if ("$($fm['type'])" -ne 'codebase') { $errors.Add("${cbPath}: type '$($fm['type'])' != codebase") }
+        if ("$($fm['generated'])" -notmatch '^\d{4}-\d{2}-\d{2}$') { $errors.Add("${cbPath}: generated not ISO YYYY-MM-DD") }
+        if ("$($fm['budget'])" -match '^\d+$') { $budget = [int]"$($fm['budget'])" }
+    }
+    $cbLines = @(Get-Content -LiteralPath $cbPath -Encoding UTF8)
+    $fmEnd = -1
+    if ($cbLines.Count -ge 2 -and "$($cbLines[0])".Trim() -eq '---') {
+        for ($i = 1; $i -lt $cbLines.Count; $i++) { if ("$($cbLines[$i])".Trim() -eq '---') { $fmEnd = $i; break } }
+    }
+    $fenQu = [string][char]0x5206 + [string][char]0x533A   # roster heading word, built from code points (ASCII source)
+    $inRoster = $false; $bodyCount = 0
+    for ($i = $fmEnd + 1; $i -lt $cbLines.Count; $i++) {
+        $line = "$($cbLines[$i])"
+        if ($line -match '^##\s') {
+            $inRoster = ($line -match 'roster' -or $line.Contains($fenQu))
+            $bodyCount++
+            continue
+        }
+        if ($line.Trim() -eq '') { continue }
+        if ($inRoster -and $line -match '^\s*-') {
+            if ($line -match '^\s*-\s+`([^`]+)') { $rosterPaths["$($Matches[1])".TrimEnd('/')] = $true }
+            continue
+        }
+        $bodyCount++
+    }
+    if ($bodyCount -gt $budget) {
+        $errors.Add("${cbPath}: root body $bodyCount lines (excl. roster) > budget $budget - relocate -> condense -> raise (raise carries justification in the change; set 'budget:' in frontmatter to adopt current size)")
+    }
+    foreach ($p in @($rosterPaths.Keys)) {
+        if (-not (Test-Path -LiteralPath (Join-Path $Root ($p -replace '/', '\')) -PathType Container)) {
+            $errors.Add("${cbPath}: roster path '$p' is not an existing directory")
+        }
+    }
+}
+
+if (-not $hasScratch -and -not $hasCb) {
+    Write-Output "verify-artifacts: no .scratch/ and no CODEBASE.md under $Root - nothing to check, clean."
+    exit 0
+}
+
+foreach ($nf in Get-NestedClaudeFiles $Root) {
+    $nfLines = @(Get-Content -LiteralPath $nf.Path -Encoding UTF8)
+    $begins = @($nfLines | Where-Object { "$_" -match '^<!--.*BEGIN GENERATED codebase' }).Count
+    $ends = @($nfLines | Where-Object { "$_" -match '^<!--.*END GENERATED codebase' }).Count
+    if ($begins -eq 0) { continue }
+    if ($begins -ne $ends) { $errors.Add("$($nf.Path): BEGIN/END GENERATED marker count mismatch ($begins/$ends)"); continue }
+    $inBlock = $false; $hasBase = $false; $content = 0; $bi = 0
+    foreach ($l in $nfLines) {
+        $s = "$l"
+        if ($s -match '^<!--.*BEGIN GENERATED codebase') { $inBlock = $true; $bi++; $hasBase = $false; $content = 0; $nCbBlocks++; continue }
+        if ($s -match '^<!--.*END GENERATED codebase') {
+            if (-not $hasBase) { $errors.Add("$($nf.Path): block $bi missing git_base:") }
+            if ($content -gt 8) { $errors.Add("$($nf.Path): block $bi has $content content lines > 8 - relocate -> condense -> raise") }
+            $inBlock = $false; continue
+        }
+        if (-not $inBlock) { continue }
+        if ($s -match '^git_base:\s*\S+') { $hasBase = $true; continue }
+        if ($s.Trim() -ne '') { $content++ }
+    }
+    $area = $nf.Rel -replace '/CLAUDE\.md$', ''
+    if ($hasCb) {
+        if (-not $rosterPaths.ContainsKey($area)) { $errors.Add("$($nf.Path): generated block but area '$area' not in root roster") }
+    }
+    else { $errors.Add("$($nf.Path): generated block exists but root CODEBASE.md is missing") }
+}
+
+$scratchDirs = if ($hasScratch) { @(Get-ChildItem -LiteralPath $scratch -Directory | Sort-Object Name) } else { @() }
+foreach ($fd in $scratchDirs) {
     $feat = $fd.Name
 
     # --- PRD files ---
@@ -226,5 +328,5 @@ if ($errors.Count -gt 0) {
     foreach ($e in $errors) { Write-Output "  $e" }
     exit 1
 }
-Write-Output "verify-artifacts: OK - checked $nIssues issue(s), $nPrds PRD(s), $nHandoffs handoff(s), $nSummaries summary(s)."
+Write-Output "verify-artifacts: OK - checked $nIssues issue(s), $nPrds PRD(s), $nHandoffs handoff(s), $nSummaries summary(s), $nCbBlocks codebase block(s)."
 exit 0
