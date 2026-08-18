@@ -108,7 +108,7 @@ Skills iterating over work items: finish ALL items in one pass.
 Default to subagents for fan-out work unless the setup cost (brief, verification, re-dispatch on drift) outweighs doing it inline.
 - **Parallelize**: independent file searches/research (one `Explore` agent each), unrelated module edits (one `general-purpose` agent each), any investigate-only task (search, read docs).
 - **Don't**: single-file or small edits; steps that depend on a prior result's output.
-- **Prompt well**: the subagent can't see this conversation — give it the context it needs, the exact output format/scope you want, and whether it's read-only research or allowed to write.
+- **Prompt well**: the subagent can't see this conversation — give it needed context, the output format/scope, read-only research or write access, and a tool-call cap: past it, report findings.
 
 ## 11. Android / ADB
 
