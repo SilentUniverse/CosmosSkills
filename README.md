@@ -43,7 +43,7 @@ install.ps1 做三件事：
 2. **分发全局层**：`ClaudeMD/CLAUDE.md → ~/.claude/CLAUDE.md`，其余 `*.md → ~/.claude/references/`，hook 脚本 → `~/.claude/hooks/`。这些是拷贝不是链接（重跑规则见[维护本仓库](#维护本仓库)）。
 3. 分发 `ARTIFACT-FORMAT.md`（产物格式契约）到 skills 根。
 
-新开会话，敲 `/` 能看到全部 26 个 skill 即成功。
+新开会话，敲 `/` 能看到全部 28 个 skill 即成功。
 
 ### 2.（可选）接线两个护栏 hook
 
@@ -236,7 +236,7 @@ rg '^status: ready-for-' -g '**/issues/*.md' .scratch   # 活跃集（两种状�
   <!-- END GENERATED codebase -->
   ```
 
-项目越大回报越大——后面 skill 开机自动加载，不再从根目录扫代码。
+项目越大回报越大——后面 skill 开机自动加载，无需全仓重扫。
 
 ### 三条核心规则（不要破坏）
 
@@ -302,6 +302,8 @@ skill 本身栈无关。项目级把测试发现规则、常用命令、栈特�
 | [diagnose](engineering/diagnose/SKILL.md) | 6 阶段诊断硬 bug / 性能回归 |
 | [resolving-merge-conflicts](engineering/resolving-merge-conflicts/SKILL.md) | merge/rebase 冲突：先摸清双方意图再尽量都保留 |
 | [zoom-out](engineering/zoom-out/SKILL.md) | 陌生代码请求"地图视角"；可落盘 `CODEBASE.md` |
+| [trim-leakage](engineering/trim-leakage/SKILL.md) | 审计修复"泄漏的思考链"（会话视角散文）：one test + 8 类分类法 + rg 电池 |
+| [record-gif](engineering/record-gif/SKILL.md) | 把 UI 交互录成验证过的 GIF：状态化取帧 + 精确谓词 + 确定性编码器 |
 | [research](engineering/research/SKILL.md) | 调研派给后台只读 subagent，结论落成带引用的 markdown |
 | [improve-codebase-architecture](engineering/improve-codebase-architecture/SKILL.md) | 阶段性回顾找架构深化机会（词汇调 [codebase-design](engineering/codebase-design/SKILL.md)） |
 

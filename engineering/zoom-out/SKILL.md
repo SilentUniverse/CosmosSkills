@@ -28,7 +28,8 @@ and the user wants a map of the *whole* project, not one area — onboarding an 
 2. **Explore in parallel, isolated.** Dispatch one `Agent` (subagent_type=general-purpose,
    read-only) per partition so each area's exploration burns a *subagent's* context, not the main
    session's — local files only (Read/Glob/Grep), no web mirrors. Each returns:
-   - a **roster line** — area path + responsibility in ≤10 words;
+   - a **roster line** — a real existing directory path + responsibility in ≤10 words
+     (never `<placeholder>`, `{brace-set}`, or glob syntax);
    - **candidate facts** — each pre-filtered by the two-axis test below.
 3. **Assemble the final shape directly** — never a monolith first:
    - **>8 areas:** root `CODEBASE.md` = synthesis + routing table + roster only. Every area with

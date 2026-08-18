@@ -37,7 +37,7 @@ to root it lives; the more feature-local and disposable, the deeper into `.scrat
 - **kebab-case** (`adr/NNNN-slug.md`, `issues/NN-slug.md`, `agents/*.md`) — a **member of a series**:
   many will exist, the name carries content (a slug, a number, a date).
 
-**One deliberate exception, now formalized:** everything under `.scratch/` that is *per-feature
+**One deliberate exception:** everything under `.scratch/` that is *per-feature
 working state* is lowercase regardless of singleton-ness — `handoff.md`, the feature dir `<feat>/`
 itself. `.scratch/` is the disposable working tier; its files don't earn ALL-CAPS landmark status
 even when there's only one. The generated index that *summarizes* that tier (`SUMMARY.md`)
@@ -99,7 +99,9 @@ Rules:
   No directory listing.
 - **路由行** — non-obvious routing only: name betrays concept, real entry ≠ apparent entry,
   cross-area goals. An empty routing table is valid.
-- **roster 行** — path + ≤10-word responsibility. Every area appears; no silent omissions.
+- **roster 行** — a real existing directory path (no `<placeholder>`, `{brace-set}`, or glob
+  syntax — one representative real path per pattern) + ≤10-word responsibility. Every area
+  appears; no silent omissions.
 - **Per-area block** — marker pair + `git_base` + body ≤8 lines. Each line passes the two-axis test
   in `/zoom-out`: can't rg it AND bites if missing. Locations, exports, caller lists, import graphs
   are excluded. A 1-line block is normal; an area with no surviving facts gets a roster line only.
@@ -243,7 +245,7 @@ source_issues: 7              # number of done issues aggregated
 ...
 ```
 
-`SUMMARY.md` exists so the PRD no longer has to be kept perpetually "live": the PRD is a versioned
+`SUMMARY.md` exists so the PRD never needs perpetual "live" upkeep: the PRD is a versioned
 *intent snapshot*, while `SUMMARY.md` is the *current-reality view*. Detail work updates reality
 (issues → SUMMARY) without forcing a PRD revision.
 
@@ -296,7 +298,7 @@ The mechanically checkable subset of this contract ships as a script next to thi
 directory name, PRD `version` vs filename, `supersedes` target existence, single live PRD head,
 handoff field shape. CODEBASE.md leaves: root `type`/`generated` + body budget (excl. roster
 lines; `budget:` frontmatter override), nested generated-block marker pairs + `git_base` + block
-budget, roster↔directory bidirectional check. Missing `.scratch/` and absent `CODEBASE.md` pass
+budget, roster placeholder syntax rejected, roster↔directory bidirectional check. Missing `.scratch/` and absent `CODEBASE.md` pass
 clean. Run it wherever state could drift
 — `/to-issues` post-write, `/tidy` before regenerating, or any time the state looks off:
 

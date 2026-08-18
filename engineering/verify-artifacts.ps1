@@ -7,8 +7,9 @@
     NN uniqueness, blocked_by / refines resolution and acyclicity, feature vs directory name,
     PRD version vs filename, supersedes targets, single live PRD head. CODEBASE.md leaves:
     root type/generated + body budget (excl. roster lines, 'budget:' frontmatter override),
-    nested generated-block marker pairs + git_base + block budget, roster<->directory
-    bidirectional check. Missing .scratch/ and absent CODEBASE.md pass clean.
+    nested generated-block marker pairs + git_base + block budget, roster placeholder/glob
+    syntax rejected, roster<->directory bidirectional check. Missing .scratch/ and absent
+    CODEBASE.md pass clean.
     Contract: ARTIFACT-FORMAT.md (shipped alongside).
     Exit codes: 0 = clean, 1 = violations found, 2 = usage error.
 
@@ -183,6 +184,12 @@ if ($hasCb) {
         $errors.Add("${cbPath}: root body $bodyCount lines (excl. roster) > budget $budget - relocate -> condense -> raise (raise carries justification in the change; set 'budget:' in frontmatter to adopt current size)")
     }
     foreach ($p in @($rosterPaths.Keys)) {
+        # Placeholder/glob syntax can never name a real directory, and Test-Path throws on
+        # Windows path-illegal characters instead of returning $false.
+        if ($p -match '[<>:"|?*{}]') {
+            $errors.Add("${cbPath}: roster path '$p' uses placeholder/glob syntax - write a real existing directory (one representative path per pattern)")
+            continue
+        }
         if (-not (Test-Path -LiteralPath (Join-Path $Root ($p -replace '/', '\')) -PathType Container)) {
             $errors.Add("${cbPath}: roster path '$p' is not an existing directory")
         }
