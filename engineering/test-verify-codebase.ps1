@@ -44,16 +44,20 @@ function New-FixtureDir([string]$Name) {
     return $d
 }
 
-function Assert-Case([string]$Name, [string]$Dir, [int]$Expected) {
+function Assert-Case([string]$Name, [string]$Dir, [int]$Expected, [string]$ExpectIn = '') {
     $psOut = (& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:vaPs1 -Root $Dir 2>&1 | Out-String)
     if ($LASTEXITCODE -ne $Expected) {
         $script:failures.Add("$Name : PS exit $LASTEXITCODE, expected $Expected`n$psOut")
+    } elseif ($ExpectIn -ne '' -and -not $psOut.Contains($ExpectIn)) {
+        $script:failures.Add("$Name : PS output missing '$ExpectIn'`n$psOut")
     } else { $script:passed++ }
     if ($script:runSh) {
         $posix = "/" + $Dir.Substring(0, 1).ToLower() + ($Dir.Substring(2) -replace '\\', '/')
         $shOut = (& $script:bash $script:vaSh $posix 2>&1 | Out-String)
         if ($LASTEXITCODE -ne $Expected) {
             $script:failures.Add("$Name : SH exit $LASTEXITCODE, expected $Expected`n$shOut")
+        } elseif ($ExpectIn -ne '' -and -not $shOut.Contains($ExpectIn)) {
+            $script:failures.Add("$Name : SH output missing '$ExpectIn'`n$shOut")
         } else { $script:passed++ }
     }
 }
@@ -230,6 +234,12 @@ Assert-Case "F18 BOM-prefixed root file" $d 0
 $d = New-FixtureDir "f19"
 Write-Fixture "f19/src/alpha/CLAUDE.md" $blockAlpha
 Assert-Case "F19 gate idle (no .scratch, no root): stray block unchecked, clean" $d 0
+
+$d = New-FixtureDir "f20"
+Write-Fixture "f20/CODEBASE.md" ($rootGood -replace '- `src/beta/` - beta responsibility', "- `src/beta/` - beta responsibility`n- ``tests/<app>/`` - per-app tests`n- ``vendor/{python,tools}/`` - vendored families")
+Write-Fixture "f20/src/alpha/CLAUDE.md" $blockAlpha
+Write-Fixture "f20/src/beta/CLAUDE.md" $blockBeta
+Assert-Case "F20 roster placeholder/brace syntax rejected as violation, not crash" $d 1 'placeholder/glob syntax'
 
 # --- report ---
 if ($failures.Count -gt 0) {

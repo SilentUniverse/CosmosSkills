@@ -104,5 +104,6 @@ result. Report shipped, failed, deferred, and the full-suite result; explain the
 batch's changed flow in one consolidated write-up. Batches of ≥2 issues **run the Spec axis by
 default**, dispatched in parallel with the closing suite — one read-only subagent: `git diff
 HEAD` + the shipped issue paths, reports per issue under-build / over-build /
-wrong-implementation. Findings go to the user for adjudication, never auto-fixed. Standards axis
-stays on-request via `/code-review`. If a feature's `done` count crossed ~8, suggest `/tidy`.
+wrong-implementation. Findings go to the user for adjudication, never auto-fixed. Standards axis:
+once the closing suite is green, suggest `/code-review`'s Standards axis (Spec already ran) — the
+user decides whether to run it. If a feature's `done` count crossed ~8, suggest `/tidy`.

@@ -34,6 +34,18 @@ Then use the Agent tool with `subagent_type=Explore` to walk the codebase. Don't
 
 Apply the **deletion test** to anything you suspect is shallow: would deleting it concentrate complexity, or just move it? A "yes, concentrates" is the signal you want.
 
+**Deletion evidence — classify consumers before proposing** (`rg` first; tools don't replace
+reading call sites):
+
+- production callers → it's a feature decision, not cleanup
+- only tests/docs consume it, and the behavior they pin is not load-bearing → deletion candidate
+- ambiguous → read the usage first
+
+A correct-but-tiny idea becomes an inline TODO with a stable, rg-able tag (`TODO(unused-default)`), not an issue.
+Keep surveying after the first good candidate. Weigh net deletion — implementation plus dedicated
+tests plus docs, minus the glue that remains; a wrapper that relocates the same complexity is not
+a win.
+
 ### 2. Present candidates as an HTML report
 
 Write a self-contained HTML file to the OS temp directory so nothing lands in the repo. On Windows resolve the temp dir from `$env:TEMP`; on Unix use `$TMPDIR` falling back to `/tmp`. Write to `<tmpdir>/architecture-review-<timestamp>.html` so each run gets a fresh file. Open it for the user — on Windows run `Start-Process <path>` (PowerShell), on Linux `xdg-open <path>`, on macOS `open <path>` — and tell them the absolute path.

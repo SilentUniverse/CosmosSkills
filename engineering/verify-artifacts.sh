@@ -122,16 +122,21 @@ if [ "$has_cb" = 1 ]; then
         inroster && /^-/ {
             line = $0
             sub(/^-*[ \t]*`/, "", line); sub(/`.*$/, "", line); sub(/\/+$/, "", line)
-            if (line != "") print "ROSTER\t" line
+            tag = (line ~ /[<>:"|?*{}]/) ? "ROSTERBAD" : "ROSTER"
+            if (line != "") print tag "\t" line
             next
         }
         { n++ }
         END { print "COUNT\t" n }' "$CB")
     bodycount="$(printf '%s\n' "$cbinfo" | awk -F'\t' '$1 == "COUNT" { print $2 }')"
     while IFS=$'\t' read -r tag p; do
-        [ "$tag" = "ROSTER" ] || continue
+        case "$tag" in ROSTER|ROSTERBAD) ;; *) continue ;; esac
         roster_paths["$p"]=1
-        [ -d "$ROOT/$p" ] || err "$CB: roster path '$p' is not an existing directory"
+        if [ "$tag" = "ROSTERBAD" ]; then
+            err "$CB: roster path '$p' uses placeholder/glob syntax - write a real existing directory (one representative path per pattern)"
+        else
+            [ -d "$ROOT/$p" ] || err "$CB: roster path '$p' is not an existing directory"
+        fi
     done <<< "$cbinfo"
     if [ "${bodycount:-0}" -gt "$BUDGET" ]; then
         err "$CB: root body $bodycount lines (excl. roster) > budget $BUDGET - relocate -> condense -> raise (raise carries justification in the change; set 'budget:' in frontmatter to adopt current size)"

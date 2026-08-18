@@ -18,5 +18,7 @@ Skills I use daily for code work.
 - **[code-review](./code-review/SKILL.md)** — Two-axis review of a diff since a fixed point: Standards (house rules + Fowler smell baseline) and Spec (does the diff implement the originating issue/PRD?), run as parallel sub-agents.
 - **[resolving-merge-conflicts](./resolving-merge-conflicts/SKILL.md)** — Resolve an in-progress merge/rebase by understanding each side's original intent, preserving both where possible.
 - **[prototype](./prototype/SKILL.md)** — Build a throwaway prototype to flesh out a design — either a runnable terminal app for state/business-logic questions, or several radically different UI variations toggleable from one route.
+- **[trim-leakage](./trim-leakage/SKILL.md)** — Audit and fix chain-of-thought leakage: prose whose vantage is the authoring session rather than the repository (dead citations, change narration, review vantage). One test + taxonomy + rg batteries.
+- **[record-gif](./record-gif/SKILL.md)** — Record a browser/Web UI flow as a verified GIF: state-based frames, exact-text completion predicates, bundled deterministic encoder.
 
 The artifact contract every skill reads/writes (frontmatter schemas, index files, directory layout) lives in **[ARTIFACT-FORMAT.md](./ARTIFACT-FORMAT.md)**.

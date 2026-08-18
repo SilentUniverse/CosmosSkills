@@ -100,7 +100,7 @@ Iterate until the user approves the breakdown.
 
 ### 5. Write issues to `.scratch/<feat>/issues/`
 
-For each approved slice, write a new file `.scratch/<feat>/issues/<NN>-<slug>.md` (next number, kebab-case slug), in dependency order (blockers first). Frontmatter follows [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd); the body template + the three driving frontmatter fields (`category` / `blocked_by` / `refines`): **[ISSUE-TEMPLATE.md](ISSUE-TEMPLATE.md)**. Fill `## 上级`'s PRD extract and `touches:` from the step-2 probe; omit `touches:` if the probe skipped.
+For each approved slice, write a new file `.scratch/<feat>/issues/<NN>-<slug>.md` (next number, kebab-case slug), in dependency order (blockers first). Frontmatter follows [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd); the body template + the three driving frontmatter fields (`category` / `blocked_by` / `refines`): **[ISSUE-TEMPLATE.md](ISSUE-TEMPLATE.md)**. Fill `## 上级`'s PRD extract and `touches:` from the step-2 probe; omit `touches:` if the probe skipped. If the probe found the slice alters a mapped area's seam or invariant, add one AC line: 完成时同批刷新该区 `CODEBASE.md` 生成块并 re-stamp `git_base`.
 
 Do NOT modify any parent PRD or upstream issue.
 

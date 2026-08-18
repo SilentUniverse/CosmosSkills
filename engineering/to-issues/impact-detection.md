@@ -29,10 +29,10 @@ Two kinds of impact, very different confidence:
 ## What gets reused on the second run
 
 - **Static reference points** — NOT stored (re-grep each time; cheap and always current). The
-  `CODEBASE.md` "can't rg it" rule.
-- **Semantic invariants (the expensive part)** — persist to `CODEBASE.md` so they load at session
-  start and the next coupled change in this area skips re-deriving it — but only if the run writes
-  its findings back. Always offer to.
+  `CODEBASE.md` two-axis rule (can't rg it AND bites if missing).
+- **Semantic invariants (the expensive part)** — persist to the area's `CODEBASE.md` generated
+  block (`src/<area>/CLAUDE.md`, auto-injected on read) so the next coupled change in this area
+  skips re-deriving it — but only if the run writes its findings back. Always offer to.
 
 ---
 

@@ -108,6 +108,11 @@ Split into separate files when:
 - Content has distinct domains (finance vs sales schemas)
 - Advanced features are rarely needed
 
+## Length Discipline
+
+Never treat length alone as a defect. Keep every load-bearing rule as one to three lines plus a
+link to its rationale; cut stories, duplicates, status notes, and the path used to derive the rule.
+
 ## Review Checklist
 
 After drafting, verify:

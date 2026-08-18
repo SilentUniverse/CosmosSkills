@@ -41,7 +41,7 @@ Look for the originating spec, in this order:
 3. The feature PRD: `.scratch/<feat>/PRD.md`.
 4. If nothing is found, ask the user where the spec is. If they say there isn't one, the **Spec** sub-agent skips and reports "无 spec 可比对".
 
-> Issue-tracker layout has been configured — run `/hys-setup` if `.scratch/` doesn't exist yet.
+> Issue-tracker layout is configured — run `/hys-setup` if `.scratch/` doesn't exist yet.
 
 ### 3. Identify the standards sources
 
@@ -57,7 +57,7 @@ Dispatch two sub-agents in one turn — one per axis. Each is read-only.
 
 - The full diff command and commit list.
 - The standards-source files found in step 3, plus the path to read: `~/.claude/skills/code-review/SMELL-BASELINE.md` (junctioned install).
-- The brief: "Report — per file/hunk where relevant — (a) every place the diff violates a documented standard or an accepted ADR: cite the standard (file + rule); and (b) any baseline smell you spot: name it (English) and quote the hunk. Distinguish hard violations from judgement calls — documented-standard/ADR breaches can be hard, baseline smells are always judgement calls, and a documented repo standard overrides the baseline. Skip anything tooling enforces. Under 400 words."
+- The brief: "Report — per file/hunk where relevant — (a) every place the diff violates a documented standard or an accepted ADR: cite the standard (file + rule); and (b) any baseline smell you spot: name it (English) and quote the hunk. Distinguish hard violations from judgement calls — documented-standard/ADR breaches can be hard, baseline smells are always judgement calls, and a documented repo standard overrides the baseline. Skip anything tooling enforces. Also check test quality: assertions must fail on the intended regression — not restate the implementation or trust a report — and tests must exercise the real entry point (bin/CLI/export), not a hand-mounted harness. Under 400 words."
 
 **Spec sub-agent** — give it:
 
@@ -65,7 +65,9 @@ Dispatch two sub-agents in one turn — one per axis. Each is read-only.
 - The path or fetched contents of the spec (issue `## AC` block and/or PRD).
 - The brief: "Report: (a) requirements the spec asked for that are missing or partial (under-build); (b) behaviour in the diff that wasn't asked for — scope creep (over-build); (c) requirements that look implemented but where the implementation looks wrong. Quote the spec line for each finding. Under 400 words."
 
-If the spec is missing, skip the Spec sub-agent and note it in the final report.
+If the spec is missing, skip the Spec sub-agent and note it in the final report. A caller that
+already ran the Spec axis (e.g. the drain close) may ask for the Standards axis only — skip the
+Spec sub-agent and note that in the report.
 
 ### 5. Aggregate
 
