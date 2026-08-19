@@ -104,7 +104,7 @@ $issueGood = @'
 ---
 type: issue
 feature: featA
-status: ready-for-agent
+status: ready
 category: enhancement
 blocked_by: []
 created: 2026-08-18
@@ -209,7 +209,7 @@ Assert-Case "F14 CODEBASE + valid .scratch" $d 0
 $d = New-FixtureDir "f15"
 Write-Fixture "f15/CODEBASE.md" $rootGood
 Write-Fixture "f15/src/alpha/CLAUDE.md" $blockAlpha
-Write-Fixture "f15/.scratch/featA/issues/01-slice.md" ($issueGood -replace 'status: ready-for-agent', 'status: bogus')
+Write-Fixture "f15/.scratch/featA/issues/01-slice.md" ($issueGood -replace 'status: ready', 'status: bogus')
 Assert-Case "F15 broken .scratch still caught alongside CODEBASE" $d 1
 
 $fen = [string][char]0x5206 + [string][char]0x533A

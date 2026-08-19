@@ -1,5 +1,5 @@
 ---
-name: improve-codebase-architecture
+name: improve-arch
 description: Find deepening opportunities in a codebase, informed by the domain language in CONTEXT.md and the decisions in docs/adr/.
 disable-model-invocation: true
 ---
@@ -72,7 +72,7 @@ Side effects happen inline as decisions crystallize — run the `/domain-modelin
 
 - **Naming a deepened module after a concept not in `CONTEXT.md`?** Add the term to `CONTEXT.md`. Create the file lazily if it doesn't exist.
 - **Sharpening a fuzzy term during the conversation?** Update `CONTEXT.md` right there.
-- **User rejects the candidate with a load-bearing reason?** Write the ADR and report it. Only when the reason would actually be needed by a future explorer to avoid re-suggesting the same thing — skip ephemeral reasons ("not worth it right now") and self-evident ones.
+- **User rejects the candidate with a load-bearing reason?** Offer the ADR: _"Record this as an ADR so future architecture reviews don't re-suggest it?"_ Only when the reason would actually be needed by a future explorer to avoid re-suggesting the same thing — skip ephemeral reasons ("not worth it right now") and self-evident ones.
 - **Want to explore alternative interfaces for the deepened module?** Run the `/codebase-design` skill and use its design-it-twice parallel sub-agent pattern.
 
 ### 4. Refresh the structural map

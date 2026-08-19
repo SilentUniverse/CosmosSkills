@@ -1,5 +1,5 @@
 ---
-name: resolving-merge-conflicts
+name: merge-conflicts
 description: Resolve an in-progress git merge or rebase conflict by understanding each side's original intent, then preserving both where possible. Use when a merge/rebase is mid-conflict, or when the user asks to resolve conflicts.
 ---
 

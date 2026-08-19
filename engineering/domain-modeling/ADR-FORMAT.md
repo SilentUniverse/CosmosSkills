@@ -32,7 +32,7 @@ decision itself is never edited — supersede it with a new ADR.
 
 Scan `docs/adr/` for the highest existing number and increment by one.
 
-## When to write an ADR
+## When to offer an ADR
 
 All three of these must be true:
 

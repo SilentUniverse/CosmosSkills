@@ -127,7 +127,7 @@ Rules:
 ---
 type: issue
 feature: balance
-status: ready-for-agent       # ready-for-agent | ready-for-human | done
+status: ready       # ready | done
 category: enhancement         # enhancement | detail | redo | fix
 blocked_by: [01-init-schema]  # list of sibling issue slugs; [] if none
 refines: 03-balance-api       # parent slice this elaborates; omit for top-level slices
@@ -145,7 +145,9 @@ Field rules:
 - **type** — always `issue`.
 - **feature** — the `<feat>` slug; must equal the parent directory name. Lets the consuming
   skills group issues without parsing paths.
-- **status** — the three canonical states only. `done` is immutable (the git commit is truth).
+- **status** — the two canonical states only. `done` is immutable (the git commit is truth).
+  Hands-on checks no agent can run live in the PRD's 端到端验证 — never as a third state or as
+  issue AC.
 - **category** —
   - `enhancement` — a normal vertical slice from the PRD.
   - `detail` — a small sub-behavior added later that does NOT warrant a PRD revision. MUST carry
@@ -159,11 +161,11 @@ Field rules:
   omitted for top-level `enhancement` slices. `/tidy`'s orphan check flags any non-top-level
   issue with neither a PRD user-story link nor a `refines`.
 - **touches** — top-level dirs/modules this slice is expected to edit, at directory granularity —
-  never file paths. Written by `/to-issues` from its impact probe; `/tdd -p` groups waves by
+  never file paths. Written by `/plan` from its impact probe; `/tdd -p` groups waves by
   overlap. Optional.
 - **created** — ISO date, set once at creation, never changed.
 
-The body keeps the existing section headings from `/to-issues`. The completion record still
+The body keeps the section headings from `/plan`'s issue template. The completion record still
 appends to `## Comments` — schema + template: `tdd/COMPLETION-RECORD.md`; frontmatter `status` and
 the `### 完成` block move together.
 
@@ -212,7 +214,7 @@ created: 2026-06-18
 ---
 
 ## 问题（Problem）
-## 方案（Solution） ... (existing /to-prd template, unchanged)
+## 方案（Solution） ... (template: `/plan`'s PRD-TEMPLATE.md)
 ```
 
 The skills read the highest `version` whose file is not listed in any other file's `supersedes`.
@@ -276,8 +278,7 @@ Use `rg` with a glob so matches reflect live work, not history — `**/issues/*.
 feature's top-level issues but not the nested `archive/`:
 
 ```bash
-rg '^status: ready-for-agent' -g '**/issues/*.md' .scratch   # dispatchable
-rg '^status: ready-for-human' -g '**/issues/*.md' .scratch   # hands-on
+rg '^status: ready' -g '**/issues/*.md' .scratch   # dispatchable
 ```
 
 To read a single field deterministically (for `/tdd`'s drain order, `/tidy`'s survey), use `yq`
@@ -300,7 +301,7 @@ handoff field shape. CODEBASE.md leaves: root `type`/`generated` + body budget (
 lines; `budget:` frontmatter override), nested generated-block marker pairs + `git_base` + block
 budget, roster placeholder syntax rejected, roster↔directory bidirectional check. Missing `.scratch/` and absent `CODEBASE.md` pass
 clean. Run it wherever state could drift
-— `/to-issues` post-write, `/tidy` before regenerating, or any time the state looks off:
+— `/plan` post-write, `/tidy` before regenerating, or any time the state looks off:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File verify-artifacts.ps1 [-Root <repo>]
     bash verify-artifacts.sh [<repo-root>]

@@ -294,7 +294,7 @@ foreach ($fd in $scratchDirs) {
             if ($null -eq $fm) { $errors.Add("$($f.FullName): no YAML frontmatter"); continue }
             if ("$($fm['type'])" -ne 'issue') { $errors.Add("$($f.FullName): type '$($fm['type'])' != issue") }
             if ("$($fm['feature'])" -ne $feat) { $errors.Add("$($f.FullName): feature '$($fm['feature'])' != directory '$feat'") }
-            if (@('ready-for-agent', 'ready-for-human', 'done') -cnotcontains "$($fm['status'])") { $errors.Add("$($f.FullName): status '$($fm['status'])' not in ready-for-agent|ready-for-human|done") }
+            if (@('ready', 'done') -cnotcontains "$($fm['status'])") { $errors.Add("$($f.FullName): status '$($fm['status'])' not in ready|done") }
             $cat = "$($fm['category'])"
             if (@('enhancement', 'detail', 'redo', 'fix') -cnotcontains $cat) { $errors.Add("$($f.FullName): category '$cat' not in enhancement|detail|redo|fix") }
             $deps = @()

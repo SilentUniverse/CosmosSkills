@@ -1,6 +1,6 @@
 ---
 name: hys-setup
-description: Sets up an `## Agent skills` block in AGENTS.md/CLAUDE.md and `docs/agents/` so the engineering skills know this repo's issue tracker (local markdown by default), state vocabulary, and domain doc layout. Run before first use of `to-issues`, `to-prd`, `tdd`, `diagnose`, `improve-codebase-architecture`, or `zoom-out` — or if those skills appear to be missing context about the issue tracker, states, or domain docs.
+description: Sets up an `## Agent skills` block in AGENTS.md/CLAUDE.md and `docs/agents/` so the engineering skills know this repo's issue tracker (local markdown by default) and domain doc layout. Run before first use of `plan`, `tdd`, `diagnose`, `improve-arch`, or `zoom-out` — or if those skills appear to be missing context about the issue tracker or domain docs.
 disable-model-invocation: true
 ---
 
@@ -34,7 +34,7 @@ Classify the repo into one of four cases based on what step 1 found, and announc
 
 **Case 1 — Clean repo.** No `.scratch/`, no `docs/agents/`, no existing `## Agent skills` block. Skip migration; proceed to step 3.
 
-**Case 2 — Already on hys conventions.** `.scratch/<feat>/issues/*.md` files have `Status:` lines (or frontmatter) that already match the 3-state vocabulary in `state-vocabulary.md` (`ready-for-agent` / `ready-for-human` / `done`). Tell the user setup will refresh `docs/agents/*.md` only, leaving issue files untouched. If the issue files still carry only a bare `Status:` line (no YAML frontmatter), also run the **Case 5 frontmatter migration** ([MIGRATION.md](MIGRATION.md)) before proceeding. Otherwise proceed to step 3.
+**Case 2 — Already on hys conventions.** `.scratch/<feat>/issues/*.md` files have `Status:` lines (or frontmatter) that already match the 2-state vocabulary in `ARTIFACT-FORMAT.md` (`ready` / `done`). Tell the user setup will refresh `docs/agents/*.md` only, leaving issue files untouched. Legacy `ready-for-human` issues: offer to fold their hands-on checks into the PRD's 端到端验证 and set `ready` (or `done` if the user already did the work). If the issue files still carry only a bare `Status:` line (no YAML frontmatter), also run the **Case 5 frontmatter migration** ([MIGRATION.md](MIGRATION.md)) before proceeding. Otherwise proceed to step 3.
 
 **Case 3 — Old setup detected.** `docs/agents/issue-tracker.md` references `gh` / `glab` CLI, or issue files use deprecated states (`needs-triage`, `needs-info`, `wontfix`, `inbox`, `blocked`, `doing`, `shelved`). Offer to switch to local-markdown + 3-state, or keep the old tracker — full procedure in [MIGRATION.md](MIGRATION.md).
 
@@ -55,7 +55,7 @@ Assume the user does not know what these terms mean. Each section starts with a 
 
 **Section A — Issue tracker（issue 追踪位置）.**
 
-> Explainer: The "issue tracker" is where issues and PRDs live for this repo. `to-issues` and `to-prd` read from and write to it.
+> Explainer: The "issue tracker" is where issues and PRDs live for this repo. `/plan` and `/tdd` read from and write to it.
 
 Default and recommended: **local markdown**. Pick this unless the user specifically requests otherwise:
 
@@ -64,19 +64,18 @@ Default and recommended: **local markdown**. Pick this unless the user specifica
 
 **Section B — State vocabulary（状态词汇）.**
 
-> Explainer: Each issue file under `.scratch/<feat>/issues/` carries a `status:` field in its YAML frontmatter. We use a **3-state minimal model** tuned for solo dev + agent assistance — no triage, no inbox, no blocked.
+> Explainer: Each issue file under `.scratch/<feat>/issues/` carries a `status:` field in its YAML frontmatter. A **2-state model**: the issue queue is the agent's dispatch queue.
 
-The three canonical states:
+The two canonical states:
 
-- `ready-for-agent` — fully specified, fire-and-forget OK (dispatch to a subagent)
-- `ready-for-human` — fully specified, but needs hands-on judgment / design taste / manual / device testing
+- `ready` — fully specified, fire-and-forget OK (dispatch to a subagent)
 - `done` — completed; **immutable** (git has the commit; revisions are new issues)
 
-Default: each role's string equals its name. Ask the user if they want to override any.
+Hands-on checks no agent can run (device, taste, external account) live in the PRD's 端到端验证 — never as a state or issue AC (schema home: `ARTIFACT-FORMAT.md`).
 
 **Section C — Domain docs（领域文档布局）.**
 
-> Explainer: Some skills (`improve-codebase-architecture`, `diagnose`, `tdd`) read `CONTEXT.md` for the project's domain language and `docs/adr/` for past architectural decisions. They need to know whether the repo is single-context or multi-context (e.g. a monorepo with separate frontend/backend contexts) so they look in the right place.
+> Explainer: Some skills (`improve-arch`, `diagnose`, `tdd`) read `CONTEXT.md` for the project's domain language and `docs/adr/` for past architectural decisions. They need to know whether the repo is single-context or multi-context (e.g. a monorepo with separate frontend/backend contexts) so they look in the right place.
 
 Confirm the layout:
 
@@ -88,7 +87,7 @@ Confirm the layout:
 Show the user a draft of:
 
 - The `## Agent skills` block to add to whichever of `CLAUDE.md` / `AGENTS.md` is being edited (see step 4 for selection rules)
-- The contents of `docs/agents/issue-tracker.md`, `docs/agents/state-vocabulary.md`, `docs/agents/domain.md`
+- The contents of `docs/agents/issue-tracker.md` and `docs/agents/domain.md`
 
 Let them edit before writing.
 
@@ -113,10 +112,6 @@ The block:
 
 [one-line summary of where issues are tracked]. See `docs/agents/issue-tracker.md`.
 
-### State vocabulary
-
-[one-line summary of the three states]. See `docs/agents/state-vocabulary.md`.
-
 ### Domain docs
 
 [one-line summary of layout — "single-context" or "multi-context"]. See `docs/agents/domain.md`.
@@ -124,8 +119,7 @@ The block:
 
 Then write the three docs files using the seed templates in this skill folder as a starting point:
 
-- [issue-tracker-local.md](./issue-tracker-local.md) — local-markdown issue tracker（默认）
-- [state-vocabulary.md](./state-vocabulary.md) — the 3-state model
+- [issue-tracker-local.md](./issue-tracker-local.md) content folded into the tracker summary — the local-markdown convention now lives in the `## Agent skills` block itself
 - [domain.md](./domain.md) — domain doc consumer rules + layout
 
 For a non-default issue tracker (the user explicitly chose "Other"), write `docs/agents/issue-tracker.md` from scratch using the user's description.

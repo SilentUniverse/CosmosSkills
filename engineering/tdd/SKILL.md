@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Test-driven development with red-green-refactor loop. Runs one issue, drains a feature's (or all) ready-for-agent issues in dependency order (serially, or in parallel waves with -p), or interviews when asked without an issue. Use when user wants to build features or fix bugs using TDD, mentions "red-green-refactor", wants integration tests, or asks for test-first development.
+description: Test-driven development with red-green-refactor loop. Runs one issue, drains a feature's (or all) ready issues in dependency order (serially, or in parallel waves with -p), or interviews when asked without an issue. Use when user wants to build features or fix bugs using TDD, mentions "red-green-refactor", wants integration tests, or asks for test-first development.
 argument-hint: "Issue path, feature slug, or nothing to drain all ready issues"
 ---
 
@@ -9,7 +9,7 @@ argument-hint: "Issue path, feature slug, or nothing to drain all ready issues"
 ## Invocation
 
 - `/tdd <issue-path>` — run that one issue. Read its frontmatter `status:` first (per [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd)) and obey the guard below. Fully visible, one slice.
-- `/tdd` (bare) — **drain mode (serial)**: run *every* `ready-for-agent` issue across `.scratch/`, one at a time, in dependency order, to completion. The dumb-but-legible batch path — no worktrees, all in the current session so you can watch each one.
+- `/tdd` (bare) — **drain mode (serial)**: run *every* `ready` issue across `.scratch/`, one at a time, in dependency order, to completion. The dumb-but-legible batch path — no worktrees, all in the current session so you can watch each one.
 - `/tdd <feat>` — drain mode scoped to one feature's `issues/` directory.
 - `/tdd -p [<feat>]` — **drain mode (parallel)**: farm ready issues out to subagents (one per issue) so each issue's verbose output stays isolated and independent slices finish in parallel. Decoupled slices edit the shared tree directly; a worktree is used only when two in-flight issues would touch the same files. See [DRAIN.md](DRAIN.md).
 - `/tdd --full` — run build + the whole suite now (the manual full-suite check, §5); combine with any form above.
@@ -17,7 +17,7 @@ argument-hint: "Issue path, feature slug, or nothing to drain all ready issues"
 
 ### Drain mode
 
-Enumerate `ready-for-agent` issues, topologically sort on `blocked_by`, run the batch through the
+Enumerate `ready` issues, topologically sort on `blocked_by`, run the batch through the
 autonomous loop (§Workflow), then close with one full suite + build. Two paths: **serial** (default —
 legible, one issue at a time) and **parallel** (`-p` — ready issues fan out to
 subagents; decoupled slices edit in place, worktree only when they'd collide). Full algorithm,
@@ -27,12 +27,11 @@ subagent brief, and the edit-in-place-vs-worktree call: **[DRAIN.md](DRAIN.md)**
 
 | Status            | Action                                                                                              |
 | ----------------- | --------------------------------------------------------------------------------------------------- |
-| `ready-for-agent` | **Autonomous mode** — skip "confirm with user" prompts. Run the loop unattended.                    |
-| `ready-for-human` | **Interactive mode** — pause at every "confirm with user" point. Before writing the completion record, prompt the user to perform whatever hands-on check makes this slice `ready-for-human` (real-device run, design review, etc). |
-| `done`            | **Refuse.** Print: "this issue is `done`; create a redo issue or set `status:` back to `ready-for-X` first." Stop. |
+| `ready` | **Autonomous mode** — skip "confirm with user" prompts. Run the loop unattended.                    |
+| `done`            | **Refuse.** Print: "this issue is `done`; create a redo issue or set `status:` back to `ready` first." Stop. |
 | anything else     | Refuse with the same guidance.                                                                      |
 
-Edge case — `status: ready-for-X` AND `## Comments` already contains a `### 完成` block from a prior run: pause and ask the user "(a) iterate on existing code, or (b) start over?" before proceeding. *(autonomous mode: (a), recorded in `### 完成`)*
+Edge case — `status: ready` AND `## Comments` already contains a `### 完成` block from a prior run: pause and ask the user "(a) iterate on existing code, or (b) start over?" before proceeding. *(autonomous mode: (a), recorded in `### 完成`)*
 
 Edge case — issue `category` is `redo` / `fix` (or filename matches `*-redo-*` / `*-fix-*`): the parent slice is named by the `refines:` frontmatter field (fall back to stripping the prefix, e.g. `05-redo-balance-api.md` → `02-balance-api.md`). Read the parent's `### 完成` block and list the test files it added. Show the user:
 
@@ -51,9 +50,9 @@ For each AC in the issue, find existing coverage. Drain `-p`: the brief carries 
 
 ## Completion record
 
-**Issue-based runs only.** When all AC pass (and `ready-for-human` hands-on verification is confirmed), run an adversarial review, check `git diff` traces to this issue's AC, set `status: done`, and append a `### 完成` block to `## Comments`. Full procedure + template: **[COMPLETION-RECORD.md](COMPLETION-RECORD.md)**.
+**Issue-based runs only.** When all AC pass, run an adversarial review, check `git diff` traces to this issue's AC, set `status: done`, and append a `### 完成` block to `## Comments`. Full procedure + template: **[COMPLETION-RECORD.md](COMPLETION-RECORD.md)**.
 
-Interview mode (no issue) writes none — run `/to-issues` afterward and mark the issue `done`. Standalone `/tdd` does **not** submit; use the Submit workflow named in `CLAUDE.md`.
+Interview mode (no issue) writes none — run `/plan` afterward and mark the issue `done`. Standalone `/tdd` does **not** submit; use the Submit workflow named in `CLAUDE.md`.
 
 ## Test philosophy
 

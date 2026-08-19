@@ -37,7 +37,9 @@ and the user wants a map of the *whole* project, not one area — onboarding an 
      line only, no file.
    - **≤8 areas:** single root file, one `## ` section per area.
 4. **One review gate.** Present root + all area blocks at once for the user to edit — merge, drop,
-   set the level of detail. Never write the files before this gate.
+   set the level of detail. Order the review by confidence: low-confidence entries (roster line /
+   routing row / block line) form a focused question block presented first. Naming and boundaries
+   are never auto-passed. Never write the files before this gate.
 5. **Only** loop back on areas where the code structure genuinely confused you — list those few,
    don't re-walk the whole map.
 

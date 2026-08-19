@@ -5,7 +5,7 @@ Matt Pocock 工程方法论的本地化改造，面向 **Claude Code + 单人开
 - **英文思考，中文输出**：思考/代码/标识符用英文；对话用中文；落盘文档中文正文 + 英文术语名。
 - **纯本地 issue tracker**：需求/任务/PRD 全部是 `.scratch/` 下的 markdown，零网络、零账号。
 - **Windows 优先**：PowerShell 脚本为主，Unix/WSL 版同时保留。
-- **三状态最小工作流**：`ready-for-agent` / `ready-for-human` / `done`，没有协作场景遗留状态。
+- **两状态最小工作流**：`ready` / `done`——issue 队列即 agent 派发队列，人干的事不进队列。
 
 ---
 
@@ -71,27 +71,19 @@ curl -fsSL https://raw.githubusercontent.com/SilentUniverse/HysSkills/main/Claud
 
 ```
    ┌──────────────────────────────────────────────────────────────┐
-   │ /grill              把方案谈清楚 → CONTEXT.md/ADR│
-   └────────────────────────────┬─────────────────────────────────┘
-                                ↓
-   ┌──────────────────────────────────────────────────────────────┐
-   │ /to-prd                    .scratch/<feat>/PRD.md            │
-   │  ├─ 重跑默认写 PRD-v2.md（带 Supersedes 头），旧的不动        │
-   │  └─「尚未明确」段：看得见但问不清的问题先存着，后续再毕业     │
-   └────────────────────────────┬─────────────────────────────────┘
-                                ↓
-   ┌──────────────────────────────────────────────────────────────┐
-   │ /to-issues                 .scratch/<feat>/issues/NN-*.md     │
-   │  ├─ 默认 status: ready-for-agent，带 frontmatter + 依赖 DAG   │
-   │  ├─ 碰已有代码先做影响面探测：爆炸半径 + 回归风险报告         │
-   │  ├─ 宽重构（爆炸半径大）走 expand→contract，不硬拆切片        │
-   │  ├─ 重跑时给"对账报告"：留 / 改 / redo / 删 / 新增            │
-   │  └─ 加细节：/to-issues "在 NN 上加 X" → detail 类，refines 指回 │
+   │ /plan          唯一规划入口：想清 → 落档 → 拆 issue           │
+   │  ├─ 小而清晰：跳过 PRD 直拆（issue 的 ## 上级 自带上下文）    │
+   │  ├─ 模糊/有争议：内联拷问（grill 纪律）到能写为止             │
+   │  ├─ 改已有功能：意图没变 → detail issue / 改 ready issue      │
+   │  │   意图变了 → PRD-v2 + 对账报告；跨特性命中先问一句         │
+   │  ├─ 碰已有代码：影响面探测（爆炸半径 + 回归风险报告）          │
+   │  ├─ 拆分判据 = 可派性测试：写不出自足卡就不是独立 issue       │
+   │  └─ agent 跑不了的验证 → PRD 端到端验证，不进 issue           │
    └────────────────────────────┬─────────────────────────────────┘
                                 ↓
    ┌──────────────────────────────────────────────────────────────┐
    │ /tdd           红绿循环：<path> 单条 · 裸跑 / <feat> 串行排空  │
-   │  ├─ 按依赖顺序跑完 ready-for-agent，ready-for-human 留给你     │
+   │  ├─ 按依赖顺序跑完 ready；人验项在 PRD 端到端验证   │
    │  ├─ /tdd -p：ready issue 派 subagent 隔离输出（解耦切片直接改  │
    │  │   撞同一批文件才用 worktree），独立切片并行跑               │
    │  └─ 批末跑一次全量 suite + build；done 攒够 → 提示 /tidy       │
@@ -107,7 +99,7 @@ curl -fsSL https://raw.githubusercontent.com/SilentUniverse/HysSkills/main/Claud
 
 > `/route` 是这张图的路由 + context 边界管家：拿不准下一步跑哪个技能、或会话变长时调它。
 
-需求又变 → 回到 `/grill` 写新 ADR（标 `Supersedes:` 旧决策）→ `/to-prd` 写 `PRD-v2.md` → `/to-issues` 给对账报告。`done` 的 issue 永远不动；要改就新建 `redo-X.md`。
+需求又变 → `/plan`：意图变了 supersede PRD + 对账报告；只是加一块 → detail issue。重大方向反转先 `/grill` 写新 ADR（标 `Supersedes:`）。`done` 的 issue 永远不动；要改就新建 `redo-X.md`。
 
 **全长链不是必经管道**——见下面[新需求分流](#新需求来了)。
 
@@ -122,7 +114,7 @@ curl -fsSL https://raw.githubusercontent.com/SilentUniverse/HysSkills/main/Claud
 | 场景 | 第一句敲什么 |
 |---|---|
 | 继续做某条已有 issue | `/tdd <issue-path>` |
-| 一次跑完某 feature 的 ready-for-agent | `/tdd <feat>` |
+| 一次跑完某 feature 的 ready | `/tdd <feat>` |
 | 上一 session 留了 handoff | `/resume`（自动找最近 active、校验 baseline、按开机序列续） |
 | 不记得做到哪了 | 终端跑 `rg '^status:' -g '**/issues/*.md' .scratch`（眼睛看，**不**让 agent 看） |
 | 全新需求 / 修改老需求 | 见下两节 |
@@ -131,29 +123,25 @@ curl -fsSL https://raw.githubusercontent.com/SilentUniverse/HysSkills/main/Claud
 
 ### 新需求来了
 
-**先问"有什么不确定?"，按不确定性分流**——多数情况能跳过前几步：
+**一个入口**：`/plan <需求>`，内部按规模与意图自分流：
 
-| 不确定的是什么 | 走哪步 | 别做什么 |
-|---|---|---|
-| 领域概念 / 术语没定 | `/grill`（有 CONTEXT.md 时落盘，没有则只拷问） | —— |
-| 怎么设计才塞得进去（有真权衡） | `/prototype` 验证完再继续 | 别 grill 领域——你懂领域，纠结的是实现 |
-| 这改动会碰到/弄坏哪些现有行为 | 直接 `/to-issues`（它先廉价探测、按爆炸半径缩放） | 别靠 PRD——它照不到影响面 |
-| 啥都清楚，只是要拆成可执行单元 | 直接 `/to-issues` | 别为它新开 PRD |
-| 只给某切片加子行为 | `/to-issues "在 NN 上加 X"` → `detail` issue | 别走完整流程 |
-
-- `/to-prd` 是版本化的*意图快照*，**只在意图真的变了时才写**。在已懂的领域里加东西、直接 `/to-issues` 是正路，不是抄近道。
-- 防"小功能漏"的不是 PRD——救你的是 to-issues 第 4 步的切片清单 quiz 和 AC 纪律。
+- 小而清晰 → 跳过 PRD 直拆 issue
+- 模糊/有争议 → 内联拷问（grill 纪律）到能写为止
+- 有真设计权衡 → `/prototype` 验证完再继续
+- 改已有功能 → overlap 检测：意图没变加 detail issue / 改 ready issue；意图变了 PRD-v2 + 对账报告；跨特性命中先问一句"加一块还是改方向"
+- PRD 是版本化的*意图快照*，**只在意图真的变了时才写**——`/plan` 自动判断，不用你操心
+- 防"小功能漏"的是切片 quiz 和 AC 纪律，不是 PRD
 
 ### 修改已有需求
 
-**A. 扩展/深化已有功能（碰已有代码）**：直接 `/to-issues "给订单加部分退款"`。它内部先做**影响面探测**：一道廉价探测当总闸（`rg`/`ast-grep` 查引用），小半径一行带过、真耦合才出完整报告（受影响模块、可能回归的行为、哪些既有测试预期要改），宽重构走 expand→contract。探出 grep 看不见的 invariant 会问你要不要落盘 `CODEBASE.md`。动态语言（Python）静态查不全，报告会标注。按语言的具体命令：[impact-detection.md](engineering/to-issues/impact-detection.md)。
+**A. 扩展/深化已有功能（碰已有代码）**：直接 `/plan "给订单加部分退款"`。它内部先做**影响面探测**：一道廉价探测当总闸（`rg`/`ast-grep` 查引用），小半径一行带过、真耦合才出完整报告（受影响模块、可能回归的行为、哪些既有测试预期要改），宽重构走 expand→contract。探出 grep 看不见的 invariant 会落盘该区 `CODEBASE.md` 块（两轴判据）。动态语言（Python）静态查不全，报告会标注。按语言的具体命令：[impact-detection.md](engineering/plan/impact-detection.md)。
 
 **B. 改的是已写下的 issue 本身**：先问 status——
 
 | 状态 | 怎么改 |
 |---|---|
-| `ready-for-X` | 直接编辑文件 / 加新文件 / 删文件——还没承诺过，没历史包袱 |
-| `done` | **不可改**。`/to-prd` 重跑（默认 PRD-v2.md）→ `/to-issues` 对账报告 → `/tdd <redo-issue>` |
+| `ready` | 直接编辑文件 / 加新文件 / 删文件——还没承诺过，没历史包袱 |
+| `done` | **不可改**。`/plan`（意图变了：supersede + 对账）→ `/tdd <redo-issue>` |
 
 **架构整体反转**：先 `/grill` 写新 ADR 标 `Supersedes:`，再走"老 issue 已完工"流程。
 
@@ -171,18 +159,17 @@ curl -fsSL https://raw.githubusercontent.com/SilentUniverse/HysSkills/main/Claud
 > **反例**：上一 session 已完整结束（issue 已 done）→ 不要写 handoff，直接 `/tdd <next-issue>`。
 > **频率**：长任务每天收工前一份；跨 session 的 epic 每次切换前一份。
 
-### 状态机（三状态，仅此而已）
+### 状态机（两状态——issue 队列 = agent 的派发队列）
 
 | 状态 | 意思 |
 |---|---|
-| `ready-for-agent` | 写清楚了，丢给 subagent 后台跑 |
-| `ready-for-human` | 写清楚了，需要你坐键盘前判断 / 真机验 |
+| `ready` | 写清楚了，丢给 subagent 后台跑 |
 | `done` | 完工，**不可改**——git 已有 commit，要返工就新建 redo |
 
-**不存在的状态**：inbox（要么 ready 要么删）、blocked（备注在 issue 里继续做）、shelved（不做就删）。
+需要你亲手做的验证（真机/品味/账号）不进状态机——`/plan` 把它们登记进 PRD 的端到端验证，批末报告的"等你验证"块提醒你。**不存在的状态**：inbox（要么 ready 要么删）、blocked（备注在 issue 里继续做）、shelved（不做就删）。
 
 ```bash
-rg '^status: ready-for-' -g '**/issues/*.md' .scratch   # 活跃集（两种状态一条命令，glob 天然排除 archive/）
+rg '^status: ready' -g '**/issues/*.md' .scratch   # 活跃集（glob 天然排除 archive/）
 ```
 
 读单个字段用 `yq --front-matter=extract '.status' <file>`。看某 feature 已建成什么 → `SUMMARY.md`（`/tidy` 重生成）；历史 → 列 `issues/archive/`。
@@ -193,7 +180,7 @@ rg '^status: ready-for-' -g '**/issues/*.md' .scratch   # 活跃集（两种状�
 
 ### 场景 A：从 0 到 1 新建项目
 
-1. **骨架**：`/hys-setup`——回答三个问题（tracker 默认本地 markdown / 状态默认 3 态 / 布局默认 single-context），仓库多出 `docs/agents/` 和 `CLAUDE.md` 的 `## Agent skills` 块。
+1. **骨架**：`/hys-setup`——回答几个问题（tracker 默认本地 markdown / 两态模型 / 布局默认 single-context），仓库多出 `docs/agents/` 和 `CLAUDE.md` 的 `## Agent skills` 块。
 2. **两件套**：`CONTEXT.md`（术语）+ `CODEBASE.md`（结构地图）——见下方[文档布局](#文档布局)。
 3. **护栏**（按需）：[git-guardrails](misc/git-guardrails-claude-code/SKILL.md)、[modern-cli-guardrails](misc/modern-cli-guardrails/SKILL.md)、[setup-pre-commit](misc/setup-pre-commit/SKILL.md)（npm/pnpm 项目）。
 
@@ -241,7 +228,7 @@ rg '^status: ready-for-' -g '**/issues/*.md' .scratch   # 活跃集（两种状�
 ### 三条核心规则（不要破坏）
 
 1. **`done` 不可改**。修订 → 新建 `NN-redo-X.md`，旧的保留。
-2. **重跑 `/to-prd` 默认写 PRD-v2.md**。旧的不动；明说"补充"才追加 `## 修订`。
+2. **重跑规划（`/plan`）在意图变化时默认写 PRD-v2.md**。旧的不动；明说"补充"才追加 `## 修订`。
 3. **AC 只写本切片新加的行为**。前置条件靠 `blocked_by:` 串联，不复述上一刀已测的内容；tdd 跑前会扫已有测试，已覆盖的 AC 自动跳过。
 
 ---
@@ -253,7 +240,7 @@ rg '^status: ready-for-' -g '**/issues/*.md' .scratch   # 活跃集（两种状�
 `docs/adr/NNNN-slug.md` 只在两个产出点被**主动提议**，且故意克制：
 
 1. **`/grill` 拷问方案时**——三个条件**同时**成立才提议：难以反悔 / 脱离上下文会困惑 / 是真实权衡的结果。
-2. **`/improve-codebase-architecture` 回顾时**——你否决一个重构建议且理由有分量，它会问要不要钉成"不要这么做"的 ADR。
+2. **`/improve-arch` 回顾时**——你否决一个重构建议且理由有分量，它会问要不要钉成"不要这么做"的 ADR。
 
 三件套分工：`CONTEXT.md` 记**是什么**（术语）、`CODEBASE.md` 记 grep 拿不到的**操作性理解**、`docs/adr/` 记**为什么这么选**（少数不可逆）。被取代的 ADR 只标 superseded 不改原文。ADR 稀少是设计预期。
 
@@ -281,7 +268,7 @@ skill 本身栈无关。项目级把测试发现规则、常用命令、栈特�
 - import 图：`grimp`
 ```
 
-其他语言的工具表见 [impact-detection.md](engineering/to-issues/impact-detection.md)。
+其他语言的工具表见 [impact-detection.md](engineering/plan/impact-detection.md)。
 
 ---
 
@@ -293,19 +280,19 @@ skill 本身栈无关。项目级把测试发现规则、常用命令、栈特�
 |---|---|
 | [hys-setup](engineering/hys-setup/SKILL.md) | 项目首次接入跑一次；Case 5 迁移旧文件到 frontmatter |
 | [grill](engineering/grill/SKILL.md) | 拷问方案逼出决策（有 CONTEXT.md/docs/adr/ 时落盘）。底层 [grilling](productivity/grilling/SKILL.md) 引擎 + [domain-modeling](engineering/domain-modeling/SKILL.md) 落盘 |
-| [prototype](engineering/prototype/SKILL.md) | 写代码前造一次性原型验证方案（用在 `/to-prd` 之前） |
-| [to-prd](engineering/to-prd/SKILL.md) | 对话变 PRD（版本化意图快照，重跑默认 supersede，带「尚未明确」段） |
-| [to-issues](engineering/to-issues/SKILL.md) | 拆 issue（frontmatter + 依赖 DAG + 影响面探测；重跑给对账报告） |
+| [prototype](engineering/prototype/SKILL.md) | 写代码前造一次性原型验证方案（用在 `/plan` 之前） |
+| [plan](engineering/plan/SKILL.md) | 唯一规划入口：小跳档直拆 / 模糊内联拷问 / 意图变了 supersede+对账；可派性测试拆分（to-prd + to-issues 的合并体） |
+| [atk](engineering/atk/SKILL.md) | 对抗审查 agent 自己的产出：新眼睛子代理 + 逐条验证 + 第一性重推导；说"对抗式审查/再审一轮/第一性原理再想想"即触发 |
 | [tdd](engineering/tdd/SKILL.md) | 红绿循环：单条 / 串行排空 / `-p` 并行排空（详见 [DRAIN.md](engineering/tdd/DRAIN.md)） |
 | [route](engineering/route/SKILL.md) | 拿不准下一步跑哪个 skill、或会话变长时喊它（路由 + context 边界管家） |
 | [tidy](engineering/tidy/SKILL.md) | 垃圾回收：归档 done、重生成 SUMMARY、审计僵尸测试 + 孤儿 issue |
 | [diagnose](engineering/diagnose/SKILL.md) | 6 阶段诊断硬 bug / 性能回归 |
-| [resolving-merge-conflicts](engineering/resolving-merge-conflicts/SKILL.md) | merge/rebase 冲突：先摸清双方意图再尽量都保留 |
+| [merge-conflicts](engineering/merge-conflicts/SKILL.md) | merge/rebase 冲突：先摸清双方意图再尽量都保留 |
 | [zoom-out](engineering/zoom-out/SKILL.md) | 陌生代码请求"地图视角"；可落盘 `CODEBASE.md` |
-| [trim-leakage](engineering/trim-leakage/SKILL.md) | 审计修复"泄漏的思考链"（会话视角散文）：one test + 8 类分类法 + rg 电池 |
+| [lint](engineering/lint/SKILL.md) | 审计修复"泄漏的思考链"（会话视角散文）：one test + 8 类分类法 + rg 电池 |
 | [record-gif](engineering/record-gif/SKILL.md) | 把 UI 交互录成验证过的 GIF：状态化取帧 + 精确谓词 + 确定性编码器 |
 | [research](engineering/research/SKILL.md) | 调研派给后台只读 subagent，结论落成带引用的 markdown |
-| [improve-codebase-architecture](engineering/improve-codebase-architecture/SKILL.md) | 阶段性回顾找架构深化机会（词汇调 [codebase-design](engineering/codebase-design/SKILL.md)） |
+| [improve-arch](engineering/improve-arch/SKILL.md) | 阶段性回顾找架构深化机会（词汇调 [codebase-design](engineering/codebase-design/SKILL.md)） |
 
 ### 共享引擎（被上面的 skill 调用，也可单独喊）
 
@@ -343,4 +330,5 @@ skill 本身栈无关。项目级把测试发现规则、常用命令、栈特�
 - **改 skill**：直接改仓库（junction 即时生效）；SKILL.md 保持 <100 行，超了按 [write-a-skill](productivity/write-a-skill/SKILL.md) 拆参考文件。
 - **改 hook 脚本**：改完必须重跑对应回归套件（`test-block-legacy-cli.ps1` / `test-block-dangerous-git.ps1`）再重跑 install.ps1。
 - **改 verify-artifacts**：重跑 `test-verify-codebase.ps1`（19 用例 × PS/sh 双风味）。
+- **改工作流的三条检验律**：每个文件有读者（被读频率养不活 → 删/并）；每个状态有闭环（无需人工记账即可退出）；每个入口有守门（错误层级输入被确认或拒收，不被吞下）。
 - **产物格式契约**：[engineering/ARTIFACT-FORMAT.md](engineering/ARTIFACT-FORMAT.md)，单一事实源。

@@ -112,6 +112,12 @@ Split into separate files when:
 
 Never treat length alone as a defect. Keep every load-bearing rule as one to three lines plus a
 link to its rationale; cut stories, duplicates, status notes, and the path used to derive the rule.
+Shorten high-frequency enum values and command names aggressively (`ready-for-agent` → `ready`); leave low-frequency internal names alone — churn costs more than the tokens save.
+
+## Skill Candidates
+
+A phrase the user repeats across sessions ("对抗式审查", "第一性原理再想想") is a skill candidate:
+it names a protocol they want on demand. Two recurrences → propose the skill.
 
 ## Review Checklist
 

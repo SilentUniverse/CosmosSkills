@@ -1,6 +1,6 @@
-# to-issues — Issue file template
+# plan — Issue file template
 
-Loaded on demand by [`/to-issues`](SKILL.md) step 5, at the moment issues are actually written to
+Loaded on demand by [`/plan`](SKILL.md) step 5, at the moment issues are actually written to
 `.scratch/<feat>/issues/<NN>-<slug>.md`. Frontmatter follows [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd); the body uses the template below.
 
 Write issues in dependency order (blockers first) so you can reference real filenames in both the
@@ -10,7 +10,7 @@ Write issues in dependency order (blockers first) so you can reference real file
 
 ---
 # frontmatter per ARTIFACT-FORMAT.md — type / feature / status / category / blocked_by / refines / touches / created
-# a fresh slice defaults to status: ready-for-agent, category: enhancement
+# a fresh slice defaults to status: ready, category: enhancement
 ---
 
 ## 上级
