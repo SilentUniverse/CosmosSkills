@@ -49,6 +49,6 @@ When a term is resolved, update `CONTEXT.md` right there. Don't batch these up �
 
 `CONTEXT.md` is a glossary and nothing else — no implementation details, no spec, no scratch pad.
 
-### Offer ADRs sparingly
+### Write ADRs sparingly
 
-Only per the three-condition gate in **[ADR-FORMAT.md](./ADR-FORMAT.md)** — if any condition is missing, skip. Same file for the format.
+All three conditions in **[ADR-FORMAT.md](./ADR-FORMAT.md)** hold → write the ADR and report it; any condition missing → skip. The gate stays strict — write-by-default removes the pause, not the filter.

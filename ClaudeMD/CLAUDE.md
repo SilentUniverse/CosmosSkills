@@ -48,7 +48,7 @@ Transform tasks into verifiable goals. Loop until verified.
 - Multi-step: state plan as `Step → why → verify` lines; flag the 1–2 shakiest steps (wrong assumptions break the plan).
 - Adversarial review: attack your own work before declaring done.
 - Match evidence to the change: focused tests for behavior, snapshots for user/model-visible output, lint/build for docs and packaging. Never repeat a passing check or default to the full suite; exhaustive runs only on request or where the active workflow schedules them. Related tests come from the diff (changed files → tests importing them), not intuition.
-- Anti-thrash: after ~2 failed fixes on the same failure, stop — switch approach (or `/diagnose`), or ask.
+- Anti-thrash: after ~2 failed fixes on the same failure, draft 2–3 approaches, pick by failure evidence, else `/diagnose`.
 - Corrections persist: when the user corrects your understanding mid-task, write the correction into the governing artifact (issue AC / PRD / `CODEBASE.md` invariant) before continuing.
 - No optional commentary: once the plan is aligned, execute it — don't teach, re-explain, or restate mid-task; output the step and its verification.
 

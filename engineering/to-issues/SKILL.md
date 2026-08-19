@@ -42,7 +42,7 @@ guess whether a change is "big" or "coupled" — measure it. Anchor the symbols 
 When unsure which tier, round **up** — a missed coupling is a regression; an extra glance is cheap.
 
 **Impact report** (only the third tier). It's to slicing what the reconciliation report is to a
-re-run — a checkpoint you show the user, not a silent decision:
+re-run — present it, then continue to slicing: visibility, not an approval gate.
 
 1. **Static reachability** — callers/importers of the anchored symbols, and which existing tests
    cover them. Machine-determinable — query it, don't eyeball it. Per-language commands + their
@@ -54,8 +54,9 @@ re-run — a checkpoint you show the user, not a silent decision:
    one Explore per unresolved area, not a full re-read.
 3. **Existing tests whose expectations this change alters** — coupled changes often *edit* a test's
    expectation, not just add tests; flag those so the slices carry the right AC.
-4. If a grep-invisible invariant surfaced, **offer to persist it to `CODEBASE.md`** — the next
-   coupled change here reuses it instead of re-deriving it.
+4. A grep-invisible invariant that passes the two-axis test → **persist it to the area's
+   `CODEBASE.md` block and report it**. Repo has no `CODEBASE.md` yet → note it in the report
+   instead (never bootstrap the orientation layer uninvited).
 
 Use the domain glossary; respect ADRs in the area. On a dynamic language (Python, untyped JS) static
 results are a floor, not the ceiling — say so rather than implying the impact list is complete.
@@ -77,6 +78,13 @@ Each slice has a state: `ready-for-agent` (fire-and-forget OK) or `ready-for-hum
 </vertical-slice-rules>
 
 **Wide refactors are the exception to slicing.** When step 2's impact probe lands in the top tier — a mechanical change (rename a column, retype a shared symbol) whose blast radius fans across the whole codebase, so no vertical slice can land green — sequence it **expand → contract** instead of forcing a tracer bullet: an *expand* issue adds the new form beside the old so nothing breaks; *migrate* issues then move call sites over in batches sized by blast radius (per package / dir), each `blocked_by` the expand and each staying green because the old form still stands; a *contract* issue finally deletes the old form, `blocked_by` every migrate batch. If a batch can't stay green alone, resize or merge batches until each does; if that's genuinely impossible, mark those issues `ready-for-human`.
+
+**Large feature (likely ≥5 slices): design the breakdown more than once.** Dispatch 2–3 parallel
+subagents, each drafting a full slice plan from the same PRD extract and impact report (they can't
+see this conversation — brief them fully). Rank mechanically: share of ACs independently
+verifiable, dependency depth (shallower wins), vertical completeness. The best draft feeds the
+step-4 quiz; runners-up appear as one-line alternates the user can promote. Smaller features:
+draft once inline. Same pattern as `/codebase-design`'s design-it-twice.
 
 ### 4. Quiz the user
 

@@ -1,6 +1,6 @@
 ---
 name: handoff
-description: Compact the current conversation into a handoff document for another agent to pick up. Use before /clear, when context is nearly full, or to checkpoint a long multi-session task.
+description: Compact the current conversation into a handoff document for another agent to pick up. Use before /clear, when context is nearly full, or to checkpoint a long multi-session task. In unattended runs (drain -p, overnight batches), overwrite-in-place a rolling mini-refresh at batch close; interactive sessions never auto-invoke — the user calls /handoff at the smart-zone boundary.
 argument-hint: "What will the next session be used for?"
 ---
 
@@ -19,6 +19,16 @@ Per `ARTIFACT-FORMAT.md` §Handoff files (installed: `~/.claude/skills/ARTIFACT-
 - **Cross-feature work** → `.scratch/handoff.md` (a single rolling file at the `.scratch/` root).
 
 Do **not** use the OS temp directory. If not inside a git repo, fall back to the working directory root.
+
+## Rolling mode (unattended runs only)
+
+In autonomous runs (`/tdd -p` waves, overnight batches), overwrite-in-place at each batch close with a **fixed mini-refresh touching every section that moved** (~6–8 lines, seconds):
+
+- §1 one status line · §2 one baseline line (re-stamp `git_base` in frontmatter too) · §3 the current next fork · §5's first boot action · §4 any new decisions/invariants · §6 any newly discarded approach
+- Heavy detail stays in its artifacts (completion records, issues, commits); the handoff carries pointers and deltas only (What-not-to-duplicate).
+- Sufficiency bar: a **cold session crash-lands mid-task** → this file plus the artifacts it names must be enough to continue. §2 and §6 are what a delta most easily starves — never skip them.
+
+The final `/handoff` verifies and tops up the existing file instead of recompressing the session. Interactive sessions never auto-invoke — the user sees the context level and calls `/handoff` at the smart-zone boundary.
 
 Every handoff carries YAML frontmatter:
 

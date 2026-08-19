@@ -56,3 +56,5 @@ If a session approaches the smart zone **before** `/to-issues`, don't push on a 
 `/compact` at the nearest phase boundary rather than mid-thought.
 
 End by naming the chosen next skill and, if you reset the window, which boundary option you took.
+
+Unattended runs (drain `-p`, overnight): maintain a rolling `/handoff` — mini-refresh at batch close (/handoff §Rolling mode). Interactive sessions: the user calls `/handoff` at the smart-zone boundary, never auto.
