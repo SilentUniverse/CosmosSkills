@@ -52,7 +52,7 @@ For each AC in the issue, find existing coverage. Drain `-p`: the brief carries 
 
 **Issue-based runs only.** When all AC pass, run an adversarial review, check `git diff` traces to this issue's AC, set `status: done`, and append a `### 完成` block to `## Comments`. Full procedure + template: **[COMPLETION-RECORD.md](COMPLETION-RECORD.md)**.
 
-Interview mode (no issue) writes none — run `/plan` afterward and mark the issue `done`. Standalone `/tdd` does **not** submit; use the Submit workflow named in `CLAUDE.md`.
+Interview mode (no issue) writes none — run `/spec` afterward and mark the issue `done`. Standalone `/tdd` does **not** submit; use the Submit workflow named in `CLAUDE.md`.
 
 ## Test philosophy
 

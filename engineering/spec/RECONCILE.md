@@ -1,6 +1,6 @@
-# plan — Reconciliation report (re-run against existing issues)
+# spec — Reconciliation report (re-run against existing issues)
 
-Loaded on demand by [`/plan`](SKILL.md) step 1 **only** when the feature already has issues in
+Loaded on demand by [`/spec`](SKILL.md) step 1 **only** when the feature already has issues in
 `.scratch/<feat>/issues/` and the skill is re-run from a revised PRD. A brand-new feature with no
 existing issues skips this entirely.
 

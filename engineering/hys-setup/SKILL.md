@@ -1,6 +1,6 @@
 ---
 name: hys-setup
-description: Sets up an `## Agent skills` block in AGENTS.md/CLAUDE.md and `docs/agents/` so the engineering skills know this repo's issue tracker (local markdown by default) and domain doc layout. Run before first use of `plan`, `tdd`, `diagnose`, `improve-arch`, or `zoom-out` — or if those skills appear to be missing context about the issue tracker or domain docs.
+description: Sets up an `## Agent skills` block in AGENTS.md/CLAUDE.md and `docs/agents/` so the engineering skills know this repo's issue tracker (local markdown by default) and domain doc layout. Run before first use of `spec`, `tdd`, `diagnose`, `improve-arch`, or `zoom-out` — or if those skills appear to be missing context about the issue tracker or domain docs.
 disable-model-invocation: true
 ---
 
@@ -55,7 +55,7 @@ Assume the user does not know what these terms mean. Each section starts with a 
 
 **Section A — Issue tracker（issue 追踪位置）.**
 
-> Explainer: The "issue tracker" is where issues and PRDs live for this repo. `/plan` and `/tdd` read from and write to it.
+> Explainer: The "issue tracker" is where issues and PRDs live for this repo. `/spec` and `/tdd` read from and write to it.
 
 Default and recommended: **local markdown**. Pick this unless the user specifically requests otherwise:
 
@@ -119,7 +119,7 @@ The block:
 
 Then write the three docs files using the seed templates in this skill folder as a starting point:
 
-- [issue-tracker-local.md](./issue-tracker-local.md) content folded into the tracker summary — the local-markdown convention now lives in the `## Agent skills` block itself
+- issue-tracker-local seed removed — its content folded into the tracker summary; the local-markdown convention now lives in the `## Agent skills` block itself
 - [domain.md](./domain.md) — domain doc consumer rules + layout
 
 For a non-default issue tracker (the user explicitly chose "Other"), write `docs/agents/issue-tracker.md` from scratch using the user's description.

@@ -3,7 +3,7 @@
 When a change touches **existing** code, the risk isn't slicing — it's what this change reaches and
 might break. This is the per-language playbook for that.
 
-**Read this only for the third tier** — `/plan` step 2 gates impact work on a cheap reference
+**Read this only for the third tier** — `/spec` step 2 gates impact work on a cheap reference
 probe and scales the response to the blast radius: a new change or a small-radius one (a few
 callers, one module, no known invariant) is handled inline and never reaches this file. Only a real
 coupled change — many references, multiple modules, or an invariant area — needs the playbook below.

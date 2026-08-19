@@ -1,6 +1,6 @@
-# plan — Issue file template
+# spec — Issue file template
 
-Loaded on demand by [`/plan`](SKILL.md) step 5, at the moment issues are actually written to
+Loaded on demand by [`/spec`](SKILL.md) step 5, at the moment issues are actually written to
 `.scratch/<feat>/issues/<NN>-<slug>.md`. Frontmatter follows [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd); the body uses the template below.
 
 Write issues in dependency order (blockers first) so you can reference real filenames in both the
