@@ -1,7 +1,7 @@
 ---
 name: tdd
-description: Test-driven development with red-green-refactor loop. Runs one issue, drains a feature's (or all) ready issues in dependency order (serially, or in parallel waves with -p), or interviews when asked without an issue. Use when user wants to build features or fix bugs using TDD, mentions "red-green-refactor", wants integration tests, or asks for test-first development.
-argument-hint: "Issue path, feature slug, or nothing to drain all ready issues"
+description: Test-driven development with red-green-refactor loop. Runs one issue, drains a feature's (or all) ready issues in dependency order (serially, or in parallel waves with -p), or interviews when asked without an issue. Use when user wants to build features or fix bugs using TDD, mentions "red-green-refactor", wants integration tests, or asks for test-first development. Also use `/tdd --log` (or 车机 / device command + log file) when the verdict is a command's log file, not a test runner.
+argument-hint: "Issue path, feature slug, --full, --log, or nothing to drain all ready issues"
 ---
 
 # Test-Driven Development
@@ -13,6 +13,7 @@ argument-hint: "Issue path, feature slug, or nothing to drain all ready issues"
 - `/tdd <feat>` — drain mode scoped to one feature's `issues/` directory.
 - `/tdd -p [<feat>]` — **drain mode (parallel)**: farm ready issues out to subagents (one per issue) so each issue's verbose output stays isolated and independent slices finish in parallel. Decoupled slices edit the shared tree directly; a worktree is used only when two in-flight issues would touch the same files. See [DRAIN.md](DRAIN.md).
 - `/tdd --full` — run build + the whole suite now (the manual full-suite check, §5); combine with any form above.
+- `/tdd --log` — skip the existing-test scan, §1 interface checklist, §2–3, and §5's pytest suite. Verdict is the command's log file: `~/.claude/references/cli-tools.md` (Verbose output discipline, **tee form**). 车机 / `adb`: `~/.claude/references/android-adb.md` first. `-p`: one issue per wave. `--full` and drain close: rerun that command, not FULL-SUITE.md. Combine with any form above. Same mode if the user says this run drives a device and the result is in a log file.
 - Natural-language ask without an issue (e.g. "write tests for the parser") — fall back to **interview mode** (jump to Workflow §1).
 
 ### Drain mode

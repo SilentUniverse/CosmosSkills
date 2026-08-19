@@ -14,7 +14,7 @@ checks no agent can run are not AC — they live in the PRD's 端到端验证, r
 ```markdown
 ### 完成 — YYYY-MM-DD
 
-- 新增测试：<list of test files + case counts>
+- 新增测试：<list of test files + case counts; `--log`: command + log path + `rg` predicate>
 - 验收：N/M ✅
 - 跳过的 AC：#X 由 <existing test path> 已覆盖（如有）
 - 审查：<≥2 条质疑，每条 质疑点→证据→处置。例：diff 中 X 未 trace 到任何 AC → 已回滚。无发现则列攻击面：查了什么、依据什么——禁零字>
