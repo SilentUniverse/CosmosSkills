@@ -31,3 +31,17 @@ The harness exposes ripgrep-backed `Grep`, `Glob`, and `Read` tools with permiss
 ## Quoting
 
 When a shell command embeds a user-supplied value, quote it; these tools take regex by default (`rg`, `sd`), so escape literals or pass `--fixed-strings` / `-F`.
+
+## Verbose output discipline
+
+Every long-output command (test suite, build, install, log dump) runs redirected to a log file; the agent digests, never streams into context:
+
+```sh
+<cmd> > .scratch/tmp/run-<label>.log 2>&1; echo "exit: $?"   # $TEMP outside a repo; tee when watching live
+tail -5 .scratch/tmp/run-<label>.log                          # first read-back: exit code + tail
+rg -n 'FAILED|Error|assert' .scratch/tmp/run-<label>.log     # targeted extraction, only on red
+```
+
+- Digest then delete: remove the log once the failure is resolved.
+- Too big to digest even with rg? Hand the log **path** to a read-only subagent; it reads the file and reports the verdict.
+- An `@`-mentioned log path means "read this file" — same digestion rules; never ask the user to paste log contents.

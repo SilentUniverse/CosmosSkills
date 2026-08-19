@@ -76,7 +76,7 @@ Do not proceed until you have reproduced **and** minimised.
 
 ## Phase 3 — Hypothesise
 
-Generate **3–5 ranked hypotheses** before testing any of them. Single-hypothesis generation anchors on the first plausible idea.
+Generate **3–5 ranked hypotheses** before testing any of them. Single-hypothesis generation anchors; so does a same-mind set — hard bugs: dispatch 2–3 parallel read-only subagents, each proposing hypotheses without seeing the others', then merge and dedupe. Rank by evidence coverage (how many observed facts each explains) × parsimony (fewer assumed moving parts wins).
 
 Each hypothesis must be **falsifiable**: state the prediction it makes.
 
@@ -127,4 +127,4 @@ Required before declaring done:
 - [ ] Throwaway prototypes / repro scripts deleted from `.scratch/tmp/`
 - [ ] The hypothesis that turned out correct is stated in the commit / PR message — so the next debugger learns
 
-**Then ask: what would have prevented this bug?** If the answer involves architectural change (no good test seam, tangled callers, hidden coupling) hand off to the `/improve-codebase-architecture` skill with the specifics. If the root cause was a `rg`-invisible invariant (hidden constraint, surprising coupling), offer to persist it to `CODEBASE.md` — two-axis test per `/zoom-out`. Make the recommendation **after** the fix is in, not before — you have more information now than when you started.
+**Then ask: what would have prevented this bug?** If the answer involves architectural change (no good test seam, tangled callers, hidden coupling) hand off to the `/improve-codebase-architecture` skill with the specifics. If the root cause was a `rg`-invisible invariant (hidden constraint, surprising coupling), persist it to the area's `CODEBASE.md` block — two-axis test per `/zoom-out` — and report; no `CODEBASE.md` yet → note it in the wrap-up instead. Make the recommendation **after** the fix is in, not before — you have more information now than when you started.

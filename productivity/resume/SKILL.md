@@ -1,6 +1,6 @@
 ---
 name: resume
-description: Resume work from the most recent handoff. Finds the active handoff under .scratch/ by frontmatter, verifies the git baseline still matches, then executes its 开机动作序列. Use at the start of a new session to continue a multi-session task without hunting for the handoff file.
+description: Resume work from the most recent handoff. Finds the active handoff under .scratch/ by frontmatter, verifies the git baseline still matches, then executes its 开机动作序列. Use at the start of a new session to continue a multi-session task without hunting for the handoff file. Self-invoke when a session starts with an active handoff present and the first message (or orchestrating prompt) is a continuation cue; never when the user signals a fresh start.
 argument-hint: "Feature slug (optional; omit to use the latest active handoff)"
 ---
 
