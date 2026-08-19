@@ -1,4 +1,4 @@
-# Recall Batteries — trim-leakage
+# Recall Batteries — lint
 
 Probes, not the definition: over-match by design (judge every hit semantically), under-match by
 nature (also read the densest prose in scope without a pattern).

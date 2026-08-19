@@ -53,7 +53,7 @@ decided. Confirm any claim you're about to act on (a test passes, a file exists,
 against the workspace first — the handoff is a bounded handoff, not truth.
 
 If the handoff names a feature, also glance at its live working set:
-`rg '^status: ready-for-' -g '*.md' -g '!**/archive/**' .scratch/<feat>/issues`.
+`rg '^status: ready' -g '*.md' -g '!**/archive/**' .scratch/<feat>/issues`.
 
 ### 4. Mark consumed when the work is finished
 

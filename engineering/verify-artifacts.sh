@@ -250,8 +250,8 @@ for fdir in "$SCRATCH"/*/; do
                 [ "${FM[type]:-}" = "issue" ] || err "$f: type '${FM[type]:-}' != issue"
                 [ "${FM[feature]:-}" = "$feat" ] || err "$f: feature '${FM[feature]:-}' != directory '$feat'"
                 case "${FM[status]:-}" in
-                    ready-for-agent|ready-for-human|done) ;;
-                    *) err "$f: status '${FM[status]:-}' not in ready-for-agent|ready-for-human|done";;
+                    ready|done) ;;
+                    *) err "$f: status '${FM[status]:-}' not in ready|done";;
                 esac
                 cat="${FM[category]:-}"
                 case "$cat" in

@@ -23,9 +23,9 @@ Survey by extraction: one `rg '^status:' -g '*.md' .scratch/<feat>/issues` pass,
 issue's `### 完成` block, and the latest non-superseded `PRD*.md` in full. Never read whole issue
 bodies.
 
-### 2. Present the plan (dry-run, no writes)
+### 2. Present the plan, then execute
 
-Show one preview covering all four actions, then wait for confirmation (yes-all or item-by-item):
+Show one preview covering all four actions, then execute it. Destructive steps relocate instead of delete: zombie/duplicate tests move to `.scratch/tmp/tidy-<date>/` (move back restores; the suite sees them gone), orphan files archive rather than delete.
 
 ```
 Tidy 计划：balance（dry-run，未落盘）
@@ -55,10 +55,12 @@ Tidy 计划：balance（dry-run，未落盘）
   done issues, top-level **plus `issues/archive/`**, into `.scratch/<feat>/SUMMARY.md` per the
   format doc.
 - **Test audit** — **zombie = a test in the parent's `### 完成` 新增测试 that the redo's
-  `### 完成` did not carry forward**; derive it by diffing the two lists. For confirmed zombies
-  and duplicates, delete the tests, then run the **full suite** (subagent, or redirect to
-  `.scratch/tmp/`). On unexpected red: `git checkout -- <file>`, re-run, re-audit.
-- **Orphan resolution** — for each flagged orphan, apply the user's choice: add a `refines:` field,
-  fold it into a PRD revision (hand off to `/to-prd`), or relabel `category: detail` and archive.
+  `### 完成` did not carry forward**; derive it by diffing the two lists. Move zombies and
+  duplicates to the staging dir, then run the **full suite** (subagent, or redirect to
+  `.scratch/tmp/`). Report every moved test with its case counts — a green suite does not prove
+  coverage was not lost. On unexpected red: move the tests back, re-run, re-audit.
+- **Orphan resolution** — resolve by the safe heuristic: obvious parent → add the `refines:`
+  field; no PRD linkage and stale → relabel `category: detail` and archive. Ambiguous ones are
+  reported unresolved — never guess on a may-be-load-bearing orphan.
 
 Report what moved, what was deleted, and any orphans left unresolved for the user to decide later.

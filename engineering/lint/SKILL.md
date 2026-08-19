@@ -1,5 +1,5 @@
 ---
-name: trim-leakage
+name: lint
 description: Audit and fix chain-of-thought leakage — prose whose vantage is the authoring session rather than the repository: dead design citations like (decision N), change narration like "used to/no longer", review vantage ("this PR adds"), reviewer-addressed justification, control-flow transcripts, hedged planning residue. Use when the user asks for a leakage audit or prose trim, before committing doc-heavy changes, or periodically over doc surfaces.
 argument-hint: "Scope (dir/file/glob); empty = ask"
 disable-model-invocation: true

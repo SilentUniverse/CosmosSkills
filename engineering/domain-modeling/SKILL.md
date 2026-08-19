@@ -20,7 +20,7 @@ Layout: **[CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md)**. Create files lazily — on
 1. Explore the code to identify the domain concepts worth capturing. Big repo: one `Explore` subagent per area; draft from their reports.
 2. Draft the **entire** glossary in one shot, applying your recommended term for every concept. Follow [CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md). Pick canonical terms, list synonyms under `_Avoid_`.
 3. Write it to `CONTEXT.md` (or the relevant per-context file), with each term tagged `(draft)`.
-4. Present the **whole draft at once** for the user to edit — one review gate, not N interruptions, and never zero review (boundaries / naming are what automation gets wrong). Drop the `(draft)` tags once the user confirms.
+4. Present the **whole draft at once** — one review gate, not N interruptions, and never zero review (boundaries / naming are what automation gets wrong). Order the review by confidence: low-confidence terms form a focused question block presented first; no term is auto-passed. Drop the `(draft)` tags once the user confirms.
 5. **Only** loop back to ask term-by-term where the code contradicts itself or you genuinely couldn't decide. List those few explicitly rather than walking the entire glossary.
 
 Once a baseline exists, later runs use the relentless per-term challenges below (driven by the `/grilling` loop when stress-testing a plan).
@@ -49,6 +49,6 @@ When a term is resolved, update `CONTEXT.md` right there. Don't batch these up �
 
 `CONTEXT.md` is a glossary and nothing else — no implementation details, no spec, no scratch pad.
 
-### Write ADRs sparingly
+### Offer ADRs sparingly
 
-All three conditions in **[ADR-FORMAT.md](./ADR-FORMAT.md)** hold → write the ADR and report it; any condition missing → skip. The gate stays strict — write-by-default removes the pause, not the filter.
+All three conditions in **[ADR-FORMAT.md](./ADR-FORMAT.md)** hold → offer to write the ADR; any condition missing → skip. The gate is the filter — no gate, no ADR.
