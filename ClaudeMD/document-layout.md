@@ -20,4 +20,4 @@ This load happens every session unconditionally; `/resume` reuses it and layers 
 
 - An issue with `status: done` (in YAML frontmatter) is immutable: never edit its body or change its `status`. The git commit is the source of truth. To revise, create a new redo issue (`NN-redo-<slug>.md`).
 - An ADR superseded by another ADR is immutable: never edit its body. Mark it superseded; the new ADR carries the change.
-- Re-running `/plan` with a changed intent defaults to writing a new `PRD-vN.md` with a `Supersedes:` header; the older PRD stays untouched. Append-in-place is reserved for purely additive changes the user explicitly asks for.
+- Re-running `/spec` with a changed intent defaults to writing a new `PRD-vN.md` with a `Supersedes:` header; the older PRD stays untouched. Append-in-place is reserved for purely additive changes the user explicitly asks for.

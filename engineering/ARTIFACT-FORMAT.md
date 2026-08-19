@@ -161,11 +161,11 @@ Field rules:
   omitted for top-level `enhancement` slices. `/tidy`'s orphan check flags any non-top-level
   issue with neither a PRD user-story link nor a `refines`.
 - **touches** — top-level dirs/modules this slice is expected to edit, at directory granularity —
-  never file paths. Written by `/plan` from its impact probe; `/tdd -p` groups waves by
+  never file paths. Written by `/spec` from its impact probe; `/tdd -p` groups waves by
   overlap. Optional.
 - **created** — ISO date, set once at creation, never changed.
 
-The body keeps the section headings from `/plan`'s issue template. The completion record still
+The body keeps the section headings from `/spec`'s issue template. The completion record still
 appends to `## Comments` — schema + template: `tdd/COMPLETION-RECORD.md`; frontmatter `status` and
 the `### 完成` block move together.
 
@@ -214,7 +214,7 @@ created: 2026-06-18
 ---
 
 ## 问题（Problem）
-## 方案（Solution） ... (template: `/plan`'s PRD-TEMPLATE.md)
+## 方案（Solution） ... (template: `/spec`'s PRD-TEMPLATE.md)
 ```
 
 The skills read the highest `version` whose file is not listed in any other file's `supersedes`.
@@ -301,7 +301,7 @@ handoff field shape. CODEBASE.md leaves: root `type`/`generated` + body budget (
 lines; `budget:` frontmatter override), nested generated-block marker pairs + `git_base` + block
 budget, roster placeholder syntax rejected, roster↔directory bidirectional check. Missing `.scratch/` and absent `CODEBASE.md` pass
 clean. Run it wherever state could drift
-— `/plan` post-write, `/tidy` before regenerating, or any time the state looks off:
+— `/spec` post-write, `/tidy` before regenerating, or any time the state looks off:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File verify-artifacts.ps1 [-Root <repo>]
     bash verify-artifacts.sh [<repo-root>]

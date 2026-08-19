@@ -1,6 +1,6 @@
-# plan — PRD template
+# spec — PRD template
 
-Loaded on demand by [`/plan`](SKILL.md) when the intent warrants a PRD snapshot. Frontmatter per
+Loaded on demand by [`/spec`](SKILL.md) when the intent warrants a PRD snapshot. Frontmatter per
 [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md) (`type: prd`, `feature`, `version`, `supersedes`,
 `created`).
 
@@ -46,7 +46,7 @@ registered here** — never as issue AC or states.
 
 In-scope questions you can see coming but can't yet phrase sharply enough to slice. Test: can
 you state the question precisely *now* (not answer it)? If yes → Implementation Decision or an
-issue; if no → park it here. `/plan` graduates each item once it sharpens; a superseding PRD
+issue; if no → park it here. `/spec` graduates each item once it sharpens; a superseding PRD
 carries the rest forward.
 
 ## 不在本次范围内（Out of Scope）

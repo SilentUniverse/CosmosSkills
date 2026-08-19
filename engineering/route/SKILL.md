@@ -1,6 +1,6 @@
 ---
 name: route
-description: Router for the engineering workflow — maps a request onto the right next skill and manages context boundaries (smart zone, compact/clear/handoff) so long sessions stay fast and sharp. Use when unsure which skill to run next, when a session is getting long, or at a phase boundary between grill / plan / tdd / tidy.
+description: Router for the engineering workflow — maps a request onto the right next skill and manages context boundaries (smart zone, compact/clear/handoff) so long sessions stay fast and sharp. Use when unsure which skill to run next, when a session is getting long, or at a phase boundary between grill / spec / tdd / tidy.
 disable-model-invocation: true
 ---
 
@@ -14,7 +14,7 @@ smart zone).
 ```
 需求还没谈清 / 要压方案 ────────────────► /grill        (→ CONTEXT.md, ADR)
         │
-方案要落档 / 要拆成可执行切片 ───────────► /plan         (→ PRD.md* + issues/NN-*.md + DAG)
+方案要落档 / 要拆成可执行切片 ───────────► /spec         (→ PRD.md* + issues/NN-*.md + DAG)
         │
 切片就绪，要写代码 ──────────────────────► /tdd
         │   ├─ 想甩给 subagent 后台跑    ─► /tdd -p       (隔离各自输出，独立切片并行)
@@ -29,7 +29,7 @@ On-ramps that jump onto this flow:
 - **Bug / 变慢** → `/diagnose`（先建复现回路，再修）。
 - **外部事实要查** → `/research`（后台 subagent，主线不阻塞）。
 - **设计问题要个具体产物** → `/prototype`。
-- **需求又变** → `/plan`（意图变了 supersede + 对账报告；重大方向反转先 `/grill` 写新 ADR 标 `Supersedes:`）。
+- **需求又变** → `/spec`（意图变了 supersede + 对账报告；重大方向反转先 `/grill` 写新 ADR 标 `Supersedes:`）。
 
 ## 2. Manage the context boundary
 
@@ -37,7 +37,7 @@ The **smart zone** is the window (~150k tokens on current models) within which t
 reasons sharply. Past it, quality drops before the hard limit — so treat the smart zone, not the
 context limit, as the ceiling.
 
-**Keep grill → plan in one unbroken window** — don't compact or clear between
+**Keep grill → spec in one unbroken window** — don't compact or clear between
 them. Then **each `/tdd` slice starts fresh** from its issue file.
 
 At a phase boundary, pick the cheapest option that loses nothing:
@@ -50,7 +50,7 @@ At a phase boundary, pick the cheapest option that loses nothing:
 | **`/compact`** | Continuing needs *some* of this context but the window is near the smart zone — compress and seed a fresh session at the boundary. The default at the bottom of the tree. |
 | **`/handoff`** | Leaving this harness/directory, handing to a colleague, or forking mid-phase — write a portable doc. |
 
-If a session approaches the smart zone **before** `/plan`, don't push on a degraded window —
+If a session approaches the smart zone **before** `/spec`, don't push on a degraded window —
 `/compact` at the nearest phase boundary rather than mid-thought.
 
 End by naming the chosen next skill and, if you reset the window, which boundary option you took.

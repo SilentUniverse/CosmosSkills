@@ -9,7 +9,7 @@ Adversarial review is a required artifact, not a step: the `### 完成` block ca
 Revert what doesn't; if something out-of-scope is genuinely required, say why first.
 
 When all AC pass, set the frontmatter `status:` to `done` and append to `## Comments`. Hands-on
-checks no agent can run are not AC — they live in the PRD's 端到端验证, registered by `/plan`.
+checks no agent can run are not AC — they live in the PRD's 端到端验证, registered by `/spec`.
 
 ```markdown
 ### 完成 — YYYY-MM-DD

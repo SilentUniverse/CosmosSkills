@@ -1,11 +1,11 @@
 ---
-name: plan
+name: spec
 description: The single planning entry — turn any need (one-liner, grilled design, or mid-flight change) into dispatchable issues, with a versioned PRD when the intent warrants one. Scales internally: small asks skip the PRD, unclear ones get grilled inline, changed intents supersede. Use for any new or changed requirement; /tdd executes what this plans.
 argument-hint: "The need — anything from one line to a full design"
 disable-model-invocation: true
 ---
 
-# Plan
+# Spec
 
 One planning activity, two artifacts: the **PRD** (versioned intent snapshot — why + what, for
 reconciliation) and **issues** (the dispatch queue). Small asks need no PRD — the issue's

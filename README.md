@@ -71,7 +71,7 @@ curl -fsSL https://raw.githubusercontent.com/SilentUniverse/HysSkills/main/Claud
 
 ```
    ┌──────────────────────────────────────────────────────────────┐
-   │ /plan          唯一规划入口：想清 → 落档 → 拆 issue           │
+   │ /spec          唯一规划入口：想清 → 落档 → 拆 issue           │
    │  ├─ 小而清晰：跳过 PRD 直拆（issue 的 ## 上级 自带上下文）    │
    │  ├─ 模糊/有争议：内联拷问（grill 纪律）到能写为止             │
    │  ├─ 改已有功能：意图没变 → detail issue / 改 ready issue      │
@@ -99,7 +99,7 @@ curl -fsSL https://raw.githubusercontent.com/SilentUniverse/HysSkills/main/Claud
 
 > `/route` 是这张图的路由 + context 边界管家：拿不准下一步跑哪个技能、或会话变长时调它。
 
-需求又变 → `/plan`：意图变了 supersede PRD + 对账报告；只是加一块 → detail issue。重大方向反转先 `/grill` 写新 ADR（标 `Supersedes:`）。`done` 的 issue 永远不动；要改就新建 `redo-X.md`。
+需求又变 → `/spec`：意图变了 supersede PRD + 对账报告；只是加一块 → detail issue。重大方向反转先 `/grill` 写新 ADR（标 `Supersedes:`）。`done` 的 issue 永远不动；要改就新建 `redo-X.md`。
 
 **全长链不是必经管道**——见下面[新需求分流](#新需求来了)。
 
@@ -123,25 +123,25 @@ curl -fsSL https://raw.githubusercontent.com/SilentUniverse/HysSkills/main/Claud
 
 ### 新需求来了
 
-**一个入口**：`/plan <需求>`，内部按规模与意图自分流：
+**一个入口**：`/spec <需求>`，内部按规模与意图自分流：
 
 - 小而清晰 → 跳过 PRD 直拆 issue
 - 模糊/有争议 → 内联拷问（grill 纪律）到能写为止
 - 有真设计权衡 → `/prototype` 验证完再继续
 - 改已有功能 → overlap 检测：意图没变加 detail issue / 改 ready issue；意图变了 PRD-v2 + 对账报告；跨特性命中先问一句"加一块还是改方向"
-- PRD 是版本化的*意图快照*，**只在意图真的变了时才写**——`/plan` 自动判断，不用你操心
+- PRD 是版本化的*意图快照*，**只在意图真的变了时才写**——`/spec` 自动判断，不用你操心
 - 防"小功能漏"的是切片 quiz 和 AC 纪律，不是 PRD
 
 ### 修改已有需求
 
-**A. 扩展/深化已有功能（碰已有代码）**：直接 `/plan "给订单加部分退款"`。它内部先做**影响面探测**：一道廉价探测当总闸（`rg`/`ast-grep` 查引用），小半径一行带过、真耦合才出完整报告（受影响模块、可能回归的行为、哪些既有测试预期要改），宽重构走 expand→contract。探出 grep 看不见的 invariant 会落盘该区 `CODEBASE.md` 块（两轴判据）。动态语言（Python）静态查不全，报告会标注。按语言的具体命令：[impact-detection.md](engineering/plan/impact-detection.md)。
+**A. 扩展/深化已有功能（碰已有代码）**：直接 `/spec "给订单加部分退款"`。它内部先做**影响面探测**：一道廉价探测当总闸（`rg`/`ast-grep` 查引用），小半径一行带过、真耦合才出完整报告（受影响模块、可能回归的行为、哪些既有测试预期要改），宽重构走 expand→contract。探出 grep 看不见的 invariant 会落盘该区 `CODEBASE.md` 块（两轴判据）。动态语言（Python）静态查不全，报告会标注。按语言的具体命令：[impact-detection.md](engineering/spec/impact-detection.md)。
 
 **B. 改的是已写下的 issue 本身**：先问 status——
 
 | 状态 | 怎么改 |
 |---|---|
 | `ready` | 直接编辑文件 / 加新文件 / 删文件——还没承诺过，没历史包袱 |
-| `done` | **不可改**。`/plan`（意图变了：supersede + 对账）→ `/tdd <redo-issue>` |
+| `done` | **不可改**。`/spec`（意图变了：supersede + 对账）→ `/tdd <redo-issue>` |
 
 **架构整体反转**：先 `/grill` 写新 ADR 标 `Supersedes:`，再走"老 issue 已完工"流程。
 
@@ -166,7 +166,7 @@ curl -fsSL https://raw.githubusercontent.com/SilentUniverse/HysSkills/main/Claud
 | `ready` | 写清楚了，丢给 subagent 后台跑 |
 | `done` | 完工，**不可改**——git 已有 commit，要返工就新建 redo |
 
-需要你亲手做的验证（真机/品味/账号）不进状态机——`/plan` 把它们登记进 PRD 的端到端验证，批末报告的"等你验证"块提醒你。**不存在的状态**：inbox（要么 ready 要么删）、blocked（备注在 issue 里继续做）、shelved（不做就删）。
+需要你亲手做的验证（真机/品味/账号）不进状态机——`/spec` 把它们登记进 PRD 的端到端验证，批末报告的“等你验证”块提醒你。**不存在的状态**：inbox（要么 ready 要么删）、blocked（备注在 issue 里继续做）、shelved（不做就删）。
 
 ```bash
 rg '^status: ready' -g '**/issues/*.md' .scratch   # 活跃集（glob 天然排除 archive/）
@@ -228,7 +228,7 @@ rg '^status: ready' -g '**/issues/*.md' .scratch   # 活跃集（glob 天然排�
 ### 三条核心规则（不要破坏）
 
 1. **`done` 不可改**。修订 → 新建 `NN-redo-X.md`，旧的保留。
-2. **重跑规划（`/plan`）在意图变化时默认写 PRD-v2.md**。旧的不动；明说"补充"才追加 `## 修订`。
+2. **重跑规划（`/spec`）在意图变化时默认写 PRD-v2.md**。旧的不动；明说“补充”才追加 `## 修订`。
 3. **AC 只写本切片新加的行为**。前置条件靠 `blocked_by:` 串联，不复述上一刀已测的内容；tdd 跑前会扫已有测试，已覆盖的 AC 自动跳过。
 
 ---
@@ -268,7 +268,7 @@ skill 本身栈无关。项目级把测试发现规则、常用命令、栈特�
 - import 图：`grimp`
 ```
 
-其他语言的工具表见 [impact-detection.md](engineering/plan/impact-detection.md)。
+其他语言的工具表见 [impact-detection.md](engineering/spec/impact-detection.md)。
 
 ---
 
@@ -280,8 +280,8 @@ skill 本身栈无关。项目级把测试发现规则、常用命令、栈特�
 |---|---|
 | [hys-setup](engineering/hys-setup/SKILL.md) | 项目首次接入跑一次；Case 5 迁移旧文件到 frontmatter |
 | [grill](engineering/grill/SKILL.md) | 拷问方案逼出决策（有 CONTEXT.md/docs/adr/ 时落盘）。底层 [grilling](productivity/grilling/SKILL.md) 引擎 + [domain-modeling](engineering/domain-modeling/SKILL.md) 落盘 |
-| [prototype](engineering/prototype/SKILL.md) | 写代码前造一次性原型验证方案（用在 `/plan` 之前） |
-| [plan](engineering/plan/SKILL.md) | 唯一规划入口：小跳档直拆 / 模糊内联拷问 / 意图变了 supersede+对账；可派性测试拆分（to-prd + to-issues 的合并体） |
+| [prototype](engineering/prototype/SKILL.md) | 写代码前造一次性原型验证方案（用在 `/spec` 之前） |
+| [spec](engineering/spec/SKILL.md) | 唯一规划入口：小跳档直拆 / 模糊内联拷问 / 意图变了 supersede+对账；可派性测试拆分（to-prd + to-issues 的合并体） |
 | [atk](engineering/atk/SKILL.md) | 对抗审查 agent 自己的产出：新眼睛子代理 + 逐条验证 + 第一性重推导；说"对抗式审查/再审一轮/第一性原理再想想"即触发 |
 | [tdd](engineering/tdd/SKILL.md) | 红绿循环：单条 / 串行排空 / `-p` 并行排空（详见 [DRAIN.md](engineering/tdd/DRAIN.md)） |
 | [route](engineering/route/SKILL.md) | 拿不准下一步跑哪个 skill、或会话变长时喊它（路由 + context 边界管家） |
