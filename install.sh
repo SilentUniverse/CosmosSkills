@@ -162,11 +162,11 @@ for gate in verify-artifacts.ps1 verify-artifacts.sh; do
   copy_file "$ROOT/engineering/$gate" "$TARGET/$gate" "Gate: $gate"
 done
 
-if [[ -d "$ROOT/ClaudeMD" ]]; then
-  copy_file "$ROOT/ClaudeMD/CLAUDE.md" "$CLAUDE_ROOT/CLAUDE.md" "Guidelines: CLAUDE.md"
+if [[ -d "$ROOT/claude" ]]; then
+  copy_file "$ROOT/claude/CLAUDE.md" "$CLAUDE_ROOT/CLAUDE.md" "Guidelines: CLAUDE.md"
   ref_target="$CLAUDE_ROOT/references"
   ref_count=0
-  for ref in "$ROOT/ClaudeMD"/*.md; do
+  for ref in "$ROOT/claude"/*.md; do
     [[ -f "$ref" ]] || continue
     [[ "$(basename "$ref")" == "CLAUDE.md" ]] && continue
     if [[ "$DRY_RUN" -eq 1 ]]; then
@@ -184,7 +184,7 @@ if [[ -d "$ROOT/ClaudeMD" ]]; then
       for deployed in "$ref_target"/*.md; do
         [[ -f "$deployed" ]] || continue
         bn="$(basename "$deployed")"
-        [[ -f "$ROOT/ClaudeMD/$bn" ]] || rm -f "$deployed"
+        [[ -f "$ROOT/claude/$bn" ]] || rm -f "$deployed"
       done
     fi
     echo "References: copied $ref_count file(s) -> $ref_target"

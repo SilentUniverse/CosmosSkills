@@ -8,7 +8,7 @@
     <target>/<name> -> <repo>/<category>/<skill>
 
     It also distributes the global layer to $ClaudeRoot (default ~/.claude):
-    ClaudeMD/CLAUDE.md -> ~/.claude/CLAUDE.md; ClaudeMD/*.md -> ~/.claude/references/
+    claude/CLAUDE.md -> ~/.claude/CLAUDE.md; claude/*.md -> ~/.claude/references/
     (pruning removed ones); ARTIFACT-FORMAT.md -> <target>; hook scripts (explicit
     list) -> ~/.claude/hooks/. These are COPIES, not links — re-run after edits.
 
@@ -195,12 +195,12 @@ foreach ($gate in @("verify-artifacts.ps1", "verify-artifacts.sh")) {
 }
 
 
-# --- Distribute global guidelines: ClaudeMD/CLAUDE.md -> ~/.claude/CLAUDE.md, and the
+# --- Distribute global guidelines: claude/CLAUDE.md -> ~/.claude/CLAUDE.md, and the
 #     reference files -> ~/.claude/references/. CLAUDE.md is auto-loaded every session; the
 #     references are read on demand via the `→ ~/.claude/references/...` pointers inside it. ---
 # Explicit distribution root; a custom -Target must not move it.
 $claudeRoot = $ClaudeRoot
-$cmSource = Join-Path $root "ClaudeMD"
+$cmSource = Join-Path $root "claude"
 if (Test-Path -LiteralPath $cmSource) {
     $cmMain = Join-Path $cmSource "CLAUDE.md"
     if (Test-Path -LiteralPath $cmMain) {
@@ -224,7 +224,7 @@ if (Test-Path -LiteralPath $cmSource) {
             foreach ($ref in $refFiles) {
                 Copy-Item -LiteralPath $ref.FullName -Destination (Join-Path $refTarget $ref.Name) -Force
             }
-            # Prune deployed references whose source was removed from ClaudeMD/ (stale
+            # Prune deployed references whose source was removed from claude/ (stale
             # copies would outlive their → pointers in CLAUDE.md).
             Get-ChildItem -LiteralPath $refTarget -Filter "*.md" -File |
                 Where-Object { $refFiles.Name -notcontains $_.Name } |

@@ -43,7 +43,7 @@ bash install.sh
 
 装完新开 Claude Code 会话，敲 `/` 能看到 28 个 skill 即成功。
 
-安装会：把每个 skill junction 到 `~/.claude/skills/<name>`（改仓库即生效；已有同名目录备份到 `_backup-<时间戳>/`）；拷贝 `ClaudeMD/CLAUDE.md`、references、hooks 到 `~/.claude/`；分发 `ARTIFACT-FORMAT.md`。
+安装会：把每个 skill junction 到 `~/.claude/skills/<name>`（改仓库即生效；已有同名目录备份到 `_backup-<时间戳>/`）；拷贝 `claude/CLAUDE.md`、references、hooks 到 `~/.claude/`；分发 `ARTIFACT-FORMAT.md`。
 
 <details>
 <summary>可选：护栏 hook、现代 CLI、只要全局规则</summary>
@@ -53,7 +53,7 @@ bash install.sh
 - [git-guardrails](misc/git-guardrails-claude-code/SKILL.md) — 拦 `push` / `reset --hard` / `clean -f` / `branch -D` / `checkout .`
 - [modern-cli-guardrails](misc/modern-cli-guardrails/SKILL.md) — 拦宿主 `grep` / `find` / `ls` / `sed`
 
-**现代 CLI** — `yq`、`ast-grep` 等；没有也能靠内置 Grep / Read。[CLAUDE.md §7](ClaudeMD/CLAUDE.md)
+**现代 CLI** — `yq`、`ast-grep` 等；没有也能靠内置 Grep / Read。[CLAUDE.md §7](claude/CLAUDE.md)
 
 ```
 winget install -e --id BurntSushi.ripgrep.MSVC --id sharkdp.fd --id sharkdp.bat --id MikeFarah.yq --id ast-grep.ast-grep --id chmln.sd
@@ -64,11 +64,11 @@ winget install -e --id BurntSushi.ripgrep.MSVC --id sharkdp.fd --id sharkdp.bat 
 **只要全局规则：**
 
 ```
-curl.exe -fsSL https://raw.githubusercontent.com/SilentUniverse/HysSkills/main/ClaudeMD/CLAUDE.md -o "%USERPROFILE%\.claude\CLAUDE.md"
+curl.exe -fsSL https://raw.githubusercontent.com/SilentUniverse/HysSkills/main/claude/CLAUDE.md -o "%USERPROFILE%\.claude\CLAUDE.md"
 ```
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/SilentUniverse/HysSkills/main/ClaudeMD/CLAUDE.md -o ~/.claude/CLAUDE.md
+curl -fsSL https://raw.githubusercontent.com/SilentUniverse/HysSkills/main/claude/CLAUDE.md -o ~/.claude/CLAUDE.md
 ```
 
 已有自定义 `CLAUDE.md`：按编号补缺的节，别整文件覆盖。
