@@ -23,18 +23,22 @@ Matt Pocock 工程方法论的本地化改造。思考 / 代码用英文，对�
 
 ## 安装
 
-**Windows：** clone 后双击 `install-oneclick.cmd`。
+### Windows
+
+1. clone 仓库：
 
 ```
 git clone https://github.com/SilentUniverse/HysSkills
 ```
 
-**macOS / Linux**（需 PowerShell 7）：
+1. 打开仓库根目录，**双击 `install-oneclick.cmd`**。
+
+### macOS / Linux
 
 ```bash
 git clone https://github.com/SilentUniverse/HysSkills
 cd HysSkills
-pwsh -NoProfile -File ./install.ps1
+bash install.sh
 ```
 
 装完新开 Claude Code 会话，敲 `/` 能看到 28 个 skill 即成功。
