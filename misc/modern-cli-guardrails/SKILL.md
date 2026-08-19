@@ -82,7 +82,7 @@ Add to the appropriate settings file. **Windows / PowerShell** invokes the scrip
 }
 ```
 
-**Global** (`~/.claude/settings.json`):
+**Global** (`~/.claude/settings.json`) — Windows 写**绝对路径**，命令里不要出现 `$HOME` / `$USERPROFILE`。Grok 会在 spawn 前展开 `$VAR`，变量不存在就标 `[hooks: 1 failed]`，hook 根本不跑。`$CLAUDE_PROJECT_DIR` 由 runner 注入，项目级接线可用。
 
 ```json
 {
@@ -93,7 +93,7 @@ Add to the appropriate settings file. **Windows / PowerShell** invokes the scrip
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NoProfile -File \"$HOME/.claude/hooks/block-legacy-cli.ps1\""
+            "command": "pwsh -NoProfile -File \"C:/Users/<you>/.claude/hooks/block-legacy-cli.ps1\""
           }
         ]
       }

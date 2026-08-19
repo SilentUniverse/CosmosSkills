@@ -71,7 +71,7 @@ The two canonical states:
 - `ready` — fully specified, fire-and-forget OK (dispatch to a subagent)
 - `done` — completed; **immutable** (git has the commit; revisions are new issues)
 
-Hands-on checks no agent can run (device, taste, external account) live in the PRD's 端到端验证 — never as a state or issue AC (schema home: `ARTIFACT-FORMAT.md`).
+Hands-on checks no agent can run live in the PRD's 端到端验证 — never as a state or issue AC (schema: `ARTIFACT-FORMAT.md`; check list: `/spec` card test).
 
 **Section C — Domain docs（领域文档布局）.**
 

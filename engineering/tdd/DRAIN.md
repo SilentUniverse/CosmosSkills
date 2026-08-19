@@ -51,7 +51,8 @@ Loop until the ready set is empty:
    are all `done`. These have no ordering constraint between them.
 2. **Fan out — one subagent per issue, dispatched in a single turn.** Before dispatch, record the
    wave baseline (`git status --porcelain` output). Each `general-purpose` subagent
-   runs the full autonomous red-green loop for its issue. Coupling comes from `touches:` overlap
+   runs the full autonomous red-green loop for its issue. `--log` drain: one issue per wave.
+   Other coupling comes from `touches:` overlap
    (absent → judge from 做什么/AC):
    - **Disjoint → edit in place.** Subagents edit the shared tree directly.
    - **Overlapping → serialize into successive waves.** Worktree (`tdd/<NN>-<slug>`) only to
@@ -59,9 +60,10 @@ Loop until the ready set is empty:
      (`/merge-conflicts` for any conflict).
 
    The brief must be self-contained (it can't see this conversation):
-   - **Invoke `/tdd <issue-path>`** — this loads the full workflow (status guard, existing-test scan,
-     red-green-refactor discipline, Murphy check, completion record). The issue is `ready`
-     → autonomous mode: skip all "confirm with user" prompts.
+   - **Invoke `/tdd <issue-path>`** (add `--log` when the drain was started with `--log`) —
+     this loads the full workflow (status guard, existing-test scan, red-green-refactor
+     discipline, Murphy check, completion record). The issue is `ready` → autonomous mode:
+     skip all "confirm with user" prompts.
    - The issue is self-contained — no PRD attach — plus scoped-test + build commands from
      `docs/agents/domain.md` and the domain glossary pointer.
    - The **tests-so-far manifest** (earlier waves' 新增测试): don't write tests it already covers —
@@ -94,7 +96,8 @@ Loop until the ready set is empty:
 
 After the last issue takes the active set to empty, run the **full suite + build once** as the
 batch's closing check (**[FULL-SUITE.md](FULL-SUITE.md)**) — in a subagent, forking green (one-line
-tally) vs red (failing names + trimmed traceback). **If the closing suite is red**: map each
+tally) vs red (failing names + trimmed traceback). `--log` drain: rerun each shipped issue's log
+command (from 新增测试); do not run FULL-SUITE.md. **If the closing suite is red**: map each
 failing case to its issue via that issue's `### 完成` 新增测试 list; revert matched issues to
 `ready` with a note — `done` does not survive a red close; report unmapped failures as
 unowned regressions. Closing assertions: every dispatched issue accounted for (shipped / failed /

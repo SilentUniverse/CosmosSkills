@@ -40,4 +40,4 @@ Classification rules:
 - **未做但不需要了** — issue is `ready` AND the new PRD no longer requires it. Staged delete (relocate).
 - **全新切片** — nothing existing covers this part of the new PRD.
 
-Let the user confirm the report (item-by-item or yes-all). Then execute: deletes relocate to `.scratch/tmp/reconcile-<date>/` (undo = move back), never `rm`; edit for in-place changes; write new files for new + redo. Continue to step 3 to draft the new + redo slices.
+Let the user confirm the report (item-by-item or yes-all). Then execute: deletes relocate to `.scratch/tmp/reconcile-<date>/` (undo = move back), never `rm`; edit for in-place changes; write new files for new + redo. Continue from step 2.

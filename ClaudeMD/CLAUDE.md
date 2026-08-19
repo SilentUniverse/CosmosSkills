@@ -1,17 +1,16 @@
 # CLAUDE.md
 
-Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions. Loaded every session. Keep it lean: hard budget ≤1,100 words; exceeding means delete, not append.
 Tradeoff: caution over speed. For trivial tasks, use judgment.
 Sections ending in `→` point to `~/.claude/references/` — not auto-loaded; read the named file when the section applies. One home per fact: a rule lives here or in a reference, never both. A soft rule broken twice becomes a hook/skill (`modern-cli-guardrails` pattern) and leaves this file.
 
 ## 1. Think in English, respond in Chinese
 
-- Address the user as Master in every reply.
+- Address the user as 主人 in every reply.
 - Thinking, code, identifiers, file names, search queries: English
 - All responses to the user: Chinese
 - Written artifacts: Chinese body + English term names matching code identifiers
 - Artifacts state current-state facts, not change narration or leaked reasoning
-- Replies to Master: plain, concrete. Reread as an outsider and rewrite what they can't follow.
+- Replies to 主人: plain, concrete. Reread as an outsider and rewrite what they can't follow.
 - Still didn't follow ("等等"/"没懂")? Supply the missing context (what we're doing, what led here), don't just rephrase.
 
 ## 2. Think Before Coding
@@ -45,7 +44,6 @@ Security, validation, accessibility are never on the chopping block.
 
 ## 5. Goal-Driven Execution
 
-Transform tasks into verifiable goals. Loop until verified.
 - Multi-step: state plan as `Step → why → verify` lines; flag the 1–2 shakiest steps (wrong assumptions break the plan).
 - Adversarial review: attack your own work before declaring done.
 - Match evidence to the change: focused tests for behavior, snapshots for user/model-visible output, lint/build for docs and packaging. Never repeat a passing check; run the full suite only on request or where the workflow schedules it. Related tests come from the diff (changed files → tests importing them), not intuition.
@@ -76,7 +74,7 @@ Transform tasks into verifiable goals. Loop until verified.
 **Shell fallback**: `rg` `fd` `bat` `sd` `jq` `yq` `sg` only — never `grep` `find` `sed`. `ls` stays allowed — too frequent to replace.
 Host shell only: inside `adb shell`/`ssh`/`docker exec`/`wsl` the modern tools may not exist; the legacy names are correct there.
 
-Optional hard enforcement: the `modern-cli-guardrails` skill's `PreToolUse` hook blocks forbidden host-shell invocations. Unavoidable? Prefix the command with `# force-legacy` or set `ALLOW_LEGACY_CLI=1`.
+Hard enforcement: `modern-cli-guardrails`. Unavoidable? `# force-legacy` or `ALLOW_LEGACY_CLI=1`.
 
 → Mapping & matching rules: `~/.claude/references/cli-tools.md`
 
@@ -91,8 +89,6 @@ Windows console defaults to GBK (cp936); `PYTHONUTF8=1` is injected via settings
    ```
    Reading files inside `<cmd>` takes `Get-Content -Encoding UTF8`.
 3. **PS/cmd never write files.** Their write encodings corrupt content (PS5.1: UTF-16LE/BOM/GBK by form; cmd: always GBK — matrix in the reference). Use the `Write` tool or bash `>`; inside PS the only safe form is `[IO.File]::WriteAllText($p, $s)`. Chinese-bearing `.ps1` needs a BOM.
-
-Prefer built-in `Read`/`Write`/`Edit`/`Grep`/`Glob` when they can do the job — they bypass both encoding and quoting hazards.
 
 → PS vs bash decision table, observed behavior: `~/.claude/references/windows-cli.md`
 

@@ -39,15 +39,15 @@ What makes a good test here, which modules get tested, prior art in the codebase
 
 The runnable procedure demonstrating the whole feature works — commands/steps plus expected
 observable outcome (`（无）` for non-runnable features). Per-slice AC live in issues; the drain
-batch close runs this. **Hands-on checks no agent can run (device, taste, external account) are
-registered here** — never as issue AC or states.
+batch close runs this. **Hands-on checks no agent can run are registered here** — never as issue AC
+or states. Check list: `/spec` card test.
 
 ## 尚未明确（Fog of War）
 
 In-scope questions you can see coming but can't yet phrase sharply enough to slice. Test: can
-you state the question precisely *now* (not answer it)? If yes → Implementation Decision or an
-issue; if no → park it here. `/spec` graduates each item once it sharpens; a superseding PRD
-carries the rest forward.
+you state the question precisely *now* (not answer it)? If yes → card-test **open** (ask) or
+bake as Implementation Decision; if no → park it here. `/spec` graduates each item once it
+sharpens; a superseding PRD carries the rest forward.
 
 ## 不在本次范围内（Out of Scope）
 

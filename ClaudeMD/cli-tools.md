@@ -34,12 +34,19 @@ When a shell command embeds a user-supplied value, quote it; these tools take re
 
 ## Verbose output discipline
 
-Every long-output command (test suite, build, install, log dump) runs redirected to a log file; the agent digests, never streams into context:
+Long-output commands (test suite, build, install, log dump) redirect to a log file. Never stream into context:
 
 ```sh
-<cmd> > .scratch/tmp/run-<label>.log 2>&1; echo "exit: $?"   # $TEMP outside a repo; tee when watching live
+<cmd> > .scratch/tmp/run-<label>.log 2>&1; echo "exit: $?"   # $TEMP outside a repo
 tail -5 .scratch/tmp/run-<label>.log                          # first read-back: exit code + tail
 rg -n 'FAILED|Error|assert' .scratch/tmp/run-<label>.log     # targeted extraction, only on red
+```
+
+Live watch (print + file):
+
+```sh
+<cmd> 2>&1 | tee .scratch/tmp/run-<label>.log                 # bash
+<cmd> 2>&1 | Tee-Object -FilePath .scratch/tmp/run-<label>.log # pwsh
 ```
 
 - Digest then delete: remove the log once the failure is resolved.

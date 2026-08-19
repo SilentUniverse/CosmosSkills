@@ -113,6 +113,7 @@ Split into separate files when:
 Never treat length alone as a defect. Keep every load-bearing rule as one to three lines plus a
 link to its rationale; cut stories, duplicates, status notes, and the path used to derive the rule.
 Shorten high-frequency enum values and command names aggressively (`ready-for-agent` → `ready`); leave low-frequency internal names alone — churn costs more than the tokens save.
+`CLAUDE.md` (every-session): if/unless/then only; why in a `→` reference. ≤1,100 words — delete, don't append.
 
 ## Skill Candidates
 
