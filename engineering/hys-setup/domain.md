@@ -4,7 +4,7 @@ How the engineering skills should consume this repo's domain documentation when 
 
 ## Orientation load
 
-The session-start protocol (what to load, tiers, `git_base` drift check) is owned by CLAUDE.md §6 + `~/.claude/references/document-layout.md`; not restated here. Same tiers apply mid-session in unfamiliar areas. Absent files: proceed silently; `/grill` and `/zoom-out` create them lazily.
+The session-start protocol (what to load, tiers, `git_base` drift check) is owned by CLAUDE.md §6 + `~/.claude/references/document-layout.md`; not restated here. Same tiers apply mid-session in unfamiliar areas. Absent files: proceed silently. Glossaries are born via `/domain-modeling`; maps via `/zoom-out --save`. `/grill` does not lazy-create `CONTEXT.md`.
 
 ## Issue-state artifacts (generated, do not hand-edit)
 

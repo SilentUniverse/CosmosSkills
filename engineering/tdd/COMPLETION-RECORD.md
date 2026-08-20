@@ -15,9 +15,9 @@ checks no agent can run are not AC — they live in the PRD's 端到端验证, r
 ### 完成 — YYYY-MM-DD
 
 - 新增测试：<list of test files + case counts; `--log`: command + log path + `rg` predicate>
-- 验收：N/M ✅
-- 跳过的 AC：#X 由 <existing test path> 已覆盖（如有）
-- 审查：<≥2 条质疑，每条 质疑点→证据→处置。例：diff 中 X 未 trace 到任何 AC → 已回滚。无发现则列攻击面：查了什么、依据什么——禁零字>
+- 验收：#N → <test path::case or log predicate>（每条 AC 一行）
+- 跳过的 AC：#X 由 <existing test path::case> 已覆盖（本轮重跑绿）
+- 审查：≥2 条质疑，每条 质疑点→证据→处置。至少一条是 diff hunk → AC 或已回滚。禁止只用「查了什么」凑数。
 - 备注：<the pre-issue statement from autonomous runs + anything notable>
 ```
 
@@ -26,6 +26,9 @@ reading. In drain, one line per issue plus one consolidated batch explanation.
 
 Standalone `/tdd` does **not** submit. It stops at validated changes + completion records. Use the
 Submit workflow named in `CLAUDE.md`.
+
+The gate enforces this record mechanically: `done` without a `### 完成` block fails; every test
+file the block names must exist on disk.
 
 The issue file itself stays in `issues/` — `/tidy` moves it to `issues/archive/` later, not `/tdd`.
 

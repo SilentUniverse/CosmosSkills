@@ -158,7 +158,7 @@ copy_file() {
 
 echo
 copy_file "$ROOT/engineering/ARTIFACT-FORMAT.md" "$TARGET/ARTIFACT-FORMAT.md" "Contract: ARTIFACT-FORMAT.md"
-for gate in verify-artifacts.ps1 verify-artifacts.sh; do
+for gate in verify-artifacts.py; do
   copy_file "$ROOT/engineering/$gate" "$TARGET/$gate" "Gate: $gate"
 done
 

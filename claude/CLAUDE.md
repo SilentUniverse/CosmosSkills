@@ -53,20 +53,13 @@ Security, validation, accessibility are never on the chopping block.
 
 ## 6. Document Layout
 
-| Artifact | Path |
-|---|---|
-| Domain glossary | `CONTEXT.md` |
-| Codebase map | `CODEBASE.md` |
-| ADRs | `docs/adr/NNNN-slug.md` |
-| PRD | `.scratch/<feat>/PRD.md` |
-| Issues | `.scratch/<feat>/issues/NN-slug.md` |
-| Handoffs | `.scratch/<feat>/handoff.md` |
-| Temp files | `.scratch/tmp/` |
+Session start: trivial/read-only → only what the task names. Else load `CODEBASE.md` + `CONTEXT.md` (skip silently if absent); ADR titles only. None of the three exist → say so once, offer `/domain-modeling` (glossary) + `/zoom-out --save` (map).
 
-- **Session start**: if `CODEBASE.md` / `CONTEXT.md` / `docs/adr/` exist, load the orientation layer before working; skip silently if absent.
-- **Immutable**: a `status: done` issue and a superseded ADR are never edited — create a redo issue / new ADR.
+Smart zone (~150k tokens) is the quality ceiling, not the context limit. Keep grill → spec in one window; each `/tdd` slice starts from its issue file. At a phase boundary: continue first, then `/clear` / subagent / `/compact` / `/handoff`. Unsure which skill, or the session is long → `/route`.
 
-→ Session-start protocol, immutability details, artifact schema: `~/.claude/references/document-layout.md`
+`done` issues and superseded ADRs are immutable — redo / new ADR.
+
+→ Session-start protocol, immutability, artifact paths: `~/.claude/references/document-layout.md`
 
 ## 7. Modern CLI Tooling
 

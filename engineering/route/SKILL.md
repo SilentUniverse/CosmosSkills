@@ -20,7 +20,7 @@ smart zone).
         │   ├─ 想甩给 subagent 后台跑    ─► /tdd -p       (隔离各自输出，独立切片并行)
         │   └─ 想盯着过程 / 一条依赖长链 ─► /tdd (serial) (在主会话里盯着做)
         │
-写完了，要审 ────────────────────────────► /code-review  (Standards + Spec 并行)
+写完了，要审 ────────────────────────────► /code-review  (已随 drain 关批跑过 Spec+Standards 则跳过)
         │
 done 攒到 ~8+ ──────────────────────────► /tidy
 ```
@@ -29,7 +29,7 @@ On-ramps that jump onto this flow:
 - **Bug / 变慢** → `/diagnose`（先建复现回路，再修）。
 - **外部事实要查** → `/research`（后台 subagent，主线不阻塞）。
 - **设计问题要个具体产物** → `/prototype`。
-- **需求又变** → `/spec`（意图变了 supersede + 对账报告；重大方向反转先 `/grill` 写新 ADR 标 `Supersedes:`）。
+- **需求又变** → `/spec`（AC/决策被推翻才 supersede + 对账报告；只加一块 → detail；重大方向反转先 `/grill` 写新 ADR，旧的标 `Status: superseded`）。
 
 ## 2. Manage the context boundary
 

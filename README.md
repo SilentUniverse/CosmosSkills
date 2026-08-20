@@ -43,7 +43,7 @@ bash install.sh
 
 装完新开 Claude Code 会话，敲 `/` 能看到 28 个 skill 即成功。
 
-安装会：把每个 skill junction 到 `~/.claude/skills/<name>`（改仓库即生效；已有同名目录备份到 `_backup-<时间戳>/`）；拷贝 `claude/CLAUDE.md`、references、hooks 到 `~/.claude/`；分发 `ARTIFACT-FORMAT.md`。
+安装会：把每个 skill 链接到 `~/.claude/skills/<name>`（Windows junction / Unix symlink；改仓库即生效；已有同名目录备份到 `_backup-<时间戳>/`）；拷贝 `claude/CLAUDE.md`、references、hooks 到 `~/.claude/`；分发 `ARTIFACT-FORMAT.md`。
 
 <details>
 <summary>可选：护栏 hook、现代 CLI、只要全局规则</summary>
@@ -99,12 +99,12 @@ flowchart LR
 
 - 小而清晰：跳过 PRD 直拆（`## 上级` 自带上下文）
 - 会改卡的决定才问；ADR 级 → `/grill`
-- 已有功能：意图没变 → detail / 改 `ready`；意图变了 → `PRD-v2` + 对账；跨特性先问一句
+- 已有功能：没推翻已记录的 AC/决策 → detail / 改 `ready`；推翻了 → `PRD-v2` + 对账；跨特性先问一句
 - 已有代码：影响面探测
 - 写不出自足卡（`## 做什么` + AC）就不是独立 issue
 - agent 跑不了的验证 → PRD 端到端验证
 - 有真设计权衡 → 先 `/prototype`
-- PRD 是意图快照，意图真变了才写；防漏靠切片 quiz 和 AC，不是 PRD
+- PRD 是意图快照，推翻已记录的 AC/决策才写新版本；防漏靠切片 quiz 和 AC，不是 PRD
 
 **/tdd**
 
@@ -118,7 +118,7 @@ flowchart LR
 - 重生成 `SUMMARY.md`
 - 审计僵尸 / 重复测试 + 孤儿 issue
 
-需求又变 → 再 `/spec`。只加一块 → detail。重大方向反转先 `/grill` 写新 ADR（`Supersedes:`）。`done` 不动，要改就 `NN-redo-X.md`。
+需求又变 → 再 `/spec`。只加一块 → detail。重大方向反转先 `/grill` 写新 ADR，旧的标 `Status: superseded`。`done` 不动，要改就 `NN-redo-X.md`。
 
 全长链不是必经管道，见下面怎么喊。
 
@@ -135,7 +135,7 @@ flowchart LR
 | 上一 session 留了 handoff | `/resume` |
 | 做到哪了 | 自己跑 `rg '^status:' -g '**/issues/*.md' .scratch` |
 | 拿不准下一步 / 会话变长 | `/route` |
-| 5 轮内能收尾 | `/compact` |
+| 5 轮内能收尾 | `/compact`（grill→spec 之间禁止） |
 | 还有半天 / 换任务 | `/handoff` + `/clear` |
 
 能传路径就别让 agent 扫仓库。别把 PRD / issue 粘进对话。
@@ -149,13 +149,13 @@ flowchart LR
 | `ready` | 直接改 / 加 / 删文件 |
 | `done` | 不可改。`/spec` 出 redo → `/tdd` |
 
-架构整体反转：先 `/grill` 写新 ADR（`Supersedes:`）。
+架构整体反转：先 `/grill` 写新 ADR。
 
 ### 切 session
 
 | | |
 |---|---|
-| 5 轮内能收尾 | `/compact` |
+| 5 轮内能收尾 | `/compact`（grill→spec 之间禁止） |
 | 还有半天 | `/handoff` + `/clear` |
 | 读大文件 / 陌生模块 | subagent，只回报结论 |
 | 做一半换任务 | `/handoff` → `/clear` → 新 session |
@@ -189,7 +189,7 @@ rg '^status: ready' -g '**/issues/*.md' .scratch
 
 **接收已有项目** — 先建地图，少让 agent 反复扫代码。
 
-1. `/grill` 术语表 + `/zoom-out` 结构地图（都有 draft：一次起草、一次审）。临时看一块：`/zoom-out <path>`，默认只读
+1. `/domain-modeling` 术语表 + `/zoom-out` 结构地图（都有 draft：一次起草、一次审）。临时看一块：`/zoom-out <path>`，默认只读
 2. `/hys-setup` 识别旧状态机、非默认路径、旧 `Status:` 行，确认后落盘
 3. 护栏同上
 
@@ -205,7 +205,7 @@ repo/
 └── .scratch/
     ├── handoff.md             # 跨 feature 的滚动交接
     └── <feat>/
-        ├── PRD.md             # 意图快照（改意图则 PRD-vN.md）
+        ├── PRD.md             # 意图快照（AC/决策被推翻则 PRD-vN.md）
         ├── SUMMARY.md         # /tidy 生成：这个 feature 已建成什么
         ├── handoff.md         # 这个 feature 的滚动交接
         └── issues/
@@ -239,14 +239,14 @@ git_base: 7af387c
 ### 不要破坏
 
 1. `done` 不可改 → 新建 `NN-redo-X.md`
-2. 意图变了 → `PRD-v2.md`，旧的不动；明说「补充」才追加 `## 修订`
+2. 推翻已记录的 AC/决策 → `PRD-v2.md`，旧的不动；纯增量 → detail / 改 `ready`，不动 PRD
 3. AC 只写本切片新行为；前置靠 `blocked_by`。tdd 跑前会跳过已覆盖的 AC
 
 ---
 
 ## 低频
 
-**ADR** 只在两处提议：`/grill`（难以反悔 + 脱离上下文会困惑 + 真权衡，三条同时）；`/improve-arch`（你否决一个重构且理由有分量）。`CONTEXT.md` 记是什么，`CODEBASE.md` 记 grep 拿不到的，`docs/adr/` 记为什么。被取代的只标 superseded。
+**ADR** 只在两处提议：`/grill`（三条标准见 `engineering/domain-modeling/ADR-FORMAT.md`）；`/improve-arch`（你否决一个重构且理由有分量）。`CONTEXT.md` 记是什么，`CODEBASE.md` 记 grep 拿不到的，`docs/adr/` 记为什么。
 
 **少烧 token**
 

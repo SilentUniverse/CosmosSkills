@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Test-driven development with red-green-refactor loop. Runs one issue, drains a feature's (or all) ready issues in dependency order (serially, or in parallel waves with -p), or interviews when asked without an issue. Use when user wants to build features or fix bugs using TDD, mentions "red-green-refactor", wants integration tests, or asks for test-first development. Also use `/tdd --log` (or 车机 / device command + log file) when the verdict is a command's log file, not a test runner.
+description: Test-driven development with red-green-refactor loop. Runs one issue path, or drains ready issues (serial, or `-p` parallel waves). Use when the user names an issue/feature to implement test-first, or says "red-green-refactor" / `--log`. A bare requirement with no issue is `/spec`. A failure without a known cause is `/diagnose`, not this skill.
 argument-hint: "Issue path, feature slug, --full, --log, or nothing to drain all ready issues"
 ---
 
@@ -11,17 +11,17 @@ argument-hint: "Issue path, feature slug, --full, --log, or nothing to drain all
 - `/tdd <issue-path>` — run that one issue. Read its frontmatter `status:` first (per [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd)) and obey the guard below. Fully visible, one slice.
 - `/tdd` (bare) — **drain mode (serial)**: run *every* `ready` issue across `.scratch/`, one at a time, in dependency order, to completion. The dumb-but-legible batch path — no worktrees, all in the current session so you can watch each one.
 - `/tdd <feat>` — drain mode scoped to one feature's `issues/` directory.
-- `/tdd -p [<feat>]` — **drain mode (parallel)**: farm ready issues out to subagents (one per issue) so each issue's verbose output stays isolated and independent slices finish in parallel. Decoupled slices edit the shared tree directly; a worktree is used only when two in-flight issues would touch the same files. See [DRAIN.md](DRAIN.md).
+- `/tdd -p [<feat>]` — **drain mode (parallel)**: farm ready issues out to subagents (one per issue) so each issue's verbose output stays isolated and independent slices finish in parallel. Decoupled slices edit the shared tree directly; overlapping `touches:` serialize into later waves. A worktree only when the user asks to parallelize overlap. See [DRAIN.md](DRAIN.md).
 - `/tdd --full` — run build + the whole suite now (the manual full-suite check, §5); combine with any form above.
 - `/tdd --log` — skip the existing-test scan, §1 interface checklist, §2–3, and §5's pytest suite. Verdict is the command's log file: `~/.claude/references/cli-tools.md` (Verbose output discipline, **tee form**). 车机 / `adb`: `~/.claude/references/android-adb.md` first. `-p`: one issue per wave. `--full` and drain close: rerun that command, not FULL-SUITE.md. Combine with any form above. Same mode if the user says this run drives a device and the result is in a log file.
-- Natural-language ask without an issue (e.g. "write tests for the parser") — fall back to **interview mode** (jump to Workflow §1).
+- Natural-language ask without an issue path — stop; tell the user to `/spec` first. Do not interview, do not write tests.
 
 ### Drain mode
 
 Enumerate `ready` issues, topologically sort on `blocked_by`, run the batch through the
 autonomous loop (§Workflow), then close with one full suite + build. Two paths: **serial** (default —
 legible, one issue at a time) and **parallel** (`-p` — ready issues fan out to
-subagents; decoupled slices edit in place, worktree only when they'd collide). Full algorithm,
+subagents; decoupled slices edit in place, overlapping waves serialize). Full algorithm,
 subagent brief, and the edit-in-place-vs-worktree call: **[DRAIN.md](DRAIN.md)**.
 
 ### Status guard (issue-driven invocation)
@@ -41,7 +41,7 @@ Edge case — issue `category` is `redo` / `fix` (or filename matches `*-redo-*`
 >
 > The new spec changes the API shape. These tests will likely break. Want me to (a) update them in place / (b) delete them and write fresh / (c) leave them and let red signals guide you?"
 
-Wait for the user's choice before starting the red-green loop. This avoids leaving zombie tests after a redo. *(autonomous mode: (a) refines, (b) replaces; record the choice in `### 完成`)*
+Interactive: wait for the choice. Autonomous: parent AC/API shape changed → (b); else (a). Never (c). Record the choice and each parent test's fate (update / delete / keep) in `### 完成`.
 
 ### Existing-test scan (before writing any new test)
 
@@ -53,7 +53,7 @@ For each AC in the issue, find existing coverage. Drain `-p`: the brief carries 
 
 **Issue-based runs only.** When all AC pass, run an adversarial review, check `git diff` traces to this issue's AC, set `status: done`, and append a `### 完成` block to `## Comments`. Full procedure + template: **[COMPLETION-RECORD.md](COMPLETION-RECORD.md)**.
 
-Interview mode (no issue) writes none — run `/spec` afterward and mark the issue `done`. Standalone `/tdd` does **not** submit; use the Submit workflow named in `CLAUDE.md`.
+Standalone `/tdd` does **not** submit; use the Submit workflow named in `CLAUDE.md`.
 
 ## Test philosophy
 
@@ -78,15 +78,11 @@ Before writing any code:
 
 - [ ] Confirm with user what interface changes are needed *(autonomous mode: skip — the spec is the issue's 做什么/AC plus the PRD extract in `## 上级`)*
 - [ ] Confirm with user which behaviors to test *(autonomous mode: skip — AC are the priority)*
-- [ ] Shape deep modules + testable interfaces — run the `/codebase-design` skill for the deep-vs-shallow vocabulary and testability patterns
+- [ ] Shape deep modules + testable interfaces — `/codebase-design` only when a new seam is in play or the interface is unclear
 - [ ] List the behaviors to test (not implementation steps)
 - [ ] Get user approval on the plan *(autonomous mode: skip)*
 
 **Pre-issue statement (autonomous mode).** Before writing the first test, state in 2–3 lines: what this slice requires, which interface you'll shape, which behaviors you'll test first, and the biggest assumption it rests on. Don't wait for a reply — keep going. This is the user's cheapest point to catch a wrong understanding, before any code exists.
-
-Ask: "What should the public interface look like? Which behaviors are most important to test?"
-
-**You can't test everything.** Confirm with the user exactly which behaviors matter most. Focus testing effort on critical paths and complex logic, not every possible edge case.
 
 ### 2. Tracer Bullet
 

@@ -1,6 +1,6 @@
 # spec — Issue file template
 
-Loaded on demand by [`/spec`](SKILL.md) step 6 when writing
+Loaded on demand by [`/spec`](SKILL.md) when writing
 `.scratch/<feat>/issues/<NN>-<slug>.md`. Frontmatter follows [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd); the body uses the template below.
 
 Write issues in dependency order (blockers first) so you can reference real filenames in both the
@@ -46,4 +46,5 @@ Avoid specific file paths or code snippets. Exception: if a prototype produced a
 
 **Frontmatter** — fill every field per the schema in [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd). The three fields that drive this skill's output: `category` (`enhancement` default; `detail`/`redo`/`fix` for later sub-behaviour / re-work, which MUST also set `refines:`), `blocked_by` (sibling slugs that must reach `done` first — `/tdd`'s drain mode topologically sorts on it), and `refines` (parent slug, set for non-top-level slices).
 
-Do NOT modify any parent PRD or upstream issue.
+Never edit a `done` issue or the parent PRD. A `ready` issue may be edited in place by an
+additive re-run or a reconciliation.

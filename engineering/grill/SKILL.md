@@ -1,8 +1,9 @@
 ---
 name: grill
 description: A relentless interview to sharpen a plan or design. In a repo with CONTEXT.md or docs/adr/, also keeps the domain model current — writing glossary terms and ADRs inline as decisions crystallise. Without them, runs stateless. Use when the user wants to stress-test a plan before building, or uses any 'grill' trigger phrases.
-disable-model-invocation: true
 ---
+
+If `/spec` just ran, read this turn's 已落盘 list and the ADR-worthy question; do not re-ask settled AC.
 
 Run a `/grilling` session. Grilling owns routing itself (`/research`, `/prototype` recommendation); this wrapper adds domain persistence.
 
