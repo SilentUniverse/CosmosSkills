@@ -30,9 +30,10 @@ Then use the Agent tool with `subagent_type=Explore` to walk the codebase. Don't
 - Where are modules **shallow** — interface nearly as complex as the implementation?
 - Where have pure functions been extracted just for testability, but the real bugs hide in how they're called (no **locality**)?
 - Where do tightly-coupled modules leak across their seams?
+- Where does the directory layout disagree with how modules are actually used together — code used together but scattered, or one directory serving unrelated purposes?
 - Which parts of the codebase are untested, or hard to test through their current interface?
 
-Apply the **deletion test** to anything you suspect is shallow: would deleting it concentrate complexity, or just move it? A "yes, concentrates" is the signal you want.
+Apply the **deletion test** to anything you suspect is shallow: would deleting it concentrate complexity, or just move it? A "yes, concentrates" is the signal you want. Frame every candidate with the architectural trio: Parsimony — what can be removed; Locality — shrink the reasoning radius; Evolution — grow from the smallest working core.
 
 **Deletion evidence — classify consumers before proposing** (`rg` first; tools don't replace
 reading call sites):

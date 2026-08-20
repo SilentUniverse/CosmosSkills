@@ -1,8 +1,7 @@
-# diagnose — Feedback-loop construction menu
+# diagnose — Feedback-loop menu
 
-Loaded on demand by [`/diagnose`](SKILL.md) Phase 1 when the first few obvious loop shapes (failing
-test, curl, CLI diff) don't fit the bug and you need the fuller inspiration list. This is a menu to
-scan, not a checklist to read top-to-bottom every time.
+Loaded on demand by [`/diagnose`](SKILL.md) Phase 1 — construction menu, tightening, and the
+edge cases. A menu to scan, not a checklist to read top-to-bottom every time.
 
 ## Ways to construct a feedback loop — try them in roughly this order
 
@@ -18,3 +17,21 @@ scan, not a checklist to read top-to-bottom every time.
 10. **HITL script.** Last resort. If a human must click, drive _them_ with a structured loop so the loop is still captured. On Windows use `scripts/hitl-loop.template.ps1` (run via `pwsh -NoProfile -File`); on Unix/WSL use `scripts/hitl-loop.template.sh`. Captured output feeds back to you.
 
 Build the right feedback loop, and the bug is 90% fixed.
+
+## Tighten the loop
+
+Treat the loop as a product. Once you have _a_ loop, **tighten** it:
+
+- Can I make it faster? (Cache setup, skip unrelated init, narrow the test scope.)
+- Can I make the signal sharper? (Assert on the specific symptom, not "didn't crash".)
+- Can I make it more deterministic? (Pin time, seed RNG, isolate filesystem, freeze network.)
+
+A 30-second flaky loop is barely better than no loop; a 2-second deterministic one is tight — a debugging superpower.
+
+## Non-deterministic bugs
+
+The goal is not a clean repro but a **higher reproduction rate**. Loop the trigger 100×, parallelise, add stress, narrow timing windows, inject sleeps. A 50%-flake bug is debuggable; 1% is not — keep raising the rate until it's debuggable.
+
+## When you genuinely cannot build a loop
+
+Stop and say so explicitly. List what you tried. Ask the user for: (a) access to whatever environment reproduces it, (b) a captured artifact (HAR file, log dump, core dump, screen recording with timestamps), or (c) permission to add temporary production instrumentation. Do **not** proceed to hypothesise without a loop.

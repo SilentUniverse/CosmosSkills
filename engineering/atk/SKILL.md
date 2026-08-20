@@ -1,7 +1,7 @@
 ---
 name: atk
-description: Attack-mode review of the agent's own output — a diff, a design, a plan, a skill's text, or a decision. Re-derives load-bearing choices from first principles (what breaks without it?), then hunts failure modes (semantics, consistency, runtime, necessity, cost). Use when the user says 对抗式审查 / 再审一轮 / 第一性原理再想想. Not a substitute for `/code-review` or a `/tdd` completion 审查.
-argument-hint: "Target (empty = uncommitted diff)"
+description: Attack-mode review of the agent's own output — a diff, a design, a plan, a skill's text, or a decision. Re-derives load-bearing choices from first principles (what breaks without it?), then hunts failure modes (semantics, consistency, runtime, necessity, cost). Manual runs also explain every change in scope; spec WRITE-LOOP gets findings only. Use when the user says 对抗式审查 / 再审一轮 / 第一性原理再想想 / 给我讲讲你改了什么. Not a substitute for `/code-review` or a `/tdd` completion 审查.
+argument-hint: "Target, --all (entire uncommitted diff), or empty = changes since the last /atk"
 ---
 
 # Adversarial
@@ -12,9 +12,13 @@ which judges a diff against standards and spec; this judges any output against i
 
 ## Target
 
-Explicit argument > every modified file in the project (`git status` + per-file diffs against
-HEAD) > ask. No argument, or 所有修改, means the entire uncommitted working tree — all rounds'
-changes, not this conversation's latest. Name what is out of scope.
+- User-typed `/atk` — manual mode. Bare: the changes since this session's last `/atk` run
+  (first run in a session: this conversation's latest round). `--all`: the entire uncommitted
+  working tree — `git status` + per-file `git diff HEAD`. A named target: that target only.
+- Invoked by spec WRITE-LOOP step 4 — audit-only: attack the artifacts it names, return
+  findings, nothing else.
+
+Name what is out of scope.
 
 ## Method
 
@@ -23,7 +27,11 @@ changes, not this conversation's latest. Name what is out of scope.
 2. **Attack five surfaces:** semantics (meaning changed?), consistency (stale or renamed refs?),
    runtime (does it run — on Windows?), necessity (readerless file, fake pause, unclosed state,
    doorless entry?), cost (tokens, attention).
-3. **Verdict each finding with a quote:** 修复 / 否决 / 存疑保留. Record the deliberate keeps so the
+3. **A restructure gets both directions.** 正向 — walk every entry, pointer, and cross-skill link
+   as its consumer would; each link must still connect. 反向 — diff against the predecessor and
+   account for every rule, trigger, and checklist item of the old version: still present,
+   relocated — and reachable from the replacing head — or dropped with a reason.
+4. **Verdict each finding with a quote:** 修复 / 否决 / 存疑保留. Record the deliberate keeps so the
    next round doesn't re-litigate them.
 
 Big or unfamiliar target? Get one unbiased pass from a read-only subagent. Brief it with the
@@ -34,11 +42,34 @@ target: attack inline. Harness and gate runs: once, after the fixes, scoped to w
 
 ## Output
 
-Lead with one line: 修复 / 否决 / 存疑保留 counts and check status. Then the verdict table:
-finding, verdict. Then one lineage block per 修复, transitions in chronological order — the
-target's earlier modification first, this round's fixes last, each with its reason in one
-sentence. Quote short text verbatim; compress long text to its load-bearing part before the
-contrast. 原来 — the state before the earlier modification; 先改 — after it and why; 再改 —
-after this round's fix and why. A spot with no earlier modification drops the 先改 line.
-否决 / 存疑保留 one line each, quote included. List the deliberate keeps. Cost ledger one
-line, changed vs confirmed. No process narration. Prose fixes can chain to `/lint`.
+Mode is fixed by the invocation source: user-typed → audit + 讲解; spec WRITE-LOOP → findings
+only. In Chinese. No tables, no prose outside the lists.
+
+**发现** — both modes. One numbered item per finding, fixed shape:
+
+```
+1. <位置 file:line>
+   原句：<verbatim quote>
+   问题：<one sentence>
+   处置：修复—改成什么 / 否决—为什么不改 / 保留—何时再动
+```
+
+No quote, no finding. Omit when empty.
+
+**改动讲解** — user-typed only. One numbered item per change, fixed two lines:
+
+```
+1. <文件 位置>：<原文关键片段> → <改后关键片段>（add `+ …`, delete `- …`）
+   原因：<一句短语，机制性理由，不写论证>
+```
+
+A finding's fix item writes 原因 as 见发现 #N. Long text compresses to its load-bearing
+part.
+
+User-typed runs open with one lead line — 范围（N 文件 M 处）· 发现 X · 检查（which
+harness/parse/line checks ran）— and print to chat; audit-only runs return the findings to
+the caller, no lead line, no chat output. Non-diff targets (design, plan, decision):
+findings only, both modes.
+
+Round discipline: a later `/atk` covers only changes since the last `/atk`; an earlier item
+reappears only if it changed again. No process narration. Prose fixes can chain to `/lint`.

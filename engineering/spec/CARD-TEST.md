@@ -4,7 +4,8 @@ Loaded on demand by [`/spec`](SKILL.md) when units are being classified and cut 
 additive growth both land here. Issue body and frontmatter: [ISSUE-TEMPLATE.md](ISSUE-TEMPLATE.md).
 
 A unit is an issue iff `## 做什么` + ≥1 agent-runnable AC can be written for an agent that sees
-nothing else. Look up facts; do not ask them. Classify each unit:
+nothing else. AC derive from invariants first, examples second, and run through a named seam's
+interface — vocabulary per `/codebase-design`. Look up facts; do not ask them. Classify each unit:
 
 - Writable, and no outstanding question can falsify its AC / `blocked_by` / module boundary →
   **settled**.
@@ -21,12 +22,16 @@ nothing else. Look up facts; do not ask them. Classify each unit:
 Write-failures: "depends on X" → `blocked_by`, do not grow the unit. "and also…" → split.
 Two units always done together in the same files → one issue.
 
+Slice order: first card = the smallest correct working core (tracer); later cards grow on it —
+no abstraction for a future the PRD doesn't name.
+
 `status`: `ready` | `done`. Human-only work is never an issue.
 
 ## Grain quiz
 
 Runs immediately after classification, before any write, only if the batch is likely ≥5 slices.
-Skip: 1 slice, `detail`, `redo`, `fix`. Report per slice: AC count, `blocked_by`, DAG depth.
+Skip: 1 slice, `detail`, `redo`, `fix`. Report per slice: AC count, `blocked_by`, DAG depth,
+reasoning radius — how many modules one must read to trust the change.
 Ask: 粒度 / 依赖有要调的吗？ 这批切片共同建立在哪条假设上？它错了会塌什么？
 Parallel-draft 2–3 breakdowns only when the first cut fails AC verifiability, dependency
 depth, or vertical completeness; otherwise quiz that cut. An unanswered quiz falsifies only

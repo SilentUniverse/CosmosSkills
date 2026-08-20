@@ -37,7 +37,7 @@ Every handoff carries YAML frontmatter:
 type: handoff
 feature: balance      # the feature slug, or null for cross-feature work
 git_base: 3451766     # `git rev-parse --short HEAD` at write time
-status: active        # active when written; /resume sets consumed when the bridged work finishes, not at pickup
+status: active        # active when written; /resume deletes the file when the bridged work finishes — one handoff, one consume
 date: 2026-06-18
 ---
 ```

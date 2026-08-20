@@ -19,6 +19,11 @@ Sections ending in `→` point to `~/.claude/references/` — not auto-loaded; r
 - State assumptions explicitly; if unclear, stop, name what's confusing, and ask.
 - Multiple interpretations? Present them, don't pick silently.
 - Simpler approach exists? Say so. Push back when warranted.
+- Invariant first: state what must always be true before designing; derive the design from it.
+- Equivalent designs: pick the shorter correctness argument.
+- One-way doors — public ABI, schema, wire protocol — get flagged and reviewed hardest; under uncertainty prefer reversible decisions.
+
+→ Nine-word design vocabulary (definitions + fire points): `~/.claude/references/design-principles.md`
 
 ## 3. Simplicity First
 
@@ -30,6 +35,7 @@ Before writing code, descend this ladder, stop at the first rung that holds:
 5. One line? one line
 6. Only then: write minimum code that works
 
+Parsimony: minimize concepts, states, and special cases — not lines of code. Ask: what can be removed without losing an invariant or a requirement?
 No features, abstractions, or flexibility beyond what was asked; no error handling for impossible cases.
 Validate only at real boundaries (parse/config/IO/protocol/file/subprocess); trust types inside a typed process. A missing referenced file or value fails loud, never silently skipped.
 Security, validation, accessibility are never on the chopping block.
@@ -40,12 +46,14 @@ Security, validation, accessibility are never on the chopping block.
 - Match existing style. Mention dead code, don't delete it.
 - Remove orphans YOUR changes created. Don't remove pre-existing dead code.
 - Test: every changed line traces directly to the user's request.
+- Reasoning radius: a logically small change that needs many files to verify is a locality failure — flag it, don't grind through.
 - Submit workflow: `/commit` only. Ordinary coding/planning/review stops at validated changes.
 
 ## 5. Goal-Driven Execution
 
 - Multi-step: state plan as `Step → why → verify` lines; flag the 1–2 shakiest steps (wrong assumptions break the plan).
 - Adversarial review: attack your own work before declaring done.
+- Empiricism: observation beats model — when the run contradicts the reasoning, the reasoning loses. Perf claims carry measurements or aren't made.
 - Match evidence to the change: focused tests for behavior, snapshots for user/model-visible output, lint/build for docs and packaging. Never repeat a passing check; run the full suite only on request or where the workflow schedules it. Related tests come from the diff (changed files → tests importing them), not intuition.
 - Anti-thrash: after ~2 failed fixes on the same failure, draft 2–3 approaches, pick by failure evidence, else `/diagnose`.
 - Corrections persist: when the user corrects your understanding mid-task, write the correction into the governing artifact (issue AC / PRD / `CODEBASE.md` invariant) before continuing.
@@ -55,7 +63,7 @@ Security, validation, accessibility are never on the chopping block.
 
 Session start: trivial/read-only → only what the task names. Else load `CODEBASE.md` + `CONTEXT.md` (skip silently if absent); ADR titles only. None of the three exist → say so once, offer `/domain-modeling` (glossary) + `/zoom-out --save` (map).
 
-Smart zone (~150k tokens) is the quality ceiling, not the context limit. Keep grill → spec in one window; each `/tdd` slice starts from its issue file. At a phase boundary: continue first, then `/clear` / subagent / `/compact` / `/handoff`. Unsure which skill, or the session is long → `/route`.
+Smart zone (~150k tokens) is the quality ceiling, not the context limit. Keep grill → spec in one window; each `/tdd` slice starts from its issue file. At a phase boundary: continue first, then `/clear` / `/handoff` / subagent / `/compact`. Unsure which skill, or the session is long → `/route`. Near the smart zone with a phase unfinished → proactively suggest the boundary move (`/handoff` rolling, or `/compact` at the boundary).
 
 `done` issues and superseded ADRs are immutable — redo / new ADR.
 

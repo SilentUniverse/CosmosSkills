@@ -103,8 +103,8 @@ Rules:
 - **roster 行** — a real existing directory path (no `<placeholder>`, `{brace-set}`, or glob
   syntax — one representative real path per pattern) + ≤10-word responsibility. Every area
   appears; no silent omissions.
-- **Per-area block** — marker pair + `git_base` + body ≤8 lines. Each line passes the two-axis test
-  in `/zoom-out`: can't rg it AND bites if missing. Locations, exports, caller lists, import graphs
+- **Per-area block** — marker pair + `git_base` + body ≤8 lines. Each line passes the two-axis
+  test (defined in `/zoom-out`). Locations, exports, caller lists, import graphs
   are excluded. A 1-line block is normal; an area with no surviving facts gets a roster line only.
 - **Loading:** root is read at session start (CLAUDE.md §6). `src/<area>/CLAUDE.md` auto-injects
   when Claude Code reads files in that area — no manual pull.
@@ -189,7 +189,7 @@ history). There are exactly two locations:
 type: handoff
 feature: balance              # the feature slug, or null for cross-feature work
 git_base: 3451766             # commit hash HEAD was at when written
-status: active                # active | consumed
+status: active                # active; /resume deletes the file on completion
 date: 2026-06-18
 ---
 
@@ -203,8 +203,9 @@ Field rules:
   `.scratch/<feat>/handoff.md`); `null` for cross-feature work (file at `.scratch/handoff.md`).
 - **git_base** — HEAD's short hash at write time. `/resume` compares this against current HEAD and
   warns if they diverged (work happened since the handoff).
-- **status** — `active` when written; `/resume` sets it to `consumed` once the work it describes is
-  finished. Only `active` handoffs are resume candidates.
+- **status** — `active` when written; `/resume` **deletes the file** once the work it describes is
+  finished — one handoff, one consume; git keeps the history. Only `active` handoffs are resume
+  candidates; a stray `consumed` is legacy.
 
 ## PRD files — `.scratch/<feat>/PRD.md` / `PRD-vN.md`
 

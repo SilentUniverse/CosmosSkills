@@ -52,6 +52,21 @@ function New-JunctionCompat {
     New-Item -ItemType Junction -Path $LinkPath -Target $TargetPath | Out-Null
 }
 
+function Get-JunctionTarget {
+    param([string]$Path)
+
+    # LinkTarget exists only on PS 7+; PS 5.1 parses `dir /aL` output for the [target] bracket.
+    # The bracket shows the raw NT path — strip the `\??\` prefix so it compares like LinkTarget.
+    $item = Get-Item -LiteralPath $Path -Force
+    if ($item.LinkTarget) { return $item.LinkTarget }
+    $name = [regex]::Escape((Split-Path -Leaf $Path))
+    $parent = Split-Path -Parent $Path
+    foreach ($line in (cmd /c dir /aL "$parent")) {
+        if ($line -match "\s$name\s+\[(.+)\]\s*$") { return ($Matches[1] -replace '^\\\?\?\\', '') }
+    }
+    return $null
+}
+
 function Get-SkillName {
     param([string]$SkillMdPath)
 
@@ -152,7 +167,9 @@ foreach ($s in $skills) {
 #     (the source skill was renamed/removed). Safe to delete — they're junctions, not real data. ---
 $linkedNames = $skills | ForEach-Object { $_.Name }
 Get-ChildItem -LiteralPath $Target -Directory -Force | Where-Object {
-    $_.LinkTarget -and $_.LinkTarget -like "$root*" -and $linkedNames -notcontains $_.Name
+    ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -and
+    ((Get-JunctionTarget $_.FullName) -like "$root*") -and
+    $linkedNames -notcontains $_.Name
 } | ForEach-Object {
     if ($DryRun) {
         Write-Host ("[DryRun] Remove orphan link: {0}" -f $_.FullName) -ForegroundColor Yellow
