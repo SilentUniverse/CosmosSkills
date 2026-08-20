@@ -1,6 +1,7 @@
 ---
 name: modern-cli-guardrails
 description: Set up a Claude Code PreToolUse hook that blocks legacy CLI tools (grep, find, sed) in host-shell segments of Bash commands, enforcing CLAUDE.md §7 modern tooling. Use when the user wants to hard-enforce rg/fd/sd, forbid legacy CLI tools, or turn the §7 soft rule into a blocking hook.
+disable-model-invocation: true
 ---
 
 # Setup Modern CLI Guardrails
@@ -26,13 +27,10 @@ When blocked, Claude sees the message on stderr and retries with the modern tool
 
 ### What does NOT get blocked
 
-- Text that is data to the host shell, not a command: quoted strings (the device command in `adb shell "ls; grep x"`, `ssh host "grep x /var/log"`) and heredoc bodies (`<<EOF … EOF`).
-- Tools in argument position — `adb shell ls /sdcard`, `docker exec ctr ls /app`, `kubectl exec pod -- ls`, `wsl ls` — not the first word of a host segment. Host-side pipelines still block: `adb logcat -d | grep x` → use `rg`.
-- Modern tools themselves: `rg`, `fd`, `bat`, `sd`.
-- Look-alikes: `ripgrep`, `fdfind`, `pcre2grep`, `lsd`, or paths like `bat cat/notes.md` — exact first-word match only.
-- **Escape hatch** (for genuinely unavoidable cases — third-party Makefiles, inlined scripts, etc.):
-  - Prefix the command with a `# force-legacy` comment line, or
-  - Set `ALLOW_LEGACY_CLI=1` in the shell that launches Claude Code (an inline `ALLOW_LEGACY_CLI=1 cmd` prefix is invisible to the hook, which runs in its own process).
+- Data, not command: quoted strings (`adb shell "ls; grep x"`, `ssh host "grep x /var/log"`) and heredoc bodies.
+- Tools in argument position (`adb shell ls /sdcard`, `docker exec ctr ls /app`, `wsl ls`) are not the first word of a host segment. Host-side pipelines still block: `adb logcat -d | grep x` → use `rg`.
+- Exact first-word match only: look-alikes (`ripgrep`, `fdfind`, `pcre2grep`, `lsd`) and modern tools (`rg`, `fd`, `bat`, `sd`) pass; the bundled test suite pins the edge cases.
+- **Escape hatch** for genuinely unavoidable cases (third-party Makefiles, inlined scripts): prefix the command with a `# force-legacy` comment line, or set `ALLOW_LEGACY_CLI=1` in the shell that launches Claude Code. An inline `ALLOW_LEGACY_CLI=1 cmd` prefix is invisible to the hook, which runs in its own process.
 
 The hook is failure-safe: malformed input, a missing dependency, or any internal error exits 0 (allow).
 
@@ -60,51 +58,10 @@ On Unix, make the `.sh` executable with `chmod +x`. The `.ps1` needs no chmod; i
 
 ### 3. Add hook to settings
 
-Add to the appropriate settings file. **Windows / PowerShell** invokes the script through `pwsh`:
-
-**Project** (`.claude/settings.json`):
-
-```json
-{
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-legacy-cli.ps1\""
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-**Global** (`~/.claude/settings.json`) — Windows 写**绝对路径**，命令里不要出现 `$HOME` / `$USERPROFILE`。Grok 会在 spawn 前展开 `$VAR`，变量不存在就标 `[hooks: 1 failed]`，hook 根本不跑。`$CLAUDE_PROJECT_DIR` 由 runner 注入，项目级接线可用。
-
-```json
-{
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File \"C:/Users/<you>/.claude/hooks/block-legacy-cli.ps1\""
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-On Unix/WSL, point `command` at the `.sh` script instead (e.g. `"$CLAUDE_PROJECT_DIR"/.claude/hooks/block-legacy-cli.sh`).
-
-If the settings file already exists, merge the hook into existing `hooks.PreToolUse` array — don't overwrite other settings. This composes with `git-guardrails-claude-code`: both are `Bash` matchers and can each live as a separate entry in the array.
+Wire the hook into the settings file per scope and platform: [WIRING.md](WIRING.md). If the
+settings file already exists, merge the hook into the existing `hooks.PreToolUse` array — don't
+overwrite other settings. This composes with `git-guardrails-claude-code`: both are `Bash`
+matchers and can each live as a separate entry in the array.
 
 ### 4. Ask about customization
 
@@ -112,24 +69,4 @@ Ask if the user wants to add or remove any tools from the blocked map. Edit `$ma
 
 ### 5. Verify
 
-**Windows / PowerShell** — run the bundled regression suite:
-
-```powershell
-pwsh -NoProfile -File scripts\test-block-legacy-cli.ps1   # expect "All tests passed."
-```
-
-Or a single spot check:
-
-```powershell
-'{"tool_input":{"command":"grep -r foo ."}}' | pwsh -NoProfile -File <path-to-script.ps1>
-$LASTEXITCODE   # expect 2
-```
-
-**Unix / WSL:**
-
-```bash
-echo '{"tool_input":{"command":"grep -r foo ."}}' | <path-to-script.sh>
-echo $?   # expect 2
-```
-
-A blocked command exits with code 2 and prints a BLOCKED message to stderr; an allowed command exits 0 with no output.
+Run the regression suite and spot checks: [WIRING.md](WIRING.md) §Verify.
