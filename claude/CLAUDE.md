@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Tradeoff: caution over speed. For trivial tasks, use judgment.
-Sections ending in `→` point to `~/.claude/references/` — not auto-loaded; read the named file when the section applies. One home per fact: a rule lives here or in a reference, never both. A soft rule broken twice becomes a hook/skill (`modern-cli-guardrails` pattern) and leaves this file.
+A line that starts with `→` and a path is an on-demand reference under `~/.claude/references/` — do not pre-load. Read it when that section's work starts. A fact lives here or in that reference, never both. Skill on-demand files use markdown links, not a line-start `→` path. A soft rule broken twice becomes a hook/skill; lookup leaves this file; an action-time stub may stay.
 
 ## 1. Think in English, respond in Chinese
 
@@ -25,7 +25,7 @@ Sections ending in `→` point to `~/.claude/references/` — not auto-loaded; r
 - Equivalent designs: pick the shorter correctness argument.
 - One-way doors — public ABI, schema, wire protocol — get flagged and reviewed hardest; under uncertainty prefer reversible decisions.
 
-→ Nine-word design vocabulary (definitions + fire points): `~/.claude/references/design-principles.md`
+→ Nine-word design vocabulary (design time; §2–§5): `~/.claude/references/design-principles.md`
 
 ## 3. Simplicity First
 
