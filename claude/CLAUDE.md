@@ -56,7 +56,7 @@ Security, validation, accessibility are never on the chopping block.
 - Multi-step: state plan as `Step → why → verify` lines; flag the 1–2 shakiest steps (wrong assumptions break the plan).
 - Adversarial review: attack your own work before declaring done.
 - Empiricism: observation beats model — when the run contradicts the reasoning, the reasoning loses. Perf claims carry measurements or aren't made.
-- Match evidence to the change: focused tests for behavior, snapshots for user/model-visible output, lint/build for docs and packaging. Never repeat a passing check; run the full suite only on request or where the workflow schedules it. Related tests come from the diff (changed files → tests importing them), not intuition.
+- Match evidence to the change: focused tests for behavior, snapshots for user/model-visible output, lint/build for docs and packaging. Never repeat a passing check; run the full suite only on request or where the workflow schedules it. Related tests come from the diff, not intuition.
 - Anti-thrash: after ~2 failed fixes on the same failure, draft 2–3 approaches, pick by failure evidence, else `/diagnose`.
 - Corrections persist: when the user corrects your understanding mid-task, write the correction into the governing artifact (issue AC / PRD / `CODEBASE.md` invariant) before continuing.
 - No optional commentary: once the plan is aligned, execute it. Don't re-explain or restate mid-task; output the step and its verification.
@@ -74,11 +74,7 @@ Smart zone (~150k tokens) is the quality ceiling, not the context limit. Keep gr
 
 ## 7. Modern CLI Tooling
 
-**Built-in tools first**: `Grep`, `Glob`, `Read` for routine search/read.
-**Shell fallback**: `rg` `fd` `bat` `sd` `jq` `yq` `sg` only — never `grep` `find` `sed`. `ls` stays allowed — too frequent to replace.
-Host shell only: inside `adb shell`/`ssh`/`docker exec`/`wsl` the modern tools may not exist; the legacy names are correct there.
-
-Hard enforcement: `modern-cli-guardrails`. Unavoidable? `# force-legacy` or `ALLOW_LEGACY_CLI=1`.
+**Built-ins first**: `Grep`/`Glob`/`Read`; shell fallback `rg` `fd` `bat` `sd` `jq` `yq` `sg` only — never `grep` `find` `sed` (`ls` stays). Host shell only (`adb shell`/`ssh`/`docker exec`/`wsl`): the legacy names are correct there. Hard enforcement: `modern-cli-guardrails` hook; escape: `# force-legacy` / `ALLOW_LEGACY_CLI=1`.
 
 → Mapping & matching rules: `~/.claude/references/cli-tools.md`
 
@@ -92,13 +88,13 @@ Windows console defaults to GBK (cp936); `PYTHONUTF8=1` is injected via settings
    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "[Console]::InputEncoding=[System.Text.Encoding]::UTF8; [Console]::OutputEncoding=[System.Text.Encoding]::UTF8; <cmd>"
    ```
    Reading files inside `<cmd>` takes `Get-Content -Encoding UTF8`.
-3. **PS/cmd never write files.** Their write encodings corrupt content (PS5.1: UTF-16LE/BOM/GBK by form; cmd: always GBK — matrix in the reference). Use the `Write` tool or bash `>`; inside PS the only safe form is `[IO.File]::WriteAllText($p, $s)`. Chinese-bearing `.ps1` needs a BOM.
+3. **PS/cmd never write files.** Their write encodings corrupt content (matrix in the reference). Use the `Write` tool or bash `>`; inside PS the only safe form is `[IO.File]::WriteAllText($p, $s)`. Chinese-bearing `.ps1` needs a BOM.
 
 → PS vs bash decision table, observed behavior: `~/.claude/references/windows-cli.md`
 
 ## 9. Run to Completion
 
-Multi-item tasks finish ALL items in one pass, in any conversation, not only inside a named skill. A task matches when the ask names a full set: 全部/所有/逐个, a numbered step list, or a deliverable the user defers to 最后 / "at the end".
+Multi-item tasks — the ask names a full set: 全部/所有/逐个, a numbered list, or 最后 / "at the end" — finish ALL items in one pass, in any conversation, not only inside a named skill.
 - Open by restating the pass contract: N 项、一个回合跑完、结尾一次汇总. Then enumerate the full set with a tool first (grep / ls / git diff), never from memory; hold it in the todo list or a file.
 - Every item ends done or with a written why-not. Item fails or blocks → mark it, move on, surface it in the final summary; don't stop to negotiate.
 - Close by re-running the enumeration expecting zero left; end with N/N — conclusions carry file:line or command output as evidence.
@@ -109,9 +105,9 @@ Multi-item tasks finish ALL items in one pass, in any conversation, not only ins
 ## 10. Parallelize with Subagents
 
 Default to subagents for fan-out work unless the setup cost (brief, verification, re-dispatch on drift) outweighs doing it inline.
-- **Parallelize**: independent file searches/research (one `Explore` agent each), unrelated module edits (one `general-purpose` agent each), any investigate-only task (search, read docs).
+- **Parallelize**: independent searches/research (one `Explore` each), unrelated module edits, investigate-only tasks.
 - **Don't**: single-file or small edits; steps that depend on a prior result's output.
-- **Prompt well**: the subagent can't see this conversation — give it needed context, the output format/scope, read-only research or write access, and a tool-call cap: past it, report findings.
+- **Prompt well**: the subagent can't see this conversation — give it context, output format/scope, access level, and a tool-call cap past which it reports.
 
 ## 11. Android / ADB
 
