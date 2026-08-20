@@ -1,10 +1,11 @@
 <#
 .SYNOPSIS
-    Regression harness for the CODEBASE.md leaves of verify-artifacts.ps1 / verify-artifacts.sh.
+    Regression harness for the CODEBASE.md leaves of verify-artifacts.py.
 
 .DESCRIPTION
-    Builds throwaway fixture repos in a temp dir, runs both script flavors against each fixture,
-    asserts exit codes. Source is ASCII-only on purpose: PS 5.1 parses a BOM-less .ps1 as ANSI,
+    Builds throwaway fixture repos in a temp dir, runs verify-artifacts.py against each
+    fixture, asserts exit codes. Interpreter: python, then python3 if python is missing.
+    Source is ASCII-only on purpose: PS 5.1 parses a BOM-less .ps1 as ANSI,
     so non-ASCII literals would corrupt; the Chinese roster-heading fixture builds its string
     from code points instead.
     Exit codes: 0 = all green, 1 = failures.
@@ -18,13 +19,19 @@ $ErrorActionPreference = "Stop"
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
 
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$vaPs1 = Join-Path $here "verify-artifacts.ps1"
-$vaSh = Join-Path $here "verify-artifacts.sh"
+$vaPy = Join-Path $here "verify-artifacts.py"
 
-$bash = (Get-Command bash -ErrorAction SilentlyContinue).Source
-if (-not $bash -and (Test-Path "C:\Program Files\Git\bin\bash.exe")) { $bash = "C:\Program Files\Git\bin\bash.exe" }
-$runSh = $null -ne $bash
-if (-not $runSh) { Write-Output "note: bash not found - running PowerShell flavor only" }
+$py = $null
+foreach ($name in @('python', 'python3')) {
+    $cmd = Get-Command $name -ErrorAction SilentlyContinue
+    if (-not $cmd) { continue }
+    & $cmd.Source -c "import sys" 2>$null
+    if ($LASTEXITCODE -eq 0) { $py = $cmd.Source; break }
+}
+if (-not $py) {
+    Write-Output "test-verify-codebase: neither python nor python3 is a working interpreter"
+    exit 1
+}
 
 $tmp = Join-Path ([IO.Path]::GetTempPath()) ("va-cb-test-" + [IO.Path]::GetRandomFileName())
 New-Item -ItemType Directory -Path $tmp | Out-Null
@@ -45,21 +52,12 @@ function New-FixtureDir([string]$Name) {
 }
 
 function Assert-Case([string]$Name, [string]$Dir, [int]$Expected, [string]$ExpectIn = '') {
-    $psOut = (& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:vaPs1 -Root $Dir 2>&1 | Out-String)
+    $out = (& $script:py $script:vaPy $Dir 2>&1 | Out-String)
     if ($LASTEXITCODE -ne $Expected) {
-        $script:failures.Add("$Name : PS exit $LASTEXITCODE, expected $Expected`n$psOut")
-    } elseif ($ExpectIn -ne '' -and -not $psOut.Contains($ExpectIn)) {
-        $script:failures.Add("$Name : PS output missing '$ExpectIn'`n$psOut")
+        $script:failures.Add("$Name : PY exit $LASTEXITCODE, expected $Expected`n$out")
+    } elseif ($ExpectIn -ne '' -and -not $out.Contains($ExpectIn)) {
+        $script:failures.Add("$Name : PY output missing '$ExpectIn'`n$out")
     } else { $script:passed++ }
-    if ($script:runSh) {
-        $posix = "/" + $Dir.Substring(0, 1).ToLower() + ($Dir.Substring(2) -replace '\\', '/')
-        $shOut = (& $script:bash $script:vaSh $posix 2>&1 | Out-String)
-        if ($LASTEXITCODE -ne $Expected) {
-            $script:failures.Add("$Name : SH exit $LASTEXITCODE, expected $Expected`n$shOut")
-        } elseif ($ExpectIn -ne '' -and -not $shOut.Contains($ExpectIn)) {
-            $script:failures.Add("$Name : SH output missing '$ExpectIn'`n$shOut")
-        } else { $script:passed++ }
-    }
 }
 
 # --- shared content ---
@@ -240,6 +238,84 @@ Write-Fixture "f20/CODEBASE.md" ($rootGood -replace '- `src/beta/` - beta respon
 Write-Fixture "f20/src/alpha/CLAUDE.md" $blockAlpha
 Write-Fixture "f20/src/beta/CLAUDE.md" $blockBeta
 Assert-Case "F20 roster placeholder/brace syntax rejected as violation, not crash" $d 1 'placeholder/glob syntax'
+
+$issueArchived = @'
+---
+type: issue
+feature: featA
+status: done
+category: enhancement
+blocked_by: []
+created: 2026-08-18
+---
+
+## body
+'@
+$issueChild = @'
+---
+type: issue
+feature: featA
+status: ready
+category: detail
+blocked_by: [01-slice]
+refines: 01-slice
+created: 2026-08-18
+---
+
+## body
+'@
+$d = New-FixtureDir "f21"
+Write-Fixture "f21/CODEBASE.md" $rootGood
+Write-Fixture "f21/src/alpha/CLAUDE.md" $blockAlpha
+Write-Fixture "f21/src/beta/CLAUDE.md" $blockBeta
+Write-Fixture "f21/.scratch/featA/issues/archive/01-slice.md" $issueArchived
+Write-Fixture "f21/.scratch/featA/issues/02-detail.md" $issueChild
+Assert-Case "F21 live blocked_by/refines resolve archived done parent" $d 0
+
+$d = New-FixtureDir "f22"
+Write-Fixture "f22/CODEBASE.md" $rootGood
+Write-Fixture "f22/src/alpha/CLAUDE.md" $blockAlpha
+Write-Fixture "f22/src/beta/CLAUDE.md" $blockBeta
+Write-Fixture "f22/.scratch/featA/issues/02-detail.md" $issueChild
+Assert-Case "F22 live blocked_by missing parent still red" $d 1 'no sibling or archived file'
+
+$d = New-FixtureDir "f23"
+New-Item -ItemType Directory -Path (Join-Path $d ".scratch/featA/issues") -Force | Out-Null
+$f23 = [System.Collections.Generic.List[byte]]::New()
+$f23.AddRange([Text.Encoding]::ASCII.GetBytes($issueGood))
+$f23.AddRange([Text.Encoding]::ASCII.GetBytes("stray byte: "))
+$f23.Add(0xFF)
+$f23.AddRange([Text.Encoding]::ASCII.GetBytes("`n"))
+[IO.File]::WriteAllBytes((Join-Path $d ".scratch/featA/issues/01-slice.md"), $f23.ToArray())
+Assert-Case "F23 stray non-UTF-8 byte in issue body reported as violation" $d 1 'not valid UTF-8'
+
+$WANC = [string][char]0x5B8C + [string][char]0x6210        # 完成
+$Xinz = [string][char]0x65B0 + [string][char]0x589E + [string][char]0x6D4B + [string][char]0x8BD5  # 新增测试
+$issueDoneRec = ($issueGood -replace 'status: ready', 'status: done') -replace '## body', ("## body`n`n## Comments`n`n### " + $WANC + " - 2026-08-19`n`n- " + $Xinz + ": tests/demo_test.py (3 cases)")
+
+$d = New-FixtureDir "f24"
+Write-Fixture "f24/.scratch/featA/issues/01-slice.md" ($issueGood -replace 'status: ready', 'status: done')
+Assert-Case "F24 done issue without completion record" $d 1 'no ###'
+
+$d = New-FixtureDir "f25"
+Write-Fixture "f25/.scratch/featA/issues/01-slice.md" $issueDoneRec
+Assert-Case "F25 record names missing test file" $d 1 'missing test file'
+
+$d = New-FixtureDir "f26"
+Write-Fixture "f26/.scratch/featA/issues/01-slice.md" $issueDoneRec
+Write-Fixture "f26/tests/demo_test.py" "def test_ok():`n    pass`n"
+Assert-Case "F26 record names existing test file" $d 0
+
+$d = New-FixtureDir "f27"
+Write-Fixture "f27/.scratch/featA/issues/01-slice.md" $issueDoneRec
+Write-Fixture "f27/.scratch/featA/tests/demo_test.py" "def test_ok():`n    pass`n"
+Assert-Case "F27 record names test file inside the feature dir" $d 0
+
+$issueDoneColon = $issueDoneRec -replace [regex]::Escape("### " + $WANC + " - "), ("### " + $WANC + [string][char]0xFF1A + " ")
+$d = New-FixtureDir "f28"
+Write-Fixture "f28/.scratch/featA/issues/01-slice.md" $issueDoneColon
+Write-Fixture "f28/tests/demo_test.py" "def test_ok():`n    pass`n"
+Assert-Case "F28 fullwidth-colon heading variant accepted" $d 0
 
 # --- report ---
 if ($failures.Count -gt 0) {
