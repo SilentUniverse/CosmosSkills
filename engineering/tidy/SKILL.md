@@ -11,7 +11,8 @@ A periodic garbage-collection pass over a feature, so the active working set sta
 
 ## Invocation
 
-- `/tidy <feat>` — tidy that feature.
+- `/tidy <feat>` — tidy that feature. Interactive: preview, then wait for confirm.
+  Drain-caller (`/tdd` close when `done` ≈8+): execute the previewed plan without waiting.
 - `/tidy` — survey `.scratch` (`rg '^status:' -g '**/issues/*.md' .scratch`), list features whose
   `done` count is high relative to active issues, and ask which to tidy.
 
@@ -20,12 +21,15 @@ A periodic garbage-collection pass over a feature, so the active working set sta
 ### 1. Survey
 
 Survey by extraction: one `rg '^status:' -g '*.md' .scratch/<feat>/issues` pass, each `done`
-issue's `### 完成` block, and the latest non-superseded `PRD*.md` in full. Never read whole issue
-bodies.
+issue's `### 完成` block, and the latest non-superseded `PRD*.md`'s 用户故事 section. Never
+read whole issue bodies or the full PRD.
 
 ### 2. Present the plan, then execute
 
-Show one preview covering all four actions, then execute it. Destructive steps relocate instead of delete: zombie/duplicate tests move to `.scratch/tmp/tidy-<date>/` (move back restores; the suite sees them gone), orphan files archive rather than delete.
+Show one preview covering all four actions. Interactive: wait for confirm, then execute.
+Drain-caller: execute immediately after the preview. Destructive steps relocate instead of delete:
+zombie/duplicate tests move to `.scratch/tmp/tidy-<date>/` (move back restores; the suite sees
+them gone), orphan files archive rather than delete.
 
 ```
 Tidy 计划：balance（dry-run，未落盘）
@@ -47,7 +51,7 @@ Tidy 计划：balance（dry-run，未落盘）
 确认执行？(y / 逐项挑)
 ```
 
-### 3. Execute on confirm
+### 3. Execute (on confirm, or immediately if drain-caller)
 
 - **Archive** — `git mv .scratch/<feat>/issues/NN-*.md .scratch/<feat>/issues/archive/` for each
   confirmed `done` issue. Create `archive/` if absent. Never edit the body or `status` — immutability holds.
@@ -56,8 +60,9 @@ Tidy 计划：balance（dry-run，未落盘）
   format doc.
 - **Test audit** — **zombie = a test in the parent's `### 完成` 新增测试 that the redo's
   `### 完成` did not carry forward**; derive it by diffing the two lists. Move zombies and
-  duplicates to the staging dir, then run the **full suite** (subagent, or redirect to
-  `.scratch/tmp/`). Report every moved test with its case counts — a green suite does not prove
+  duplicates to the staging dir. Run the **full suite** only if this pass moved tests (subagent,
+  or redirect to `.scratch/tmp/`). Drain-caller whose closing suite just passed: skip unless
+  tests moved. Report every moved test with its case counts — a green suite does not prove
   coverage was not lost. On unexpected red: move the tests back, re-run, re-audit.
 - **Orphan resolution** — resolve by the safe heuristic: obvious parent → add the `refines:`
   field; no PRD linkage and stale → relabel `category: detail` and archive. Ambiguous ones are

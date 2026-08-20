@@ -34,8 +34,11 @@ the current session so you can watch each one. No worktrees, no parallel subagen
 the dumb-but-legible path.
 
 Per-issue gate: mark `status: done` only if build + the touched module's **scoped** tests pass
-(not the whole suite); on failure leave it `ready`, note why in `## Comments`, and
-**continue** to the next (a red issue doesn't abort the drain unless others depend on it).
+(not the whole suite). Before each issue, record its baseline (`git status --porcelain` output).
+On failure, restore to that baseline: tracked files clean at baseline and modified now →
+`git checkout -- <file>`; files added since → delete; files already dirty at baseline →
+untouched. Never revert `.scratch/**`. Leave the issue `ready`, note why in `## Comments`, and
+**continue** to the next — dependents were already deferred at enumeration.
 
 ## Parallel path (`/tdd -p [<feat>]`)
 
@@ -48,7 +51,9 @@ worktree?**
 Loop until the ready set is empty:
 
 1. **Compute the wave.** From the remaining `ready` issues, take every one whose blockers
-   are all `done`. These have no ordering constraint between them.
+   are all `done`. These have no ordering constraint between them. Before dispatch, predict
+   each issue's test-file paths from its 做什么/AC: two issues predicted to create or modify the
+   same test file serialize into successive waves regardless of `touches:`.
 2. **Fan out — one subagent per issue, dispatched in a single turn.** Before dispatch, record the
    wave baseline (`git status --porcelain` output). Each `general-purpose` subagent
    runs the full autonomous red-green loop for its issue. `--log` drain: one issue per wave.
@@ -64,8 +69,9 @@ Loop until the ready set is empty:
      this loads the full workflow (status guard, existing-test scan, red-green-refactor
      discipline, Murphy check, completion record). The issue is `ready` → autonomous mode:
      skip all "confirm with user" prompts.
-   - The issue is self-contained — no PRD attach — plus scoped-test + build commands from
-     `docs/agents/domain.md` and the domain glossary pointer.
+   - The issue is self-contained — no PRD attach. Paste the scoped-test and build command
+     lines from `docs/agents/domain.md` into the brief; the brief's lines stand in for the
+     existing-test scan's domain.md lookup.
    - The **tests-so-far manifest** (earlier waves' 新增测试): don't write tests it already covers —
      report duplicates instead.
    - Report back **only** by outcome, in this fixed shape — a free-form reply is not a result:
@@ -73,7 +79,7 @@ Loop until the ready set is empty:
        subagent writes the completion record and sets `status: done` itself.
      - **`result: red` / `result: blocked`** → failing case names + a trimmed traceback (not
        thousands of raw lines) + what it tried + what it had already confirmed before failing.
-       Leave `status: ready`.
+       Revert **this issue's** edits first (not the whole wave). Leave `status: ready`.
 
    The verbose test output stays in the subagent — it does not flow back into the main context.
 3. **Collect the wave.** Each green subagent has already written its completion record and set
@@ -83,14 +89,18 @@ Loop until the ready set is empty:
    after its branch lands and passes on the merged tree. **Wave-fatal ≠ per-issue red**: a defect
    in the wave itself — the brief named a nonexistent issue, the tests-so-far manifest contradicts
    the tree, the base build is broken — stops the whole wave and surfaces immediately. Wave-fatal
-   recovery against the step-2 baseline: files clean in the baseline and modified now →
-   `git checkout -- <file>`; files the wave added → `rm`; files already modified in the baseline
-   → report, don't restore. On failure: map failing tests to issues via each `### 完成` 新增测试
-   list, revert matched issues to `ready` with a note, report the mapping. A red issue
+   recovery against the step-2 baseline: code files clean in the baseline and modified now →
+   `git checkout -- <file>`; files the wave added → delete; files already modified in the
+   baseline → report, don't restore. Never touch `.scratch/**` — completion records and revert
+   notes live there. Map the defect to its issues via each `### 完成` 新增测试
+   list, set those issues back to `ready`, append the note, report the mapping. A red issue
    stays `ready` — anything `blocked_by` it never enters a later wave (report it
    deferred). Merge each green issue's 新增测试 into the **tests-so-far manifest** and carry it
    into every later wave's brief.
 4. **Recompute** the ready set (newly-`done` issues may unblock the next wave) and repeat.
+   After collecting a wave, persist its state: update `.scratch/<feat>/handoff.md` in rolling
+   mode with the wave number, the wave baseline, and the tests-so-far manifest — a crashed
+   overnight run resumes from the handoff instead of reverse-engineering a mixed tree.
 
 ## Shared: close the batch
 
@@ -117,5 +127,5 @@ Over-build and wrong-implementation findings go to the user for adjudication —
 Standards axis
 runs alongside it: dispatch the `/code-review` Standards sub-agent in the same turn as the closing
 suite, via the caller-ran-Spec entry in `/code-review`; read-only, findings to the user, never
-auto-fixed. If a feature's `done` count crossed ~8, run `/tidy` (executes with staged deletions)
-and report.
+auto-fixed. If a feature's `done` count crossed ~8, run `/tidy` in drain-caller mode (execute the
+previewed plan, no confirm; skip its full suite unless it moved tests) and report.
