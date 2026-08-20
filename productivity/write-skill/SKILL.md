@@ -63,6 +63,9 @@ Hunt no-ops: does the rule change behaviour versus the model's default? No → d
 sentence. Prompt the positive — a prohibition drags the banned behaviour into context; state the
 target behaviour instead. Prefer leading words: a pretrained term (`tight`, `red`, `fog`) recruits
 priors free; a coined word pays definition tokens at every repetition.
+Symbols are functional or decorative. Decorative — paired apposition dashes, transitional
+em-dashes, parenthetical justifications — is rewritten as separate sentences, colons, or deleted;
+functional (enumeration/gating parens, mapping arrows) stays.
 
 ## Skill Candidates
 
@@ -86,3 +89,10 @@ structure, these attack content and vantage:
 - `/atk <skill file>` — 承重与链路（its Method, both directions）
 - `/lint <skill file>` — 视角（its one test）
 - `wc -l` — re-check the 100-line budget after any split
+
+## Corpus audit
+
+Auditing a set of skills, not just editing one: enumerate the full set with a tool first. Every
+skill in scope gets the five surfaces (atk's Method) plus description and invocation fit; every
+subfile in scope is read once, and the lint batteries run over the whole corpus. Unchanged skills
+are verdicted, not skipped. Report scope exactly as executed — a check not run is never claimed.

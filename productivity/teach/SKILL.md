@@ -1,6 +1,6 @@
 ---
 name: teach
-description: Teach the user a new skill or concept, within this workspace.
+description: Teach the user a new skill or concept over multiple sessions, using the current directory as a stateful teaching workspace (mission, lessons, learning records). Use when the user says 教我 / teach me / 我想学 X, or asks for a lesson, tutorial, or study plan.
 disable-model-invocation: true
 argument-hint: "What would you like to learn about?"
 ---
@@ -23,8 +23,9 @@ Treat the current directory as a teaching workspace. The state of their learning
 Deep learning needs three things — **Knowledge** (from high-trust resources), **Skills** (from
 interactive lessons you devise), and **Wisdom** (from other practitioners) — and lessons should build
 **storage strength** (long-term retention) over mere **fluency** (in-the-moment recall) via desirable
-difficulty. The full theory — Fluency vs Storage, Zone of Proximal Development, and how to handle
-Knowledge / Skills / Wisdom — drives how you design each lesson: **[PEDAGOGY.md](./PEDAGOGY.md)**.
+difficulty. Pitch each lesson to the learner's **zone of proximal development**: read their
+learning-records, ground in the mission. The full theory drives lesson design:
+**[PEDAGOGY.md](./PEDAGOGY.md)**.
 Never trust your parametric knowledge; ground in `RESOURCES.md`.
 
 ## Lessons
@@ -52,13 +53,6 @@ If the user is unclear about the mission, or the `MISSION.md` is not populated, 
 Failing to understand the mission will mean knowledge acquisition is not grounded in real-world goals.
 
 Missions may change as the user develops more skills and knowledge. This is normal - make sure to update the `MISSION.md` and add a learning record to capture the change. Confirm with the user before changing the mission.
-
-## Zone Of Proximal Development
-
-Each lesson, the user should always feel as if they are being challenged 'just enough' — pitched to
-their zone of proximal development (read their `learning-records`, ground in the mission). How to
-find that zone, and how to split Knowledge acquisition (difficulty is the enemy) from Skills practice
-(difficulty is the tool) and route Wisdom to a community: **[PEDAGOGY.md](./PEDAGOGY.md)**.
 
 ## Reference Documents
 

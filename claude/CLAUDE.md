@@ -98,11 +98,11 @@ Windows console defaults to GBK (cp936); `PYTHONUTF8=1` is injected via settings
 
 ## 9. Run to Completion
 
-Skills iterating over work items: finish ALL items in one pass.
-- Any 全部/所有/逐个 task: enumerate the full set with a tool first (grep / ls / git diff), never from memory; hold it in the todo list or a file.
+Multi-item tasks finish ALL items in one pass, in any conversation, not only inside a named skill. A task matches when the ask names a full set: 全部/所有/逐个, a numbered step list, or a deliverable the user defers to 最后 / "at the end".
+- Open by restating the pass contract: N 项、一个回合跑完、结尾一次汇总. Then enumerate the full set with a tool first (grep / ls / git diff), never from memory; hold it in the todo list or a file.
 - Every item ends done or with a written why-not. Item fails or blocks → mark it, move on, surface it in the final summary; don't stop to negotiate.
 - Close by re-running the enumeration expecting zero left; end with N/N — conclusions carry file:line or command output as evidence.
-- No mid-pass pauses, per-item summaries, or "shall I continue?" checkpoints. One summary at the end.
+- A turn ends at the pass's end, or on input only the user can give. No mid-pass pauses, per-item summaries, or "shall I continue?" checkpoints. If context forces a split, break at item boundaries with a one-line N/M marker, never mid-item.
 - Precedence with §2: plan-level uncertainty halts and asks; per-item failure marks and continues.
 - Autonomy until done.
 

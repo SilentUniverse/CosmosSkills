@@ -1,7 +1,6 @@
 ---
 name: grilling
 description: Interview engine called by `/grill` and `/improve-arch`. Work the decision tree in rounds. Do not invoke on grill trigger phrases — `/grill` owns persistence (CONTEXT.md / ADRs).
-disable-model-invocation: true
 ---
 
 Start from first principles.

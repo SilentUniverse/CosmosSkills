@@ -1,6 +1,7 @@
 ---
 name: git-guardrails-claude-code
 description: Set up Claude Code hooks to block dangerous git commands (push, reset --hard, clean, branch -D, etc.) before they execute. Use when user wants to prevent destructive git operations, add git safety hooks, or block git push/reset in Claude Code.
+disable-model-invocation: true
 ---
 
 # Setup Git Guardrails
@@ -43,51 +44,9 @@ On Unix, make the `.sh` executable with `chmod +x`. The `.ps1` needs no chmod; i
 
 ### 3. Add hook to settings
 
-Add to the appropriate settings file. **Windows / PowerShell** invokes the script through `pwsh`:
-
-**Project** (`.claude/settings.json`):
-
-```json
-{
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-dangerous-git.ps1\""
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-**Global** (`~/.claude/settings.json`) — Windows 写**绝对路径**，命令里不要出现 `$HOME` / `$USERPROFILE`。Grok 会在 spawn 前展开 `$VAR`，变量不存在就标 `[hooks: 1 failed]`，hook 根本不跑。`$CLAUDE_PROJECT_DIR` 由 runner 注入，项目级接线可用。
-
-```json
-{
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "pwsh -NoProfile -File \"C:/Users/<you>/.claude/hooks/block-dangerous-git.ps1\""
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-On Unix/WSL, point `command` at the `.sh` script instead (e.g. `"$CLAUDE_PROJECT_DIR"/.claude/hooks/block-dangerous-git.sh`).
-
-If the settings file already exists, merge the hook into existing `hooks.PreToolUse` array — don't overwrite other settings.
+Wire the hook into the settings file per scope and platform: [WIRING.md](WIRING.md). If the
+settings file already exists, merge the hook into the existing `hooks.PreToolUse` array — don't
+overwrite other settings.
 
 ### 4. Ask about customization
 
@@ -95,17 +54,4 @@ Ask if the user wants to add or remove subcommands from the blocked set. Edit th
 
 ### 5. Verify
 
-**Windows / PowerShell** — run the bundled regression suite:
-
-```powershell
-pwsh -NoProfile -File scripts\test-block-dangerous-git.ps1   # expect "All tests passed."
-```
-
-**Unix / WSL** (the `.sh` needs `jq` on PATH — missing jq fails open):
-
-```bash
-echo '{"tool_input":{"command":"git push origin main"}}' | <path-to-script.sh>
-echo $?   # expect 2
-```
-
-A blocked command exits 2 and prints a BLOCKED message to stderr; an allowed command exits 0 with no output.
+Run the regression suite and spot checks: [WIRING.md](WIRING.md) §Verify.
