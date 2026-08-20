@@ -62,7 +62,8 @@ Loop until the ready set is empty:
    - **Disjoint → edit in place.** Subagents edit the shared tree directly.
    - **Overlapping → serialize into successive waves.** Worktree (`tdd/<NN>-<slug>`) only to
      deliberately parallelize overlapping slices; merge back in dependency order
-     (`/merge-conflicts` for any conflict).
+     (`/merge-conflicts` for any conflict). Inside a worktree, nothing writes shared state
+     (no stash, no shared tmp paths).
 
    The brief must be self-contained (it can't see this conversation):
    - **Invoke `/tdd <issue-path>`** (add `--log` when the drain was started with `--log`) —
@@ -112,20 +113,33 @@ failing case to its issue via that issue's `### 完成` 新增测试 list; rever
 `ready` with a note — `done` does not survive a red close; report unmapped failures as
 unowned regressions. Closing assertions: every dispatched issue accounted for (shipped / failed /
 deferred); no worktree left unmerged; no subagent still running. For each drained feature, run
-its PRD's 端到端验证 unless absent or `（无）`; hands-on items the agent cannot run are reported
-as the **等你验证** block (sources: each feature's PRD 端到端验证, plus 手动验证 lines in
-`### 完成` blocks of PRD-less issues) — left pending for the user, never as issue state; on
-failure, report
-it against that feature's batch result. Report shipped, failed, deferred, and the full-suite
-result; explain the
-batch's changed flow in one consolidated write-up. Batches of ≥2 issues **run the Spec axis by
-default**, dispatched in parallel with the closing suite — one read-only subagent: `git diff
-HEAD` + the shipped issue paths, reports per issue under-build / over-build /
-wrong-implementation. Under-build findings auto-revert: map the missing AC to its issue, set it
-back to `ready` with a note (the red-close mechanism), and let the drain pick it up.
-Over-build and wrong-implementation findings go to the user for adjudication — never auto-fixed.
-Standards axis
-runs alongside it: dispatch the `/code-review` Standards sub-agent in the same turn as the closing
-suite, via the caller-ran-Spec entry in `/code-review`; read-only, findings to the user, never
-auto-fixed. If a feature's `done` count crossed ~8, run `/tidy` in drain-caller mode (execute the
+its PRD's 端到端验证 unless absent or `（无）`; on failure, report it against that feature's
+batch result.
+
+Batches of ≥2 issues run **both review axes in parallel with the closing suite**, same turn
+(briefs, single source: [../code-review/SUBAGENT-BRIEFS.md](../code-review/SUBAGENT-BRIEFS.md)):
+
+- **Spec axis** — one read-only subagent: `git diff HEAD` + the shipped issue paths, brief §Spec
+  (caller-ran-Spec mode), reports per issue under-build / over-build / wrong-implementation.
+  Under-build findings auto-revert: map the missing AC to its issue, set it back to `ready` with
+  a note (the red-close mechanism), let the drain pick it up.
+- **Standards axis** — read-only, brief §Standards, same file.
+- Over-build and wrong-implementation findings → the user for adjudication, never auto-fixed.
+
+**Close report — one screen, five blocks:**
+
+1. 结果: shipped / failed / deferred counts + suite verdict.
+2. Frontier: one line per non-shipped issue — `NN <slug> — blocked by <NN> | deferred | failed: <cause>`.
+3. 待裁决: over-build / wrong-implementation findings, each quoted to its hunk.
+4. 等你验证: every hands-on check (sources: each feature's PRD 端到端验证, plus 手动验证 lines
+   in PRD-less issues' `### 完成`), each with its exact runnable command inline when one exists —
+   copy-paste ready; subjective checks marked 人工. Left pending for the user, never as issue state.
+5. 详文: per-issue `### 完成` records; anything the one screen can't hold goes into the final
+   rolling handoff as pointers, consumed and deleted by the morning `/resume`.
+
+The final rolling `/handoff` refresh at close is the morning briefing — its §5 开机动作序列 points
+at the close report's 等你验证 / 待裁决 items; the morning `/resume` consumes it and deletes the
+file. A fully green close with nothing pending for the human deletes the rolling handoff instead.
+
+If a feature's `done` count crossed ~8, run `/tidy` in drain-caller mode (execute the
 previewed plan, no confirm; skip its full suite unless it moved tests) and report.

@@ -16,7 +16,8 @@ Its job:
    - **Genuinely throwaway** (just needed to unblock the next step) → `.scratch/tmp/` (gitignored).
    - No clear fit? Put it somewhere sensible, say where, let the user move it.
 
-Keep the subagent read-only — it investigates and writes the one file, nothing else.
+Keep the subagent read-only — it investigates and writes the one file, nothing else. It works
+alone: it must not spawn further agents.
 
 ## Done criteria (when the subagent returns)
 

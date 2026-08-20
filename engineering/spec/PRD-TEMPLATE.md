@@ -26,6 +26,9 @@ A numbered list of concrete scenarios: `1. <角色>需要<能力>（<场景或�
 
 ## 实现决策（Implementation Decisions）
 
+Lead with invariants — what must always be true; the design derives from them. Flag one-way
+doors — public ABI, schema, wire protocol — separately; they get the hardest review.
+
 The modules built/modified, their interfaces, architectural decisions, schema changes, API
 contracts, specific interactions. No file paths or code snippets — exception: a
 prototype-produced snippet (state machine, reducer, schema, type shape) that encodes a decision
@@ -56,4 +59,6 @@ What is explicitly excluded, with a one-line reason each.
 </prd-template>
 
 Adversarial self-review before hand-off: name the vaguest 用户场景 and the shakiest 实现决策 —
-tighten them or move them to 尚未明确. Done criterion: every named item rewritten or parked.
+tighten them or move them to 尚未明确. Equivalent designs: keep the shorter correctness
+argument. Any decision made for an imagined future — justify it or park it. Done criterion:
+every named item rewritten or parked.

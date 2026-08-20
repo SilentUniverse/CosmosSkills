@@ -104,6 +104,7 @@ flowchart LR
 - 写不出自足卡（`## 做什么` + AC）就不是独立 issue
 - agent 跑不了的验证 → PRD 端到端验证
 - 有真设计权衡 → 先 `/prototype`
+- 收尾冷读每张卡；写了 PRD 或 ≥5 张卡 → 自动 `/atk` 审查，发现进待决
 - PRD 是意图快照，推翻已记录的 AC/决策才写新版本；防漏靠切片 quiz 和 AC，不是 PRD
 
 **/tdd**
@@ -160,7 +161,7 @@ flowchart LR
 | 读大文件 / 陌生模块 | subagent，只回报结论 |
 | 做一半换任务 | `/handoff` → `/clear` → 新 session |
 
-`/resume` 找最近 `status: active` 的 handoff，对 `git_base`，按开机序列续，收尾标 `consumed`。上一 session 已完整结束 → 不要写 handoff，直接 `/tdd` 下一条。长任务每天收工前一份；跨 session 的 epic 每次切换前一份。
+`/resume` 找最近 `status: active` 的 handoff，对 `git_base`，按开机序列续，收尾**直接删除文件**——一份 handoff 一次消费，不堆积（git 留历史）。上一 session 已完整结束 → 不要写 handoff，直接 `/tdd` 下一条。长任务每天收工前一份；跨 session 的 epic 每次切换前一份。
 
 ### 状态
 
@@ -195,29 +196,13 @@ rg '^status: ready' -g '**/issues/*.md' .scratch
 
 ### 文档放哪
 
-```
-repo/
-├── CONTEXT.md                 # 术语
-├── CODEBASE.md                # 结构地图（/zoom-out 生成）
-├── docs/
-│   ├── adr/                   # 难以反悔的为什么
-│   └── agents/domain.md       # 测试 / 构建 / 影响面命令
-└── .scratch/
-    ├── handoff.md             # 跨 feature 的滚动交接
-    └── <feat>/
-        ├── PRD.md             # 意图快照（AC/决策被推翻则 PRD-vN.md）
-        ├── SUMMARY.md         # /tidy 生成：这个 feature 已建成什么
-        ├── handoff.md         # 这个 feature 的滚动交接
-        └── issues/
-            ├── 01-….md        # ready | done
-            └── archive/       # tidy 把 done 移入
-```
-
 | | 位置 | 放什么 |
 |---|---|---|
 | 项目级 | 仓库根 | `CONTEXT.md` 术语、`CODEBASE.md` 结构地图 |
-| 长期 | `docs/` | `docs/adr/`、`docs/agents/`（`domain.md` 缓存测试 / 构建命令） |
+| 长期 | `docs/` | `docs/adr/`、`docs/agents/`（`domain.md` 缓存测试 / 构建 / 影响面 / 性能测量命令） |
 | 工作态 | `.scratch/<feat>/` | `PRD.md`、`issues/`、`SUMMARY.md`、`handoff.md`（`tmp/` 被 ignore） |
+
+完整目录契约（一棵树 + 命名规则）：[ARTIFACT-FORMAT.md](engineering/ARTIFACT-FORMAT.md)。
 
 `CONTEXT.md` 只写概念，一两句，不带路径、不带实现：
 
@@ -278,7 +263,7 @@ git_base: 7af387c
 | [grill](engineering/grill/SKILL.md) | 拷问方案。[grilling](productivity/grilling/SKILL.md) + [domain-modeling](engineering/domain-modeling/SKILL.md) |
 | [prototype](engineering/prototype/SKILL.md) | `/spec` 前造一次性原型 |
 | [spec](engineering/spec/SKILL.md) | 规划：只写 PRD / issue |
-| [atk](engineering/atk/SKILL.md) | 对抗审查自己的产出 |
+| [atk](engineering/atk/SKILL.md) | 对抗审查自己的产出；工作流只调审查方向，讲解仅手动触发 |
 | [tdd](engineering/tdd/SKILL.md) | 写代码；`--log` 读设备 log。[DRAIN.md](engineering/tdd/DRAIN.md) |
 | [route](engineering/route/SKILL.md) | 下一步 / 会话边界 |
 | [tidy](engineering/tidy/SKILL.md) | 归档、SUMMARY、僵尸测试 |

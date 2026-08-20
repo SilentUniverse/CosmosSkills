@@ -23,6 +23,10 @@ config files. The first run that figures them out should fill this in.
 - **Full suite + build** (the verification gate, run once before commit):
 - **Scoped test** (one cycle of the red-green loop — pattern with a placeholder, e.g.
   `pytest <path>::<test>`, `vitest run <path>`, `go test ./<pkg>/...`):
+- **Perf measurement** (performance claims carry numbers — benchmark / profiler / trace
+  commands; a "faster" without a measurement is not a claim):
+- **Module boundary enforcement** (TS/JS: `effect` / `eslint-plugin-boundaries`; other stacks:
+  the equivalent):
 
 If a section is blank, infer from project config (`pyproject.toml` / `pytest.ini`, `package.json`
 test script, `build.gradle`, etc.), confirm once, then write it back here.

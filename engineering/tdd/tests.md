@@ -2,6 +2,30 @@
 
 Loaded on demand by `/tdd` when writing tests.
 
+## Existing coverage (before writing any new test)
+
+Identify the project's test convention from `docs/agents/domain.md`. If absent, infer from
+project config files (`pytest.ini` / `pyproject.toml`, `package.json` test script,
+`build.gradle` `testOptions`) and ask the user to confirm — then suggest writing it into
+`domain.md` so future runs skip this step. *(autonomous mode: adopt the inferred convention,
+note it in `### 完成`)*
+
+For each AC in the issue, find existing coverage. Drain `-p`: the brief carries the
+**tests-so-far manifest** — check AC against it, scan the filesystem only for what it can't
+show. Serial drain: earlier issues' `### 完成` blocks are already in context. Interactive: scan
+directly. Report covered vs uncovered briefly; record covered ACs in the `### 完成` block's
+跳过的 AC field.
+
+## Per-cycle checklist
+
+```
+[ ] Test describes behavior, not implementation
+[ ] Test uses public interface only
+[ ] Test would survive internal refactor
+[ ] Code is minimal for this test
+[ ] No speculative features added
+```
+
 ## Good Tests
 
 **Integration-style**: Test through real interfaces, not mocks of internal parts.

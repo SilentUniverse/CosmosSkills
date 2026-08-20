@@ -4,6 +4,8 @@
 
 The full frontmatter schema, naming/location conventions, and generated-file formats live **once** in `engineering/ARTIFACT-FORMAT.md` (distributed to `~/.claude/skills/`). Read that before producing an artifact.
 
+Don't restate what the environment answers (package.json scripts, config values, directory trees, `--help` output) — a copy is a cache that goes stale; query it or link it.
+
 ## Session start protocol
 
 Before working, load the project's orientation layer if present:

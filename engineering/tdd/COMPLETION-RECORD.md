@@ -8,6 +8,11 @@ Adversarial review is a required artifact, not a step: the `### 完成` block ca
 **Before marking done** — glance over `git diff`: every change should trace to this issue's AC.
 Revert what doesn't; if something out-of-scope is genuinely required, say why first.
 
+**Murphy before done.** Green only proves the cases you wrote tests for. Cover each chosen
+behavior's failure modes too — null/empty input, boundary values, error paths, and where
+relevant concurrency/timeouts. Occam trims during dev (no speculative features); Murphy expands
+during verification — an untested failure path ships as a bug.
+
 When all AC pass, set the frontmatter `status:` to `done` and append to `## Comments`. Hands-on
 checks no agent can run are not AC — they live in the PRD's 端到端验证, registered by `/spec`.
 
@@ -22,7 +27,8 @@ checks no agent can run are not AC — they live in the PRD's 端到端验证, r
 ```
 
 After validation: a single-issue run explains the changed flow, the design, and where to start
-reading. In drain, one line per issue plus one consolidated batch explanation.
+reading. In drain, one line per issue; the batch-level explanation is the drain close report
+(DRAIN.md five blocks), never a separate file.
 
 Standalone `/tdd` does **not** submit. It stops at validated changes + completion records. Use the
 Submit workflow named in `CLAUDE.md`.

@@ -33,25 +33,15 @@ On-ramps that jump onto this flow:
 
 ## 2. Manage the context boundary
 
-The **smart zone** is the window (~150k tokens on current models) within which the model still
-reasons sharply. Past it, quality drops before the hard limit — so treat the smart zone, not the
-context limit, as the ceiling.
+The **smart zone** (~150k tokens) is the quality ceiling, not the context limit. **Keep grill →
+spec in one unbroken window**; then **each `/tdd` slice starts fresh** from its issue file.
 
-**Keep grill → spec in one unbroken window** — don't compact or clear between
-them. Then **each `/tdd` slice starts fresh** from its issue file.
+At a phase boundary, take the options in order — Continue → `/clear` → `/handoff` → subagent →
+`/compact`; the cheapest that loses nothing wins, and `/compact` is the lossy default, never
+the first reach: [PHASE-BOUNDARIES.md](PHASE-BOUNDARIES.md).
 
-At a phase boundary, pick the cheapest option that loses nothing:
-
-| Option | When |
-|---|---|
-| **Continue** | Nothing to gain from resetting; the window is well inside the smart zone. Rule this out first. |
-| **`/clear`** | Nothing in the current window matters to what's next (e.g. planning done, moving to an unrelated slice). |
-| **subagent** | The next step is tightly scoped and read-heavy (search, full-suite run, research) — send it to its own window, get back only the result. |
-| **`/compact`** | Continuing needs *some* of this context but the window is near the smart zone — compress and seed a fresh session at the boundary. The default at the bottom of the tree. |
-| **`/handoff`** | Leaving this harness/directory, handing to a colleague, or forking mid-phase — write a portable doc. |
-
-If a session approaches the smart zone **before** `/spec`, don't push on a degraded window —
-`/compact` at the nearest phase boundary rather than mid-thought.
+Approaching the smart zone **before** `/spec`: don't push a degraded window — reset at the
+nearest boundary, never mid-thought.
 
 End by naming the chosen next skill and, if you reset the window, which boundary option you took.
 

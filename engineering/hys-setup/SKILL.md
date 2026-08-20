@@ -110,20 +110,20 @@ The block:
 
 ### Issue tracker
 
-[one-line summary of where issues are tracked]. See `docs/agents/issue-tracker.md`.
+[one-line tracker summary; local markdown: the convention is this block itself]. Non-default
+trackers: See `docs/agents/issue-tracker.md`.
 
 ### Domain docs
 
 [one-line summary of layout — "single-context" or "multi-context"]. See `docs/agents/domain.md`.
 ```
 
-Then write the three docs files using the seed templates in this skill folder as a starting point:
-
-- issue-tracker-local seed removed — its content folded into the tracker summary; the local-markdown convention now lives in the `## Agent skills` block itself
-- [domain.md](./domain.md) — domain doc consumer rules + layout
-
-For a non-default issue tracker (the user explicitly chose "Other"), write `docs/agents/issue-tracker.md` from scratch using the user's description.
+Then seed `docs/agents/domain.md` from [domain.md](./domain.md) — consumer rules + layout.
+The local-markdown tracker convention lives in the `## Agent skills` block itself; no tracker
+file is written. A non-default tracker instead writes `docs/agents/issue-tracker.md`
+from the user's description.
 
 ### 6. Done
 
-Verify first: `## Agent skills` appears exactly once in the chosen file; `docs/agents/*.md` exist non-empty. Then tell the user the setup is complete and which engineering skills will now read from these files. Mention they can edit `docs/agents/*.md` directly later — re-running this skill is only necessary if they want to switch issue trackers or restart from scratch.
+Verify first: `## Agent skills` appears exactly once in the chosen file; `docs/agents/domain.md`
+(and, for a non-default tracker, `issue-tracker.md`) exists non-empty. Then tell the user the setup is complete and which engineering skills will now read from these files. Mention they can edit `docs/agents/*.md` directly later — re-running this skill is only necessary if they want to switch issue trackers or restart from scratch.
