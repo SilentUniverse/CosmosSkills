@@ -1,6 +1,7 @@
 ---
 name: grilling
-description: Interview the user relentlessly about a plan or design. Use when the user wants to stress-test a plan before building, or uses any 'grill' trigger phrases.
+description: Interview engine called by `/grill` and `/improve-arch`. Work the decision tree in rounds. Do not invoke on grill trigger phrases — `/grill` owns persistence (CONTEXT.md / ADRs).
+disable-model-invocation: true
 ---
 
 Start from first principles.
