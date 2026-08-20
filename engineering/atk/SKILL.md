@@ -14,7 +14,8 @@ which judges a diff against standards and spec; this judges any output against i
 
 - User-typed `/atk` — manual mode. Bare: the changes since this session's last `/atk` run
   (first run in a session: this conversation's latest round). `--all`: the entire uncommitted
-  working tree — `git status` + per-file `git diff HEAD`. A named target: that target only.
+  working tree — `git status` + per-file `git diff HEAD`. A named target: that target only — a
+  file target covers both its current state and its uncommitted diff.
 - Invoked by spec WRITE-LOOP step 4 — audit-only: attack the artifacts it names, return
   findings, nothing else.
 
@@ -31,7 +32,7 @@ Name what is out of scope.
    as its consumer would; each link must still connect. 反向 — diff against the predecessor and
    account for every rule, trigger, and checklist item of the old version: still present,
    relocated — and reachable from the replacing head — or dropped with a reason.
-4. **Verdict each finding with a quote:** 修复 / 否决 / 存疑保留. Record the deliberate keeps so the
+4. **Verdict each finding with a quote:** 修复 / 否决 / 保留. Record the deliberate keeps so the
    next round doesn't re-litigate them.
 
 Big or unfamiliar target? Get one unbiased pass from a read-only subagent. Brief it with the
@@ -43,33 +44,24 @@ target: attack inline. Harness and gate runs: once, after the fixes, scoped to w
 ## Output
 
 Mode is fixed by the invocation source: user-typed → audit + 讲解; spec WRITE-LOOP → findings
-only. In Chinese. No tables, no prose outside the lists.
+only.
 
-**发现** — both modes. One numbered item per finding, fixed shape:
+Lead line: 范围（N 文件 M 处）· 发现 X · 检查（which harness/parse/line checks ran）. Output is the
+lead line plus the lists below — no tables, nothing else.
 
-```
-1. <位置 file:line>
-   原句：<verbatim quote>
-   问题：<one sentence>
-   处置：修复—改成什么 / 否决—为什么不改 / 保留—何时再动
-```
+**发现** — both modes. Findings follow the fixed shape (CLAUDE.md §1); 处置 is three-valued:
+修复—改成什么 / 否决—为什么不改 / 保留—何时再动. No quote, no finding.
 
-No quote, no finding. Omit when empty.
-
-**改动讲解** — user-typed only. One numbered item per change, fixed two lines:
+**改动讲解** — user-typed only. One item per change:
 
 ```
 1. <文件 位置>：<原文关键片段> → <改后关键片段>（add `+ …`, delete `- …`）
    原因：<一句短语，机制性理由，不写论证>
 ```
 
-A finding's fix item writes 原因 as 见发现 #N. Long text compresses to its load-bearing
-part.
-
-User-typed runs open with one lead line — 范围（N 文件 M 处）· 发现 X · 检查（which
-harness/parse/line checks ran）— and print to chat; audit-only runs return the findings to
-the caller, no lead line, no chat output. Non-diff targets (design, plan, decision):
-findings only, both modes.
+A finding's fix item writes 原因 as 见发现 #N; long text compresses to its load-bearing part.
+Audit-only runs return findings to the caller — no lead line, no chat output. Non-diff targets
+(design, plan, decision): findings only, both modes.
 
 Round discipline: a later `/atk` covers only changes since the last `/atk`; an earlier item
 reappears only if it changed again. No process narration. Prose fixes can chain to `/lint`.

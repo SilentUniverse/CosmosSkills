@@ -69,3 +69,10 @@ a resolvable change story is still change narration — class 3 routes it out.
    sentences, when propositions share a line); dropping provenance while keeping the number.
 5. **Verify**: re-run the batteries expecting only sanctioned keeps; confirm every remaining
    citation resolves at HEAD.
+
+## Output
+
+Lead line: 范围（N 文件 M 行新增）· 发现 X · 检查（探针 + 语义扫）. Findings follow the fixed
+shape (CLAUDE.md §1); field semantics: 问题 = what a HEAD reader can't resolve or would misread,
+改为 = the restated text, pure deletion writes 删除. Benign hits: one line, count + why benign.
+Clean run: the lead line only.

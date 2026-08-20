@@ -1,64 +1,13 @@
 ---
-name: write-a-skill
-description: Create new agent skills with proper structure, progressive disclosure, and bundled resources.
+name: write-skill
+description: Create and rework agent skills — structure, progressive disclosure, splitting — plus the acceptance pass after edits. Use when writing a new skill, splitting one past 100 lines, or verifying skill changes.
 disable-model-invocation: true
 ---
 
 # Writing Skills
 
-## Process
-
-1. **Gather requirements** - ask user about:
-   - What task/domain does the skill cover?
-   - What specific use cases should it handle?
-   - Does it need executable scripts or just instructions?
-   - Any reference materials to include?
-
-2. **Draft the skill** - create:
-   - SKILL.md with concise instructions
-   - Additional reference files if content exceeds 100 lines
-   - Utility scripts if deterministic operations needed
-
-3. **Review with user** - present draft and ask:
-   - Does this cover your use cases?
-   - Anything missing or unclear?
-   - Should any section be more/less detailed?
-
-## Skill Structure
-
-```
-skill-name/
-├── SKILL.md           # Main instructions (required)
-├── <Semantic>.md      # Detailed docs if >100 lines — semantic names (PEDAGOGY.md,
-│                      #   not REFERENCE.md); header: "Loaded on demand … when"
-└── scripts/           # Utility scripts (if needed)
-    └── helper.js
-```
-
-## SKILL.md Template
-
-```md
----
-name: skill-name
-description: Brief description of capability. Use when [specific triggers]. Keep under 100 words.
-argument-hint: "What the argument means"     # optional — for /name <arg> skills
-disable-model-invocation: true               # optional — user-typed only, model can't auto-invoke
----
-
-# Skill Name
-
-## Quick start
-
-[Minimal working example]
-
-## Workflows
-
-[Step-by-step processes with checklists for complex tasks]
-
-## Advanced features
-
-[Link to separate files: See [REFERENCE.md](REFERENCE.md)]
-```
+Editing or verifying an existing skill: the rules below are the resident discipline. Creating one
+from scratch: [NEW-SKILL.md](NEW-SKILL.md) — requirements, structure, template, scripts.
 
 ## Description Requirements
 
@@ -90,15 +39,8 @@ Helps with documents.
 
 The bad example gives your agent no way to distinguish this from other document skills.
 
-## When to Add Scripts
-
-Add utility scripts when:
-
-- Operation is deterministic (validation, formatting)
-- Same code would be generated repeatedly
-- Errors need explicit handling
-
-Scripts save tokens and improve reliability vs generated code.
+Invocation trade-off: a model-invoked skill pays an always-loaded description for discoverability
+(other skills can reach it); user-invoked pays zero context load, but you are the index.
 
 ## When to Split Files
 
@@ -108,12 +50,19 @@ Split into separate files when:
 - Content has distinct domains (finance vs sales schemas)
 - Advanced features are rarely needed
 
+Disclosure test: inline what every branch needs; push behind a pointer what only some branches reach.
+
 ## Length Discipline
 
 Never treat length alone as a defect. Keep every load-bearing rule as one to three lines plus a
 link to its rationale; cut stories, duplicates, status notes, and the path used to derive the rule.
 Shorten high-frequency enum values and command names aggressively (`ready-for-agent` → `ready`); leave low-frequency internal names alone — churn costs more than the tokens save.
 `CLAUDE.md` (every-session): if/unless/then only; why in a `→` reference. ≤1,100 words — delete, don't append.
+
+Hunt no-ops: does the rule change behaviour versus the model's default? No → delete the whole
+sentence. Prompt the positive — a prohibition drags the banned behaviour into context; state the
+target behaviour instead. Prefer leading words: a pretrained term (`tight`, `red`, `fog`) recruits
+priors free; a coined word pays definition tokens at every repetition.
 
 ## Skill Candidates
 
@@ -130,3 +79,10 @@ After drafting, verify:
 - [ ] Consistent terminology
 - [ ] Concrete examples included
 - [ ] References one level deep
+
+After **editing an existing skill**, add the acceptance pass — the checklist above checks
+structure, these attack content and vantage:
+
+- `/atk <skill file>` — 承重与链路（its Method, both directions）
+- `/lint <skill file>` — 视角（its one test）
+- `wc -l` — re-check the 100-line budget after any split
