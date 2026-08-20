@@ -305,6 +305,7 @@ git_base: 7af387c
 | [merge-conflicts](engineering/merge-conflicts/SKILL.md) | merge / rebase 冲突 |
 | [zoom-out](engineering/zoom-out/SKILL.md) | 地图视角；可落盘 `CODEBASE.md` |
 | [lint](engineering/lint/SKILL.md) | 视角审查：这句话离开写它的会话还成立吗 |
+| [write-skill](productivity/write-skill/SKILL.md) | 写 / 改技能；改完验收三连 `/atk` + `/lint` + `wc -l` |
 | [record-gif](engineering/record-gif/SKILL.md) | UI 录成验证过的 GIF |
 | [research](engineering/research/SKILL.md) | 后台调研 |
 | [improve-arch](engineering/improve-arch/SKILL.md) | 架构回顾。[codebase-design](engineering/codebase-design/SKILL.md) |
@@ -318,7 +319,7 @@ git_base: 7af387c
 | [codebase-design](engineering/codebase-design/SKILL.md) | deep-module 词汇 | 设计单个模块接口 |
 | [code-review](engineering/code-review/SKILL.md) | Standards + Spec | 评 diff / 分支 / PR |
 
-**其他：** [handoff](productivity/handoff/SKILL.md) · [resume](productivity/resume/SKILL.md) · [caveman](productivity/caveman/SKILL.md) · [teach](productivity/teach/SKILL.md) · [write-skill](productivity/write-skill/SKILL.md)
+**其他：** [handoff](productivity/handoff/SKILL.md) · [resume](productivity/resume/SKILL.md) · [caveman](productivity/caveman/SKILL.md) · [teach](productivity/teach/SKILL.md)
 
 **一次性：** [git-guardrails](misc/git-guardrails-claude-code/SKILL.md) · [modern-cli-guardrails](misc/modern-cli-guardrails/SKILL.md) · [setup-pre-commit](misc/setup-pre-commit/SKILL.md) · [migrate-to-shoehorn](misc/migrate-to-shoehorn/SKILL.md)（仅 TS）
 
