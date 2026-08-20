@@ -205,7 +205,7 @@ Field rules:
   warns if they diverged (work happened since the handoff).
 - **status** — `active` when written; `/resume` **deletes the file** once the work it describes is
   finished — one handoff, one consume; git keeps the history. Only `active` handoffs are resume
-  candidates; a stray `consumed` is legacy.
+  candidates.
 
 ## PRD files — `.scratch/<feat>/PRD.md` / `PRD-vN.md`
 

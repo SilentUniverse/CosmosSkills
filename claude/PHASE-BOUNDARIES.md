@@ -1,6 +1,6 @@
-# route — Phase boundaries
+# Phase boundaries
 
-Loaded on demand by [`/route`](SKILL.md) §2 when a boundary decision is being made.
+Loaded on demand via the pointer in `CLAUDE.md` §6 when a boundary decision is being made.
 
 A **phase** is a chunk of work in one session (the grilling, the spec, one tdd slice). The
 **boundary** between phases is the only place this decision belongs; mid-phase there is no

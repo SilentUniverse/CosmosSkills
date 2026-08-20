@@ -14,12 +14,38 @@
 <img alt=".scratch" src="https://img.shields.io/badge/.scratch-markdown-3fb950?style=flat-square&labelColor=black">
 <img alt="queue" src="https://img.shields.io/badge/queue-ready%20%7C%20done-d29922?style=flat-square&labelColor=black">
 
-Matt Pocock 工程方法论的本地化改造。思考 / 代码用英文，对话用中文。  
-需求、PRD、issue 在 `.scratch/`。人干的事不进队列。Unix / WSL 同时保留。
+一套为"失忆的 AI"设计的单人工程工作流。思考 / 代码用英文，对话用中文。  
+需求、PRD、issue 都在 `.scratch/`。人干的事不进队列。Unix / WSL 同时保留。
 
 </div>
 
 ***
+
+## 设计思想
+
+**AI 每次进场，都是一个失忆的新员工。** 它没有记忆，看不见你脑中的模块地图，读不到昨天的讨论。这套工作流的所有设计都从这一点出发。
+
+**为冷启动设计。** 每张 issue 是自足的——`## 做什么` + agent 可自己跑的验收标准，只看卡片就能开工；会话开局自动加载 `CODEBASE.md` 结构地图；spec 收尾还有一道**冷读**：把每张卡当成一无所知的执行者重读一遍，AC 跑不动、依赖没写清，当场打回。
+
+**用机制防漂移，不靠自觉。** `done` 的 issue 不可变，返工开 redo；需求推翻时不是悄悄改文件，而是 `PRD-v2` + 一份逐条对账报告（✓ 仍有效 / ⚠ 返工 / ✏ 改写 / 🗑 删除 / ➕ 新增）；`verify-artifacts.py` 机器门校验全部工件——frontmatter、依赖图无环、完成记录里点名的每个测试文件必须真实存在。测试被误删，gate 当场红灯。
+
+**上下文是最贵的资源。** ~150k token 的 smart zone 是质量天花板，不是上下文上限。每个技能头 <100 行，细则拆成按需加载的子文件；切卡时计算**推理半径**——这张卡要读几个模块才能确信正确，半径就是它以后每一次执行的 token 成本；会话边界五问有序：Continue → `/clear` → `/handoff` → subagent → `/compact`，有损的压缩永远排最后。
+
+**九个词的设计原则。** First Principles · Invariant · Parsimony · Locality · Provability · Adversarial Review · Empiricism · Reversibility · Evolution——不给 AI 编码规范，给它九个能自己推导出好代码的问题。压缩规则住全局 `CLAUDE.md`，定义与出处住一个按需加载的[词表](claude/design-principles.md)。
+
+**深模块：接口留给品味，实现交给 AI。** 大量行为收进一个小接口，测试锁死接口行为——实现随便 AI 怎么写，红灯会说话。接口在文件置顶（类型先行，实现后看）；目录结构就是模块地图，地图和目录对不上，本身就是架构问题。
+
+**人是裁决者，不是流水线工人。** 关批报告一屏五块：结果计数、frontier（每张未完成卡一行：被谁阻塞）、待裁决、等你验证（每项带可直接粘贴的命令）、详文指针；PRD 定稿只审"测试决策 + 范围外 + AC 标题"——抓错最便宜的两处。`/atk` 双态：工作流里自动跑的只有**审查**（发现进待决），你手动敲 `/atk` 才有**逐条讲解**——每个改动是什么、为什么，一条一行，逐条裁决。所有给你看的发现都是固定形状——位置、原句、问题、处置，一句一行；探针模式、分类号这类机器读数永不出现。
+
+**全集必清零。** 任何"全部 / 所有 / 逐个"任务，先用工具枚举全集（grep / ls / git diff），绝不凭记忆；每项要么完成、要么写明不动的原因；收尾重跑枚举命令验证残留为零，报告以 N/N 结束——每个结论带 file:line 或命令输出作证据。
+
+**能并行的都在并行。** spec 定稿前，外部事实类问题同轮 fan out 给后台 research（上限 3）；`/tdd -p` 按依赖分波次并行，预测到撞同一测试文件的卡自动串行成先后波；关批时全量 suite、Standards 轴、Spec 轴三个只读子代理同轮齐发。
+
+**一切闭环，没有僵尸状态。** handoff 一份生产一次消费，`/resume` 完成即删（git 留历史）；done 攒够 `/tidy` 归档成 SUMMARY；说不清的问题停在 PRD 的雾区，不假装精确；每张卡落在点名的接缝上，AC 穿过接缝跑。
+
+27 个技能、一道机器门、九个词——所有规则只为三件事：**更少的 token、更快的交付、可逐条审查的质量。**
+
+---
 
 ## 安装
 
@@ -41,7 +67,7 @@ cd HysSkills
 bash install.sh
 ```
 
-装完新开 Claude Code 会话，敲 `/` 能看到 28 个 skill 即成功。
+装完新开 Claude Code 会话，敲 `/` 能看到 27 个 skill 即成功。
 
 安装会：把每个 skill 链接到 `~/.claude/skills/<name>`（Windows junction / Unix symlink；改仓库即生效；已有同名目录备份到 `_backup-<时间戳>/`）；拷贝 `claude/CLAUDE.md`、references、hooks 到 `~/.claude/`；分发 `ARTIFACT-FORMAT.md`。
 
@@ -91,27 +117,34 @@ flowchart LR
 | | 做什么 |
 |---|---|
 | `/spec` | 落档、拆 issue。不写代码 |
+| `/atk` | 对抗审查。spec 收尾自动跑；手动敲另有逐条讲解 |
 | `/tdd` | 红绿，写代码 |
 | `/tidy` | 归档 `done`，重生成 `SUMMARY.md` |
-| `/route` | 拿不准下一步，或会话变长 |
 
 **/spec**
 
 - 小而清晰：跳过 PRD 直拆（`## 上级` 自带上下文）
-- 会改卡的决定才问；ADR 级 → `/grill`
+- 会改卡的决定才问；ADR 级 → `/grill`；外部事实不问你——同轮 fan out 给后台 research（上限 3）
 - 已有功能：没推翻已记录的 AC/决策 → detail / 改 `ready`；推翻了 → `PRD-v2` + 对账；跨特性先问一句
 - 已有代码：影响面探测
-- 写不出自足卡（`## 做什么` + AC）就不是独立 issue
+- 写不出自足卡（`## 做什么` + AC）就不是独立 issue；AC 从不变量推导，穿过点名的接缝跑
 - agent 跑不了的验证 → PRD 端到端验证
 - 有真设计权衡 → 先 `/prototype`
+- 实现决策先写不变量；单向门（ABI / schema / 协议）单独标出吃最重审查
 - 收尾冷读每张卡；写了 PRD 或 ≥5 张卡 → 自动 `/atk` 审查，发现进待决
 - PRD 是意图快照，推翻已记录的 AC/决策才写新版本；防漏靠切片 quiz 和 AC，不是 PRD
+
+**/atk**
+
+- spec 收尾自动调（写了 PRD 或 ≥5 张卡）——审查态，只产发现：能推翻卡片的进待决，其余当场修
+- 手动 `/atk` ——审查 + 逐条讲解，一条改动两行（改了什么 / 为什么）；默认讲上一轮增量，`--all` 讲全部未提交
+- 攻法正反两向：正向以使用者身份走每条入口→指针→链路；反向对前身逐条对账——旧版每条规则仍是"仍在 / 已迁移且可达 / 有理由删除"三态之一
 
 **/tdd**
 
 - 一条 / 裸跑排空 / `<feat>` 串行；`-p` 并行（撞同一批文件才用 worktree）
 - `--log`：车机 / 设备，验收是命令的 log 文件
-- 人验在 PRD 端到端验证；批末全量 suite + build；done 攒够 → `/tidy`
+- 人验在 PRD 端到端验证；批末全量 suite + build + 双轴审查 + 一屏五块报告；done 攒够 → `/tidy`
 
 **/tidy**
 
@@ -135,7 +168,8 @@ flowchart LR
 | 车机 / 设备，验收在 log 里 | `/tdd --log` |
 | 上一 session 留了 handoff | `/resume` |
 | 做到哪了 | 自己跑 `rg '^status:' -g '**/issues/*.md' .scratch` |
-| 拿不准下一步 / 会话变长 | `/route` |
+| 想听 AI 逐条讲它改了什么 | `/atk`（默认讲上一轮增量；`--all` 讲全部未提交） |
+| 文档 / 技能文件改完 | `/lint <文件>` 查视角泄漏 |
 | 5 轮内能收尾 | `/compact`（grill→spec 之间禁止） |
 | 还有半天 / 换任务 | `/handoff` + `/clear` |
 
@@ -239,8 +273,9 @@ git_base: 7af387c
 2. 大文档另开 session 或 subagent
 3. 别把 PRD / issue 粘进对话
 4. 整文件读优于多次摸索
+5. 环境可查的（package.json scripts、目录树、`--help`）不写进文档——拷贝是会过期的缓存
 
-开机加载写在全局 CLAUDE.md §6。单 / 多 context 在 `docs/agents/domain.md`。
+会话边界顺序：Continue → `/clear` → `/handoff` → subagent → `/compact`（[PHASE-BOUNDARIES.md](claude/PHASE-BOUNDARIES.md)）。开机加载写在全局 CLAUDE.md §6。单 / 多 context 在 `docs/agents/domain.md`。
 
 **栈** — 测试命令、ADB、影响面探测写进 `docs/agents/domain.md`：
 
@@ -265,12 +300,12 @@ git_base: 7af387c
 | [spec](engineering/spec/SKILL.md) | 规划：只写 PRD / issue |
 | [atk](engineering/atk/SKILL.md) | 对抗审查自己的产出；工作流只调审查方向，讲解仅手动触发 |
 | [tdd](engineering/tdd/SKILL.md) | 写代码；`--log` 读设备 log。[DRAIN.md](engineering/tdd/DRAIN.md) |
-| [route](engineering/route/SKILL.md) | 下一步 / 会话边界 |
 | [tidy](engineering/tidy/SKILL.md) | 归档、SUMMARY、僵尸测试 |
 | [diagnose](engineering/diagnose/SKILL.md) | 硬 bug / 性能回归 |
 | [merge-conflicts](engineering/merge-conflicts/SKILL.md) | merge / rebase 冲突 |
 | [zoom-out](engineering/zoom-out/SKILL.md) | 地图视角；可落盘 `CODEBASE.md` |
-| [lint](engineering/lint/SKILL.md) | 清泄漏的思考链 |
+| [lint](engineering/lint/SKILL.md) | 视角审查：这句话离开写它的会话还成立吗 |
+| [write-skill](productivity/write-skill/SKILL.md) | 写 / 改技能；改完验收三连 `/atk` + `/lint` + `wc -l` |
 | [record-gif](engineering/record-gif/SKILL.md) | UI 录成验证过的 GIF |
 | [research](engineering/research/SKILL.md) | 后台调研 |
 | [improve-arch](engineering/improve-arch/SKILL.md) | 架构回顾。[codebase-design](engineering/codebase-design/SKILL.md) |
@@ -284,7 +319,7 @@ git_base: 7af387c
 | [codebase-design](engineering/codebase-design/SKILL.md) | deep-module 词汇 | 设计单个模块接口 |
 | [code-review](engineering/code-review/SKILL.md) | Standards + Spec | 评 diff / 分支 / PR |
 
-**其他：** [handoff](productivity/handoff/SKILL.md) · [resume](productivity/resume/SKILL.md) · [caveman](productivity/caveman/SKILL.md) · [teach](productivity/teach/SKILL.md) · [write-a-skill](productivity/write-a-skill/SKILL.md)
+**其他：** [handoff](productivity/handoff/SKILL.md) · [resume](productivity/resume/SKILL.md) · [caveman](productivity/caveman/SKILL.md) · [teach](productivity/teach/SKILL.md)
 
 **一次性：** [git-guardrails](misc/git-guardrails-claude-code/SKILL.md) · [modern-cli-guardrails](misc/modern-cli-guardrails/SKILL.md) · [setup-pre-commit](misc/setup-pre-commit/SKILL.md) · [migrate-to-shoehorn](misc/migrate-to-shoehorn/SKILL.md)（仅 TS）
 
@@ -296,7 +331,7 @@ git_base: 7af387c
 |---|---|
 | 改完 CLAUDE.md / references / hooks | Windows 再双击 `install-oneclick.cmd` |
 | 改 skill | 改仓库即可（junction） |
-| SKILL.md | <100 行；超了按 [write-a-skill](productivity/write-a-skill/SKILL.md) 拆 |
+| SKILL.md | <100 行；超了按 [write-skill](productivity/write-skill/SKILL.md) 拆；改完跑 `/atk` + `/lint` + `wc -l` |
 | 改 hook | 先跑 `test-block-legacy-cli.ps1` / `test-block-dangerous-git.ps1` |
 | 改 verify-artifacts | 跑 `test-verify-codebase.ps1` |
 | 契约 | [ARTIFACT-FORMAT.md](engineering/ARTIFACT-FORMAT.md) |

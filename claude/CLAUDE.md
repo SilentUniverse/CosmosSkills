@@ -11,6 +11,8 @@ Sections ending in `→` point to `~/.claude/references/` — not auto-loaded; r
 - Written artifacts: Chinese body + English term names matching code identifiers
 - Artifacts state current-state facts, not change narration or leaked reasoning
 - Replies to 主人: plain, concrete. Reread as an outsider and rewrite what they can't follow.
+- Output to 主人: one fact per line, long content broken at phrase boundaries — never a solid paragraph.
+- Findings use the fixed shape — 位置、原句、问题、处置/改为 — per item; internal mechanics (probe patterns, taxonomy numbers, verdict jargon) never appear.
 - Still didn't follow ("等等"/"没懂")? Supply the missing context (what we're doing, what led here), don't just rephrase.
 
 ## 2. Think Before Coding
@@ -63,11 +65,12 @@ Security, validation, accessibility are never on the chopping block.
 
 Session start: trivial/read-only → only what the task names. Else load `CODEBASE.md` + `CONTEXT.md` (skip silently if absent); ADR titles only. None of the three exist → say so once, offer `/domain-modeling` (glossary) + `/zoom-out --save` (map).
 
-Smart zone (~150k tokens) is the quality ceiling, not the context limit. Keep grill → spec in one window; each `/tdd` slice starts from its issue file. At a phase boundary: continue first, then `/clear` / `/handoff` / subagent / `/compact`. Unsure which skill, or the session is long → `/route`. Near the smart zone with a phase unfinished → proactively suggest the boundary move (`/handoff` rolling, or `/compact` at the boundary).
+Smart zone (~150k tokens) is the quality ceiling, not the context limit. Keep grill → spec in one window; each `/tdd` slice starts from its issue file. At a phase boundary: continue first, then `/clear` / `/handoff` / subagent / `/compact`. Near the smart zone with a phase unfinished → proactively suggest the boundary move (`/handoff` rolling, or `/compact` at the boundary).
 
 `done` issues and superseded ADRs are immutable — redo / new ADR.
 
 → Session-start protocol, immutability, artifact paths: `~/.claude/references/document-layout.md`
+→ Boundary decision tree (five options in order, with reasons): `~/.claude/references/PHASE-BOUNDARIES.md`
 
 ## 7. Modern CLI Tooling
 
@@ -96,8 +99,10 @@ Windows console defaults to GBK (cp936); `PYTHONUTF8=1` is injected via settings
 ## 9. Run to Completion
 
 Skills iterating over work items: finish ALL items in one pass.
+- Any 全部/所有/逐个 task: enumerate the full set with a tool first (grep / ls / git diff), never from memory; hold it in the todo list or a file.
+- Every item ends done or with a written why-not. Item fails or blocks → mark it, move on, surface it in the final summary; don't stop to negotiate.
+- Close by re-running the enumeration expecting zero left; end with N/N — conclusions carry file:line or command output as evidence.
 - No mid-pass pauses, per-item summaries, or "shall I continue?" checkpoints. One summary at the end.
-- If an item fails or blocks: mark it, move on, include it in the final summary. Don't stop to negotiate.
 - Precedence with §2: plan-level uncertainty halts and asks; per-item failure marks and continues.
 - Autonomy until done.
 
