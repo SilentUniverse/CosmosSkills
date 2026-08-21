@@ -297,5 +297,5 @@ else {
     if ($backedUp -gt 0) {
         Write-Host ("Backed up {0} existing folders to: {1}" -f $backedUp, $backupDir) -ForegroundColor Yellow
     }
-    Write-Host "Use /<name> in Claude Code. hys-setup is the project bootstrap entry."
+    Write-Host "Use /<name> in Claude Code. cosmos-setup is the project bootstrap entry."
 }

@@ -1,105 +1,108 @@
 <div align="center">
 
-# HysSkills
+# CosmosSkills
 
-### Claude Code 工程技能包 · 单人开发 · 中文输出
+[GitHub](https://github.com/SilentUniverse/CosmosSkills) · [Issues](https://github.com/SilentUniverse/CosmosSkills/issues)
 
-[GitHub](https://github.com/SilentUniverse/HysSkills) · [Issues](https://github.com/SilentUniverse/HysSkills/issues)
-
-[![stars](https://img.shields.io/github/stars/SilentUniverse/HysSkills?style=flat-square&color=ffcb47&labelColor=black)](https://github.com/SilentUniverse/HysSkills/stargazers)
-[![last commit](https://img.shields.io/github/last-commit/SilentUniverse/HysSkills?style=flat-square&color=c4f042&labelColor=black)](https://github.com/SilentUniverse/HysSkills/commits/main)
+[![stars](https://img.shields.io/github/stars/SilentUniverse/CosmosSkills?style=flat-square&color=ffcb47&labelColor=black)](https://github.com/SilentUniverse/CosmosSkills/stargazers)
+[![last commit](https://img.shields.io/github/last-commit/SilentUniverse/CosmosSkills?style=flat-square&color=c4f042&labelColor=black)](https://github.com/SilentUniverse/CosmosSkills/commits/main)
 <img alt="Claude Code" src="https://img.shields.io/badge/Claude_Code-skills-369eff?style=flat-square&labelColor=black">
 <img alt="中文" src="https://img.shields.io/badge/%E5%AF%B9%E8%AF%9D-%E4%B8%AD%E6%96%87-ff80eb?style=flat-square&labelColor=black">
 <img alt="Windows" src="https://img.shields.io/badge/Windows-%E4%BC%98%E5%85%88-369eff?style=flat-square&labelColor=black">
 <img alt=".scratch" src="https://img.shields.io/badge/.scratch-markdown-3fb950?style=flat-square&labelColor=black">
 <img alt="queue" src="https://img.shields.io/badge/queue-ready%20%7C%20done-d29922?style=flat-square&labelColor=black">
 
-一套为"失忆的 AI"设计的单人工程工作流。思考 / 代码用英文，对话用中文。  
-需求、PRD、issue 都在 `.scratch/`。人干的事不进队列。Unix / WSL 同时保留。
-
 </div>
 
 ***
 
-## 设计思想
+这套工作流，是从一个问题长出来的。
 
-**AI 每次进场，都是一个失忆的新员工。** 它没有记忆，看不见你脑中的模块地图，读不到昨天的讨论。这套工作流的所有设计都从这一点出发。
+我当时写代码，一直靠两个心法撑着，第一性原理，还有对抗性审查。
 
-**为冷启动设计。** 每张 issue 是自足的——`## 做什么` + agent 可自己跑的验收标准，只看卡片就能开工；会话开局自动加载 `CODEBASE.md` 结构地图；spec 收尾还有一道**冷读**：把每张卡当成一无所知的执行者重读一遍，AC 跑不动、依赖没写清，当场打回。
+有天我突发奇想，问 AI，人类几千年攒下来的思想里，还有没有这种级别的好东西？查理芒格、图灵、冯诺依曼、Hoare、Dijkstra，把这一路大佬的东西都翻一遍，提炼成单个的关键词给我。
 
-**用机制防漂移，不靠自觉。** `done` 的 issue 不可变，返工开 redo；需求推翻时不是悄悄改文件，而是 `PRD-v2` + 一份逐条对账报告（✓ 仍有效 / ⚠ 返工 / ✏ 改写 / 🗑 删除 / ➕ 新增）；`verify-artifacts.py` 机器门校验全部工件——frontmatter、依赖图无环、完成记录里点名的每个测试文件必须真实存在。测试被误删，gate 当场红灯。
+它翻了一大堆资料，最后给了我九个词。
 
-**上下文是最贵的资源。** ~150k token 的 smart zone 是质量天花板，不是上下文上限。每个技能头 <100 行，细则拆成按需加载的子文件；切卡时计算**推理半径**——这张卡要读几个模块才能确信正确，半径就是它以后每一次执行的 token 成本；会话边界五问有序：Continue → `/clear` → `/handoff` → subagent → `/compact`，有损的压缩永远排最后。
+1. First Principles，为什么？
+2. Invariant，什么必须永远为真？
+3. Parsimony，还能删掉什么？
+4. Locality，影响能不能限制在这？
+5. Provability，凭什么确信它对？
+6. Adversarial Review，怎么把它打爆？
+7. Empiricism，数据怎么说？
+8. Reversibility，错了回得来吗？
+9. Evolution，最小正确的下一步是什么？
 
-**九个词的设计原则。** First Principles · Invariant · Parsimony · Locality · Provability · Adversarial Review · Empiricism · Reversibility · Evolution——不给 AI 编码规范，给它九个能自己推导出好代码的问题。压缩规则住全局 `CLAUDE.md`，定义与出处住一个按需加载的[词表](claude/design-principles.md)。
+前两个是我本来就有的。后面七个，个个像是从软件工程几十年的尸山血海里捞出来的，Ousterhout 的深模块、Parnas 的信息隐藏、Dijkstra 的正确性论证、Brooks 的偶然复杂度，全被压成了一个词一个问题。
 
-**深模块：接口留给品味，实现交给 AI。** 大量行为收进一个小接口，测试锁死接口行为——实现随便 AI 怎么写，红灯会说话。接口在文件置顶（类型先行，实现后看）；目录结构就是模块地图，地图和目录对不上，本身就是架构问题。
+我把这九个词塞进全局规则，效果是真的，代码质量肉眼可见地变好。
 
-**人是裁决者，不是流水线工人。** 关批报告一屏五块：结果计数、frontier（每张未完成卡一行：被谁阻塞）、待裁决、等你验证（每项带可直接粘贴的命令）、详文指针；PRD 定稿只审"测试决策 + 范围外 + AC 标题"——抓错最便宜的两处。`/atk` 双态：工作流里自动跑的只有**审查**（发现进待决），你手动敲 `/atk` 才有**逐条讲解**——每个改动是什么、为什么，一条一行，逐条裁决。所有给你看的发现都是固定形状——位置、原句、问题、处置，一句一行；探针模式、分类号这类机器读数永不出现。
+但用着用着，我发现一个问题。
 
-**全集必清零。** 任何"全部 / 所有 / 逐个"任务，先用工具枚举全集（grep / ls / git diff），绝不凭记忆；每项要么完成、要么写明不动的原因；收尾重跑枚举命令验证残留为零，报告以 N/N 结束——每个结论带 file:line 或命令输出作证据。
+词是好词，AI 会背，不会做。它嘴上挂着不变量优先，转头就交给你一个状态没写完的实现。我让 AI 审查它自己改过的 27 个文件，它说全审完了，我拿工具一复查，15 个子文件它压根没打开过。
 
-**能并行的都在并行。** spec 定稿前，外部事实类问题同轮 fan out 给后台 research（上限 3）；`/tdd -p` 按依赖分波次并行（波内 ≤4），卡上声明的 `touches`/`test_paths` 撞车的自动串行成先后波、缺声明的单独成波，过夜由 [overnight.py](scripts/overnight.py) 逐波换新会话；关批时全量 suite、Standards 轴、Spec 轴三个只读子代理同轮齐发。
+叮嘱是有天花板的，听不听，全凭它自觉。
 
-**一切闭环，没有僵尸状态。** handoff 一份生产一次消费，`/resume` 完成即删（git 留历史）；done 攒够 `/tidy` 归档成 SUMMARY；说不清的问题停在 PRD 的雾区，不假装精确；每张卡落在点名的接缝上，AC 穿过接缝跑。
+所以才有 CosmosSkills。
 
-27 个技能、一道机器门、九个词——所有规则只为三件事：**更少的 token、更快的交付、可逐条审查的质量。**
+它的底子不是我凭空造的，方法论的原型借鉴自 mattpocock 的 skills，那套东西是真好。但也真不合身，它是为多人协作造的，深度长在 GitHub 上，全英文世界。而我是一个人干活，纯本地，中文。
+
+不合身的地方，我全重新裁过。协作机制整个拆掉，issue 变成本地 markdown 队列，只有 ready 和 done 两态，不依赖任何外部服务。语言立了双语规矩，思考和代码用英文，对话全中文。AI 说话人听不懂这件事，我磨得最久，最后的解法是条死规矩，给人看的东西永远是固定四件套，位置、原句、问题、处置，一句一行，机器读数永远不出现。
+
+这些规矩最后都住进一个叫 CLAUDE.md 的文件，整套系统的宪法。这个文件我改了不知道多少版，标准就一条，每个词都得挣得走自己的位置，一句废话都塞不进去。包括 Windows 那些坑，PowerShell 写文件会悄悄毁掉中文内容，控制台默认 GBK 编码，删目录前必须用 cmd 看真实文件列表，这些全是我一个坑一个坑踩出来，再亲手钉进去的。现在它常驻一千三百词以内，超一个词，就得先删一句旧的。
+
+定律给方向，机器给证据，AI 说自己照做了不算数，门查过才算数。这条主线从 mattpocock 那里继承过来，一直没变。变的是，它终于合身了。
+
+**那道门长什么样。**
+
+装完就有一个叫 verify-artifacts.py 的脚本守在那里。AI 说需求做完了？门会去查，完成记录里点名的每一个测试文件，必须真实存在于磁盘上，偷偷删了测试再报全绿，提交前就红灯。依赖图有环、frontmatter 缺字段、需求变更想悄悄改文件，门都不认。
+
+**然后是失忆这件事。**
+
+AI 每次进场都是新的，没有记忆，看不见你脑子里的地图。这套系统干脆假设每个会话从零开始。每张任务卡自足，只看一张卡就能开工。收工留一份 handoff，下一个会话读完就删，没有僵尸文件。你睡一觉，overnight.py 换着新会话把活跑完，早上起来看一屏报告，每项人工验证都带着可以直接粘贴的命令。
+
+老祖宗没有文字的时候结绳记事。现在，轮到给失忆的 AI 结绳了。
+
+说真的，用顺了之后最大的感受不是快，是敢。敢把一整晚的活交给它，因为知道机器门在，知道每个结论都带着出处，知道哪怕十件事只做完了九件，少的那一件，它也得写清楚为什么。
+
+这套东西我自己天天在用。上手不难，装完记住三条命令就够了，/spec 拆卡，/tdd 写码，/atk 审查。真正要适应的不是工具，是把原来散着干的活，交给流程管。交出去之后，就回不去了。
+
+最后说说这个名字。
+
+太阳系有九颗行星，冥王星被开除前，教科书上写的就是九大行星。这套系统里刚好九条定律，围着你的代码转。
+
+而我，网名一直叫静默宇宙。
+
+九条定律，九颗行星，静默宇宙。
+
+所以是，CosmosSkills，enjoy。
 
 ---
 
-## 安装
+## 三十秒装上
 
-### Windows
-
-1. clone 仓库：
-
-```
-git clone https://github.com/SilentUniverse/HysSkills
-```
-
-1. 打开仓库根目录，**双击 `install.cmd`**。
-
-### macOS / Linux
+Windows，clone 完双击 `install.cmd`。
 
 ```bash
-git clone https://github.com/SilentUniverse/HysSkills
-cd HysSkills
+git clone https://github.com/SilentUniverse/CosmosSkills
+```
+
+macOS / Linux。
+
+```bash
+git clone https://github.com/SilentUniverse/CosmosSkills
+cd CosmosSkills
 bash scripts/install.sh
 ```
 
-装完新开 Claude Code 会话，敲 `/` 能看到 27 个 skill 即成功。
-
-安装会：把每个 skill 链接到 `~/.claude/skills/<name>`（Windows junction / Unix symlink；改仓库即生效；已有同名目录备份到 `_backup-<时间戳>/`）；拷贝 `claude/CLAUDE.md`、references、hooks 到 `~/.claude/`；分发 `ARTIFACT-FORMAT.md` 和机器门 `verify-artifacts.py`（并清理旧版残留脚本）。仓库根的 `overnight.cmd` 是过夜跑批入口，无需安装。
-
-<details>
-<summary>可选：护栏 hook、现代 CLI、只要全局规则</summary>
-
-**护栏** — 安装只分发脚本，接线写 `settings.json`，见各自 SKILL.md：
-
-- [git-guardrails](misc/git-guardrails-claude-code/SKILL.md) — 拦 `push` / `reset --hard` / `clean -f` / `branch -D` / `checkout .`
-- [modern-cli-guardrails](misc/modern-cli-guardrails/SKILL.md) — 拦宿主 `grep` / `find` / `ls` / `sed`；另拦把 `/tmp`、`/c/…` 这类 POSIX 路径递给原生程序（python / pwsh / node 等）——两个路径世界只认各自的路
-
-**现代 CLI** — `yq`、`ast-grep` 等；没有也能靠内置 Grep / Read。[CLAUDE.md §7](claude/CLAUDE.md)
-
-```
-winget install -e --id BurntSushi.ripgrep.MSVC --id sharkdp.fd --id sharkdp.bat --id MikeFarah.yq --id ast-grep.ast-grep --id chmln.sd
-```
-
-缺 `jq`：`jqlang.jq`。macOS：`brew install ripgrep fd bat jq yq ast-grep sd`。
-
-**只要全局规则：**
-
-```
-curl.exe -fsSL https://raw.githubusercontent.com/SilentUniverse/HysSkills/main/claude/CLAUDE.md -o "%USERPROFILE%\.claude\CLAUDE.md"
-```
+装完新开会话，敲 `/` 能看到 27 个技能就成功了。只想试试全局规则，不装技能，拉一份 CLAUDE.md 也行。
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/SilentUniverse/HysSkills/main/claude/CLAUDE.md -o ~/.claude/CLAUDE.md
+curl -fsSL https://raw.githubusercontent.com/SilentUniverse/CosmosSkills/main/claude/CLAUDE.md -o ~/.claude/CLAUDE.md
 ```
 
-已有自定义 `CLAUDE.md`：按编号补缺的节，别整文件覆盖。
-
-</details>
+新项目第一次用，跑一次 `/cosmos-setup`，它会问你三个问题然后把目录约定都建好。
 
 ---
 
@@ -158,6 +161,30 @@ flowchart LR
 全长链不是必经管道，见下面怎么喊。
 
 ---
+
+**三个防漂移机制**（贯穿全流程）：
+- **冷读** — spec 收尾把每张卡当一无所知的执行者重读；AC 跑不动、依赖没写清，当场打回
+- **对账** — 需求推翻不是悄悄改文件：`PRD-v2` + 逐条对账报告（✓ 仍有效 / ⚠ 返工 / ✏ 改写 / 🗑 删除 / ➕ 新增）
+- **闭环** — handoff 一份生产一次消费，`/resume` 完成即删；done 攒够 `/tidy` 归档；说不清的问题停在 PRD 雾区，不假装精确
+
+---
+
+## 设计哲学
+
+**上下文是最贵的资源。** ~150k token 的 smart zone 是质量天花板，不是上下文上限。每个技能头 <100 行，细则拆成按需加载的子文件；切卡时计算**推理半径**——这张卡要读几个模块才能确信正确，半径就是它以后每一次执行的 token 成本；会话边界五问有序：Continue → `/clear` → `/handoff` → subagent → `/compact`，有损的压缩永远排最后。
+
+**深模块：接口留给品味，实现交给 AI。** 大量行为收进一个小接口，测试锁死接口行为——实现随便 AI 怎么写，红灯会说话。接口在文件置顶（类型先行，实现后看）；目录结构就是模块地图，地图和目录对不上，本身就是架构问题。
+
+**人是裁决者，不是流水线工人。** 关批报告一屏五块：结果计数、frontier（每张未完成卡一行：被谁阻塞）、待裁决、等你验证（每项带可直接粘贴的命令）、详文指针；PRD 定稿只审"测试决策 + 范围外 + AC 标题"——抓错最便宜的两处。`/atk` 双态：工作流里自动跑的只有**审查**（发现进待决），你手动敲 `/atk` 才有**逐条讲解**——每个改动是什么、为什么，一条一行，逐条裁决。所有给你看的发现都是固定形状——位置、原句、问题、处置，一句一行；探针模式、分类号这类机器读数永不出现。
+
+**全集必清零。** 任何"全部 / 所有 / 逐个"任务，先用工具枚举全集（grep / ls / git diff），绝不凭记忆；每项要么完成、要么写明不动的原因；收尾重跑枚举命令验证残留为零，报告以 N/N 结束——每个结论带 file:line 或命令输出作证据。
+
+**能并行的都在并行。** spec 定稿前，外部事实类问题同轮 fan out 给后台 research（上限 3）；`/tdd -p` 按依赖分波次并行（波内 ≤4），卡上声明的 `touches`/`test_paths` 撞车的自动串行成先后波、缺声明的单独成波，过夜由 [overnight.py](scripts/overnight.py) 逐波换新会话；关批时全量 suite、Standards 轴、Spec 轴三个只读子代理同轮齐发。
+
+27 个技能、一道机器门、九个词——所有规则只为三件事：**更少的 token、更快的交付、可逐条审查的质量。**
+
+---
+
 
 ## 怎么用
 
@@ -220,14 +247,14 @@ rg '^status: ready' -g '**/issues/*.md' .scratch
 
 **从 0 到 1**
 
-1. `/hys-setup`（默认：本地 markdown / 两态 / 单 context）→ `docs/agents/` + `CLAUDE.md` 的 `## Agent skills`
+1. `/cosmos-setup`（默认：本地 markdown / 两态 / 单 context）→ `docs/agents/` + `CLAUDE.md` 的 `## Agent skills`
 2. `CONTEXT.md` + `CODEBASE.md`（见下）
 3. 护栏按需：[git-guardrails](misc/git-guardrails-claude-code/SKILL.md)、[modern-cli-guardrails](misc/modern-cli-guardrails/SKILL.md)、[setup-pre-commit](misc/setup-pre-commit/SKILL.md)
 
 **接收已有项目** — 先建地图，少让 agent 反复扫代码。
 
 1. `/domain-modeling` 术语表 + `/zoom-out` 结构地图（都有 draft：一次起草、一次审）。临时看一块：`/zoom-out <path>`，默认只读
-2. `/hys-setup` 识别旧状态机、非默认路径、旧 `Status:` 行，确认后落盘
+2. `/cosmos-setup` 识别旧状态机、非默认路径、旧 `Status:` 行，确认后落盘
 3. 护栏同上
 
 ### 文档放哪
@@ -296,7 +323,7 @@ git_base: 7af387c
 
 | | 何时用 |
 |---|---|
-| [hys-setup](engineering/hys-setup/SKILL.md) | 项目首次接入；Case 5 迁 frontmatter |
+| [cosmos-setup](engineering/cosmos-setup/SKILL.md) | 项目首次接入；Case 5 迁 frontmatter |
 | [grill](engineering/grill/SKILL.md) | 拷问方案。[grilling](productivity/grilling/SKILL.md) + [domain-modeling](engineering/domain-modeling/SKILL.md) |
 | [prototype](engineering/prototype/SKILL.md) | `/spec` 前造一次性原型 |
 | [spec](engineering/spec/SKILL.md) | 规划：只写 PRD / issue |
