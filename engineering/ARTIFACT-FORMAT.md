@@ -167,6 +167,14 @@ Field rules:
 - **touches** — top-level dirs/modules this slice is expected to edit, at directory granularity —
   never file paths. Written by `/spec` from its impact probe; `/tdd -p` groups waves by
   overlap. Optional.
+- **test_paths** — test files this slice will create or modify, repo-relative with `/` separators.
+  Declared by `/spec` from the AC. This field owns the `-p` wave semantics: wave eligibility
+  needs `touches:` + `test_paths:`; overlapping `touches:` or colliding `test_paths:` serialize
+  into successive waves; an issue missing either runs alone in its own wave. Completed at green
+  by the run that wrote the files — appending a newly written test
+  file is the one sanctioned frontmatter edit to a `done` card (body stays immutable). `--log`
+  slices omit it: acceptance is a log predicate, not test files. The gate checks every
+  `### 完成` 新增测试 file against it. Optional.
 - **created** — ISO date, set once at creation, never changed.
 
 The body keeps the section headings from `/spec`'s issue template. The completion record still
@@ -300,7 +308,8 @@ To see history, list `issues/archive/` explicitly.
 
 The mechanically checkable subset of this contract ships as a script next to this file
 (`verify-artifacts.py`): non-UTF-8 content, required frontmatter fields and enum values, `done`
-issues carry a `### 完成` record whose named test files exist,
+issues carry a `### 完成` record whose named test files exist, `test_paths` declared ⇒ 新增测试
+files are within it,
 `NN` uniqueness per directory, `blocked_by` / `refines` resolution + acyclicity, `feature` vs
 directory name, PRD `version` vs filename, `supersedes` target existence, single live PRD head,
 handoff field shape. CODEBASE.md leaves: root `type`/`generated` + body budget (excl. roster

@@ -1,7 +1,7 @@
 ---
 name: tdd
 description: Test-driven development with red-green-refactor loop. Runs one issue path, or drains ready issues (serial, or `-p` parallel waves). Use when the user names an issue/feature to implement test-first, or says "red-green-refactor" / `--log`. A bare requirement with no issue is `/spec`. A failure without a known cause is `/diagnose`, not this skill.
-argument-hint: "Issue path, feature slug, --full, --log, or nothing to drain all ready issues"
+argument-hint: "Issue path, feature slug, -p, --full, --log, or nothing to drain all ready issues"
 ---
 
 # Test-Driven Development
@@ -11,7 +11,7 @@ argument-hint: "Issue path, feature slug, --full, --log, or nothing to drain all
 - `/tdd <issue-path>` — run that one issue. Read its frontmatter `status:` first (per [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd)) and obey the guard. One slice, fully visible.
 - `/tdd` (bare) — **drain (serial)**: every `ready` issue across `.scratch/`, one at a time, dependency order, to completion. The dumb-but-legible batch path — no worktrees, watch each one in this session.
 - `/tdd <feat>` — drain scoped to one feature's `issues/` directory.
-- `/tdd -p [<feat>]` — **drain (parallel)**: ready issues fan out to subagents (one per issue); each issue's verbose output stays isolated, independent slices finish in parallel. Overlapping `touches:` serialize into waves; a worktree only on explicit request. See [DRAIN.md](DRAIN.md).
+- `/tdd -p [<feat>]` — **drain (parallel)**: ready issues fan out to subagents (one per issue, ≤4 in flight); each issue's verbose output stays isolated, independent slices finish in parallel. Wave rules (declared collisions serialize, undeclared issues run alone), worktree only on explicit request, and runner-driven session rotation: [DRAIN.md](DRAIN.md).
 - `/tdd --full` — run build + the whole suite now (§5); combines with any form above.
 - `/tdd --log` — the verdict is a command's log file, not test runs: [LOG.md](LOG.md). Same mode when the user says this run drives a device and the result lands in a log file. Combines with any form above.
 - Natural-language ask without an issue path — stop; tell the user to `/spec` first. Do not interview, do not write tests.

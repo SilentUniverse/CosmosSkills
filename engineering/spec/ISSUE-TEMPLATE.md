@@ -9,7 +9,7 @@ Write issues in dependency order (blockers first) so you can reference real file
 <issue-template>
 
 ---
-# frontmatter per ARTIFACT-FORMAT.md — type / feature / status / category / blocked_by / refines / touches / created
+# frontmatter per ARTIFACT-FORMAT.md — type / feature / status / category / blocked_by / refines / touches / test_paths / created
 # a fresh slice defaults to status: ready, category: enhancement
 ---
 
@@ -44,7 +44,7 @@ Avoid specific file paths or code snippets. Exception: if a prototype produced a
 
 </issue-template>
 
-**Frontmatter** — fill every field per the schema in [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd). The three fields that drive this skill's output: `category` (`enhancement` default; `detail`/`redo`/`fix` for later sub-behaviour / re-work, which MUST also set `refines:`), `blocked_by` (sibling slugs that must reach `done` first — `/tdd`'s drain mode topologically sorts on it), and `refines` (parent slug, set for non-top-level slices).
+**Frontmatter** — fill every field per the schema in [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd). The three fields that drive this skill's output: `category` (`enhancement` default; `detail`/`redo`/`fix` for later sub-behaviour / re-work, which MUST also set `refines:`), `blocked_by` (sibling slugs that must reach `done` first — `/tdd`'s drain mode topologically sorts on it), and `refines` (parent slug, set for non-top-level slices). Parallel-bound slices also declare `touches:` + `test_paths:` from the AC — `/tdd -p` reads them as its only collision signal and skips the drain-time guess.
 
 Never edit a `done` issue or the parent PRD. A `ready` issue may be edited in place by an
 additive re-run or a reconciliation.

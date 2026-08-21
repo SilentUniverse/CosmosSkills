@@ -8,11 +8,12 @@ In order:
    external-fact questions fan out instead: one background `/research` subagent each, same
    turn, cap 3. An unanswered one counts as 待决 until it lands.
 2. Write every settled card that no outstanding question (open, or unanswered grain quiz) can
-   falsify. `status: ready`. Dependency order. SUPERSEDE path: writes happen only after the
+   falsify. `status: ready`. Dependency order. Frontmatter carries `touches:` + `test_paths:`
+   per [CARD-TEST.md](CARD-TEST.md). SUPERSEDE path: writes happen only after the
    对账报告 is confirmed ([SUPERSEDE.md](SUPERSEDE.md)).
-3. Machine gate, whole-tree: `python ../verify-artifacts.py` — path relative to this skill's
-   folder, run with the target repo root as cwd. `python3` only if `python` is missing; never
-   retry python3 after a non-zero gate exit.
+3. Machine gate, whole-tree: `python ~/.claude/skills/verify-artifacts.py` (in a repo checkout:
+   `engineering/verify-artifacts.py`), run with the target repo root as cwd. `python3` only if
+   `python` is missing; never retry python3 after a non-zero gate exit.
 4. Cold-read + audit — only on the finishing turn (待决 empty). Re-read each card written
    this run as a fresh agent that sees nothing else: an AC that cannot run, a 做什么/AC
    mismatch, or a hidden dependency → fix now or demote to open. PRD written this run or
