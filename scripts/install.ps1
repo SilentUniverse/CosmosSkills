@@ -40,7 +40,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$root = $PSScriptRoot
+$root = Split-Path $PSScriptRoot -Parent
 
 function New-JunctionCompat {
     param(
@@ -208,6 +208,16 @@ foreach ($gate in @("verify-artifacts.py")) {
     else {
         Copy-Item -LiteralPath $gSrc -Destination $gTarget -Force
         Write-Host ("Gate: copied {0} -> {1}" -f $gate, $gTarget) -ForegroundColor Green
+    }
+}
+
+# Prune pre-Python gate corpses (the gate was once .ps1/.sh; on upgraded machines
+# stale copies outlive the rewrite and read as "still old"). Fresh installs never see them.
+foreach ($stale in @("verify-artifacts.ps1", "verify-artifacts.sh")) {
+    $stalePath = Join-Path $Target $stale
+    if (Test-Path -LiteralPath $stalePath) {
+        if ($DryRun) { Write-Host ("[DryRun] Remove stale gate {0}" -f $stalePath) -ForegroundColor Yellow }
+        else { Remove-Item -LiteralPath $stalePath -Force; Write-Host ("Gate: removed stale {0}" -f $stalePath) -ForegroundColor Yellow }
     }
 }
 

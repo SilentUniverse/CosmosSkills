@@ -3,7 +3,7 @@
 # Usage: bash install.sh [--dry-run] [--force] [--target DIR] [--claude-root DIR]
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TARGET="${HOME}/.claude/skills"
 CLAUDE_ROOT="${HOME}/.claude"
 DRY_RUN=0
@@ -160,6 +160,14 @@ echo
 copy_file "$ROOT/engineering/ARTIFACT-FORMAT.md" "$TARGET/ARTIFACT-FORMAT.md" "Contract: ARTIFACT-FORMAT.md"
 for gate in verify-artifacts.py; do
   copy_file "$ROOT/engineering/$gate" "$TARGET/$gate" "Gate: $gate"
+done
+
+# Prune pre-Python gate corpses (the gate was once .ps1/.sh; stale copies read as "old").
+for stale in verify-artifacts.ps1 verify-artifacts.sh; do
+  if [ -f "$TARGET/$stale" ]; then
+    rm -f "$TARGET/$stale"
+    echo "Gate: removed stale $TARGET/$stale"
+  fi
 done
 
 if [[ -d "$ROOT/claude" ]]; then

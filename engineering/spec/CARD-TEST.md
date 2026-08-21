@@ -22,6 +22,12 @@ interface — vocabulary per `/codebase-design`. Look up facts; do not ask them.
 Write-failures: "depends on X" → `blocked_by`, do not grow the unit. "and also…" → split.
 Two units always done together in the same files → one issue.
 
+Parallel-bound slices declare their write set — `touches:` (dirs) + `test_paths:` (test files,
+from the AC; `--log` slices declare no `test_paths` — log-predicate acceptance). `-p` wave
+semantics live with the field: [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md). A UI slice
+splits first: logic and structure become AC (testable); pure visuals go to
+the PRD 端到端验证 — an unsplit UI implementation has no AC.
+
 Slice order: first card = the smallest correct working core (tracer); later cards grow on it —
 no abstraction for a future the PRD doesn't name.
 

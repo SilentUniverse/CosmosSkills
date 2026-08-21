@@ -4,7 +4,7 @@
 
 CLAUDE.md §7 is enforced by a `PreToolUse` hook (skill `modern-cli-guardrails`): a `Bash` command is blocked (exit 2) before it runs when a **host-side segment** invokes a legacy tool in command position.
 
-The concrete `settings.json` `PreToolUse` config, hook script install locations, and verification steps live in `misc/modern-cli-guardrails/SKILL.md` — not duplicated here.
+The concrete `settings.json` `PreToolUse` config, hook script install locations, and verification steps live in `misc/modern-cli-guardrails/WIRING.md` — not duplicated here.
 
 | Forbidden | Use instead |
 |---|---|

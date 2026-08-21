@@ -12,7 +12,8 @@ Pause and ask: "(a) iterate on existing code, or (b) start over?" *(autonomous: 
 
 The parent slice is named by the `refines:` frontmatter field (fallback: strip the prefix —
 `05-redo-balance-api.md` → `02-balance-api.md`). Read the parent's `### 完成` block and list the
-test files it added. Show the user:
+test files it added. The redo/fix card's own `test_paths:` declares every parent test file it
+will update or delete — the gate checks `### 完成` against it. Show the user:
 
 > "This redoes `02-balance-api.md`. That issue added these tests:
 > - `tests/test_balance_rest.py` (4 cases)

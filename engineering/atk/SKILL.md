@@ -1,6 +1,6 @@
 ---
 name: atk
-description: Attack-mode review of the agent's own output — a diff, a design, a plan, a skill's text, or a decision. Re-derives load-bearing choices from first principles (what breaks without it?), then hunts failure modes (semantics, consistency, runtime, necessity, cost). Manual runs also explain every change in scope; spec WRITE-LOOP gets findings only. Use when the user says 对抗式审查 / 再审一轮 / 第一性原理再想想 / 给我讲讲你改了什么. Not a substitute for `/code-review` or a `/tdd` completion 审查.
+description: Attack-mode review of the agent's own output — a diff, a design, a plan, a skill's text, or a decision. Re-derives load-bearing choices from first principles (what breaks without it?), then hunts failure modes (semantics, consistency, runtime, necessity, cost). Manual diff runs also explain every change; non-diff targets and spec WRITE-LOOP return findings only. Use when the user says 对抗式审查 / 再审一轮 / 第一性原理再想想 / 给我讲讲你改了什么. Not a substitute for `/code-review` or a `/tdd` completion 审查.
 argument-hint: "Target, --all (entire uncommitted diff), or empty = changes since the last /atk"
 ---
 
@@ -61,7 +61,9 @@ lead line plus the lists below — no tables, nothing else.
 
 A finding's fix item writes 原因 as 见发现 #N; long text compresses to its load-bearing part.
 Audit-only runs return findings to the caller — no lead line, no chat output. Non-diff targets
-(design, plan, decision): findings only, both modes.
+(design, plan, decision): findings only, both modes. Questions riding on the invocation are
+answered after the findings — the caller's ask, not leakage.
 
 Round discipline: a later `/atk` covers only changes since the last `/atk`; an earlier item
-reappears only if it changed again. No process narration. Prose fixes can chain to `/lint`.
+reappears only if it changed again. An explicitly named scope overrides the round default.
+No process narration. Prose fixes can chain to `/lint`.

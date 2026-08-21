@@ -1,6 +1,6 @@
 ---
 name: research
-description: Investigate a question against high-trust primary sources and capture the findings as a Markdown file in the repo. Use when the user wants a topic researched, docs or API facts gathered, or reading legwork delegated to a background agent so the main thread keeps working.
+description: Investigate a question against high-trust primary sources and capture the findings where their lifespan fits — repo doc, `.scratch/tmp/`, or nothing. Use when the user wants a topic researched, docs or API facts gathered, or reading legwork delegated to a background agent so the main thread keeps working.
 ---
 
 Spin up a **background subagent** to do the research, so you keep working while it reads. The heavy reading stays in the subagent's context; only the findings come back.

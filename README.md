@@ -39,7 +39,7 @@
 
 **全集必清零。** 任何"全部 / 所有 / 逐个"任务，先用工具枚举全集（grep / ls / git diff），绝不凭记忆；每项要么完成、要么写明不动的原因；收尾重跑枚举命令验证残留为零，报告以 N/N 结束——每个结论带 file:line 或命令输出作证据。
 
-**能并行的都在并行。** spec 定稿前，外部事实类问题同轮 fan out 给后台 research（上限 3）；`/tdd -p` 按依赖分波次并行，预测到撞同一测试文件的卡自动串行成先后波；关批时全量 suite、Standards 轴、Spec 轴三个只读子代理同轮齐发。
+**能并行的都在并行。** spec 定稿前，外部事实类问题同轮 fan out 给后台 research（上限 3）；`/tdd -p` 按依赖分波次并行（波内 ≤4），卡上声明的 `touches`/`test_paths` 撞车的自动串行成先后波、缺声明的单独成波，过夜由 [overnight.py](scripts/overnight.py) 逐波换新会话；关批时全量 suite、Standards 轴、Spec 轴三个只读子代理同轮齐发。
 
 **一切闭环，没有僵尸状态。** handoff 一份生产一次消费，`/resume` 完成即删（git 留历史）；done 攒够 `/tidy` 归档成 SUMMARY；说不清的问题停在 PRD 的雾区，不假装精确；每张卡落在点名的接缝上，AC 穿过接缝跑。
 
@@ -57,19 +57,19 @@
 git clone https://github.com/SilentUniverse/HysSkills
 ```
 
-1. 打开仓库根目录，**双击 `install-oneclick.cmd`**。
+1. 打开仓库根目录，**双击 `install.cmd`**。
 
 ### macOS / Linux
 
 ```bash
 git clone https://github.com/SilentUniverse/HysSkills
 cd HysSkills
-bash install.sh
+bash scripts/install.sh
 ```
 
 装完新开 Claude Code 会话，敲 `/` 能看到 27 个 skill 即成功。
 
-安装会：把每个 skill 链接到 `~/.claude/skills/<name>`（Windows junction / Unix symlink；改仓库即生效；已有同名目录备份到 `_backup-<时间戳>/`）；拷贝 `claude/CLAUDE.md`、references、hooks 到 `~/.claude/`；分发 `ARTIFACT-FORMAT.md`。
+安装会：把每个 skill 链接到 `~/.claude/skills/<name>`（Windows junction / Unix symlink；改仓库即生效；已有同名目录备份到 `_backup-<时间戳>/`）；拷贝 `claude/CLAUDE.md`、references、hooks 到 `~/.claude/`；分发 `ARTIFACT-FORMAT.md` 和机器门 `verify-artifacts.py`（并清理旧版残留脚本）。仓库根的 `overnight.cmd` 是过夜跑批入口，无需安装。
 
 <details>
 <summary>可选：护栏 hook、现代 CLI、只要全局规则</summary>
@@ -77,7 +77,7 @@ bash install.sh
 **护栏** — 安装只分发脚本，接线写 `settings.json`，见各自 SKILL.md：
 
 - [git-guardrails](misc/git-guardrails-claude-code/SKILL.md) — 拦 `push` / `reset --hard` / `clean -f` / `branch -D` / `checkout .`
-- [modern-cli-guardrails](misc/modern-cli-guardrails/SKILL.md) — 拦宿主 `grep` / `find` / `ls` / `sed`
+- [modern-cli-guardrails](misc/modern-cli-guardrails/SKILL.md) — 拦宿主 `grep` / `find` / `ls` / `sed`；另拦把 `/tmp`、`/c/…` 这类 POSIX 路径递给原生程序（python / pwsh / node 等）——两个路径世界只认各自的路
 
 **现代 CLI** — `yq`、`ast-grep` 等；没有也能靠内置 Grep / Read。[CLAUDE.md §7](claude/CLAUDE.md)
 
@@ -128,6 +128,7 @@ flowchart LR
 - 已有功能：没推翻已记录的 AC/决策 → detail / 改 `ready`；推翻了 → `PRD-v2` + 对账；跨特性先问一句
 - 已有代码：影响面探测
 - 写不出自足卡（`## 做什么` + AC）就不是独立 issue；AC 从不变量推导，穿过点名的接缝跑
+- 并行批次同时声明写集（`touches` + `test_paths`，`-p` 波次的唯一撞车信号；`--log` 卡不声明）；UI 卡先拆三层——逻辑与结构进 AC，纯视觉进端到端验证
 - agent 跑不了的验证 → PRD 端到端验证
 - 有真设计权衡 → 先 `/prototype`
 - 实现决策先写不变量；单向门（ABI / schema / 协议）单独标出吃最重审查
@@ -142,7 +143,7 @@ flowchart LR
 
 **/tdd**
 
-- 一条 / 裸跑排空 / `<feat>` 串行；`-p` 并行（撞同一批文件才用 worktree）
+- 一条 / 裸跑排空 / `<feat>` 串行；`-p` 并行（声明撞车的卡自动串行；worktree 仅用户显式要求）
 - `--log`：车机 / 设备，验收是命令的 log 文件
 - 人验在 PRD 端到端验证；批末全量 suite + build + 双轴审查 + 一屏五块报告；done 攒够 → `/tidy`
 
@@ -166,6 +167,7 @@ flowchart LR
 | 做一条 issue | `/tdd <path>` |
 | 排空一个 feature 的 ready | `/tdd <feat>` |
 | 车机 / 设备，验收在 log 里 | `/tdd --log` |
+| 过夜无人值守跑批 | 双击仓库根的 [overnight.cmd](overnight.cmd)（会问项目路径；给它建个桌面快捷方式最省事，也可把项目文件夹拖上去）；终端 `overnight.cmd [repo] [feat]`；macOS / Linux：`python scripts/overnight.py` |
 | 上一 session 留了 handoff | `/resume` |
 | 做到哪了 | 自己跑 `rg '^status:' -g '**/issues/*.md' .scratch` |
 | 想听 AI 逐条讲它改了什么 | `/atk`（默认讲上一轮增量；`--all` 讲全部未提交） |
@@ -257,7 +259,7 @@ git_base: 7af387c
 
 ### 不要破坏
 
-1. `done` 不可改 → 新建 `NN-redo-X.md`
+1. `done` 不可改 → 新建 `NN-redo-X.md`（唯一例外：`test_paths` 绿灯同步，仅 frontmatter 字段）
 2. 推翻已记录的 AC/决策 → `PRD-v2.md`，旧的不动；纯增量 → detail / 改 `ready`，不动 PRD
 3. AC 只写本切片新行为；前置靠 `blocked_by`。tdd 跑前会跳过已覆盖的 AC
 
@@ -329,7 +331,7 @@ git_base: 7af387c
 
 | | |
 |---|---|
-| 改完 CLAUDE.md / references / hooks | Windows 再双击 `install-oneclick.cmd` |
+| 改完 CLAUDE.md / references / hooks | Windows 再双击 `install.cmd` |
 | 改 skill | 改仓库即可（junction） |
 | SKILL.md | <100 行；超了按 [write-skill](productivity/write-skill/SKILL.md) 拆；改完跑 `/atk` + `/lint` + `wc -l` |
 | 改 hook | 先跑 `test-block-legacy-cli.ps1` / `test-block-dangerous-git.ps1` |

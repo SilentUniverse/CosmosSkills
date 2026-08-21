@@ -498,6 +498,27 @@ def main(argv):
                                 or os.path.isfile(os.path.join(fd, cand))
                             ):
                                 err("%s: ### 完成 names missing test file '%s'" % (f, m))
+                        # records are prose-typed: normalize ./ prefix, separators, and case
+                        # (Windows-first repos) before membership comparison
+                        def _norm(p):
+                            return p.replace("\\", "/").rstrip("/").lstrip("./").lower()
+
+                        declared = {
+                            _norm(p) for p in as_list(fm.get("test_paths")) if p
+                        }
+                        if declared:
+                            xin = [
+                                line.lstrip()
+                                for line in (rec or [])
+                                if line.lstrip().startswith("- " + XINZENG)
+                            ]
+                            for m in sorted(set(TEST_PATH.findall("\n".join(xin)))):
+                                if _norm(m) not in declared:
+                                    err(
+                                        "%s: 新增测试 '%s' outside declared test_paths - "
+                                        "add the path to test_paths or correct the record"
+                                        % (f, m)
+                                    )
             for c in cyclic_slugs(graph):
                 err("%s: in (or depends on) a blocked_by cycle" % by_slug[c])
 

@@ -25,8 +25,8 @@ and the user wants a map of the *whole* project, not one area — onboarding an 
 
 1. **Partition first.** Identify the top-level areas (by directory or domain concept). Confirm the
    partition with the user *before* deep exploration.
-2. **Explore in parallel, isolated.** Dispatch one `Agent` (subagent_type=general-purpose,
-   read-only) per partition so each area's exploration burns a *subagent's* context, not the main
+2. **Explore in parallel, isolated.** Dispatch one read-only `Explore` subagent
+   per partition so each area's exploration burns a *subagent's* context, not the main
    session's — local files only (Read/Glob/Grep), no web mirrors. Each returns:
    - a **roster line** — a real existing directory path + responsibility in ≤10 words
      (never `<placeholder>`, `{brace-set}`, or glob syntax);

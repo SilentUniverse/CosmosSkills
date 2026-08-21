@@ -29,7 +29,7 @@ Look at the current repo to understand its starting state. Read whatever exists;
 
 ### 2. Migration check
 
-Classify the repo into one of four cases based on what step 1 found, and announce the case to the user before proceeding:
+Classify the repo into one of five cases based on what step 1 found, and announce the case to the user before proceeding:
 
 **Case 1 — Clean repo.** No `.scratch/`, no `docs/agents/`, no existing `## Agent skills` block. Skip migration; proceed to step 3.
 
@@ -55,7 +55,7 @@ these terms mean; explainers, choices, and defaults: [DECISIONS.md](DECISIONS.md
 
 Show the user a draft of:
 
-- The `## Agent skills` block to add to whichever of `CLAUDE.md` / `AGENTS.md` is being edited (see step 4 for selection rules)
+- The `## Agent skills` block to add to whichever of `CLAUDE.md` / `AGENTS.md` is being edited (see step 5 for selection rules)
 - The contents of `docs/agents/issue-tracker.md` and `docs/agents/domain.md`
 
 Let them edit before writing.
@@ -70,7 +70,7 @@ Let them edit before writing.
 
 If an `## Agent skills` block already exists in the chosen file, update its contents in-place rather than appending a duplicate. Don't overwrite user edits to the surrounding sections.
 
-The session-start orientation convention (load `CODEBASE.md`/`CONTEXT.md`, scan ADR titles, check drift) is **not** written here — it lives once in the global `CLAUDE.md` template (§6 "Local document layout"), which every session loads. Don't inject a per-repo copy; this block only records the three per-repo choices below.
+The session-start orientation convention (load `CODEBASE.md`/`CONTEXT.md`, scan ADR titles, check drift) is **not** written here — it lives once in the global `CLAUDE.md` template (§6 "Document Layout"), which every session loads. Don't inject a per-repo copy; this block only records the three per-repo choices below.
 
 The block:
 

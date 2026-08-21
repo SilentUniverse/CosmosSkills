@@ -1,6 +1,6 @@
 ---
 name: modern-cli-guardrails
-description: Set up a Claude Code PreToolUse hook that blocks legacy CLI tools (grep, find, sed) in host-shell segments of Bash commands, enforcing CLAUDE.md §7 modern tooling. Use when the user wants to hard-enforce rg/fd/sd, forbid legacy CLI tools, or turn the §7 soft rule into a blocking hook.
+description: Set up a Claude Code PreToolUse hook that blocks legacy CLI tools (grep, find, sed) and POSIX path tokens (/tmp, /c/…) handed to native Windows executables in host-shell segments of Bash commands, enforcing CLAUDE.md §7 modern tooling. Use when the user wants to hard-enforce rg/fd/sd, forbid legacy CLI tools, or turn the §7 soft rule into a blocking hook.
 disable-model-invocation: true
 ---
 
@@ -24,6 +24,8 @@ Legacy tool as the first word of a host-side segment (segments split at unquoted
 | `sed` | `sd` |
 
 When blocked, Claude sees the message on stderr and retries with the modern tool or a built-in `Grep`/`Glob`/`Read`.
+
+**Path-world guard**: a host segment starting with a native Windows executable (`python`/`python3`/`py`, `pwsh`/`powershell`, `cmd`, `node`, `rg`, `fd`, `bat`, `jq`, `yq`, `sd`) that carries a POSIX path token (`/tmp/…`, `/c/…`) is blocked with a `cygpath -w` / `$env:TEMP` pointer — native processes cannot resolve MSYS paths ("two path worlds", `~/.claude/references/windows-cli.md`). This guard lives in the `.ps1` hook only; on Unix the `.sh` needs none (MSYS paths don't exist there). Same escape hatch.
 
 ### What does NOT get blocked
 

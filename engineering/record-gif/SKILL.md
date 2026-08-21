@@ -37,6 +37,7 @@ without asking. On Windows, `python3` can be a Store alias that fails to run —
 
 ```sh
 export GIF_SKILL_DIR=<this skill's absolute dir>   # own line — an inline assignment expands $GIF_SKILL_DIR too late
+# Windows: substitute python for python3
 python3 "$GIF_SKILL_DIR/scripts/encode_gif.py" <frames-dir> <out.gif> \
   --durations 1.5,1.5,1.5,3.5 --fps 10 --max-width 1200 --colors 128
 ```

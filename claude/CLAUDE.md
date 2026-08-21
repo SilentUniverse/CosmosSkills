@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Tradeoff: caution over speed. For trivial tasks, use judgment.
-A line that starts with `→` and a path is an on-demand reference under `~/.claude/references/` — do not pre-load. Read it when that section's work starts. A fact lives here or in that reference, never both. Skill on-demand files use markdown links, not a line-start `→` path. A soft rule broken twice becomes a hook/skill; lookup leaves this file; an action-time stub may stay.
+A line that starts with `→` and a path is an on-demand reference under `~/.claude/references/` — do not pre-load. Read it when that section's work starts. A fact lives here or in that reference, never both. Skill subfiles use markdown links instead. A soft rule broken twice becomes a hook/skill; lookup leaves this file; an action-time stub may stay.
 
 ## 1. Think in English, respond in Chinese
 
@@ -95,7 +95,7 @@ Windows console defaults to GBK (cp936); `PYTHONUTF8=1` is injected via settings
 ## 9. Run to Completion
 
 Multi-item tasks — the ask names a full set: 全部/所有/逐个, a numbered list, or 最后 / "at the end" — finish ALL items in one pass, in any conversation, not only inside a named skill.
-- Open by restating the pass contract: N 项、一个回合跑完、结尾一次汇总. Then enumerate the full set with a tool first (grep / ls / git diff), never from memory; hold it in the todo list or a file.
+- Open by restating the pass contract: N 项、一个回合跑完、结尾一次汇总. Then enumerate the full set with a tool (grep / ls / git diff), never from memory.
 - Every item ends done or with a written why-not. Item fails or blocks → mark it, move on, surface it in the final summary; don't stop to negotiate.
 - Close by re-running the enumeration expecting zero left; end with N/N — conclusions carry file:line or command output as evidence.
 - A turn ends at the pass's end, or on input only the user can give. No mid-pass pauses, per-item summaries, or "shall I continue?" checkpoints. If context forces a split, break at item boundaries with a one-line N/M marker, never mid-item.
@@ -107,7 +107,7 @@ Multi-item tasks — the ask names a full set: 全部/所有/逐个, a numbered 
 Default to subagents for fan-out work unless the setup cost (brief, verification, re-dispatch on drift) outweighs doing it inline.
 - **Parallelize**: independent searches/research (one `Explore` each), unrelated module edits, investigate-only tasks.
 - **Don't**: single-file or small edits; steps that depend on a prior result's output.
-- **Prompt well**: the subagent can't see this conversation — give it context, output format/scope, access level, and a tool-call cap past which it reports.
+- **Prompt well**: the subagent can't see this conversation — give it context, output format/scope, access level, and a tool-call cap.
 
 ## 11. Android / ADB
 

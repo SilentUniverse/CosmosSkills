@@ -9,8 +9,9 @@ close are shared.
 
 1. Enumerate candidates: bare / `-p` scans `.scratch/*/issues/*.md` (top level, never
    `archive/`); a `<feat>` argument scans only `.scratch/<feat>/issues/*.md`. Read each one's
-   `status:` and `blocked_by:` in one `rg '^(status|blocked_by):' -A2 <files>` pass;
-   `yq --front-matter=extract` only as fallback for lists longer than `-A2`.
+   `status:`, `blocked_by:`, `touches:`, and `test_paths:` in one
+   `rg '^(status|blocked_by|touches|test_paths):' -A3 <files>` pass;
+   `yq --front-matter=extract` only as fallback for lists longer than `-A3`.
 2. Keep only `status: ready`. Topologically sort on `blocked_by` so every issue runs
    after its blockers. Skip (don't fail) any issue still blocked by an unfinished issue — report
    it as deferred at the end.
@@ -44,24 +45,29 @@ untouched. Never revert `.scratch/**`. Leave the issue `ready`, note why in `## 
 
 `-p` farms the ready issues out to **subagents** instead of running them inline. The point is
 context isolation: each issue's verbose red-green output stays in its own window and never floods
-the main session, and independent slices finish in parallel. Same DAG, same per-issue gate — `-p`
-only adds two per-issue judgements: **hand this issue to a subagent, and does it need its own
-worktree?**
+the main session, and independent slices finish in parallel. The workspace is the memory — cards,
+manifests, and wave baselines live under `.scratch/`; the orchestrator session is disposable.
+Same DAG, same per-issue gate — `-p` only adds per-issue judgements: **hand this issue to a
+subagent, and does it need its own worktree?**
 
 Loop until the ready set is empty:
 
 1. **Compute the wave.** From the remaining `ready` issues, take every one whose blockers
-   are all `done`. These have no ordering constraint between them. Before dispatch, predict
-   each issue's test-file paths from its 做什么/AC: two issues predicted to create or modify the
-   same test file serialize into successive waves regardless of `touches:`.
-2. **Fan out — one subagent per issue, dispatched in a single turn.** Before dispatch, record the
-   wave baseline (`git status --porcelain` output). Each `general-purpose` subagent
+   are all `done`. Eligibility is mechanical — both `touches:` and `test_paths:` declared;
+   an issue missing either runs alone in its own wave (serialized, still subagent-isolated).
+   Two issues with overlapping `touches:` or colliding `test_paths:` serialize into successive
+   waves. No prose inference at dispatch — the declarations are the only coupling signal.
+   More than half the batch undeclared → suggest the serial path instead: `-p` on undeclared
+   cards is serial-with-extra-steps.
+2. **Fan out — one subagent per issue, at most 4 in flight.** Before dispatch, record the
+   wave baseline (`git status --porcelain` output). A wave over 4 issues dispatches in batches
+   of ≤4, each batch landing before the next — concurrent test suites thrash one machine into
+   flaky reds. Each `general-purpose` subagent
    runs the full autonomous red-green loop for its issue. `--log` drain: one issue per wave.
-   Other coupling comes from `touches:` overlap
-   (absent → judge from 做什么/AC):
+   Coupling came from the declarations in step 1:
    - **Disjoint → edit in place.** Subagents edit the shared tree directly.
-   - **Overlapping → serialize into successive waves.** Worktree (`tdd/<NN>-<slug>`) only to
-     deliberately parallelize overlapping slices; merge back in dependency order
+   - **Overlapping → serialize into successive waves.** Worktree (`tdd/<NN>-<slug>`) only on
+     the user's explicit request, to parallelize an overlapping pair; merge back in dependency order
      (`/merge-conflicts` for any conflict). Inside a worktree, nothing writes shared state
      (no stash, no shared tmp paths).
 
@@ -69,24 +75,39 @@ Loop until the ready set is empty:
    - **Invoke `/tdd <issue-path>`** (add `--log` when the drain was started with `--log`) —
      this loads the full workflow (status guard, existing-test scan, red-green-refactor
      discipline, Murphy check, completion record). The issue is `ready` → autonomous mode:
-     skip all "confirm with user" prompts.
+     skip all "confirm with user" prompts. Run this slice yourself — no spawning further
+     subagents, no entering drain mode.
    - The issue is self-contained — no PRD attach. Paste the scoped-test and build command
      lines from `docs/agents/domain.md` into the brief; the brief's lines stand in for the
      existing-test scan's domain.md lookup.
    - The **tests-so-far manifest** (earlier waves' 新增测试): don't write tests it already covers —
      report duplicates instead.
-   - Report back **only** by outcome, in this fixed shape — a free-form reply is not a result:
-     - **`result: green`** → which tests it added (files + case counts) + scoped pass tally. The
-       subagent writes the completion record and sets `status: done` itself.
-     - **`result: red` / `result: blocked`** → failing case names + a trimmed traceback (not
-       thousands of raw lines) + what it tried + what it had already confirmed before failing.
+   - Report back **only** by outcome, in this fixed shape — a free-form reply is not a result;
+     red/blocked reports stay under 400 words:
+     - **`result: green`** → which tests it added (files + case counts) + files changed
+       (production and tests) + scoped pass tally. The
+       subagent writes the completion record (syncing `test_paths:` per its template) and sets
+       `status: done` itself.
+     - **`result: red` / `result: blocked`** → failing case names + a trimmed traceback (error
+       head + last frames + omitted-line count; never file contents) + what it tried + what it
+       had already confirmed + one suggested next action.
        Revert **this issue's** edits first (not the whole wave). Leave `status: ready`.
 
    The verbose test output stays in the subagent — it does not flow back into the main context.
 3. **Collect the wave.** Each green subagent has already written its completion record and set
-   `status: done`. Near-miss green report (fields present, shape imperfect): extract the fields,
-   note the deviation, don't re-dispatch. Verify **once per wave, after all subagents land**: run
-   the union of the touched modules' scoped tests in one pass. For the worktree exception, verify
+   `status: done`. An imperfectly shaped report trusts the disk over the note: check the issue's
+   `### 完成` record and rerun that module's scoped tests — record valid + green → accept with the
+   deviation noted; record broken → treat as red (revert this issue, leave `ready`). Verify
+   **once per wave, after all subagents land**: run the
+   union of the touched modules' scoped tests in one pass — narrowed by the domain.md
+   impact-probe test command when one exists — and reconcile the write set: compare
+   `git status --porcelain` against the wave baseline (exclude `.scratch/**`), attributing each
+   changed file via the wave's reported files. Two issues reporting the same file, or a changed
+   file nobody reported → wave-fatal (recovery below). An issue's undeclared test file with green
+   tests → sync its `test_paths:` (the sanctioned frontmatter edit); an undeclared production
+   file → note it in its `### 完成` 备注. Files no declaration covers (repo root, config) can
+   still collide — the closing suite is the net. For the worktree
+   exception, verify
    after its branch lands and passes on the merged tree. **Wave-fatal ≠ per-issue red**: a defect
    in the wave itself — the brief named a nonexistent issue, the tests-so-far manifest contradicts
    the tree, the base build is broken — stops the whole wave and surfaces immediately. Wave-fatal
@@ -101,7 +122,11 @@ Loop until the ready set is empty:
 4. **Recompute** the ready set (newly-`done` issues may unblock the next wave) and repeat.
    After collecting a wave, persist its state: update `.scratch/<feat>/handoff.md` in rolling
    mode with the wave number, the wave baseline, and the tests-so-far manifest — a crashed
-   overnight run resumes from the handoff instead of reverse-engineering a mixed tree.
+   overnight run resumes from the handoff instead of reverse-engineering a mixed tree (a
+   cross-feature drain rolls `.scratch/handoff.md` instead). In a
+   runner-driven drain (repo `scripts/overnight.py`), each wave close also ends the session:
+   write §5 as 读 handoff → 续跑下一波, then stop — the runner relaunches a fresh session, so no
+   wave is ever scheduled from a rotting context. Interactive `-p` sessions never rotate.
 
 ## Shared: close the batch
 

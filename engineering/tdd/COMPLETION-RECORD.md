@@ -8,6 +8,11 @@ Adversarial review is a required artifact, not a step: the `### 完成` block ca
 **Before marking done** — glance over `git diff`: every change should trace to this issue's AC.
 Revert what doesn't; if something out-of-scope is genuinely required, say why first.
 
+**Sync `test_paths:` before `done`.** A test file this run wrote outside the card's declared
+`test_paths:` is appended to it first — frontmatter field sync only, the body stays immutable
+once `done`. This rule is the same on every path (single, serial, `-p`) and is what keeps the
+gate green; the wave-level reconciliation in drain only verifies it.
+
 **Murphy before done.** Green only proves the cases you wrote tests for. Cover each chosen
 behavior's failure modes too — null/empty input, boundary values, error paths, and where
 relevant concurrency/timeouts. Occam trims during dev (no speculative features); Murphy expands
