@@ -9,6 +9,10 @@
 # `adb shell "ls; grep x"` passes while `adb logcat -d | grep x` blocks (that
 # grep runs on the host).
 #
+# A second guard blocks POSIX path tokens (/tmp, /c/...) handed to native
+# Windows executables — those paths only resolve inside the MSYS world
+# (windows-cli.md, "two path worlds").
+#
 # Failure-safe direction: any parse error, unexpected failure, or explicit
 # escape hatch exits 0 (allow). Only a confirmed host-side match exits 2.
 #
@@ -119,6 +123,23 @@ try {
                     "Use '$($map[$old])' instead. For routine search/read prefer the built-in Grep/Glob/Read tools. " +
                     "If truly unavoidable, put '# force-legacy' on its own line first, or set ALLOW_LEGACY_CLI=1.")
                 exit 2
+            }
+        }
+
+        # Path-world guard: native Windows executables cannot resolve POSIX path
+        # tokens — /tmp is an MSYS virtual mount, /c/ a drive form; a native
+        # process resolves them as <cwd-drive>:\tmp or fails outright.
+        if ($t -match '^(?:python3?|py|pwsh|powershell|cmd|node|rg|fd|bat|jq|yq|sd)(?![\w./-])') {
+            foreach ($tok in ($t -split '\s+')) {
+                if ($tok -match '^/(?:tmp|[A-Za-z])(?:/|$)') {
+                    [Console]::Error.WriteLine(
+                        "BLOCKED: POSIX path '$tok' handed to a native Windows executable. " +
+                        "Native processes only understand Windows absolute paths. " +
+                        "Temp files: use `$env:TEMP (from bash: cygpath -w `$TEMP); " +
+                        "other paths: convert with cygpath -w first. " +
+                        "If truly unavoidable, put '# force-legacy' on its own line first, or set ALLOW_LEGACY_CLI=1.")
+                    exit 2
+                }
             }
         }
     }

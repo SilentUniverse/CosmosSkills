@@ -109,6 +109,19 @@ Test-Case 'heredoc-data'  "git commit -F- <<'EOF'`nfix: find the bug`nEOF"  0
 Test-Case 'escape-comment' "# force-legacy`ngrep foo"  0
 Test-Case 'escape-env'     'grep foo'            0  @{ ALLOW_LEGACY_CLI = '1' }
 
+# Should BLOCK (exit 2) — POSIX path tokens handed to native executables.
+Test-Case 'python-tmp-arg'   'python x.py /tmp/f'          2
+Test-Case 'node-drive-path'  'node s.js /c/Users'          2
+Test-Case 'py-tmp-bare'      'python x.py /tmp'            2
+Test-Case 'cmd-quoted-tmp'   'cmd //c "python /tmp/x.py"'  2
+
+# Should ALLOW (exit 0) — path-world guard does not fire.
+Test-Case 'cmd-double-slash' 'cmd //c dir'                 0
+Test-Case 'redirect-devnull' 'python x.py 2>/dev/null'     0
+Test-Case 'rg-normal-args'   'rg pattern src'              0
+Test-Case 'cp-to-tmp-bash'   'cp x /tmp/'                  0
+Test-Case 'multi-letter-dir' 'python x.py /tests'          0
+
 # Should ALLOW (exit 0) — robustness.
 Test-Case 'empty'         ''                     0
 

@@ -44,4 +44,5 @@ Corruption before the write:
 - Raw `pwsh` / `powershell.exe` from bash with Chinese output: PS7 raw garbles, PS5.1 raw sometimes clean — never rely on either unwrapped; the §8 wrapper command is the safe form.
 - `fd` / Glob / Grep (rg) hide gitignored + hidden + dot files by default; a non-empty directory can read as "empty" until a truth command runs.
 - **git-bash rewrites leading-`/` paths in unquoted args to native Windows executables**: `adb shell ls /sdcard` arrives on-device as `ls C:/Program Files/Git/sdcard`. Quote the device command (`adb shell "ls /sdcard"`), or prefix `MSYS_NO_PATHCONV=1` for mixed commands.
+- **Two path worlds** — git-bash's `/tmp` is an MSYS virtual mount; a native process (`python`, `pwsh`, `cmd`, `node`, winget tools) resolves `/tmp` as `<cwd-drive>:\tmp` or fails outright. Hand native processes Windows absolute paths; temp files go to `$env:TEMP` (`cygpath -w "$TEMP"` converts from bash). The modern-cli-guardrails hook blocks POSIX path tokens on native-exe segments.
 - **awk keeps a UTF-8 BOM; `Get-Content -Encoding UTF8` strips it** — match line 1 of a possibly-BOM'd file only after `NR == 1 { sub(/^\357\273\277/, "") }`.
