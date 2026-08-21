@@ -6,7 +6,7 @@ or its issue files use bare `Status:` lines (Case 5).
 In all cases, present what was found and the proposed migration plan for the user to confirm before
 any file is changed. Do not silently rewrite existing user content.
 
-## Case 3 — Old setup detected (`mattpocock/skills` 5-state, or earlier hys 6-state)
+## Case 3 — Old setup detected (`mattpocock/skills` 5-state, or earlier cosmos 6-state)
 
 Trigger: either `docs/agents/issue-tracker.md` references `gh` / `glab` CLI, or existing issue files
 use deprecated states (`needs-triage`, `needs-info`, `wontfix`, `inbox`, `blocked`, `doing`,
