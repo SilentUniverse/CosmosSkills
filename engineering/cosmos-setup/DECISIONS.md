@@ -1,6 +1,6 @@
-# hys-setup — The three decisions
+# cosmos-setup — The three decisions
 
-Loaded on demand by [hys-setup](SKILL.md) step 3 while walking the user through the setup
+Loaded on demand by [cosmos-setup](SKILL.md) step 3 while walking the user through the setup
 decisions, one at a time. Each section opens with a short explainer (what it is, why these
 skills need it, what changes if they pick differently), then the choices and the default.
 

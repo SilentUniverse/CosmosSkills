@@ -1,10 +1,10 @@
 ---
-name: hys-setup
+name: cosmos-setup
 description: Sets up an `## Agent skills` block in AGENTS.md/CLAUDE.md and `docs/agents/` so the engineering skills know this repo's issue tracker (local markdown by default) and domain doc layout. Run before first use of `spec`, `tdd`, `diagnose`, `improve-arch`, or `zoom-out` — or if those skills appear to be missing context about the issue tracker or domain docs.
 disable-model-invocation: true
 ---
 
-# Setup (hys-setup)
+# Setup (cosmos-setup)
 
 Scaffold the per-repo configuration that the engineering skills assume:
 

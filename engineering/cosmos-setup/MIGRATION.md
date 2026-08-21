@@ -1,6 +1,6 @@
-# hys-setup — Migration detail (Case 3 & Case 5)
+# cosmos-setup — Migration detail (Case 3 & Case 5)
 
-Loaded on demand by [`/hys-setup`](SKILL.md) step 2 **only** when the repo is an old setup (Case 3)
+Loaded on demand by [`/cosmos-setup`](SKILL.md) step 2 **only** when the repo is an old setup (Case 3)
 or its issue files use bare `Status:` lines (Case 5).
 
 In all cases, present what was found and the proposed migration plan for the user to confirm before

@@ -231,5 +231,5 @@ else
   if [[ "$backed_up" -gt 0 ]]; then
     echo "Backed up $backed_up existing folders to: $BACKUP_DIR"
   fi
-  echo "Use /<name> in Claude Code. hys-setup is the project bootstrap entry."
+  echo "Use /<name> in Claude Code. cosmos-setup is the project bootstrap entry."
 fi
