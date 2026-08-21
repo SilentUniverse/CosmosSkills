@@ -9,7 +9,7 @@ Resolve conflicts by understanding *why* each side changed the code, not by patt
 
 1. **See the current state** of the merge/rebase — `git status`, `git log --oneline --graph -20`, and the conflicting files (`git diff --name-only --diff-filter=U`). Know which two commits/branches are meeting and what the merge is *for*.
 
-2. **Find the primary sources** for each conflicting hunk — the intent behind each change. Read the commit messages, and — since this repo tracks work locally — the originating issue under `.scratch/<feat>/issues/NN-*.md` (its `## AC` and `### 完成` record) and any `docs/adr/` decision the hunk touches.
+2. **Find the primary sources** for each conflicting hunk — the intent behind each change. Read the commit messages, and — since this repo tracks work locally — the originating issue under `.scratch/<feat>/issues/NN-*.md` (its `## 验收标准` and `### 完成` record) and any `docs/adr/` decision the hunk touches.
 
 3. **Resolve each hunk.** Preserve both intents where possible; where they're genuinely incompatible, pick the one matching the merge's stated goal and note the trade-off (a one-liner to the user, or an ADR if it's a real decision) — never invent new behaviour or silently drop a side. Use the project's domain language (`CONTEXT.md`) for any names you introduce.
 

@@ -49,7 +49,7 @@ a win.
 
 ### 2. Present candidates as an HTML report
 
-Write a self-contained HTML file to the OS temp directory so nothing lands in the repo. On Windows resolve the temp dir from `$env:TEMP`; on Unix use `$TMPDIR` falling back to `/tmp`. Write to `<tmpdir>/architecture-review-<timestamp>.html` so each run gets a fresh file. Open it for the user — on Windows run `Start-Process <path>` (PowerShell), on Linux `xdg-open <path>`, on macOS `open <path>` — and tell them the absolute path.
+Write a self-contained HTML file to the OS temp directory so nothing lands in the repo. On Windows resolve the temp dir from `$env:TEMP`; on Unix use `$TMPDIR` falling back to `/tmp`. Write to `<tmpdir>/architecture-review-<timestamp>.html` so each run gets a fresh file. Open it for the user — on Windows run `explorer.exe <path>`, on Linux `xdg-open <path>`, on macOS `open <path>` — and tell them the absolute path.
 
 The report uses **Tailwind via CDN** for layout and styling, and **Mermaid via CDN** for diagrams where a graph/flow/sequence reliably communicates the structure. (Both CDNs need network access; if the user is fully offline, fall back to a plain-markdown report instead.) Each candidate gets a **before/after visualisation**. Be visual.
 

@@ -1,6 +1,6 @@
 ---
 name: teach
-description: Teach the user a new skill or concept over multiple sessions, using the current directory as a stateful teaching workspace (mission, lessons, learning records). Use when the user says 教我 / teach me / 我想学 X, or asks for a lesson, tutorial, or study plan.
+description: Teach the user a new skill or concept over multiple sessions, using the current directory as a stateful teaching workspace (mission, lessons, learning records). Invoke via /teach when the user wants to learn a topic, take a lesson, or build a study plan.
 disable-model-invocation: true
 argument-hint: "What would you like to learn about?"
 ---
