@@ -87,7 +87,7 @@ Synthesis line two.
 '@
 
 $blockGood = @'
-<!-- BEGIN GENERATED codebase (/zoom-out) - do not edit between markers; regen: /zoom-out AREA -->
+<!-- BEGIN GENERATED codebase (/map) - do not edit between markers; regen: /map AREA -->
 git_base: abc1234
 - invariant one
 - seam two
@@ -144,7 +144,7 @@ Assert-Case "F05 block missing git_base" $d 1
 $longItems = (1..10 | ForEach-Object { "- item $_" }) -join "`n"
 $d = New-FixtureDir "f06"
 Write-Fixture "f06/CODEBASE.md" $rootGood
-Write-Fixture "f06/src/alpha/CLAUDE.md" ("<!-- BEGIN GENERATED codebase (/zoom-out) - do not edit between markers -->`ngit_base: abc1234`n" + $longItems + "`n<!-- END GENERATED codebase -->")
+Write-Fixture "f06/src/alpha/CLAUDE.md" ("<!-- BEGIN GENERATED codebase (/map) - do not edit between markers -->`ngit_base: abc1234`n" + $longItems + "`n<!-- END GENERATED codebase -->")
 Assert-Case "F06 block over 8 lines" $d 1
 
 $d = New-FixtureDir "f07"

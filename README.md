@@ -220,7 +220,7 @@ rg '^status: ready' -g '**/issues/*.md' .scratch
 
 **接收已有项目** — 先建地图，少让 agent 反复扫代码。
 
-1. `/domain-modeling` 术语表 + `/zoom-out` 结构地图（都有 draft：一次起草、一次审）。临时看一块：`/zoom-out <path>`，默认只读
+1. 先 `/domain-modeling` 出术语表（CONTEXT.md），再 `/map` 出结构地图（CODEBASE.md）——两个都跑，各一次起草、一次审。临时看懂某一块：`/show <path>`，一屏即弃
 2. `/cosmos-setup` 识别旧状态机、非默认路径、旧 `Status:` 行，确认后落盘
 3. 护栏同上
 
@@ -245,7 +245,7 @@ _Avoid_: Wallet, balance-holder
 `CODEBASE.md` root：综合段（≤5 句）+ 非显然路由 + 分区 roster（一行一区、≤10 词）。正文 ≤40 行。细节在 `src/<area>/CLAUDE.md` 生成块（≤8 行）。每行：`rg` 不出来 **且** 缺了会咬人。
 
 ```markdown
-<!-- BEGIN GENERATED codebase (/zoom-out) -->
+<!-- BEGIN GENERATED codebase (/map) -->
 git_base: 7af387c
 - 余额扣减必须查 frozen 标志，真入口是 `withdraw`（`_debit` 是私有的）
 <!-- END GENERATED codebase -->
@@ -299,7 +299,8 @@ git_base: 7af387c
 | [tidy](engineering/tidy/SKILL.md) | 归档、SUMMARY、僵尸测试 |
 | [diagnose](engineering/diagnose/SKILL.md) | 硬 bug / 性能回归 |
 | [merge-conflicts](engineering/merge-conflicts/SKILL.md) | merge / rebase 冲突 |
-| [zoom-out](engineering/zoom-out/SKILL.md) | 地图视角；可落盘 `CODEBASE.md` |
+| [map](engineering/map/SKILL.md) | 生成/刷新 `CODEBASE.md` 结构地图 |
+| [show](engineering/show/SKILL.md) | 讲解陌生代码区：一屏（目的/模块图/一条流/先读什么）；`--html` 出给人看的单页 |
 | [lint](engineering/lint/SKILL.md) | 视角审查：这句话离开写它的会话还成立吗 |
 | [write-skill](productivity/write-skill/SKILL.md) | 写 / 改技能；改完验收三连 `/atk` + `/lint` + `wc -l` |
 | [record-gif](engineering/record-gif/SKILL.md) | UI 录成验证过的 GIF |

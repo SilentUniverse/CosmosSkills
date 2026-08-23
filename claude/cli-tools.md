@@ -32,6 +32,14 @@ The harness exposes ripgrep-backed `Grep`, `Glob`, and `Read` tools with permiss
 
 When a shell command embeds a user-supplied value, quote it; these tools take regex by default (`rg`, `sd`), so escape literals or pass `--fixed-strings` / `-F`.
 
+## MSYS path conversion (git-bash)
+
+Git-bash rewrites an argument that begins with `/` into a Windows path before the tool sees it — `rg "/show"` silently searches for `C:/Program Files/Git/show` and returns a false zero; `sd -s '/zoom-out --save'` mangles the same way. The heuristic is inconsistent (a bare `/pattern` sometimes passes, one with a space usually doesn't) — never rely on it. The pattern must not be the argument's first character:
+
+- `rg -n "[/]show" <file>` — character class leads
+- `rg -n "^/show" <file>` — anchor leads
+- `MSYS_NO_PATHCONV=1 <cmd>` — kills conversion for one command (also affects real path args, so keep it scoped)
+
 ## Verbose output discipline
 
 Long-output commands (test suite, build, install, log dump) redirect to a log file. Never stream into context:
