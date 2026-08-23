@@ -164,9 +164,11 @@ Field rules:
 - **refines** — slug of the parent slice this elaborates (live or `issues/archive/`). Required
   for `detail`/`redo`/`fix`, omitted for top-level `enhancement` slices. `/tidy`'s orphan check
   flags any non-top-level issue with neither a PRD user-story link nor a `refines`.
-- **touches** — top-level dirs/modules this slice is expected to edit, at directory granularity —
-  never file paths. Written by `/spec` from its impact probe; `/tdd -p` groups waves by
-  overlap. Optional.
+- **touches** — top-level dirs/modules this slice is expected to edit, at directory granularity.
+  One exception: repo-root shared surfaces a slice edits (workspace manifest, lockfile, any
+  root config file) are declared verbatim as file paths — `/tdd -p` serializes on any overlap,
+  and a lockfile write mid-wave collides with everyone. Written by `/spec` from its impact
+  probe; `/tdd -p` groups waves by overlap. Optional.
 - **test_paths** — test files this slice will create or modify, repo-relative with `/` separators.
   Declared by `/spec` from the AC. This field owns the `-p` wave semantics: wave eligibility
   needs `touches:` + `test_paths:`; overlapping `touches:` or colliding `test_paths:` serialize
@@ -180,6 +182,16 @@ Field rules:
 The body keeps the section headings from `/spec`'s issue template. The completion record still
 appends to `## Comments` — schema + template: `tdd/COMPLETION-RECORD.md`; frontmatter `status` and
 the `### 完成` block move together.
+
+## Wave ledger — `.scratch/<feat>/wave-ledger.json`
+
+The `/tdd -p` drain's dispatch ledger, written only by the `tdd` skill's
+`scripts/drain-wave.py` (`dispatch` before subagents start, `collect` at wave close). Each
+wave entry: number, timestamp, dispatched slugs, the wave baseline (`git status --porcelain`
+snapshot), per-issue closure (`green|red|blocked|aborted`), close timestamp. A dispatched
+slug that is neither done on disk nor closed is a zombie — the recovery contract lives in
+`tdd/EDGE-CASES.md`. The ledger is append-oriented machine state; humans read it only for
+crash diagnosis. Tidy may delete it once every wave is closed and the batch shipped.
 
 ## Handoff files — `.scratch/<feat>/handoff.md` or `.scratch/handoff.md`
 

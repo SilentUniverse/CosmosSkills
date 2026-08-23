@@ -52,17 +52,27 @@ subagent, and does it need its own worktree?**
 
 Loop until the ready set is empty:
 
-1. **Compute the wave.** From the remaining `ready` issues, take every one whose blockers
-   are all `done`. Eligibility is mechanical — both `touches:` and `test_paths:` declared;
-   an issue missing either runs alone in its own wave (serialized, still subagent-isolated).
-   Two issues with overlapping `touches:` or colliding `test_paths:` serialize into successive
-   waves. No prose inference at dispatch — the declarations are the only coupling signal.
-   More than half the batch undeclared → suggest the serial path instead: `-p` on undeclared
-   cards is serial-with-extra-steps.
-2. **Fan out — one subagent per issue, at most 4 in flight.** Before dispatch, record the
-   wave baseline (`git status --porcelain` output). A wave over 4 issues dispatches in batches
-   of ≤4, each batch landing before the next — concurrent test suites thrash one machine into
-   flaky reds. Each `general-purpose` subagent
+1. **Compute the wave — by script, never by hand.** Run this skill's
+   `scripts/drain-wave.py next <repo-root> [<feat>]`. The script reads only the frontmatter
+   declarations (status / blocked_by / touches / test_paths) and prints the wave
+   (parallel, collision-free), the serialized remainder, `solo:` issues
+   (missing a declaration — one per wave), and `deferred:` lines (feed the close report's
+   Frontier). Exit 3 = zombies — a dispatched issue that neither closed nor flipped done
+   ([EDGE-CASES.md](EDGE-CASES.md)); resolve by adopt-or-revert and `collect` before any new
+   wave. Exit 4 = nothing ready, batch complete. Shared surfaces (workspace manifest,
+   lockfile, any repo-root file a slice edits) are declared in `touches:` verbatim — the
+   script serializes on any overlap. More than half the batch undeclared → suggest the
+   serial path instead: `-p` on undeclared cards is serial-with-extra-steps.
+2. **Fan out — one subagent per issue, at most 4 in flight.** Record the dispatch intent
+   first: `drain-wave.py dispatch <repo-root> <slug>...` writes the wave number, the issue
+   list, and the wave baseline (`git status --porcelain`) to
+   `.scratch/<feat>/wave-ledger.json` **before any subagent starts** — a crashed run
+   resumes from the ledger, not from reverse-engineering the tree. The dispatch call
+   enforces the barrier (blockers all done), the ≤4 cap, and collision serialization —
+   a refusal is a scheduling error to fix, not a suggestion to override. A wave over 4
+   issues dispatches in batches of ≤4 (collect each batch, then dispatch the rest);
+   concurrent test suites thrash one machine into flaky reds. Each `general-purpose`
+   subagent
    runs the full autonomous red-green loop for its issue. `--log` drain: one issue per wave.
    Coupling came from the declarations in step 1:
    - **Disjoint → edit in place.** Subagents edit the shared tree directly.
@@ -94,7 +104,12 @@ Loop until the ready set is empty:
        Revert **this issue's** edits first (not the whole wave). Leave `status: ready`.
 
    The verbose test output stays in the subagent — it does not flow back into the main context.
-3. **Collect the wave.** Each green subagent has already written its completion record and set
+3. **Collect the wave.** Close the ledger first: `drain-wave.py collect <repo-root>
+   <slug>=<result>[,...]` (green|red|blocked|aborted) — a done-on-disk issue reported
+   non-green refuses until reconciled, and a green report for an issue not yet `done` on
+   disk refuses too (flip the completion record + frontmatter first). Each green subagent
+   has already written its completion
+   record and set
    `status: done`. An imperfectly shaped report trusts the disk over the note: check the issue's
    `### 完成` record and rerun that module's scoped tests — record valid + green → accept with the
    deviation noted; record broken → treat as red (revert this issue, leave `ready`). Verify
@@ -121,16 +136,27 @@ Loop until the ready set is empty:
    into every later wave's brief.
 4. **Recompute** the ready set (newly-`done` issues may unblock the next wave) and repeat.
    After collecting a wave, persist its state: update `.scratch/<feat>/handoff.md` in rolling
-   mode with the wave number, the wave baseline, and the tests-so-far manifest — a crashed
+   mode with the wave number and the tests-so-far manifest — the wave baseline lives in the
+   ledger, so the handoff points at it instead of duplicating it — a crashed
    overnight run resumes from the handoff instead of reverse-engineering a mixed tree (a
    cross-feature drain rolls `.scratch/handoff.md` instead). In a
-   runner-driven drain (repo `scripts/overnight.py`), each wave close also ends the session:
-   write §5 as 读 handoff → 续跑下一波, then stop — the runner relaunches a fresh session, so no
-   wave is ever scheduled from a rotting context. Interactive `-p` sessions never rotate.
+   runner-driven drain (the skills repo's `scripts/overnight.py`) the runner owns wave
+   scheduling: it runs `next` and `dispatch`es the wave itself **before launching the
+   session** — every dispatch timestamp provably precedes the session's work, so the ledger
+   can never be written after the fact. The session receives the dispatched wave, runs the
+   subagents, `collect`s, writes §5 as 读 handoff → 续跑下一波, and stops; a zombie report
+   (next exit 3) gets a session that only adopt-or-reverts and `collect`s; the close-out
+   runs as its own fresh session. No wave is ever scheduled from a rotting context.
+   Interactive `-p` sessions never rotate and call `next`/`dispatch` themselves.
 
 ## Shared: close the batch
 
-After the last issue takes the active set to empty, run the **full suite + build once** as the
+After the last issue takes the active set to empty, run
+`drain-wave.py audit <repo-root> [<feat>]` — every test-pattern file under
+`touches:` (the script's pattern list; vendored/build trees skipped) must be
+claimed by some issue's `test_paths:`; assign each unowned file (sanctioned append) or
+open a cleanup issue before the review, so no unreviewed test rides the batch. Then run
+the **full suite + build once** as the
 batch's closing check (**[FULL-SUITE.md](FULL-SUITE.md)**) — in a subagent, forking green (one-line
 tally) vs red (failing names + trimmed traceback). `--log` drain: rerun each shipped issue's log
 command (from 新增测试); do not run FULL-SUITE.md. **If the closing suite is red**: map each
