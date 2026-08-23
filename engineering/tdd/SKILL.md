@@ -66,7 +66,7 @@ For each remaining behavior: RED (write next test, watch it fail) → GREEN (min
 
 ### 4. Refactor
 
-After all tests pass: [refactoring.md](refactoring.md). Unexpected red exposing an `rg`-invisible invariant (hidden constraint/coupling) → persist it to the area's `CODEBASE.md` block (two-axis test per `/zoom-out`); no `CODEBASE.md` yet → note in `### 完成`. Run tests after each refactor step. **Never refactor while RED.**
+After all tests pass: [refactoring.md](refactoring.md). Unexpected red exposing an `rg`-invisible invariant (hidden constraint/coupling) → persist it to the area's `CODEBASE.md` block (two-axis test per `/map`); no `CODEBASE.md` yet → note in `### 完成`. Run tests after each refactor step. **Never refactor while RED.**
 
 ### 5. Full-suite check
 

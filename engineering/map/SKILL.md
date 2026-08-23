@@ -1,25 +1,22 @@
 ---
-name: zoom-out
-description: Tell the agent to zoom out and give broader context or a higher-level perspective. Use when you're unfamiliar with a section of code or need to understand how it fits into the bigger picture. Can optionally persist the structural map to CODEBASE.md so future sessions don't re-explore.
-argument-hint: "Path/module to map (optional; --all = whole repo, --save = persist to CODEBASE.md)"
+name: map
+description: Generate or refresh the structural map in CODEBASE.md — synthesis, routing table, roster, per-area invariant blocks filtered by the two-axis test. Use when onboarding a repo, when CODEBASE.md is missing/stale/legacy, or after a change that moved a seam or invariant.
+argument-hint: "Area path to refresh (optional; no args or --all = whole repo)"
 disable-model-invocation: true
 ---
 
-# Zoom Out
+# Map
 
-I don't know this area of code well. Go up a layer of abstraction. Give me a map of all the relevant
-modules and callers, using the project's domain glossary vocabulary (read `CONTEXT.md` first so the
-names line up).
+Draw or refresh this repo's structural map into `CODEBASE.md`. Read `CONTEXT.md` first so the
+names line up. One-time understanding without an artifact → `/show <path>`.
 
-By default this is **read-only, use-and-discard** — print the map, don't write anything.
+Scope: `/map <path>` drafts that area's block and shows it before writing; no args or `--all`
+maps the whole repo.
 
-Scope first: map the named path/module/question only. Whole-repo mapping requires `/zoom-out --all` or an explicit "whole project" request.
-
-## First pass (draft mode) — mapping a whole unfamiliar repo
+## First pass (draft mode) — mapping a whole repo
 
 **When:** `CODEBASE.md` is absent or empty — or a legacy monolith (per-area sections, no roster) —
-and the user wants a map of the *whole* project, not one area — onboarding an inherited codebase
-(`/zoom-out` with no path, or `/zoom-out --all`).
+and the user wants a map of the *whole* project, not one area (`/map` with no path, or `/map --all`).
 
 **Steps:**
 
@@ -54,12 +51,9 @@ A fact is recorded only if **both** hold:
 
 Decisions → ADR. Vocabulary → CONTEXT.md.
 
-## Optionally persist to CODEBASE.md
+## Writing CODEBASE.md
 
-After printing the map, if it's worth keeping, offer to persist: _"Want me to save this to
-CODEBASE.md so the next session skips re-exploring?"_ Write only on a yes (or `/zoom-out --save`).
-
-**Schema, templates, and budgets are owned by [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#codebasemd--structural-map-generated-not-authored)** — read it before writing.
+**Schema, templates, and budgets are owned by [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#codebasemd--structural-map-generated-not-authored)** — read it before writing. Files are written only after the review gate (whole-repo) or the block showing (single area).
 
 ## Maintaining existing blocks
 

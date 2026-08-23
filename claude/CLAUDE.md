@@ -63,7 +63,7 @@ Security, validation, accessibility are never on the chopping block.
 
 ## 6. Document Layout
 
-Session start: trivial/read-only → only what the task names. Else load `CODEBASE.md` + `CONTEXT.md` (skip silently if absent); ADR titles only. None of the three exist → say so once, offer `/domain-modeling` (glossary) + `/zoom-out --save` (map).
+Session start: trivial/read-only → only what the task names. Else load `CODEBASE.md` + `CONTEXT.md` (skip silently if absent); ADR titles only. None of the three exist → say so once, offer `/domain-modeling` (glossary) + `/map` (structural map).
 
 Smart zone (~150k tokens) is the quality ceiling, not the context limit. Keep grill → spec in one window; each `/tdd` slice starts from its issue file. At a phase boundary: continue first, then `/clear` / `/handoff` / subagent / `/compact`. Near the smart zone with a phase unfinished → proactively suggest the boundary move (`/handoff` rolling, or `/compact` at the boundary).
 
