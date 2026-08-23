@@ -1,9 +1,17 @@
 #!/usr/bin/env python
-# Unattended /tdd -p driver: each iteration launches a fresh claude session that runs one
-# wave, refreshes the rolling handoff, and exits — no wave is ever scheduled from a rotting
-# context. Stops when: no `ready` issues left, two consecutive sessions made no progress
-# (stuck red), or 50 sessions; each session is bounded by --max-turns. A nonzero claude exit
-# aborts with the handoff left in place for morning diagnosis.
+# Unattended /tdd -p driver. The runner owns wave scheduling (next + dispatch): each
+# iteration runs drain-wave.py `next` itself and `dispatch`es the proposed wave BEFORE
+# launching the session — every dispatch timestamp provably precedes the session's model
+# work, so the ledger can never be written after the fact. The fresh session then runs only
+# that wave's subagents and `collect`s; a zombie report (next exit 3) gets a session that
+# only adopt-or-reverts and `collect`s; batch completion (next exit 4) gets one final
+# close-out session (DRAIN.md close: audit + full suite, handoff dropped). The runner
+# gates itself first: `drain-wave.py selftest` runs before the first session and a
+# failure aborts (1). No wave is ever
+# scheduled from a rotting context. Stops on: batch complete (0), two consecutive sessions
+# with no progress (stuck red, 3), no schedulable wave — blocked_by cycle (1), or 50
+# sessions (0); each session is bounded by --max-turns. Any nonzero claude exit aborts (1)
+# with the handoff left in place for morning diagnosis.
 #
 #   python overnight.py            # every feature: drain all ready issues under .scratch/
 #   python overnight.py <feat>     # one feature: .scratch/<feat>/issues only
@@ -38,6 +46,45 @@ def count_ready(issues_dir):
         if any(line.startswith(b"status: ready") for line in raw.splitlines()):
             n += 1
     return n
+
+
+def run_tool(wave_script, args):
+    proc = subprocess.run(
+        [sys.executable, wave_script] + args,
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+    )
+    return proc.returncode, ((proc.stdout or "") + (proc.stderr or "")).strip()
+
+
+def parse_wave(output):
+    """Slugs from drain-wave.py next's `wave:` line; [] when no wave is proposed."""
+    for line in output.splitlines():
+        if line.startswith("wave: "):
+            rest = line[len("wave: "):].strip()
+            slugs = []
+            for tok in rest.split():
+                if tok.startswith("("):
+                    break
+                slugs.append(tok)
+            return slugs
+    return []
+
+
+def launch(exe, root, log_path, prompt):
+    with open(log_path, "a", encoding="utf-8", errors="replace") as log:
+        log.write("\n=== session ===\n")
+        proc = subprocess.Popen(
+            [exe, "-p", "--max-turns", str(MAX_TURNS), prompt],
+            cwd=root,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        for raw in proc.stdout:
+            text = raw.decode("utf-8", errors="replace")
+            sys.stdout.write(text)
+            sys.stdout.flush()
+            log.write(text)
+        return proc.wait()
 
 
 def main(argv):
@@ -80,7 +127,7 @@ def main(argv):
             if os.path.isdir(os.path.join(scratch, n, "issues"))
         ]
         if not issues_dirs:
-            print("overnight: no feature issues dirs under %s — nothing to run" % scratch)
+            print("overnight: no feature issues dirs under %s — nothing to run" % scratch, file=sys.stderr)
             return 0
         log_name = "overnight-all.log"
         handoff = ".scratch/handoff.md"
@@ -88,43 +135,96 @@ def main(argv):
     tmp_dir = os.path.join(scratch, "tmp")
     os.makedirs(tmp_dir, exist_ok=True)
     log_path = os.path.join(tmp_dir, log_name)
-    prompt = (
-        "%s：若 %s 存在先读它续跑，否则从 ready 清单开始。"
-        "收波后按滚动模式刷新 handoff（波号、波基线、tests-so-far、§5 写明续跑），"
-        "然后结束会话；批次全绿收尾时按 DRAIN.md 关批并删除 handoff。" % (scope, handoff)
+    wave_script = os.path.normpath(
+        os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..", "engineering", "tdd", "scripts", "drain-wave.py",
+        )
     )
+    next_args = ["next", root] + ([feat] if feat else [])
+    audit_arg = (' "%s"' % feat) if feat else ""
+    close_scope = ("feature '%s'" % feat) if feat else "全部 feature"
 
+    scode, sout = run_tool(wave_script, ["selftest"])
+    if scode != 0:
+        print("overnight: drain-wave selftest failed — aborting. %s" % sout, file=sys.stderr)
+        return 1
+
+    ran = False
+    complete = False
     prev1 = prev2 = -1
     for _ in range(MAX_SESSIONS):
-        ready = sum(count_ready(d) for d in issues_dirs)
-        if ready == 0:
+        code, out = run_tool(wave_script, next_args)
+        if code == 4:
+            complete = True
             break
+        if code == 3:
+            prompt = (
+                "drain-wave.py next 报 exit 3——已派发未闭环的僵尸：\n%s\n"
+                "按 EDGE-CASES.md 逐个处置：采纳（补 ### 完成、置 done）则 collect green；"
+                "回退（按账本基线恢复该 issue 的文件、留 ready）则 collect aborted；歧义默认回退。"
+                "collect 落账：python \"%s\" collect \"%s\" <slug>=green|aborted。"
+                "全部闭环后按滚动模式刷新 handoff，然后结束会话；不要派发新波，不要调 next/dispatch。"
+                % (out, wave_script, root)
+            )
+            detail = "zombie recovery"
+        elif code == 0:
+            slugs = parse_wave(out)
+            if not slugs:
+                print(
+                    "overnight: next proposes no schedulable wave while ready issues remain —"
+                    " check blocked_by (cycle or missing slug). See %s" % log_path,
+                    file=sys.stderr,
+                )
+                return 1
+            dcode, dout = run_tool(wave_script, ["dispatch", root] + slugs)
+            if dcode != 0:
+                print("overnight: dispatch refused — aborting. %s" % dout, file=sys.stderr)
+                return 1
+            prompt = (
+                "%s：若 %s 存在先读它续跑。本波已由 runner 落账派发：[%s]——会话不得调用 next/dispatch。"
+                "逐个 issue 派 general-purpose 子代理跑完整红绿闭环；收波时落账："
+                "python \"%s\" collect \"%s\" <slug>=green|red|blocked|aborted。"
+                "收波后按滚动模式刷新 handoff（波号、tests-so-far、§5 写明续跑），然后结束会话。"
+                % (scope, handoff, ", ".join(slugs), wave_script, root)
+            )
+            detail = "wave [%s]" % ", ".join(slugs)
+        else:
+            print(
+                "overnight: drain-wave next exit %d — aborting. %s" % (code, out),
+                file=sys.stderr,
+            )
+            return 1
+        ready = sum(count_ready(d) for d in issues_dirs)
         if ready == prev1 and ready == prev2:
             print(
                 "overnight: %d ready issue(s) unchanged across two sessions — stuck-red stop, see %s"
-                % (ready, log_path)
+                % (ready, log_path),
+                file=sys.stderr,
             )
-            break
+            return 3
         prev2, prev1 = prev1, ready
-        print("overnight: session start — %d ready issue(s). Log: %s" % (ready, log_path))
-        with open(log_path, "a", encoding="utf-8", errors="replace") as log:
-            log.write("\n=== session ===\n")
-            proc = subprocess.Popen(
-                [exe, "-p", "--max-turns", str(MAX_TURNS), prompt],
-                cwd=root,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-            )
-            for raw in proc.stdout:
-                text = raw.decode("utf-8", errors="replace")
-                sys.stdout.write(text)
-                sys.stdout.flush()
-                log.write(text)
-            code = proc.wait()
-        if code != 0:
+        print("overnight: session start — %s (%d ready). Log: %s" % (detail, ready, log_path))
+        ran = True
+        if launch(exe, root, log_path, prompt) != 0:
             print(
-                "overnight: claude exited %d — aborting, handoff left for diagnosis. See %s"
-                % (code, log_path),
+                "overnight: claude exited nonzero — aborting, handoff left for diagnosis. See %s"
+                % log_path,
+                file=sys.stderr,
+            )
+            return 1
+    if complete and ran:
+        print("overnight: batch complete — close-out session (audit + full suite)")
+        prompt = (
+            "对 %s 收尾：按 DRAIN.md 关批。先归账无主测试：python \"%s\" audit \"%s\"%s；"
+            "再按 FULL-SUITE.md 跑全量套件+构建，红则按关批规则处置；完成后删除 %s，结束会话。"
+            "不派发新波，不要调 next/dispatch。"
+            % (close_scope, wave_script, root, audit_arg, handoff)
+        )
+        if launch(exe, root, log_path, prompt) != 0:
+            print(
+                "overnight: close-out claude exited nonzero — handoff left for diagnosis. See %s"
+                % log_path,
                 file=sys.stderr,
             )
             return 1

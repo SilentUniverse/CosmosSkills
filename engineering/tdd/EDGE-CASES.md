@@ -3,6 +3,23 @@
 Loaded on demand by [`/tdd`](SKILL.md) when the status guard hits an edge: a `ready` issue with
 a prior `### 完成`, or `category: redo` / `fix` (or filename `*-redo-*` / `*-fix-*`).
 
+## Dispatched but never closed (zombie)
+
+`drain-wave.py next` exits 3 when the ledger holds a dispatched issue that is neither
+`done` on disk nor closed with a result — the crashed-wave middle state (code on disk,
+no record, no note). No new wave until every zombie is resolved, mechanically one of two
+ways:
+
+- **Adopt** — the on-disk work is worth keeping: finish the slice (or verify it), write the
+  `### 完成` record, set `status: done`, then `collect <slug>=green`.
+- **Revert** — restore the issue's files against the wave baseline in
+  `.scratch/<feat>/wave-ledger.json` (same rules as wave-fatal recovery; never touch
+  `.scratch/**`), leave `status: ready`, append the note to `## Comments`, then
+  `collect <slug>=aborted`.
+
+Autonomous mode picks by evidence: tests present and scoped-green → adopt; half-written
+or red → revert. Ambiguous → revert (the slice re-runs cleanly).
+
 ## Prior 完成 block on a ready issue
 
 Pause and ask: "(a) iterate on existing code, or (b) start over?" *(autonomous: (a), recorded in
