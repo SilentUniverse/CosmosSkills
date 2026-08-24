@@ -39,6 +39,8 @@ a resolvable change story is still change narration — class 3 routes it out.
    TODO/FIXME or restate the actual bound; delete the hedge.
 8. **Authoring-language slips** — untranslated working-language fragments in prose of the other
    language (端、设计稿、`---- 私有 ----` separators in English prose, or the reverse).
+9. **Dash asides and explanatory parentheticals in rule text** — the conditional clause carries
+   the distinction; delete the aside.
 
 ## Not leakage (keep as-is)
 

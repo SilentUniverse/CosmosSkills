@@ -6,7 +6,7 @@ SKILL.md and `~/.claude/references/cli-tools.md`.
 
 ## Project (`.claude/settings.json`)
 
-**Windows / PowerShell** invokes the script through `pwsh`:
+**Windows / PowerShell** invokes the script through `pwsh` (on machines without PS7, write `powershell` in the command instead — the hook scripts are 5.1-compatible):
 
 ```json
 {
@@ -50,6 +50,31 @@ On Unix/WSL, point `command` at the `.sh` script instead (e.g. `"$CLAUDE_PROJECT
 }
 ```
 
+## ZCode (`~/.zcode/cli/config.json`)
+
+ZCode runs the same Claude-style command hooks with two differences: config-file hooks stay disabled until `hooks.enabled` is true, and the event lists live under an `events` key. Merge into the existing file — keep `plugins` and anything else already there. `matcher` is a case-sensitive regex: `Bash`, not `bash`. The script deployment stays shared with Claude Code (`install.ps1` copies it to `~/.claude/hooks/`); exit-code semantics match (`2` blocks with the stderr message, `0` allows).
+
+```json
+{
+  "hooks": {
+    "enabled": true,
+    "events": {
+      "PreToolUse": [
+        {
+          "matcher": "Bash",
+          "hooks": [
+            {
+              "type": "command",
+              "command": "pwsh -NoProfile -File \"C:/Users/<you>/.claude/hooks/block-legacy-cli.ps1\""
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
 ## Verify
 
 **Windows / PowerShell** — run the bundled regression suite (expect "All tests passed."):
@@ -57,6 +82,8 @@ On Unix/WSL, point `command` at the `.sh` script instead (e.g. `"$CLAUDE_PROJECT
 ```powershell
 pwsh -NoProfile -File scripts\test-block-legacy-cli.ps1
 ```
+
+No PS7 on the machine? Same command with `powershell` — the suite self-selects the interpreter.
 
 Or a single spot check:
 

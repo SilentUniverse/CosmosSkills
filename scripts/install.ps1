@@ -10,7 +10,8 @@
     It also distributes the global layer to $ClaudeRoot (default ~/.claude):
     claude/CLAUDE.md -> ~/.claude/CLAUDE.md; claude/*.md -> ~/.claude/references/
     (pruning removed ones); ARTIFACT-FORMAT.md -> <target>; hook scripts (explicit
-    list) -> ~/.claude/hooks/. These are COPIES, not links — re-run after edits.
+    list) -> ~/.claude/hooks/. CLAUDE.md additionally -> ~/.zcode/AGENTS.md, and the
+    shared contract files -> ~/.agents/skills/. These are COPIES, not links — re-run after edits.
 
     Behavior:
     - Existing link: recreate it.
@@ -287,6 +288,35 @@ foreach ($rel in $hookScripts) {
 }
 if (-not $DryRun -and $copiedHooks -gt 0) {
     Write-Host ("Hooks: copied {0} script(s) -> {1}" -f $copiedHooks, $hooksTarget) -ForegroundColor Green
+}
+
+# --- Distribute user instructions to ZCode: claude/CLAUDE.md -> ~/.zcode/AGENTS.md.
+#     ZCode auto-loads ~/.zcode/AGENTS.md the way Claude Code loads ~/.claude/CLAUDE.md;
+#     without this step the two hosts drift apart. Skill deployment into ~/.zcode/skills
+#     and ~/.agents/skills is managed outside this script (one live root per name is enough). ---
+if ($cmMain -and (Test-Path -LiteralPath (Join-Path $HOME ".zcode"))) {
+    $zcodeAgents = Join-Path $HOME ".zcode/AGENTS.md"
+    if ($DryRun) { Write-Host ("[DryRun] Copy CLAUDE.md -> {0}" -f $zcodeAgents) -ForegroundColor Yellow }
+    else {
+        Copy-Item -LiteralPath $cmMain -Destination $zcodeAgents -Force
+        Write-Host ("Guidelines: copied CLAUDE.md -> {0}" -f $zcodeAgents) -ForegroundColor Green
+    }
+}
+
+# --- Keep ~/.agents/skills/ shared contract files in step with the repo (junctioned skills
+#     there resolve `../ARTIFACT-FORMAT.md` textually, the same way they do in $Target). ---
+$agentsSkills = Join-Path $HOME ".agents/skills"
+if (Test-Path -LiteralPath $agentsSkills) {
+    foreach ($shared in @("ARTIFACT-FORMAT.md", "verify-artifacts.py")) {
+        $sharedSrc = Join-Path $root "engineering/$shared"
+        if (-not (Test-Path -LiteralPath $sharedSrc)) { continue }
+        $sharedDst = Join-Path $agentsSkills $shared
+        if ($DryRun) { Write-Host ("[DryRun] Copy {0} -> {1}" -f $shared, $sharedDst) -ForegroundColor Yellow }
+        else {
+            Copy-Item -LiteralPath $sharedSrc -Destination $sharedDst -Force
+            Write-Host ("Contract: copied {0} -> {1}" -f $shared, $sharedDst) -ForegroundColor Green
+        }
+    }
 }
 
 if ($DryRun) {

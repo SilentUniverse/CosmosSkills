@@ -3,14 +3,24 @@
 # Feeds fake PreToolUse payloads to the hook and asserts the exit code.
 
 $hook = Join-Path $PSScriptRoot 'block-dangerous-git.ps1'
+# PS7 if present, else Windows PowerShell 5.1 (most machines ship only 5.1).
+$ps = if (Get-Command pwsh -ErrorAction SilentlyContinue) { 'pwsh' } else { 'powershell' }
 $failures = 0
 
 function Test-Case {
     param([string]$Name, [string]$Command, [int]$Expected)
 
     $payload = @{ tool_input = @{ command = $Command } } | ConvertTo-Json -Compress
-    $payload | pwsh -NoProfile -File $hook 2>$null | Out-Null
-    $actual = $LASTEXITCODE
+
+    # Stdin via temp file (Start-Process -RedirectStandardInput): piping through
+    # a PS5.1 host intermittently hands the child an empty stdin (whole run
+    # fail-opens); a file feed is deterministic on both 5.1 and 7.
+    $tmp = [IO.Path]::GetTempFileName()
+    [IO.File]::WriteAllText($tmp, $payload, [System.Text.Encoding]::ASCII)
+    $p = Start-Process -FilePath $ps -ArgumentList @('-NoProfile', '-File', $hook) `
+        -RedirectStandardInput $tmp -NoNewWindow -Wait -PassThru
+    Remove-Item $tmp -ErrorAction SilentlyContinue
+    $actual = $p.ExitCode
 
     if ($actual -eq $Expected) {
         Write-Host "PASS  $Name (exit $actual)"

@@ -11,7 +11,8 @@
 #
 # A second guard blocks POSIX path tokens (/tmp, /c/...) handed to native
 # Windows executables — those paths only resolve inside the MSYS world
-# (windows-cli.md, "two path worlds").
+# (windows-cli.md, "two path worlds"). cmd's single-letter switches (/a, /b)
+# collide with drive paths, so a cmd-headed segment skips bare /<letter> tokens.
 #
 # Failure-safe direction: any parse error, unexpected failure, or explicit
 # escape hatch exits 0 (allow). Only a confirmed host-side match exits 2.
@@ -130,7 +131,13 @@ try {
         # tokens — /tmp is an MSYS virtual mount, /c/ a drive form; a native
         # process resolves them as <cwd-drive>:\tmp or fails outright.
         if ($t -match '^(?:python3?|py|pwsh|powershell|cmd|node|rg|fd|bat|jq|yq|sd)(?![\w./-])') {
+            # cmd-headed segments: bare single-letter tokens (/a, /b) are cmd/dir
+            # switches, never paths — skipping them keeps the CLAUDE.md §8 check
+            # `cmd //c dir /a /b <path>` allowed. /tmp (any form) and /<letter>/...
+            # drive paths still block.
+            $cmdSwitchesOk = $t -match '^cmd(?![\w./-])'
             foreach ($tok in ($t -split '\s+')) {
+                if ($cmdSwitchesOk -and $tok -match '^/[A-Za-z]$') { continue }
                 if ($tok -match '^/(?:tmp|[A-Za-z])(?:/|$)') {
                     [Console]::Error.WriteLine(
                         "BLOCKED: POSIX path '$tok' handed to a native Windows executable. " +
