@@ -23,7 +23,7 @@ Legacy tool as the first word of a host-side segment (segments split at unquoted
 | `find` | `fd` |
 | `sed` | `sd` |
 
-When blocked, Claude sees the message on stderr and retries with the modern tool or a built-in `Grep`/`Glob`/`Read`.
+When blocked, Claude sees the message on stderr and retries with the modern tool or a built-in search tool.
 
 **Path-world guard**: a host segment starting with a native Windows executable (`python`/`python3`/`py`, `pwsh`/`powershell`, `cmd`, `node`, `rg`, `fd`, `bat`, `jq`, `yq`, `sd`) that carries a POSIX path token (`/tmp/…`, `/c/…`) is blocked with a `cygpath -w` / `$env:TEMP` pointer — native processes cannot resolve MSYS paths ("two path worlds", `~/.claude/references/windows-cli.md`). `cmd`-headed segments skip bare single-letter tokens: `/a` and `/b` are `dir` switches, not paths, and the CLAUDE.md §8 directory-truth check `cmd //c dir /a /b <path>` must stay allowed; `/tmp` (any form) and `/c/…` still block. This guard lives in the `.ps1` hook only; on Unix the `.sh` needs none (MSYS paths don't exist there). Same escape hatch.
 
