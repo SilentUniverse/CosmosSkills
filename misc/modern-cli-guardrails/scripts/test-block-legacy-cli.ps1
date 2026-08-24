@@ -117,6 +117,8 @@ Test-Case 'cmd-quoted-tmp'   'cmd //c "python /tmp/x.py"'  2
 
 # Should ALLOW (exit 0) — path-world guard does not fire.
 Test-Case 'cmd-double-slash' 'cmd //c dir'                 0
+Test-Case 'cmd-dir-switches-quoted' 'cmd //c "dir /a /b D:\x 2>nul"' 0  # CLAUDE.md §8 check
+Test-Case 'cmd-dir-switches-bare'   'cmd //c dir /a /b D:\Code'      0  # CLAUDE.md §8 check
 Test-Case 'redirect-devnull' 'python x.py 2>/dev/null'     0
 Test-Case 'rg-normal-args'   'rg pattern src'              0
 Test-Case 'cp-to-tmp-bash'   'cp x /tmp/'                  0

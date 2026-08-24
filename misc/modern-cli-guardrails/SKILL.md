@@ -11,7 +11,7 @@ PreToolUse hook intercepts every `Bash` tool call and blocks it before execution
 if a **host-side segment** of the command invokes a legacy tool (`grep`, `find`,
 `sed`). `ls` is deliberately not blocked — too frequent to replace.
 
-> Windows default: use the bundled `.ps1` script invoked via `pwsh`. Unix/WSL users use the `.sh` script.
+> Windows default: use the bundled `.ps1` script invoked via `pwsh` (or `powershell` on machines without PS7 — the scripts are 5.1-compatible). Unix/WSL users use the `.sh` script.
 
 ## What Gets Blocked
 
@@ -25,7 +25,7 @@ Legacy tool as the first word of a host-side segment (segments split at unquoted
 
 When blocked, Claude sees the message on stderr and retries with the modern tool or a built-in `Grep`/`Glob`/`Read`.
 
-**Path-world guard**: a host segment starting with a native Windows executable (`python`/`python3`/`py`, `pwsh`/`powershell`, `cmd`, `node`, `rg`, `fd`, `bat`, `jq`, `yq`, `sd`) that carries a POSIX path token (`/tmp/…`, `/c/…`) is blocked with a `cygpath -w` / `$env:TEMP` pointer — native processes cannot resolve MSYS paths ("two path worlds", `~/.claude/references/windows-cli.md`). This guard lives in the `.ps1` hook only; on Unix the `.sh` needs none (MSYS paths don't exist there). Same escape hatch.
+**Path-world guard**: a host segment starting with a native Windows executable (`python`/`python3`/`py`, `pwsh`/`powershell`, `cmd`, `node`, `rg`, `fd`, `bat`, `jq`, `yq`, `sd`) that carries a POSIX path token (`/tmp/…`, `/c/…`) is blocked with a `cygpath -w` / `$env:TEMP` pointer — native processes cannot resolve MSYS paths ("two path worlds", `~/.claude/references/windows-cli.md`). `cmd`-headed segments skip bare single-letter tokens: `/a` and `/b` are `dir` switches, not paths, and the CLAUDE.md §8 directory-truth check `cmd //c dir /a /b <path>` must stay allowed; `/tmp` (any form) and `/c/…` still block. This guard lives in the `.ps1` hook only; on Unix the `.sh` needs none (MSYS paths don't exist there). Same escape hatch.
 
 ### What does NOT get blocked
 

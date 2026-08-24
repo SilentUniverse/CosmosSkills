@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 Sets up a PreToolUse hook that intercepts and blocks dangerous git commands before Claude executes them.
 
-> Windows default: use the bundled `.ps1` script invoked via `pwsh`. Unix/WSL users use the `.sh` script.
+> Windows default: use the bundled `.ps1` script invoked via `pwsh` (or `powershell` on machines without PS7 — the scripts are 5.1-compatible). Unix/WSL users use the `.sh` script.
 
 ## What Gets Blocked
 

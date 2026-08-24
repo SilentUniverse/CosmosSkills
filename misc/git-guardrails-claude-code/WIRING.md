@@ -5,7 +5,7 @@ token-level matching rules live in SKILL.md.
 
 ## Project (`.claude/settings.json`)
 
-**Windows / PowerShell** invokes the script through `pwsh`:
+**Windows / PowerShell** invokes the script through `pwsh` (on machines without PS7, write `powershell` in the command instead — the hook scripts are 5.1-compatible):
 
 ```json
 {
@@ -56,6 +56,8 @@ On Unix/WSL, point `command` at the `.sh` script instead (e.g. `"$CLAUDE_PROJECT
 ```powershell
 pwsh -NoProfile -File scripts\test-block-dangerous-git.ps1
 ```
+
+No PS7 on the machine? Same command with `powershell` — the suite self-selects the interpreter.
 
 **Unix / WSL** (the `.sh` needs `jq` on PATH — missing jq fails open):
 
