@@ -60,9 +60,11 @@ Loop until the ready set is empty:
    Frontier). Exit 3 = zombies — a dispatched issue that neither closed nor flipped done
    ([EDGE-CASES.md](EDGE-CASES.md)); resolve by adopt-or-revert and `collect` before any new
    wave. Exit 4 = nothing ready, batch complete. Shared surfaces (workspace manifest,
-   lockfile, any repo-root file a slice edits) are declared in `touches:` verbatim. The
-   script serializes on any overlap. More than half the batch undeclared → suggest the
-   serial path instead: `-p` on undeclared cards is serial-with-extra-steps.
+   any repo-root file a slice edits) are declared in `touches:` verbatim. The
+   script serializes on any overlap. A lockfile (pnpm-lock.yaml and the like) is not a
+   shared surface: it regenerates from the package manifests on disk, so never declare it
+   in `touches:`; step 3 regenerates it once per wave. More than half the batch undeclared →
+   suggest the serial path instead: `-p` on undeclared cards is serial-with-extra-steps.
 2. **Fan out — one subagent per issue, at most 4 in flight.** Record the dispatch intent
    first: `drain-wave.py dispatch <repo-root> <slug>...` writes the wave number, the issue
    list, and the wave baseline (`git status --porcelain`) to
@@ -89,7 +91,8 @@ Loop until the ready set is empty:
      subagents; no entering drain mode.
    - The issue is self-contained; no PRD attach. Paste the scoped-test and build command
      lines from `docs/agents/domain.md` into the brief; the brief's lines stand in for the
-     existing-test scan's domain.md lookup.
+     existing-test scan's domain.md lookup. Install a new dependency when the slice needs
+     one; the lockfile is not the subagent's responsibility; the wave close regenerates it.
    - The **tests-so-far manifest** (earlier waves' 新增测试): don't write tests it already covers;
      report duplicates instead.
    - Report back **only** by outcome, in this fixed shape. A free-form reply is not a result;
@@ -113,11 +116,16 @@ Loop until the ready set is empty:
    `status: done`. An imperfectly shaped report trusts the disk over the note: check the issue's
    `### 完成` record and rerun that module's scoped tests. Record valid + green → accept with the
    deviation noted; record broken → treat as red (revert this issue, leave `ready`). Verify
-   **once per wave, after all subagents land**: run the
+   **once per wave, after all subagents land**: if a lockfile drifted from the wave baseline,
+   regenerate it once (the package manager's install; a `domain.md` lockfile line when one
+   exists), then run the
    union of the touched modules' scoped tests in one pass, narrowed by the domain.md
    impact-probe test command when one exists, and reconcile the write set: compare
    `git status --porcelain` against the wave baseline (exclude `.scratch/**`), attributing each
-   changed file via the wave's reported files. Two issues reporting the same file, or a changed
+   changed file via the wave's reported files. Lockfiles are exempt from attribution: a
+   drifted lockfile nobody reported is expected (the wave-close regenerate owns it), and a
+   failed regenerate is wave-fatal, mapped to the issues that reported new dependencies. Two issues
+   reporting the same file, or a changed
    file nobody reported → wave-fatal (recovery below). An issue's undeclared test file with green
    tests → sync its `test_paths:` (the sanctioned frontmatter edit); an undeclared production
    file → note it in its `### 完成` 备注. Files no declaration covers (repo root, config) can

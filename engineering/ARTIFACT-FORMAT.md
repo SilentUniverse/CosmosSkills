@@ -167,9 +167,10 @@ Field rules:
   for `detail`/`redo`/`fix`, omitted for top-level `enhancement` slices. `/tidy`'s orphan check
   flags any non-top-level issue with neither a PRD user-story link nor a `refines`.
 - **touches** — top-level dirs/modules this slice is expected to edit, at directory granularity.
-  One exception: repo-root shared surfaces a slice edits (workspace manifest, lockfile, any
-  root config file) are declared verbatim as file paths. `/tdd -p` serializes on any overlap,
-  and a lockfile write mid-wave collides with everyone. Written by `/spec` from its impact
+  One exception: repo-root shared surfaces a slice edits (workspace manifest, any
+  root config file) are declared verbatim as file paths. `/tdd -p` serializes on any overlap.
+  A lockfile is never declared: it regenerates from the package manifests on disk, and the
+  wave close regenerates it once (`tdd/DRAIN.md` step 3). Written by `/spec` from its impact
   probe; `/tdd -p` groups waves by overlap. Optional.
 - **test_paths** — test files this slice will create or modify, repo-relative with `/` separators.
   Declared by `/spec` from the AC. This field owns the `-p` wave semantics: wave eligibility
