@@ -7,7 +7,7 @@ disable-model-invocation: true
 # Writing Skills
 
 Editing or verifying an existing skill: the rules below are the resident discipline. Creating one
-from scratch: [NEW-SKILL.md](NEW-SKILL.md) — requirements, structure, template, scripts.
+from scratch: [NEW-SKILL.md](NEW-SKILL.md). It covers requirements, structure, template, scripts.
 
 ## Description Requirements
 
@@ -56,11 +56,11 @@ Disclosure test: inline what every branch needs; push behind a pointer what only
 
 Never treat length alone as a defect. Keep every load-bearing rule as one to three lines plus a
 link to its rationale; cut stories, duplicates, status notes, and the path used to derive the rule.
-Shorten high-frequency enum values and command names aggressively (`ready-for-agent` → `ready`); leave low-frequency internal names alone — churn costs more than the tokens save.
-`CLAUDE.md` (every-session): if/unless/then only; why on a line that starts with `→` and a path. Mid-line `A → B` is mapping, not a pointer. Skills: markdown links. ≤1,300 words — delete, don't append.
+Shorten high-frequency enum values and command names aggressively (`ready-for-agent` → `ready`); leave low-frequency internal names alone; churn costs more than the tokens save.
+`CLAUDE.md` (every-session): if/unless/then only; why on a line that starts with `→` and a path. Mid-line `A → B` is mapping, not a pointer. Skills: markdown links. ≤1,300 words: delete, don't append.
 
 Hunt no-ops: does the rule change behaviour versus the model's default? No → delete the whole
-sentence. Prompt the positive — a prohibition drags the banned behaviour into context; state the
+sentence. Prompt the positive: a prohibition drags the banned behaviour into context; state the
 target behaviour instead. Prefer leading words: a pretrained term (`tight`, `red`, `fog`) recruits
 priors free; a coined word pays definition tokens at every repetition.
 Symbols are functional or decorative. Decorative — paired apposition dashes, transitional
@@ -83,8 +83,8 @@ After drafting, verify:
 - [ ] Concrete examples included
 - [ ] References one level deep
 
-After **editing an existing skill**, add the acceptance pass — the checklist above checks
-structure, these attack content and vantage:
+After **editing an existing skill**, add the acceptance pass: the checklist above checks
+structure; these attack content and vantage:
 
 - `/atk <skill file>` — 承重与链路（its Method, both directions）
 - `/lint <skill file>` — 视角（its one test）
@@ -95,4 +95,4 @@ structure, these attack content and vantage:
 Auditing a set of skills, not just editing one: enumerate the full set with a tool first. Every
 skill in scope gets the five surfaces (atk's Method) plus description and invocation fit; every
 subfile in scope is read once, and the lint batteries run over the whole corpus. Unchanged skills
-are verdicted, not skipped. Report scope exactly as executed — a check not run is never claimed.
+are verdicted, not skipped. Report scope exactly as executed; a check not run is never claimed.

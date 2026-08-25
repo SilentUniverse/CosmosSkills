@@ -6,15 +6,15 @@ argument-hint: "Target, --all (entire uncommitted diff), or empty = changes sinc
 
 # Adversarial
 
-Two moves on your own output: **re-derive** (is each load-bearing choice justified from
-fundamentals — what breaks without it?) and **attack** (where does it break?). Not `/code-review`,
+Two moves on your own output. **Re-derive**: is each load-bearing choice justified from
+fundamentals? What breaks without it? **Attack**: where does it break? Not `/code-review`,
 which judges a diff against standards and spec; this judges any output against itself.
 
 ## Target
 
 - User-typed `/atk` — manual mode. Bare: the changes since this session's last `/atk` run
   (first run in a session: this conversation's latest round). `--all`: the entire uncommitted
-  working tree — `git status` + per-file `git diff HEAD`. A named target: that target only — a
+  working tree — `git status` + per-file `git diff HEAD`. A named target: that target only. A
   file target covers both its current state and its uncommitted diff.
 - Invoked by spec WRITE-LOOP step 4 — audit-only: attack the artifacts it names, return
   findings, nothing else.
@@ -26,12 +26,12 @@ Name what is out of scope.
 1. **Re-derive each load-bearing choice.** What breaks without it? No answer → cut. Propped up only
    by analogy or sunk cost → rebuild it from the constraints, or drop it.
 2. **Attack five surfaces:** semantics (meaning changed?), consistency (stale or renamed refs?),
-   runtime (does it run — on Windows?), necessity (readerless file, fake pause, unclosed state,
+   runtime (does it run on Windows?), necessity (readerless file, fake pause, unclosed state,
    doorless entry?), cost (tokens, attention).
 3. **A restructure gets both directions.** 正向 — walk every entry, pointer, and cross-skill link
    as its consumer would; each link must still connect. 反向 — diff against the predecessor and
    account for every rule, trigger, and checklist item of the old version: still present,
-   relocated — and reachable from the replacing head — or dropped with a reason.
+   relocated, and reachable from the replacing head, or dropped with a reason.
 4. **Verdict each finding with a quote:** 修复 / 否决 / 保留. Record the deliberate keeps so the
    next round doesn't re-litigate them.
 
@@ -47,7 +47,7 @@ Mode is fixed by the invocation source: user-typed → audit + 讲解; spec WRIT
 only.
 
 Lead line: 范围（N 文件 M 处）· 发现 X · 检查（which harness/parse/line checks ran）. Output is the
-lead line plus the lists below — no tables, nothing else.
+lead line plus the lists below; no tables, nothing else.
 
 **发现** — both modes. Findings follow the fixed shape (CLAUDE.md §1); 处置 is three-valued:
 修复—改成什么 / 否决—为什么不改 / 保留—何时再动. No quote, no finding.
@@ -60,9 +60,9 @@ lead line plus the lists below — no tables, nothing else.
 ```
 
 A finding's fix item writes 原因 as 见发现 #N; long text compresses to its load-bearing part.
-Audit-only runs return findings to the caller — no lead line, no chat output. Non-diff targets
+Audit-only runs return findings to the caller; no lead line, no chat output. Non-diff targets
 (design, plan, decision): findings only, both modes. Questions riding on the invocation are
-answered after the findings — the caller's ask, not leakage.
+answered after the findings; they are the caller's ask, not leakage.
 
 Round discipline: a later `/atk` covers only changes since the last `/atk`; an earlier item
 reappears only if it changed again. An explicitly named scope overrides the round default.

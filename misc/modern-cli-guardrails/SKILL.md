@@ -9,9 +9,9 @@ disable-model-invocation: true
 Turns CLAUDE.md §7 (Modern CLI Tooling) from a soft guideline into a hard rule: a
 PreToolUse hook intercepts every `Bash` tool call and blocks it before execution
 if a **host-side segment** of the command invokes a legacy tool (`grep`, `find`,
-`sed`). `ls` is deliberately not blocked — too frequent to replace.
+`sed`). `ls` is deliberately not blocked; it is too frequent to replace.
 
-> Windows default: use the bundled `.ps1` script invoked via `pwsh` (or `powershell` on machines without PS7 — the scripts are 5.1-compatible). Unix/WSL users use the `.sh` script.
+> Windows default: use the bundled `.ps1` script invoked via `pwsh`; on machines without PS7, `powershell` works too (the scripts are 5.1-compatible). Unix/WSL users use the `.sh` script.
 
 ## What Gets Blocked
 
@@ -25,7 +25,7 @@ Legacy tool as the first word of a host-side segment (segments split at unquoted
 
 When blocked, Claude sees the message on stderr and retries with the modern tool or a built-in search tool.
 
-**Path-world guard**: a host segment starting with a native Windows executable (`python`/`python3`/`py`, `pwsh`/`powershell`, `cmd`, `node`, `rg`, `fd`, `bat`, `jq`, `yq`, `sd`) that carries a POSIX path token (`/tmp/…`, `/c/…`) is blocked with a `cygpath -w` / `$env:TEMP` pointer — native processes cannot resolve MSYS paths ("two path worlds", `~/.claude/references/windows-cli.md`). `cmd`-headed segments skip bare single-letter tokens: `/a` and `/b` are `dir` switches, not paths, and the CLAUDE.md §8 directory-truth check `cmd //c dir /a /b <path>` must stay allowed; `/tmp` (any form) and `/c/…` still block. This guard lives in the `.ps1` hook only; on Unix the `.sh` needs none (MSYS paths don't exist there). Same escape hatch.
+**Path-world guard**: a host segment starting with a native Windows executable (`python`/`python3`/`py`, `pwsh`/`powershell`, `cmd`, `node`, `rg`, `fd`, `bat`, `jq`, `yq`, `sd`) that carries a POSIX path token (`/tmp/…`, `/c/…`) is blocked with a `cygpath -w` / `$env:TEMP` pointer. Native processes cannot resolve MSYS paths ("two path worlds", `~/.claude/references/windows-cli.md`). `cmd`-headed segments skip bare single-letter tokens: `/a` and `/b` are `dir` switches, not paths, and the CLAUDE.md §8 directory-truth check `cmd //c dir /a /b <path>` must stay allowed; `/tmp` (any form) and `/c/…` still block. This guard lives in the `.ps1` hook only; on Unix the `.sh` needs none (MSYS paths don't exist there). Same escape hatch.
 
 ### What does NOT get blocked
 
@@ -54,14 +54,14 @@ Copy the one matching the user's shell to the target location based on scope:
 - **Project**: `.claude/hooks/block-legacy-cli.ps1` (or `.sh`)
 - **Global**: `~/.claude/hooks/block-legacy-cli.ps1` (or `.sh`)
 
-On Unix, make the `.sh` executable with `chmod +x`. The `.ps1` needs no chmod; it is invoked through `pwsh`. The `.sh` needs `jq` on PATH — with jq missing it fails open (allows everything).
+On Unix, make the `.sh` executable with `chmod +x`. The `.ps1` needs no chmod; it is invoked through `pwsh`. The `.sh` needs `jq` on PATH; with jq missing it fails open (allows everything).
 
-> In this repo, `install.ps1` distributes the `.ps1` hook scripts to `~/.claude/hooks/` (re-run it after editing anything under `scripts/`; the `.sh` stays repo-only for Unix). The manual copy is for other machines.
+> In this repo, `install.ps1` distributes the `.ps1` hook scripts to `~/.claude/hooks/`; re-run it after editing anything under `scripts/`. The `.sh` stays repo-only for Unix. The manual copy is for other machines.
 
 ### 3. Add hook to settings
 
 Wire the hook into the settings file per scope and platform: [WIRING.md](WIRING.md). If the
-settings file already exists, merge the hook into the existing `hooks.PreToolUse` array — don't
+settings file already exists, merge the hook into the existing `hooks.PreToolUse` array; don't
 overwrite other settings. This composes with `git-guardrails-claude-code`: both are `Bash`
 matchers and can each live as a separate entry in the array.
 

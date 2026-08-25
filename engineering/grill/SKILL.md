@@ -8,8 +8,8 @@ If `/spec` just ran, read this turn's 已落盘 list and the ADR-worthy question
 Run a `/grilling` session. Grilling owns routing itself (`/research`, `/prototype` recommendation); this wrapper adds domain persistence.
 
 If `CONTEXT.md` or `docs/adr/` exists in the working directory, keep domain docs
-current via `/domain-modeling` — write resolved glossary terms to `CONTEXT.md`
-and ADRs that pass its ADR gate. If neither exists, run stateless — never
+current via `/domain-modeling`: write resolved glossary terms to `CONTEXT.md`
+and ADRs that pass its ADR gate. If neither exists, run stateless. Never
 lazy-create `CONTEXT.md`; glossaries are born via `/domain-modeling`.
 
 Allowed writes: glossary terms and ADRs, only when those files already exist. Do not

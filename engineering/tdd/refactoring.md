@@ -11,4 +11,4 @@ After TDD cycle, look for:
 - **Primitive obsession** → Introduce value objects
 - **Existing code** the new code reveals as problematic
 
-> This is the curated short list for the moment right after a green cycle. The full smell set (12 Fowler smells, each with a fix) lives in the `/code-review` skill's Standards baseline — reach for it when reviewing a whole diff, not mid-loop.
+> This is the curated short list for the moment right after a green cycle. The full smell set (12 Fowler smells, each with a fix) lives in the `/code-review` skill's Standards baseline. Reach for it when reviewing a whole diff, not mid-loop.

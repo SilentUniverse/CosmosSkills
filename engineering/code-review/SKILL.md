@@ -13,7 +13,7 @@ Two-axis review of the diff between `HEAD` (or a named branch) and a fixed point
 
 All artifacts follow [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md). Report to the user in Chinese (per `~/.claude/CLAUDE.md` §1); keep the Fowler smell **names** in English (they're terms).
 
-> **Why two axes.** A change can pass one axis and fail the other — standards-clean code implementing the wrong thing; spec-faithful code breaking conventions. **Never merge or rerank across axes.**
+> **Why two axes.** A change can pass one axis and fail the other: standards-clean code implementing the wrong thing; spec-faithful code breaking conventions. **Never merge or rerank across axes.**
 
 ## Process
 
@@ -37,17 +37,17 @@ Working-tree mode — uncommitted changes (e.g. a drain batch before commit): `g
 Look for the originating spec, in this order:
 
 1. A path the user (or caller) passed as an argument — an issue file or PRD.
-2. The issue referenced by the branch / feature slug: `.scratch/<feat>/issues/NN-*.md` (its `## 验收标准（AC）` block is the spec). For a `redo`/`fix` issue, also read the parent named by `refines:`. Multi-issue batch on one branch: review per issue, or ask the user for one spec.
+2. The issue referenced by the branch / feature slug: `.scratch/<feat>/issues/NN-*.md`; its `## 验收标准（AC）` block is the spec. For a `redo`/`fix` issue, also read the parent named by `refines:`. Multi-issue batch on one branch: review per issue, or ask the user for one spec.
 3. The feature PRD: `.scratch/<feat>/PRD.md`.
 4. If nothing is found, ask the user where the spec is. If they say there isn't one, the **Spec** sub-agent skips and reports "无 spec 可比对".
 
-> Issue-tracker layout is configured — run `/cosmos-setup` if `.scratch/` doesn't exist yet.
+> Issue-tracker layout is configured. Run `/cosmos-setup` if `.scratch/` doesn't exist yet.
 
 ### 3. Identify the standards sources
 
-Anything in the repo documenting how code should be written: `CODING_STANDARDS.md`, `CONTRIBUTING.md`, the domain language in `CONTEXT.md`, and the decisions in `docs/adr/` (a diff that violates an accepted ADR is a Standards finding).
+Anything in the repo documenting how code should be written: `CODING_STANDARDS.md`, `CONTRIBUTING.md`, the domain language in `CONTEXT.md`, and the decisions in `docs/adr/`. A diff that violates an accepted ADR is a Standards finding.
 
-On top of whatever the repo documents, the Standards axis always carries a **smell baseline** — 12 Fowler code smells (_Refactoring_, ch.3), two binding rules (repo overrides; always a judgement call). Full list: **[SMELL-BASELINE.md](SMELL-BASELINE.md)** — the Standards sub-agent reads the file; never paste or duplicate.
+On top of whatever the repo documents, the Standards axis always carries a **smell baseline** — 12 Fowler code smells (_Refactoring_, ch.3), two binding rules (repo overrides; always a judgement call). Full list: **[SMELL-BASELINE.md](SMELL-BASELINE.md)**. The Standards sub-agent reads the file; never paste or duplicate.
 
 ### 4. Spawn both sub-agents in parallel
 
@@ -58,7 +58,7 @@ shared with drain-close callers): [SUBAGENT-BRIEFS.md](SUBAGENT-BRIEFS.md).
 
 **Spec sub-agent** — pass: the diff command and commit list; the path or fetched contents of the spec (issue `## AC` block and/or PRD). Brief: §Spec.
 
-If the spec is missing, skip the Spec sub-agent and note it in the final report. A caller that already ran one axis (e.g. the drain close ran Spec — caller-ran-Spec entry) may ask for the other alone: skip the ran axis's sub-agent and note that in the report.
+If the spec is missing, skip the Spec sub-agent and note it in the final report. A caller that already ran one axis (e.g. the drain close ran Spec; caller-ran-Spec entry) may ask for the other alone: skip the ran axis's sub-agent and note that in the report.
 
 ### 5. Aggregate
 

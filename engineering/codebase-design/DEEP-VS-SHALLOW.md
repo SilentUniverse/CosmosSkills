@@ -1,7 +1,7 @@
 # Deep vs Shallow — diagrams, testability patterns, rejected framings
 
 On-demand detail for [codebase-design](SKILL.md). The glossary + principles are the resident
-vocabulary; this file holds the illustrative material — read it when shaping an interface, not to
+vocabulary; this file holds the illustrative material. Read it when shaping an interface, not to
 learn the terms.
 
 ## Deep vs shallow, drawn
@@ -65,6 +65,6 @@ Good interfaces make testing natural:
 
 - **Depth as ratio of implementation-lines to interface-lines** (Ousterhout): rewards padding the
   implementation. We use depth-as-leverage instead.
-- **"Interface" as the TypeScript `interface` keyword or a class's public methods**: too narrow —
-  interface here includes every fact a caller must know.
+- **"Interface" as the TypeScript `interface` keyword or a class's public methods**: too narrow.
+  Interface here includes every fact a caller must know.
 - **"Boundary"**: overloaded with DDD's bounded context. Say **seam** or **interface**.

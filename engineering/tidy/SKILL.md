@@ -28,8 +28,8 @@ read whole issue bodies or the full PRD.
 
 Show one preview covering all four actions. Interactive: wait for confirm, then execute.
 Drain-caller: execute immediately after the preview. Destructive steps relocate instead of delete:
-zombie/duplicate tests move to `.scratch/tmp/tidy-<date>/` (move back restores; the suite sees
-them gone), orphan files archive rather than delete.
+zombie/duplicate tests move to `.scratch/tmp/tidy-<date>/`; moving them back restores them, and the
+suite sees them gone. Orphan files archive rather than delete.
 
 ```
 Tidy 计划：balance（dry-run，未落盘）
@@ -54,18 +54,18 @@ Tidy 计划：balance（dry-run，未落盘）
 ### 3. Execute (on confirm, or immediately if drain-caller)
 
 - **Archive** — `git mv .scratch/<feat>/issues/NN-*.md .scratch/<feat>/issues/archive/` for each
-  confirmed `done` issue. Create `archive/` if absent. Never edit the body or `status` — immutability holds.
+  confirmed `done` issue. Create `archive/` if absent. Never edit the body or `status`; immutability holds.
 - **Regenerate `SUMMARY.md`** — aggregate the `### 完成` blocks (excluding 审查 lines) of all
   done issues, top-level **plus `issues/archive/`**, into `.scratch/<feat>/SUMMARY.md` per the
   format doc.
 - **Test audit** — **zombie = a test in the parent's `### 完成` 新增测试 that the redo's
   `### 完成` did not carry forward**; derive it by diffing the two lists. Move zombies and
-  duplicates to the staging dir. Run the **full suite** only if this pass moved tests (subagent,
-  or redirect to `.scratch/tmp/`). Drain-caller whose closing suite just passed: skip unless
-  tests moved. Report every moved test with its case counts — a green suite does not prove
+  duplicates to the staging dir. Run the **full suite** only if this pass moved tests, in a
+  subagent or with output redirected to `.scratch/tmp/`. Drain-caller whose closing suite just passed: skip unless
+  tests moved. Report every moved test with its case counts. A green suite does not prove
   coverage was not lost. On unexpected red: move the tests back, re-run, re-audit.
 - **Orphan resolution** — resolve by the safe heuristic: obvious parent → add the `refines:`
   field; no PRD linkage and stale → relabel `category: detail` and archive. Ambiguous ones are
-  reported unresolved — never guess on a may-be-load-bearing orphan.
+  reported unresolved. Never guess on a may-be-load-bearing orphan.
 
 Report what moved, what was deleted, and any orphans left unresolved for the user to decide later.

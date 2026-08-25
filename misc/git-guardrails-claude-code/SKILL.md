@@ -8,11 +8,11 @@ disable-model-invocation: true
 
 Sets up a PreToolUse hook that intercepts and blocks dangerous git commands before Claude executes them.
 
-> Windows default: use the bundled `.ps1` script invoked via `pwsh` (or `powershell` on machines without PS7 — the scripts are 5.1-compatible). Unix/WSL users use the `.sh` script.
+> Windows default: use the bundled `.ps1` script invoked via `pwsh`; on machines without PS7, `powershell` works too (the scripts are 5.1-compatible). Unix/WSL users use the `.sh` script.
 
 ## What Gets Blocked
 
-Matching is **token-level**: every `git` in command position (segment-initial, or right after `sudo`/`env`/`nohup`/`nice`/`timeout`/`xargs`) is checked with its subcommand and flags — flag reordering, double spaces, and `--` long forms all match:
+Matching is **token-level**: every `git` in command position (segment-initial, or right after `sudo`/`env`/`nohup`/`nice`/`timeout`/`xargs`) is checked with its subcommand and flags. Flag reordering, double spaces, and `--` long forms all match:
 
 - `git push` — all variants, including `--force`
 - `git reset --hard`
@@ -45,7 +45,7 @@ On Unix, make the `.sh` executable with `chmod +x`. The `.ps1` needs no chmod; i
 ### 3. Add hook to settings
 
 Wire the hook into the settings file per scope and platform: [WIRING.md](WIRING.md). If the
-settings file already exists, merge the hook into the existing `hooks.PreToolUse` array — don't
+settings file already exists, merge the hook into the existing `hooks.PreToolUse` array; don't
 overwrite other settings.
 
 ### 4. Ask about customization

@@ -21,10 +21,10 @@ The active working set is the top-level `.scratch/<feat>/issues/*.md`; `done` is
 config files. The first run that figures them out should fill this in.
 
 - **Full suite + build** (the verification gate, run once before commit):
-- **Scoped test** (one cycle of the red-green loop — pattern with a placeholder, e.g.
+- **Scoped test** (one cycle of the red-green loop; pattern with a placeholder, e.g.
   `pytest <path>::<test>`, `vitest run <path>`, `go test ./<pkg>/...`):
-- **Perf measurement** (performance claims carry numbers — benchmark / profiler / trace
-  commands; a "faster" without a measurement is not a claim):
+- **Perf measurement**: performance claims carry numbers; list benchmark / profiler / trace
+  commands. A "faster" without a measurement is not a claim:
 - **Module boundary enforcement** (TS/JS: `effect` / `eslint-plugin-boundaries`; other stacks:
   the equivalent):
 
@@ -65,7 +65,7 @@ Multi-context repo (presence of `CONTEXT-MAP.md` at the root):
 
 When your output names a domain concept (in an issue title, a refactor proposal, a hypothesis, a test name), use the term as defined in `CONTEXT.md`. Don't drift to synonyms the glossary explicitly avoids.
 
-If the concept you need isn't in the glossary, either you're inventing language the project doesn't use (reconsider) or there's a real gap (note it for `/grill`).
+If the concept you need isn't in the glossary, either you're inventing language the project doesn't use, so reconsider, or there's a real gap, so note it for `/grill`.
 
 ## Flag ADR conflicts
 

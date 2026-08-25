@@ -28,7 +28,7 @@ false. Confirm-gated: the reconciliation executes only on user confirm.
      ➕ 07-dark-mode.md (ready)
    ```
 
-   Hard rule: never edit a `done` issue — always a new `NN-redo-X.md` (`category: redo`,
+   Hard rule: never edit a `done` issue; always write a new `NN-redo-X.md` (`category: redo`,
    `refines:` the original slug).
 3. **Execute on confirm.** Deletes relocate to `.scratch/tmp/reconcile-<date>/`
    (undo = move back), never `rm`. Ready-issue edits happen in place; refresh the

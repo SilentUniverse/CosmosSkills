@@ -9,11 +9,11 @@ Design **deep modules**: a lot of behaviour behind a small interface, placed at 
 
 ## Glossary
 
-Use these terms exactly — don't substitute "component," "service," "API," or "boundary."
+Use these terms exactly. Don't substitute "component," "service," "API," or "boundary."
 
 **Module** — anything with an interface and an implementation. Deliberately scale-agnostic: a function, class, package, or tier-spanning slice. _Avoid_: unit, component, service.
 
-**Interface** — everything a caller must know to use the module correctly: the type signature, but also invariants, ordering constraints, error modes, required configuration, and performance characteristics. _Avoid_: API, signature (too narrow — they refer only to the type-level surface).
+**Interface** — everything a caller must know to use the module correctly: the type signature, but also invariants, ordering constraints, error modes, required configuration, and performance characteristics. _Avoid_: API, signature; too narrow, they refer only to the type-level surface.
 
 **Implementation** — what's inside a module, its body of code. Distinct from **Adapter**: a thing can be a small adapter with a large implementation (a Postgres repo) or a large adapter with a small implementation (an in-memory fake). Reach for "adapter" when the seam is the topic; "implementation" otherwise.
 
@@ -28,14 +28,14 @@ Use these terms exactly — don't substitute "component," "service," "API," or "
 **Locality** — what maintainers get from depth: change, bugs, knowledge, and verification concentrate in one place rather than spreading across callers. Fix once, fixed everywhere.
 
 Diagrams, testability patterns, and rejected framings live in
-[DEEP-VS-SHALLOW.md](DEEP-VS-SHALLOW.md) — read it while shaping an interface, not to learn the terms.
+[DEEP-VS-SHALLOW.md](DEEP-VS-SHALLOW.md). Read it while shaping an interface, not to learn the terms.
 
 ## Principles
 
-- **Depth is a property of the interface, not the implementation.** A deep module can be internally composed of small, mockable, swappable parts — they just aren't part of the interface. A module can have **internal seams** (private to its implementation, used by its own tests) as well as the **external seam** at its interface.
+- **Depth is a property of the interface, not the implementation.** A deep module can be internally composed of small, mockable, swappable parts; they just aren't part of the interface. A module can have **internal seams** as well as the **external seam** at its interface; internal seams are private to its implementation and used by its own tests.
 - **The deletion test.** Imagine deleting the module. If complexity vanishes, it was a pass-through. If complexity reappears across N callers, it was earning its keep.
 - **The interface is the test surface.** Callers and tests cross the same seam. If you want to test *past* the interface, the module is probably the wrong shape.
-- **The interface leads in the file.** Types and exported signatures on top, implementation below — the contract loads first, the body on demand.
+- **The interface leads in the file.** Types and exported signatures on top, implementation below; the contract loads first, the body on demand.
 - **One adapter means a hypothetical seam. Two adapters means a real one.** Don't introduce a seam unless something actually varies across it.
 
 ## Going deeper

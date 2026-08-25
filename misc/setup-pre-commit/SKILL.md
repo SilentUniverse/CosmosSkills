@@ -29,7 +29,7 @@ husky lint-staged prettier
 
 ### 3. Initialize Husky
 
-Before init, confirm: this is a git repo, `package.json` exists, and `.husky/` is absent (if present, adapt the existing hooks instead of re-init).
+Before init, confirm: this is a git repo, `package.json` exists, and `.husky/` is absent. If `.husky/` is present, adapt the existing hooks instead of re-init.
 
 ```bash
 npx husky init
@@ -57,7 +57,7 @@ npm run test
 }
 ```
 
-`.prettierignore` must exclude lockfiles and generated files — Prettier counts YAML/JSON as known types, so `--ignore-unknown` won't skip them, and reformatting a lockfile on every commit is churn.
+`.prettierignore` must exclude lockfiles and generated files. Prettier counts YAML/JSON as known types, so `--ignore-unknown` won't skip them; reformatting a lockfile on every commit is churn.
 
 ```
 *-lock.yaml
@@ -83,7 +83,7 @@ Only create if no Prettier config exists. Use these defaults:
 ### 7. Verify
 
 - [ ] `.husky/pre-commit`, `.lintstagedrc`, `.prettierrc` exist; `prepare: "husky"` in package.json
-- [ ] End-to-end: stage a badly formatted temp file (`printf 'const  x=1' > fmt-check.ts; git add fmt-check.ts`), run lint-staged, confirm the file comes back formatted, then unstage — an empty staged set always passes and verifies nothing
+- [ ] End-to-end: stage a badly formatted temp file (`printf 'const  x=1' > fmt-check.ts; git add fmt-check.ts`), run lint-staged, confirm the file comes back formatted, then unstage. An empty staged set always passes and verifies nothing
 
 ### 8. Hand off to submit workflow
 

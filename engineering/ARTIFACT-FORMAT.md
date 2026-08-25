@@ -2,7 +2,7 @@
 
 The single source of truth for the YAML frontmatter and index files that the engineering
 skills produce and consume. Every skill that reads or writes an issue, PRD, handoff, or index
-file references THIS document instead of restating the schema — keeping the contract in one
+file references THIS document instead of restating the schema. Keeping the contract in one
 place is what lets `/tdd`, `/resume`, and `/tidy` parse deterministically instead of
 grepping prose.
 
@@ -14,7 +14,7 @@ migration pass.
 
 ## Naming & location conventions
 
-Where an artifact lives and how it is cased are not arbitrary — both follow rules. When you add a
+Where an artifact lives and how it is cased are not arbitrary; both follow rules. When you add a
 new artifact, place and name it by these rules instead of guessing; if it doesn't fit, the rules
 (not the artifact) are what to revisit.
 
@@ -95,29 +95,31 @@ Rules:
 
 - **type** — always `codebase`. **generated** — ISO date of the last full regeneration.
 - **Shape threshold:** >8 areas → root skeleton + per-area blocks; ≤8 areas → single root file,
-  one `## ` section per area (same per-line rules, `git_base` as an HTML comment after the heading).
+  one `## ` section per area. The same per-line rules apply; `git_base` is an HTML comment after
+  the heading.
 - **综合段** — the shape in CONTEXT.md vocabulary: layering, data flow, 2-3 load-bearing boundaries.
   No directory listing.
 - **路由行** — non-obvious routing only: name betrays concept, real entry ≠ apparent entry,
   cross-area goals. An empty routing table is valid.
-- **roster 行** — a real existing directory path (no `<placeholder>`, `{brace-set}`, or glob
-  syntax — one representative real path per pattern) + ≤10-word responsibility. Every area
+- **roster 行** — a real existing directory path + ≤10-word responsibility. No `<placeholder>`,
+  `{brace-set}`, or glob syntax; one representative real path per pattern. Every area
   appears; no silent omissions.
 - **Per-area block** — marker pair + `git_base` + body ≤8 lines. Each line passes the two-axis
   test (defined in `/map`). Locations, exports, caller lists, import graphs
   are excluded. A 1-line block is normal; an area with no surviving facts gets a roster line only.
 - **Loading:** root is read at session start (CLAUDE.md §6). `src/<area>/CLAUDE.md` auto-injects
-  when Claude Code reads files in that area — no manual pull.
+  when Claude Code reads files in that area; no manual pull.
 - **Budgets:** root body ≤40 lines excluding roster lines; area block ≤8 lines. On red: relocate →
-  condense → raise (a raise carries justification in the change). A ceiling is set to the file's
+  condense → raise. A raise carries justification in the change. A ceiling is set to the file's
   size at adoption.
 - **Drift:** each block's `git_base` vs HEAD — code gone → delete the block and its roster line;
   drifted → refresh + re-stamp; duplicate → merge. A refresh that changes no block content
-  rewrites nothing — `git_base` moves only with a content change.
+  rewrites nothing; `git_base` moves only with a content change.
 - **Same-change duty:** a change that alters an area's seam or invariant refreshes that area's
   block in the same change.
-- **Nested `src/<area>/CLAUDE.md`** is a harness instruction file carrying a generated block —
-  exempt from the ALL-CAPS singleton rule; the block appends at the end of a hand-written file.
+- **Nested `src/<area>/CLAUDE.md`** is a harness instruction file carrying a generated block.
+  It is exempt from the ALL-CAPS singleton rule; the block appends at the end of a hand-written
+  file.
 - **Legacy monolith:** a root file with per-area `## ` sections and no roster is rebuilt wholesale
   by the next `/map --all`.
 - Use **CONTEXT.md domain vocabulary** and **codebase-design vocabulary** (module, seam, depth).
@@ -148,7 +150,7 @@ Field rules:
 - **feature** — the `<feat>` slug; must equal the parent directory name. Lets the consuming
   skills group issues without parsing paths.
 - **status** — the two canonical states only. `done` is immutable (the git commit is truth).
-  Hands-on checks no agent can run live in the PRD's 端到端验证 — never as a third state or as
+  Hands-on checks no agent can run live in the PRD's 端到端验证; never as a third state or as
   issue AC.
 - **category** —
   - `enhancement` — a normal vertical slice from the PRD.
@@ -158,29 +160,29 @@ Field rules:
   - `redo` — re-does a `done` issue the new PRD invalidated. Filename is `NN-redo-<slug>.md`.
   - `fix` — a regression fix against a `done` slice. Filename is `NN-fix-<slug>.md`.
 - **blocked_by** — list of slugs (filename without `.md`) that must reach `done` first.
-  A slug may be a live sibling under `issues/` **or** a `done` issue in `issues/archive/`
-  (tidy moves `done` there; the gate still resolves it). `/tdd`'s drain mode topologically
+  A slug may be a live sibling under `issues/` **or** a `done` issue in `issues/archive/`.
+  Tidy moves `done` there; the gate still resolves it. `/tdd`'s drain mode topologically
   sorts on this. `[]` (or omit) means no blocker.
 - **refines** — slug of the parent slice this elaborates (live or `issues/archive/`). Required
   for `detail`/`redo`/`fix`, omitted for top-level `enhancement` slices. `/tidy`'s orphan check
   flags any non-top-level issue with neither a PRD user-story link nor a `refines`.
 - **touches** — top-level dirs/modules this slice is expected to edit, at directory granularity.
   One exception: repo-root shared surfaces a slice edits (workspace manifest, lockfile, any
-  root config file) are declared verbatim as file paths — `/tdd -p` serializes on any overlap,
+  root config file) are declared verbatim as file paths. `/tdd -p` serializes on any overlap,
   and a lockfile write mid-wave collides with everyone. Written by `/spec` from its impact
   probe; `/tdd -p` groups waves by overlap. Optional.
 - **test_paths** — test files this slice will create or modify, repo-relative with `/` separators.
   Declared by `/spec` from the AC. This field owns the `-p` wave semantics: wave eligibility
   needs `touches:` + `test_paths:`; overlapping `touches:` or colliding `test_paths:` serialize
   into successive waves; an issue missing either runs alone in its own wave. Completed at green
-  by the run that wrote the files — appending a newly written test
+  by the run that wrote the files. Appending a newly written test
   file is the one sanctioned frontmatter edit to a `done` card (body stays immutable). `--log`
   slices omit it: acceptance is a log predicate, not test files. The gate checks every
   `### 完成` 新增测试 file against it. Optional.
 - **created** — ISO date, set once at creation, never changed.
 
 The body keeps the section headings from `/spec`'s issue template. The completion record still
-appends to `## Comments` — schema + template: `tdd/COMPLETION-RECORD.md`; frontmatter `status` and
+appends to `## Comments`. Schema + template: `tdd/COMPLETION-RECORD.md`; frontmatter `status` and
 the `### 完成` block move together.
 
 ## Wave ledger — `.scratch/<feat>/wave-ledger.json`
@@ -189,7 +191,7 @@ The `/tdd -p` drain's dispatch ledger, written only by the `tdd` skill's
 `scripts/drain-wave.py` (`dispatch` before subagents start, `collect` at wave close). Each
 wave entry: number, timestamp, dispatched slugs, the wave baseline (`git status --porcelain`
 snapshot), per-issue closure (`green|red|blocked|aborted`), close timestamp. A dispatched
-slug that is neither done on disk nor closed is a zombie — the recovery contract lives in
+slug that is neither done on disk nor closed is a zombie. The recovery contract lives in
 `tdd/EDGE-CASES.md`. The ledger is append-oriented machine state; humans read it only for
 crash diagnosis. Tidy may delete it once every wave is closed and the batch shipped.
 
@@ -224,7 +226,7 @@ Field rules:
 - **git_base** — HEAD's short hash at write time. `/resume` compares this against current HEAD and
   warns if they diverged (work happened since the handoff).
 - **status** — `active` when written; `/resume` **deletes the file** once the work it describes is
-  finished — one handoff, one consume; git keeps the history. Only `active` handoffs are resume
+  finished. One handoff, one consume; git keeps the history. Only `active` handoffs are resume
   candidates.
 
 ## PRD files — `.scratch/<feat>/PRD.md` / `PRD-vN.md`
@@ -247,7 +249,7 @@ The skills read the highest `version` whose file is not listed in any other file
 ## SUMMARY files — `.scratch/<feat>/SUMMARY.md` (generated, not authored)
 
 A regenerable view of "what has actually been built", aggregated from the `### 完成` blocks of all
-`done` issues in the feature. Overwrite-in-place every time `/tidy` runs — it is a derived
+`done` issues in the feature. Overwrite-in-place every time `/tidy` runs. It is a derived
 artifact, never hand-edited.
 
 ```markdown
@@ -299,7 +301,7 @@ repo/
 
 ## Inspecting state (active working set only)
 
-Use `rg` with a glob so matches reflect live work, not history — `**/issues/*.md` matches each
+Use `rg` with a glob so matches reflect live work, not history. `**/issues/*.md` matches each
 feature's top-level issues but not the nested `archive/`:
 
 ```bash
@@ -339,6 +341,7 @@ Prompt-enforced remainder: body sections, AC quality, `touches` honesty.
 ## Migration
 
 Repos created before frontmatter existed carry a bare `Status:` line.
-`/cosmos-setup` handles the upgrade (its Case 5): it is idempotent (skips files that already have
-frontmatter) and dry-run-first (prints the full plan — which files get frontmatter, which `done`
-issues move to `archive/`, which `SUMMARY.md` files get generated — before touching anything).
+`/cosmos-setup` handles the upgrade (its Case 5). It is idempotent: it skips files that already
+have frontmatter. It is dry-run-first: it prints the full plan before touching anything, covering
+which files get frontmatter, which `done` issues move to `archive/`, and which `SUMMARY.md` files
+get generated.

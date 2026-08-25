@@ -9,16 +9,16 @@ argument-hint: "Issue path, feature slug, -p, --full, --log, or nothing to drain
 ## Invocation
 
 - `/tdd <issue-path>` — run that one issue. Read its frontmatter `status:` first (per [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd)) and obey the guard. One slice, fully visible.
-- `/tdd` (bare) — **drain (serial)**: every `ready` issue across `.scratch/`, one at a time, dependency order, to completion. The dumb-but-legible batch path — no worktrees, watch each one in this session.
+- `/tdd` (bare) — **drain (serial)**: every `ready` issue across `.scratch/`, one at a time, dependency order, to completion. The dumb-but-legible batch path: no worktrees; watch each one in this session.
 - `/tdd <feat>` — drain scoped to one feature's `issues/` directory.
-- `/tdd -p [<feat>]` — **drain (parallel)**: ready issues fan out to subagents (one per issue, ≤4 in flight); each issue's verbose output stays isolated, independent slices finish in parallel. Wave rules (declared collisions serialize, undeclared issues run alone), worktree only on explicit request, and runner-driven session rotation: [DRAIN.md](DRAIN.md).
+- `/tdd -p [<feat>]` — **drain (parallel)**: ready issues fan out to subagents (one per issue, ≤4 in flight); each issue's verbose output stays isolated, independent slices finish in parallel. Wave rules: declared collisions serialize, undeclared issues run alone. Worktree only on explicit request, and runner-driven session rotation: [DRAIN.md](DRAIN.md).
 - `/tdd --full` — run build + the whole suite now (§5); combines with any form above.
 - `/tdd --log` — the verdict is a command's log file, not test runs: [LOG.md](LOG.md). Same mode when the user says this run drives a device and the result lands in a log file. Combines with any form above.
 - Natural-language ask without an issue path — stop; tell the user to `/spec` first. Do not interview, do not write tests.
 
 ### Drain mode
 
-Enumerate `ready` issues, topologically sort on `blocked_by`, run the batch through the autonomous loop (§Workflow), close with one full suite + build. Two paths: **serial** (default — legible, one at a time) and **parallel** (`-p` — subagent waves). Full algorithm, subagent brief, edit-in-place-vs-worktree call: **[DRAIN.md](DRAIN.md)**.
+Enumerate `ready` issues, topologically sort on `blocked_by`, run the batch through the autonomous loop (§Workflow), close with one full suite + build. Two paths: **serial** (default: legible, one at a time) and **parallel** (`-p`: subagent waves). Full algorithm, subagent brief, edit-in-place-vs-worktree call: **[DRAIN.md](DRAIN.md)**.
 
 ### Status guard (issue-driven invocation)
 
@@ -46,9 +46,9 @@ Tests verify behavior through public interfaces, not implementation details; exp
 
 Start from first principles about the approach. Use the project's domain glossary so test names and interface vocabulary match the project's language; respect ADRs in the area touched.
 
-Before writing any code: list the behaviors to test (not implementation steps); confirm interface changes, behaviors, and plan with the user *(autonomous mode: skip confirms — the spec is the issue's 做什么/AC plus the PRD extract in `## 上级`)*; shape deep modules and testable interfaces — `/codebase-design` only when a new seam is in play or the interface is unclear. Existing coverage first: [tests.md](tests.md) §Existing coverage.
+Before writing any code: list the behaviors to test (not implementation steps); confirm interface changes, behaviors, and plan with the user *(autonomous mode: skip confirms — the spec is the issue's 做什么/AC plus the PRD extract in `## 上级`)*; shape deep modules and testable interfaces; `/codebase-design` only when a new seam is in play or the interface is unclear. Existing coverage first: [tests.md](tests.md) §Existing coverage.
 
-**Pre-issue statement (autonomous mode).** Before the first test, state in 2–3 lines: what this slice requires, which interface you'll shape, which behaviors you'll test first, the biggest assumption it rests on. Don't wait for a reply — the user's cheapest catch point, before any code exists.
+**Pre-issue statement (autonomous mode).** Before the first test, state in 2–3 lines: what this slice requires, which interface you'll shape, which behaviors you'll test first, the biggest assumption it rests on. Don't wait for a reply. This is the user's cheapest catch point, before any code exists.
 
 ### 2. Tracer Bullet
 
@@ -58,7 +58,7 @@ Write ONE test confirming ONE thing about the system: RED (test fails on the ass
 
 For each remaining behavior: RED (write next test, watch it fail) → GREEN (minimal code passes).
 
-- One test at a time — an import/collection error is not RED
+- One test at a time; an import/collection error is not RED
 - Only enough code to pass the current test; don't anticipate future tests
 - Keep tests focused on observable behavior
 

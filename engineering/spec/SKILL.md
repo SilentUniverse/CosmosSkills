@@ -32,5 +32,5 @@ area's `CODEBASE.md` block (two-axis); don't pause to offer.
 
 Both write paths end in [WRITE-LOOP.md](WRITE-LOOP.md). A genuine design trade-off →
 `/prototype` before slicing. Wide refactors (mechanical change, blast radius spans the
-codebase): expand → contract — expand adds the new form beside the old; migrate batches move
+codebase): expand → contract. Expand adds the new form beside the old; migrate batches move
 call sites (each staying green); contract deletes the old form.

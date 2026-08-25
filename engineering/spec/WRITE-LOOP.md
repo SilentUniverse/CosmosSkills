@@ -4,7 +4,7 @@ Loaded on demand by [`/spec`](SKILL.md) on every turn that writes or asks.
 
 In order:
 
-1. Ask every remaining open question that is not ADR-worthy — decision questions inline;
+1. Ask every remaining open question that is not ADR-worthy. Decision questions go inline;
    external-fact questions fan out instead: one background `/research` subagent each, same
    turn, cap 3. An unanswered one counts as 待决 until it lands.
 2. Write every settled card that no outstanding question (open, or unanswered grain quiz) can
@@ -23,7 +23,7 @@ In order:
    尚未明确（fog, if any）；评审块（PRD written this run only）: 测试决策 seams + 不在本次
    范围内 + AC titles, ≤6 lines；
    下一句：omit if 待决 is non-empty; else `/grill` if an
-   ADR-worthy open remains; else `/clear` then `/tdd <path>` — first `ready` issue this
+   ADR-worthy open remains; else `/clear` then `/tdd <path>`, first `ready` issue this
    run; omit if none ready.
 
 Outstanding questions → wait. After an answer, resume classification on unwritten units.

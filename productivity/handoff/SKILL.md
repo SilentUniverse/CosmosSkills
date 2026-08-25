@@ -4,7 +4,7 @@ description: Compact the current conversation into a handoff document for anothe
 argument-hint: "What will the next session be used for?"
 ---
 
-Write a minimal recoverable snapshot so the next session can continue from the current node by reading this one file. This is **not** a conversation summary — extract current state, key decisions, and next actions. Discard exploration; preserve decisions.
+Write a minimal recoverable snapshot so the next session can continue from the current node by reading this one file. This is **not** a conversation summary: extract current state, key decisions, and next actions. Discard exploration; preserve decisions.
 
 ## Fidelity rules
 
@@ -15,7 +15,7 @@ Write a minimal recoverable snapshot so the next session can continue from the c
 
 Per `ARTIFACT-FORMAT.md` §Handoff files (installed: `~/.claude/skills/ARTIFACT-FORMAT.md`; repo: `engineering/ARTIFACT-FORMAT.md`):
 
-- **Feature-scoped work** → `.scratch/<feat>/handoff.md` (rolling — overwrite in place each time; git keeps history).
+- **Feature-scoped work** → `.scratch/<feat>/handoff.md`. Rolling: overwrite in place each time; git keeps history.
 - **Cross-feature work** → `.scratch/handoff.md` (a single rolling file at the `.scratch/` root).
 
 Do **not** use the OS temp directory. If not inside a git repo, fall back to the working directory root.
@@ -26,9 +26,9 @@ In autonomous runs (`/tdd -p` waves, overnight batches), overwrite-in-place at e
 
 - §1 one status line · §2 one baseline line (re-stamp `git_base` in frontmatter too) · §3 the current next fork · §5's first boot action · §4 any new decisions/invariants · §6 any newly discarded approach
 - Heavy detail stays in its artifacts (completion records, issues, commits); the handoff carries pointers and deltas only (What-not-to-duplicate).
-- Sufficiency bar: a **cold session crash-lands mid-task** → this file plus the artifacts it names must be enough to continue. §2 and §6 are what a delta most easily starves — never skip them.
+- Sufficiency bar: a **cold session crash-lands mid-task** → this file plus the artifacts it names must be enough to continue. §2 and §6 are what a delta most easily starves. Never skip them.
 
-The final `/handoff` verifies and tops up the existing file instead of recompressing the session. Interactive sessions never auto-invoke — the user sees the context level and calls `/handoff` at the smart-zone boundary.
+The final `/handoff` verifies and tops up the existing file instead of recompressing the session. Interactive sessions never auto-invoke; the user sees the context level and calls `/handoff` at the smart-zone boundary.
 
 Every handoff carries YAML frontmatter:
 
@@ -44,7 +44,7 @@ date: 2026-06-18
 
 ## What not to duplicate
 
-Content already captured elsewhere (PRDs, plans, ADRs, issues, commits, diffs) — reference by path or URL, do not copy the body.
+Reference content already captured elsewhere (PRDs, plans, ADRs, issues, commits, diffs) by path or URL; do not copy the body.
 
 ## Redact
 

@@ -1,7 +1,7 @@
 # Recall Batteries — lint
 
-Probes, not the definition: over-match by design (judge every hit semantically), under-match by
-nature (also read the densest prose in scope without a pattern).
+Probes, not the definition. They over-match by design: judge every hit semantically. They
+under-match by nature: also read the densest prose in scope without a pattern.
 
 ## Chinese battery
 
@@ -16,6 +16,16 @@ rg 'used to|no longer|the old |previously|this PR|a later PR|rejected in review|
 ```
 
 Keep these case-sensitive; `-i` turns version tags into noise.
+
+## Symbol probe (rule prose only)
+
+```sh
+rg '\([^()]{40,}\)| — .* — ' --hidden -g '!.git/**' <scope>
+```
+
+Over-matches heavily. Judge every hit against the Symbol-discipline section and its exemptions;
+hits outside rule prose (templates, quoted examples, tables) are skipped. A single em-dash
+joining clauses has no reliable pattern; the semantic scan catches it.
 
 ## Exclusions
 

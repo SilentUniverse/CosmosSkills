@@ -20,15 +20,15 @@ Handoffs live under `.scratch/` (feature-scoped `.scratch/<feat>/handoff.md` or 
 ### 0. Orientation is already loaded — don't re-own it
 
 CLAUDE.md §6 loads the orientation layer at session start, before `/resume` runs. So `/resume` only
-*layers a handoff on top* — don't re-load or re-explore what orientation already gave you.
+*layers a handoff on top*. Don't re-load or re-explore what orientation already gave you.
 
 ### 1. Locate the handoff
 
 - `/resume <feat>` → read `.scratch/<feat>/handoff.md`.
 - `/resume` (no arg) → scan `.scratch/**/handoff.md` for `status: active` and pick the newest by
   `date` (tie-break on file mtime). If none is `active`, tell the user there's nothing to resume and
-  stop — a stray non-`active` handoff: confirm explicitly before touching it. (Step 0 has
-  already run, so even with no handoff the session is oriented — say so.)
+  stop. A stray non-`active` handoff: confirm explicitly before touching it. Step 0 has
+  already run, so even with no handoff the session is oriented; say so.
 
 ### 2. Verify the baseline
 
@@ -48,9 +48,9 @@ Also check working-tree cleanliness; if dirty, surface `git status` briefly befo
 
 Read the handoff's six sections. Section 5 (开机动作序列) is the script: read the listed files, run
 the listed commands, confirm the stated first decision. Section 4 (关键口径清单) is the load-bearing
-context — treat those decisions and invariants as binding. Don't re-explore what the handoff already
+context. Treat those decisions and invariants as binding. Don't re-explore what the handoff already
 decided. Confirm any claim you're about to act on (a test passes, a file exists, a command works)
-against the workspace first — the handoff is a bounded handoff, not truth.
+against the workspace first. The handoff is a bounded handoff, not truth.
 
 If the handoff names a feature, also glance at its live working set:
 `rg '^status: ready' -g '*.md' -g '!**/archive/**' .scratch/<feat>/issues`.
@@ -58,5 +58,5 @@ If the handoff names a feature, also glance at its live working set:
 ### 4. Delete the handoff when the work is finished
 
 Once the work reaches a natural stopping point (issue `done`, or the user starts something else),
-**delete the handoff file** — one handoff, one consume. If the session runs long and needs a fresh
+**delete the handoff file**. One handoff, one consume. If the session runs long and needs a fresh
 handoff, write a new one via `/handoff`; one live handoff per feature at any time.

@@ -4,7 +4,7 @@ Loaded on demand by [`/spec`](SKILL.md) step 1 when a hit in the target feature 
 nothing recorded. The older PRD stays untouched; additive re-runs do not supersede.
 
 - Growing an existing unit → edit the `ready` issue in place; refresh its `## 上级` extract
-  if the parent PRD lines it cites moved. `done` issues are never edited — a change that
+  if the parent PRD lines it cites moved. `done` issues are never edited. A change that
   invalidates one belongs in [SUPERSEDE.md](SUPERSEDE.md).
 - New sub-behaviour on an existing unit → `detail` issue (`category: detail`, `refines:`
   parent slug).

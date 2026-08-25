@@ -1,6 +1,6 @@
 # Learning Record Format
 
-Learning records live in `./learning-records/` and use sequential numbering: `0001-slug.md`, `0002-slug.md`, etc. Create the directory lazily — only when the first record is written.
+Learning records live in `./learning-records/` and use sequential numbering: `0001-slug.md`, `0002-slug.md`, etc. Create the directory lazily, only when the first record is written.
 
 They are the teaching equivalent of ADRs: they capture non-obvious lessons, key insights, and stated prior knowledge that will steer future sessions. They are used to calculate the zone of proximal development.
 
@@ -12,7 +12,7 @@ They are the teaching equivalent of ADRs: they capture non-obvious lessons, key 
 {1-3 sentences: what was learned (or what prior knowledge was established), and why it matters for future sessions.}
 ```
 
-That is the whole format. A learning record can be a single paragraph. The value is recording _that_ this is now known and _why_ it changes what to teach next — not in filling out sections.
+That is the whole format. A learning record can be a single paragraph. The value is recording _that_ this is now known and _why_ it changes what to teach next, not in filling out sections.
 
 ## Optional sections
 
@@ -39,7 +39,7 @@ Write one when any of these is true:
 
 - Material that was merely covered. Coverage is not learning. Wait for evidence.
 - Anything already captured as a term definition in the workspace's reference docs. Don't duplicate.
-- Session-by-session activity logs. Learning records are not a journal — they are decision-grade insights.
+- Session-by-session activity logs. Learning records are not a journal; they are decision-grade insights.
 
 ## Supersession
 

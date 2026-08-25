@@ -1,6 +1,6 @@
 # Impact Detection — 影响面探测（按需读）
 
-When a change touches **existing** code, the risk isn't slicing — it's what this change reaches and
+When a change touches **existing** code, the risk isn't slicing. It's what this change reaches and
 might break. This is the per-language playbook for that.
 
 **Read this only for the third tier** — `/spec` step 2 gates impact work on a cheap reference
@@ -13,9 +13,9 @@ The slicing skill itself stays stack-agnostic.
 
 **Deterministic tools first, subagent reading last.** The stronger the type system, the more static
 analysis covers; the weaker it is, the more you lean on **runtime** observation (coverage / test
-selectors — what actually ran). Either way a subagent only fills what those tools miss —
-greppable-invisible assumptions — it never replaces them. TypeScript is near-whitebox — the checker
-resolves which `save()` you mean. Python is dynamic — `getattr`, `**kwargs`, DI, registries, and
+selectors — what actually ran). Either way a subagent only fills what those tools miss: greppable-invisible assumptions.
+It never replaces them. TypeScript is near-whitebox: the checker
+resolves which `save()` you mean. Python is dynamic: `getattr`, `**kwargs`, DI, registries, and
 fixtures make callers invisible to static tools, so static results are a lower bound.
 
 Two kinds of impact, very different confidence:
@@ -24,15 +24,15 @@ Two kinds of impact, very different confidence:
   Machine-determinable. Query it, don't let the agent guess.
 - **Semantic / behavioural coupling** — "refund makes the amount negative, but reconciliation
   *assumes* amount ≥ 0." No import edge, ungreppable. Only reading + reasoning finds it. This is
-  exactly what `CODEBASE.md`'s **invariants** are for — persist them so the next run reuses them.
+  exactly what `CODEBASE.md`'s **invariants** are for. Persist them so the next run reuses them.
 
 ## What gets reused on the second run
 
-- **Static reference points** — NOT stored (re-grep each time; cheap and always current). The
+- **Static reference points** — NOT stored. Re-grep each time; it is cheap and always current. The
   `CODEBASE.md` two-axis rule (defined in `/map`).
 - **Semantic invariants (the expensive part)** — persist to the area's `CODEBASE.md` generated
   block (`src/<area>/CLAUDE.md`, auto-injected on read) so the next coupled change in this area
-  skips re-deriving it — but only if the run writes its findings back. Write it; don't pause to offer.
+  skips re-deriving it; but only if the run writes its findings back. Write it; don't pause to offer.
 
 ---
 
@@ -81,7 +81,7 @@ These commands are **stack-specific**, so they belong in the project's `docs/age
 - import 图：TS `madge`，Py `grimp`
 ```
 
-Then any session loads it at startup and knows which commands this repo uses — no skill edit, and
+Then any session loads it at startup and knows which commands this repo uses; no skill edit, and
 skills stay stack-agnostic.
 
 ## Other languages

@@ -5,12 +5,14 @@ additive growth both land here. Issue body and frontmatter: [ISSUE-TEMPLATE.md](
 
 A unit is an issue iff `## 做什么` + ≥1 agent-runnable AC can be written for an agent that sees
 nothing else. AC derive from invariants first, examples second, and run through a named seam's
-interface — vocabulary per `/codebase-design`. Look up facts; do not ask them. Classify each unit:
+interface — vocabulary per `/codebase-design`. Pick the seam external callers enter; prefer
+existing seams to new ones; use the fewest that cover the ACs. Look up facts; do not ask them.
+Classify each unit:
 
 - Writable, and no outstanding question can falsify its AC / `blocked_by` / module boundary →
   **settled**.
 - One missing decision, or two answers yield two AC sets → **open**. Ask that decision only,
-  with a recommended answer — or, when a live PRD exists, bake it as an Implementation Decision.
+  with a recommended answer. When a live PRD exists, bake it as an Implementation Decision instead.
   ADR-worthy — all three in [ADR-FORMAT.md](../domain-modeling/ADR-FORMAT.md) — after this
   turn's writes, next: `/grill`. Do not hold writes the ADR cannot falsify.
 - Question cannot be stated precisely now → **fog**. PRD 尚未明确; no PRD → list at stop.
@@ -22,14 +24,14 @@ interface — vocabulary per `/codebase-design`. Look up facts; do not ask them.
 Write-failures: "depends on X" → `blocked_by`, do not grow the unit. "and also…" → split.
 Two units always done together in the same files → one issue.
 
-Parallel-bound slices declare their write set — `touches:` (dirs) + `test_paths:` (test files,
-from the AC; `--log` slices declare no `test_paths` — log-predicate acceptance). `-p` wave
+Parallel-bound slices declare their write set: `touches:` (dirs) + `test_paths:` (test files,
+from the AC). `--log` slices declare no `test_paths`; their acceptance is a log predicate. `-p` wave
 semantics live with the field: [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md). A UI slice
 splits first: logic and structure become AC (testable); pure visuals go to
-the PRD 端到端验证 — an unsplit UI implementation has no AC.
+the PRD 端到端验证. An unsplit UI implementation has no AC.
 
-Slice order: first card = the smallest correct working core (tracer); later cards grow on it —
-no abstraction for a future the PRD doesn't name.
+Slice order: first card = the smallest correct working core (tracer); later cards grow on it.
+No abstraction for a future the PRD doesn't name.
 
 `status`: `ready` | `done`. Human-only work is never an issue.
 
@@ -41,4 +43,4 @@ reasoning radius — how many modules one must read to trust the change.
 Ask: 粒度 / 依赖有要调的吗？ 这批切片共同建立在哪条假设上？它错了会塌什么？
 Parallel-draft 2–3 breakdowns only when the first cut fails AC verifiability, dependency
 depth, or vertical completeness; otherwise quiz that cut. An unanswered quiz falsifies only
-cards whose AC / `blocked_by` / module boundary it can change — write the rest.
+cards whose AC / `blocked_by` / module boundary it can change. Write the rest.

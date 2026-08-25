@@ -35,14 +35,14 @@ Classify the repo into one of five cases based on what step 1 found, and announc
 
 **Case 2 — Already on cosmos conventions.** `.scratch/<feat>/issues/*.md` files have `Status:` lines (or frontmatter) that already match the 2-state vocabulary in `ARTIFACT-FORMAT.md` (`ready` / `done`). Tell the user setup will refresh `docs/agents/*.md` only, leaving issue files untouched. Legacy `ready-for-human` issues: offer to fold their hands-on checks into the PRD's 端到端验证 and set `ready` (or `done` if the user already did the work). If the issue files still carry only a bare `Status:` line (no YAML frontmatter), also run the **Case 5 frontmatter migration** ([MIGRATION.md](MIGRATION.md)) before proceeding. Otherwise proceed to step 3.
 
-**Case 3 — Old setup detected.** `docs/agents/issue-tracker.md` references `gh` / `glab` CLI, or issue files use deprecated states (`needs-triage`, `needs-info`, `wontfix`, `inbox`, `blocked`, `doing`, `shelved`). Offer to switch to local-markdown + 2-state, or keep the old tracker — full procedure in [MIGRATION.md](MIGRATION.md).
+**Case 3 — Old setup detected.** `docs/agents/issue-tracker.md` references `gh` / `glab` CLI, or issue files use deprecated states (`needs-triage`, `needs-info`, `wontfix`, `inbox`, `blocked`, `doing`, `shelved`). Offer to switch to local-markdown + 2-state, or keep the old tracker. Full procedure in [MIGRATION.md](MIGRATION.md).
 
 **Case 4 — PRD/issue-like files at non-default paths.** Surface the paths found. Offer two options, recommending (i) by default since it is non-destructive:
 
 - (i) **Configure paths in place.** Write the actual paths into `docs/agents/issue-tracker.md` so the skills read/write there. No file moves.
 - (ii) **Adopt new layout.** Help the user move/symlink existing files into `.scratch/<feat>/` structure. Show the planned moves before executing; use `git mv` where possible.
 
-**Case 5 — Frontmatter migration (bare `Status:` lines).** Triggered from Case 2 (or on its own) when `.scratch/` issues use the legacy bare `Status:` line instead of YAML frontmatter, or `issues/archive/` is missing. Idempotent, dry-run-first upgrade to the [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md) contract — full scan → preview → execute procedure in [MIGRATION.md](MIGRATION.md).
+**Case 5 — Frontmatter migration (bare `Status:` lines).** Triggered from Case 2 (or on its own) when `.scratch/` issues use the legacy bare `Status:` line instead of YAML frontmatter, or `issues/archive/` is missing. Idempotent, dry-run-first upgrade to the [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md) contract. Full scan → preview → execute procedure in [MIGRATION.md](MIGRATION.md).
 
 In all cases, present what was found and the proposed migration plan for the user to confirm before any file is changed. Do not silently rewrite existing user content.
 
@@ -70,7 +70,7 @@ Let them edit before writing.
 
 If an `## Agent skills` block already exists in the chosen file, update its contents in-place rather than appending a duplicate. Don't overwrite user edits to the surrounding sections.
 
-The session-start orientation convention (load `CODEBASE.md`/`CONTEXT.md`, scan ADR titles, check drift) is **not** written here — it lives once in the global `CLAUDE.md` template (§6 "Document Layout"), which every session loads. Don't inject a per-repo copy; this block only records the three per-repo choices below.
+The session-start orientation convention (load `CODEBASE.md`/`CONTEXT.md`, scan ADR titles, check drift) is **not** written here. It lives once in the global `CLAUDE.md` template (§6 "Document Layout"), which every session loads. Don't inject a per-repo copy; this block only records the three per-repo choices below.
 
 The block:
 
@@ -95,4 +95,4 @@ from the user's description.
 ### 6. Done
 
 Verify first: `## Agent skills` appears exactly once in the chosen file; `docs/agents/domain.md`
-(and, for a non-default tracker, `issue-tracker.md`) exists non-empty. Then tell the user the setup is complete and which engineering skills will now read from these files. Mention they can edit `docs/agents/*.md` directly later — re-running this skill is only necessary if they want to switch issue trackers or restart from scratch.
+(and, for a non-default tracker, `issue-tracker.md`) exists non-empty. Then tell the user the setup is complete and which engineering skills will now read from these files. Mention they can edit `docs/agents/*.md` directly later. Re-running this skill is only necessary if they want to switch issue trackers or restart from scratch.

@@ -1,23 +1,23 @@
 ---
 name: lint
-description: Audit and fix chain-of-thought leakage — prose whose vantage is the authoring session rather than the repository: dead design citations like (decision N), change narration like "used to/no longer", review vantage ("this PR adds"), reviewer-addressed justification, control-flow transcripts, hedged planning residue. Use when the user asks for a leakage audit or prose trim, before committing doc-heavy changes, or periodically over doc surfaces.
-argument-hint: "Scope (dir/file/glob); empty = ask"
+description: 'Audit and fix chain-of-thought leakage — prose whose vantage is the authoring session rather than the repository: dead design citations like (decision N), change narration like "used to/no longer", review vantage ("this PR adds"), reviewer-addressed justification, control-flow transcripts, hedged planning residue. Use when the user asks for a leakage audit or prose trim, before committing doc-heavy changes, or periodically over doc surfaces.'
+argument-hint: "Scope (dir/file/glob); empty = all modified files"
 disable-model-invocation: true
 ---
 
 # Trim Leakage
 
 Prose whose vantage is the authoring session, not the repository. The fix is never deletion
-alone when a passage carries factual clauses — restate each so it stands at HEAD, then delete
+alone when a passage carries factual clauses. Restate each so it stands at HEAD, then delete
 the transcript around it. A passage carrying none (an audit code, control-flow narration) is
 deleted outright.
 
 ## The one test
 
-Could a reader at HEAD — no session transcript, no PR thread, no uncommitted draft — resolve
-every reference and verify every claim? No → restate the surviving facts from the repository's
+Could a reader at HEAD, with no session transcript, no PR thread, and no uncommitted draft,
+resolve every reference and verify every claim? No → restate the surviving facts from the repository's
 vantage, delete the rest. Yes → not leakage; on current-state surfaces (README, docs, CLAUDE.md)
-a resolvable change story is still change narration — class 3 routes it out.
+a resolvable change story is still change narration; class 3 routes it out.
 
 ## Taxonomy
 
@@ -42,6 +42,24 @@ a resolvable change story is still change narration — class 3 routes it out.
 9. **Dash asides and explanatory parentheticals in rule text** — the conditional clause carries
    the distinction; delete the aside.
 
+## Symbol discipline (rule prose)
+
+Rule sentences that cram criteria, conditions, or justifications into symbols are restated as
+plain sentences, word-for-word in meaning. Targets:
+
+- Parentheticals, round or full-width, carrying two or more clauses of rule content: criteria
+  lists, conditions with their action, justifications with reasoning.
+- Paired em-dash asides inserting a condition or qualifier mid-sentence.
+- A single em-dash joining two independent clauses, or a clause and an imperative.
+
+Fix menu: period for independent clauses; semicolon for tightly bound prescriptions and
+elliptical tails; colon when the right side enumerates or defines; commas for a dash pair that
+only qualifies. Boundary with class 9: class 9 deletes an aside that carries nothing
+load-bearing; this section restates one that carries rule content. Functional symbols stay:
+Term — definition bullets, gating/enumeration/gloss parens of a single clause, mapping arrows,
+the "Loaded on demand … — contents" file-header convention, code fences, and quoted
+calibration or example vocabulary.
+
 ## Not leakage (keep as-is)
 
 - **Issue references** — `#1470`, `TODO(name):` resolve at HEAD; keep on any surface.
@@ -57,18 +75,19 @@ a resolvable change story is still change narration — class 3 routes it out.
 
 ## Workflow
 
-1. **Scope**: explicit dir / file / glob. Never touch `.git/`, recorded fixtures, or generated
-   artifacts — fix their source instead.
+1. **Scope**: explicit dir / file / glob. Empty → all modified files (tracked + untracked, via
+   `git status --porcelain`; no git repo → ask). Never touch `.git/`, recorded fixtures, or
+   generated artifacts. Fix their source instead.
 2. **Audit read-only**: run the [batteries](references/batteries.md), then judge every hit
-   semantically. The batteries are probes, not the definition — also read the densest prose in
-   scope without a pattern in hand.
+   semantically. The batteries are probes, not the definition. Also read the densest prose in
+   scope without a pattern in hand; in rule prose, apply Symbol discipline below.
 3. **Fix**: restate surviving propositions, delete transcripts. Before deleting a passage,
-   enumerate its propositions — actor/action; condition/timing/ordering; modality
+   enumerate its propositions: actor/action; condition/timing/ordering; modality
    (must/may/never); negative guarantee and exception; ownership/failure/consequence. Restore any
    slot the text carried that the code doesn't. A smaller word count alone is not an improvement.
 4. **Overcorrection traps**: flipping an obligation into an endorsement; promoting a hypothetical
-   to a shipped feature; deleting a true fact with the transcript around it (delete clauses, not
-   sentences, when propositions share a line); dropping provenance while keeping the number.
+   to a shipped feature; deleting a true fact with the transcript around it; dropping provenance
+   while keeping the number. When propositions share a line, delete clauses, not sentences.
 5. **Verify**: re-run the batteries expecting only sanctioned keeps; confirm every remaining
    citation resolves at HEAD.
 

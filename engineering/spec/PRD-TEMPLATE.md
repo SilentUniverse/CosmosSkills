@@ -7,7 +7,7 @@ Loaded on demand by [`/spec`](SKILL.md) when the intent warrants a PRD snapshot.
 - New feature → `PRD.md` (version 1, no `supersedes`)
 - Supersede → `PRD-vN.md` (highest + 1) with `supersedes:` pointing at the previous filename,
   plus a one-paragraph `取代理由` block; carry forward the superseded PRD's still-open `尚未明确`
-  items (drop graduated ones — check `SUMMARY.md` and `issues/archive/`)
+  items; drop graduated ones (check `SUMMARY.md` and `issues/archive/`)
 
 <prd-template>
 
@@ -30,7 +30,7 @@ Lead with invariants — what must always be true; the design derives from them.
 doors — public ABI, schema, wire protocol — separately; they get the hardest review.
 
 The modules built/modified, their interfaces, architectural decisions, schema changes, API
-contracts, specific interactions. No file paths or code snippets — exception: a
+contracts, specific interactions. No file paths or code snippets. Exception: a
 prototype-produced snippet (state machine, reducer, schema, type shape) that encodes a decision
 more precisely than prose; note that it came from a prototype.
 
@@ -42,7 +42,7 @@ What makes a good test here, which modules get tested, prior art in the codebase
 
 The runnable procedure demonstrating the whole feature works — commands/steps plus expected
 observable outcome (`（无）` for non-runnable features). Per-slice AC live in issues; the drain
-batch close runs this. **Hands-on checks no agent can run are registered here** — never as issue AC
+batch close runs this. **Hands-on checks no agent can run are registered here**; never as issue AC
 or states. Check list: `/spec` card test.
 
 ## 尚未明确（Fog of War）
@@ -58,7 +58,7 @@ What is explicitly excluded, with a one-line reason each.
 
 </prd-template>
 
-Adversarial self-review before hand-off: name the vaguest 用户场景 and the shakiest 实现决策 —
-tighten them or move them to 尚未明确. Equivalent designs: keep the shorter correctness
-argument. Any decision made for an imagined future — justify it or park it. Done criterion:
+Adversarial self-review before hand-off: name the vaguest 用户场景 and the shakiest 实现决策.
+Tighten them or move them to 尚未明确. Equivalent designs: keep the shorter correctness
+argument. Any decision made for an imagined future: justify it or park it. Done criterion:
 every named item rewritten or parked.

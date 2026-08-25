@@ -13,12 +13,11 @@ ways:
 - **Adopt** — the on-disk work is worth keeping: finish the slice (or verify it), write the
   `### 完成` record, set `status: done`, then `collect <slug>=green`.
 - **Revert** — restore the issue's files against the wave baseline in
-  `.scratch/<feat>/wave-ledger.json` (same rules as wave-fatal recovery; never touch
-  `.scratch/**`), leave `status: ready`, append the note to `## Comments`, then
-  `collect <slug>=aborted`.
+  `.scratch/<feat>/wave-ledger.json`, leave `status: ready`, append the note to `## Comments`, then
+  `collect <slug>=aborted`. Same rules as wave-fatal recovery; never touch `.scratch/**`.
 
 Autonomous mode picks by evidence: tests present and scoped-green → adopt; half-written
-or red → revert. Ambiguous → revert (the slice re-runs cleanly).
+or red → revert. Ambiguous → revert; the slice re-runs cleanly.
 
 ## Prior 完成 block on a ready issue
 
@@ -27,10 +26,10 @@ Pause and ask: "(a) iterate on existing code, or (b) start over?" *(autonomous: 
 
 ## redo / fix issues
 
-The parent slice is named by the `refines:` frontmatter field (fallback: strip the prefix —
-`05-redo-balance-api.md` → `02-balance-api.md`). Read the parent's `### 完成` block and list the
+The parent slice is named by the `refines:` frontmatter field. Fallback: strip the prefix,
+`05-redo-balance-api.md` → `02-balance-api.md`. Read the parent's `### 完成` block and list the
 test files it added. The redo/fix card's own `test_paths:` declares every parent test file it
-will update or delete — the gate checks `### 完成` against it. Show the user:
+will update or delete; the gate checks `### 完成` against it. Show the user:
 
 > "This redoes `02-balance-api.md`. That issue added these tests:
 > - `tests/test_balance_rest.py` (4 cases)

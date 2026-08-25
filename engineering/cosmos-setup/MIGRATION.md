@@ -12,16 +12,16 @@ Trigger: either `docs/agents/issue-tracker.md` references `gh` / `glab` CLI, or 
 use deprecated states (`needs-triage`, `needs-info`, `wontfix`, `inbox`, `blocked`, `doing`,
 `shelved`, `ready-for-human`, `ready-for-agent`). Offer:
 
-- (a) **Switch to local-markdown + 2-state vocabulary.** Rewrite `docs/agents/*.md`. The `ready-for-agent` → `ready` rename is mechanical: `sd 'ready-for-agent' 'ready'` over `.scratch/**/issues/*.md` (show the file list first). Every other deprecated state asks the user one-by-one: promote to `ready` or mark `done` (if commit already exists) / delete. Do not silently rewrite the `Status:` line.
+- (a) **Switch to local-markdown + 2-state vocabulary.** Rewrite `docs/agents/*.md`. The `ready-for-agent` → `ready` rename is mechanical: `sd 'ready-for-agent' 'ready'` over `.scratch/**/issues/*.md`; show the file list first. Every other deprecated state asks the user one-by-one: promote to `ready` or mark `done` (if commit already exists) / delete. Do not silently rewrite the `Status:` line.
 - (b) **Keep the old GitHub/GitLab tracker.** User explicitly chose `Other` in Section A.
 
 ## Case 5 — Frontmatter migration (bare `Status:` lines)
 
 Triggered from Case 2 (or runnable on its own) when `.scratch/` issues use the legacy bare `Status:`
 line instead of YAML frontmatter, or when `issues/archive/` is missing. This upgrades the repo to the
-[ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md) contract. It is **idempotent** (skip any file that
-already has a `---` frontmatter fence) and **dry-run-first** (never touch a file before showing the
-plan).
+[ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md) contract. It is **idempotent**: skip any file that
+already has a `---` frontmatter fence. It is **dry-run-first**: never touch a file before showing the
+plan.
 
 Steps:
 
@@ -42,8 +42,8 @@ Steps:
    确认执行？(y / 逐项挑)
    ```
 
-3. **On confirm, execute.** For each bare-`Status:` file, derive the frontmatter fields from the [issue schema](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd): `type: issue`; `feature` from the directory name; `status` from the old `Status:` line with the legacy mapping (`ready-for-agent` → `ready`; `ready-for-human` → fold its hands-on check into the PRD's 端到端验证 and set `ready`); `category: enhancement` (default — the user can refine later); `blocked_by` parsed from any existing `前置依赖` section if filenames are referenced, else `[]`; `created` from one `git log --diff-filter=A --name-only --format=%as -- <issues dir>` pass (paths→dates; today if unseen by git). Remove the now-redundant bare `Status:` line. Do not touch the body otherwise (surgical — frontmatter only).
+3. **On confirm, execute.** For each bare-`Status:` file, derive the frontmatter fields from the [issue schema](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd): `type: issue`; `feature` from the directory name; `status` from the old `Status:` line with the legacy mapping: `ready-for-agent` → `ready`; `ready-for-human` → fold its hands-on check into the PRD's 端到端验证 and set `ready`. `category: enhancement` by default; the user can refine later. `blocked_by` parsed from any existing `前置依赖` section if filenames are referenced, else `[]`; `created` from one `git log --diff-filter=A --name-only --format=%as -- <issues dir>` pass (paths→dates; today if unseen by git). Remove the now-redundant bare `Status:` line. Do not touch the body otherwise; the change is surgical, frontmatter only.
 4. **Archive done issues** with `git mv` into `issues/archive/`. Skip if the user opted out of archiving during migration.
 5. **Generate** each feature's `.scratch/<feat>/SUMMARY.md` per the format doc.
 
-Report what changed. If `refines` can't be inferred for a non-top-level issue, leave it unset and note it — the orphan check in `/tidy` will surface it later.
+Report what changed. If `refines` can't be inferred for a non-top-level issue, leave it unset and note it. The orphan check in `/tidy` will surface it later.

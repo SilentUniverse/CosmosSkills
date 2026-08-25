@@ -28,7 +28,7 @@ Before/after examples: [PATTERNS.md](PATTERNS.md).
 
 ## Workflow
 
-1. **Gather requirements** - ask user:
+1. **Gather requirements**: ask user:
    - What test files have `as` assertions causing problems?
    - Are they dealing with large objects where only some properties matter?
    - Do they need to pass intentionally wrong data for error testing?
@@ -36,7 +36,7 @@ Before/after examples: [PATTERNS.md](PATTERNS.md).
 2. **Install and migrate**:
    - [ ] Install: `npm i -D @total-typescript/shoehorn`
    - [ ] Find `as` assertions in test files (structural, cross-platform):
-     - **ast-grep (preferred):** `sg -p '$EXPR as $TYPE' -l ts --globs '*.test.ts' --globs '*.spec.ts'` — same scope as the rg fallback. For double-casts: `sg -p '$EXPR as unknown as $TYPE' -l ts --globs '*.test.ts' --globs '*.spec.ts'`.
+     - **ast-grep (preferred):** `sg -p '$EXPR as $TYPE' -l ts --globs '*.test.ts' --globs '*.spec.ts'`. Same scope as the rg fallback. For double-casts: `sg -p '$EXPR as unknown as $TYPE' -l ts --globs '*.test.ts' --globs '*.spec.ts'`.
      - **Fallback (rg):** `rg ' as [A-Z]' -g '*.test.ts' -g '*.spec.ts'`
    - [ ] Replace `as Type` with `fromPartial()`
    - [ ] Replace `as unknown as Type` with `fromAny()`

@@ -17,17 +17,17 @@ passing-test noise, progress bars, ANSI codes. Redirect the verbose output to `.
 pull only what you need into context: the
 pass/fail tally, and the failing cases' messages (e.g. `<cmd> > .scratch/tmp/suite.log 2>&1` then
 grep the failures, or use the runner's quiet/summary reporter). Read the full log only when a
-failure's cause isn't clear from the summary. Same for `git diff` / search dumps — summarise, don't
+failure's cause isn't clear from the summary. Same for `git diff` / search dumps; summarise, don't
 inline the whole thing.
 
 **Run the full suite in a subagent (forks green vs red).** A full suite is slow and its output is
-dense — run it in a subagent so the main session stays free.
-The verbose output stays in the subagent — it does NOT need the `.scratch/tmp/` redirect above (that
+dense. Run it in a subagent so the main session stays free.
+The verbose output stays in the subagent. It does NOT need the `.scratch/tmp/` redirect above (that
 rule is for the main session running a command directly). The subagent keeps what it needs and
 reports back only by outcome:
 - **Green** → one line: pass tally. The main session absorbs nothing else.
 - **Red** → failing case names + a trimmed traceback (not the thousands of raw lines). The main
   session uses that concentrated material to decide: self-diagnose here, or dispatch another subagent.
 
-Scoped (per-cycle) tests stay in-session — they're seconds-long, so the overhead of a subagent
+Scoped (per-cycle) tests stay in-session. They're seconds-long, so the overhead of a subagent
 isn't worth it and failures are easiest to see immediately.

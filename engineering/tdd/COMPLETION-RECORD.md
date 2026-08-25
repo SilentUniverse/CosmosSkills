@@ -9,17 +9,17 @@ Adversarial review is a required artifact, not a step: the `### 完成` block ca
 Revert what doesn't; if something out-of-scope is genuinely required, say why first.
 
 **Sync `test_paths:` before `done`.** A test file this run wrote outside the card's declared
-`test_paths:` is appended to it first — frontmatter field sync only, the body stays immutable
+`test_paths:` is appended to it first. Frontmatter field sync only; the body stays immutable
 once `done`. This rule is the same on every path (single, serial, `-p`) and is what keeps the
 gate green; the wave-level reconciliation in drain only verifies it.
 
 **Murphy before done.** Green only proves the cases you wrote tests for. Cover each chosen
 behavior's failure modes too — null/empty input, boundary values, error paths, and where
 relevant concurrency/timeouts. Occam trims during dev (no speculative features); Murphy expands
-during verification — an untested failure path ships as a bug.
+during verification. An untested failure path ships as a bug.
 
 When all AC pass, set the frontmatter `status:` to `done` and append to `## Comments`. Hands-on
-checks no agent can run are not AC — they live in the PRD's 端到端验证, registered by `/spec`.
+checks no agent can run are not AC. They live in the PRD's 端到端验证, registered by `/spec`.
 
 ```markdown
 ### 完成 — YYYY-MM-DD
@@ -41,8 +41,8 @@ Submit workflow named in `CLAUDE.md`.
 The gate enforces this record mechanically: `done` without a `### 完成` block fails; every test
 file the block names must exist on disk.
 
-The issue file itself stays in `issues/` — `/tidy` moves it to `issues/archive/` later, not `/tdd`.
+The issue file itself stays in `issues/`. `/tidy` moves it to `issues/archive/` later, not `/tdd`.
 
 If the run is aborted (test framework broken, environment unfixable), revert `status:` to its
-original value and append a brief failure note to `## Comments` — the note names the specific
+original value and append a brief failure note to `## Comments`. The note names the specific
 blocker (exact command + error + what's missing) and any facts already confirmed before the abort.

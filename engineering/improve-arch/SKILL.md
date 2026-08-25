@@ -10,7 +10,7 @@ Surface architectural friction and propose **deepening opportunities** — refac
 
 This skill is _informed_ by the project's domain model and built on a shared design vocabulary:
 
-- Run the `/codebase-design` skill for the architecture vocabulary (**module**, **interface**, **depth**, **seam**, **adapter**, **leverage**, **locality**) and its principles (the deletion test, "the interface is the test surface", "one adapter = hypothetical seam, two = real"). Use these terms exactly in every suggestion — don't drift into "component," "service," "API," or "boundary."
+- Run the `/codebase-design` skill for the architecture vocabulary (**module**, **interface**, **depth**, **seam**, **adapter**, **leverage**, **locality**) and its principles (the deletion test, "the interface is the test surface", "one adapter = hypothetical seam, two = real"). Use these terms exactly in every suggestion. Don't drift into "component," "service," "API," or "boundary."
 - The domain language in `CONTEXT.md` gives names to good seams; ADRs in `docs/adr/` record decisions this skill should not re-litigate.
 
 ## Process
@@ -19,12 +19,12 @@ This skill is _informed_ by the project's domain model and built on a shared des
 
 **Scope before you scan — YAGNI.** Weight the parts that have recently changed. Decide where to look before looking:
 
-- If the user named a direction (a module, subsystem, pain point), take it — skip the inference below.
-- Otherwise, walk back a stretch of `git log --oneline` for the hot spots — the files/areas that keep recurring — and let those pull your attention first. If changes are scattered with no clear hot spot, widen the net.
+- If the user named a direction (a module, subsystem, pain point), take it. Skip the inference below.
+- Otherwise, walk back a stretch of `git log --oneline` for the hot spots, the files/areas that keep recurring, and let those pull your attention first. If changes are scattered with no clear hot spot, widen the net.
 
 Read the project's domain glossary and any ADRs in the area you're touching first.
 
-Then use the Agent tool with `subagent_type=Explore` to walk the codebase. Don't follow rigid heuristics — explore organically and note where you experience friction:
+Then use the Agent tool with `subagent_type=Explore` to walk the codebase. Don't follow rigid heuristics. Explore organically and note where you experience friction:
 
 - Where does understanding one concept require bouncing between many small modules?
 - Where are modules **shallow** — interface nearly as complex as the implementation?
@@ -35,29 +35,29 @@ Then use the Agent tool with `subagent_type=Explore` to walk the codebase. Don't
 
 Apply the **deletion test** to anything you suspect is shallow: would deleting it concentrate complexity, or just move it? A "yes, concentrates" is the signal you want. Frame every candidate with the architectural trio: Parsimony — what can be removed; Locality — shrink the reasoning radius; Evolution — grow from the smallest working core.
 
-**Deletion evidence — classify consumers before proposing** (`rg` first; tools don't replace
-reading call sites):
+**Deletion evidence — classify consumers before proposing.** `rg` first; tools don't replace
+reading call sites:
 
 - production callers → it's a feature decision, not cleanup
 - only tests/docs consume it, and the behavior they pin is not load-bearing → deletion candidate
 - ambiguous → read the usage first
 
 A correct-but-tiny idea becomes an inline TODO with a stable, rg-able tag (`TODO(unused-default)`), not an issue.
-Keep surveying after the first good candidate. Weigh net deletion — implementation plus dedicated
-tests plus docs, minus the glue that remains; a wrapper that relocates the same complexity is not
+Keep surveying after the first good candidate. Weigh net deletion: implementation plus dedicated
+tests plus docs, minus the glue that remains. A wrapper that relocates the same complexity is not
 a win.
 
 ### 2. Present candidates as an HTML report
 
-Write a self-contained HTML file to the OS temp directory so nothing lands in the repo. On Windows resolve the temp dir from `$env:TEMP`; on Unix use `$TMPDIR` falling back to `/tmp`. Write to `<tmpdir>/architecture-review-<timestamp>.html` so each run gets a fresh file. Open it for the user — on Windows run `explorer.exe <path>`, on Linux `xdg-open <path>`, on macOS `open <path>` — and tell them the absolute path.
+Write a self-contained HTML file to the OS temp directory so nothing lands in the repo. On Windows resolve the temp dir from `$env:TEMP`; on Unix use `$TMPDIR` falling back to `/tmp`. Write to `<tmpdir>/architecture-review-<timestamp>.html` so each run gets a fresh file. Open it for the user and tell them the absolute path: `explorer.exe <path>` on Windows, `xdg-open <path>` on Linux, `open <path>` on macOS.
 
-The report uses **Tailwind via CDN** for layout and styling, and **Mermaid via CDN** for diagrams where a graph/flow/sequence reliably communicates the structure. (Both CDNs need network access; if the user is fully offline, fall back to a plain-markdown report instead.) Each candidate gets a **before/after visualisation**. Be visual.
+The report uses **Tailwind via CDN** for layout and styling, and **Mermaid via CDN** for diagrams where a graph/flow/sequence reliably communicates the structure. Both CDNs need network access. If the user is fully offline, fall back to a plain-markdown report instead. Each candidate gets a **before/after visualisation**. Be visual.
 
 For each candidate, render the card defined in [HTML-REPORT.md](./HTML-REPORT.md): files, problem, solution, wins, before/after diagram, recommendation strength.
 
 End the report with a **Top recommendation** section: which candidate you'd tackle first and why.
 
-**Use CONTEXT.md vocabulary for the domain, and the `/codebase-design` vocabulary for the architecture.** If `CONTEXT.md` defines "Order," talk about "the Order intake module" — not "the FooBarHandler," and not "the Order service."
+**Use CONTEXT.md vocabulary for the domain, and the `/codebase-design` vocabulary for the architecture.** If `CONTEXT.md` defines "Order," talk about "the Order intake module", not "the FooBarHandler", and not "the Order service".
 
 **ADR conflicts**: if a candidate contradicts an existing ADR, only surface it when the friction is real enough to warrant revisiting the ADR. Mark it clearly in the card (e.g. a warning callout: _"contradicts ADR-0007 — but worth reopening because…"_). Don't list every theoretical refactor an ADR forbids.
 
@@ -67,18 +67,18 @@ Do NOT propose interfaces yet. After the file is written, ask the user: "Which o
 
 ### 3. Grilling loop
 
-Once the user picks a candidate, run the `/grilling` skill to walk the decision tree with them — constraints, dependencies, the shape of the deepened module, what sits behind the seam, what tests survive.
+Once the user picks a candidate, run the `/grilling` skill to walk the decision tree with them: constraints, dependencies, the shape of the deepened module, what sits behind the seam, what tests survive.
 
-Side effects happen inline as decisions crystallize — run the `/domain-modeling` skill to keep the domain model current as you go:
+Side effects happen inline as decisions crystallize. Run the `/domain-modeling` skill to keep the domain model current as you go:
 
 - **Naming a deepened module after a concept not in `CONTEXT.md`?** Add the term to `CONTEXT.md`. Create the file lazily if it doesn't exist.
 - **Sharpening a fuzzy term during the conversation?** Update `CONTEXT.md` right there.
-- **User rejects the candidate with a load-bearing reason?** Offer the ADR: _"Record this as an ADR so future architecture reviews don't re-suggest it?"_ Only when the reason would actually be needed by a future explorer to avoid re-suggesting the same thing — skip ephemeral reasons ("not worth it right now") and self-evident ones.
+- **User rejects the candidate with a load-bearing reason?** Offer the ADR: _"Record this as an ADR so future architecture reviews don't re-suggest it?"_ Only when the reason would actually be needed by a future explorer to avoid re-suggesting the same thing. Skip ephemeral reasons ("not worth it right now") and self-evident ones.
 - **Want to explore alternative interfaces for the deepened module?** Run the `/codebase-design` skill and use its design-it-twice parallel sub-agent pattern.
 
 ### 4. Refresh the structural map
 
-A deepening that lands changes the structure `CODEBASE.md` describes — so by definition it goes
+A deepening that lands changes the structure `CODEBASE.md` describes. By definition it goes
 stale. On wrap-up, if a refactor was actually applied (not just discussed), offer to refresh the
 affected `CODEBASE.md` blocks via `/map`: _"This changed the shape of <module> — want me to
 refresh its CODEBASE.md block so the next session sees the new structure?"_ Only the blocks you

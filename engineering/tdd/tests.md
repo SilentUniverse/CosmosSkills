@@ -6,12 +6,12 @@ Loaded on demand by `/tdd` when writing tests.
 
 Identify the project's test convention from `docs/agents/domain.md`. If absent, infer from
 project config files (`pytest.ini` / `pyproject.toml`, `package.json` test script,
-`build.gradle` `testOptions`) and ask the user to confirm — then suggest writing it into
+`build.gradle` `testOptions`) and ask the user to confirm. Then suggest writing it into
 `domain.md` so future runs skip this step. *(autonomous mode: adopt the inferred convention,
 note it in `### 完成`)*
 
 For each AC in the issue, find existing coverage. Drain `-p`: the brief carries the
-**tests-so-far manifest** — check AC against it, scan the filesystem only for what it can't
+**tests-so-far manifest**. Check AC against it; scan the filesystem only for what it can't
 show. Serial drain: earlier issues' `### 完成` blocks are already in context. Interactive: scan
 directly. Report covered vs uncovered briefly; record covered ACs in the `### 完成` block's
 跳过的 AC field.
@@ -86,7 +86,7 @@ test("createUser makes user retrievable", async () => {
 });
 ```
 
-**Tautological tests**: the assertion recomputes the expected value the same way the code does, so it passes by construction and can never disagree with the code — zero confidence. Distinct from the implementation-coupling smell above. Expected values must come from an *independent* source of truth: a known-good literal, a worked example, or the spec.
+**Tautological tests**: the assertion recomputes the expected value the same way the code does, so it passes by construction and can never disagree with the code. Zero confidence. Distinct from the implementation-coupling smell above. Expected values must come from an *independent* source of truth: a known-good literal, a worked example, or the spec.
 
 ```typescript
 // BAD: asserts the code against itself
