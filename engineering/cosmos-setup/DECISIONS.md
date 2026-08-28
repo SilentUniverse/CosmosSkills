@@ -19,7 +19,9 @@ Default and recommended: **local markdown**. Pick this unless the user specifica
 
 The two canonical states:
 
-- `ready` — fully specified, fire-and-forget OK (dispatch to a subagent)
+- `ready` — fully specified and aligned, with every AC mapped to agent-runnable evidence and every
+  verifier harness prepared and preflighted by SPEC;
+  fire-and-forget OK (dispatch to a subagent)
 - `done` — completed; **immutable**. Git has the commit; revisions are new issues
 
 Hands-on checks no agent can run live in the PRD's 端到端验证; never as a state or issue AC (schema: `ARTIFACT-FORMAT.md`; check list: `/spec` card test).

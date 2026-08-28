@@ -1,30 +1,45 @@
-# spec — Write / ask turn loop
+# spec — discover / align / write loop
 
-Loaded on demand by [`/spec`](SKILL.md) on every turn that writes or asks.
+Loaded on demand by [`/spec`](SKILL.md) on every turn that asks, aligns, or writes.
 
 In order:
 
-1. Ask every remaining open question that is not ADR-worthy. Decision questions go inline;
-   external-fact questions fan out instead: one background `/research` subagent each, same
-   turn, cap 3. An unanswered one counts as 待决 until it lands.
-2. Write every settled card that no outstanding question (open, or unanswered grain quiz) can
-   falsify. `status: ready`. Dependency order. Frontmatter carries `touches:` + `test_paths:`
-   per [CARD-TEST.md](CARD-TEST.md). SUPERSEDE path: writes happen only after the
-   对账报告 is confirmed ([SUPERSEDE.md](SUPERSEDE.md)).
-3. Machine gate, whole-tree: `python ~/.claude/skills/verify-artifacts.py` (in a repo checkout:
+1. **Discover.** Ask every remaining decision question that can change the goal, interface,
+   verification, slice boundary, dependency, or execution environment. Ask them together when
+   independent. External facts fan out instead: one background `/research` subagent each, same
+   turn, cap 3. Facts still in flight are 待决. Classify provisional units with
+   [CARD-TEST.md](CARD-TEST.md), but write no PRD or issue yet.
+2. **Prove readiness.** For every proposed verifier harness, inspect project config and the cached
+   adapters in `docs/agents/domain.md`; prepare a durable environment with repo-declared setup, then
+   actually run the representative P# preflight from
+   [VERIFICATION-DESIGN.md](VERIFICATION-DESIGN.md). Record cwd, prerequisites, observed result,
+   evidence, date, and environment fingerprint. A missing tool/service/fixture/access or a setup
+   that needs a new decision remains 待决; no behavior card becomes `ready`. SPEC does not implement
+   product behavior, but it owns this setup and preflight. Keep secret values out of artifacts.
+3. **Align.** Once the decision frontier is empty and every P# passed, present the complete
+   [DESIGN-RECEIPT.md](DESIGN-RECEIPT.md): goal replay, boundaries, design, verification contract,
+   passed readiness register, and proposed slice DAG. Stop for correction. Every correction
+   regenerates the whole compact receipt; repeat until the user explicitly says it is aligned.
+   Silence and the agent's own confidence are not approval. SUPERSEDE combines this receipt with
+   its 对账报告 so the user sees one gate, not two.
+4. **Write.** Persist only the aligned design: PRD first when warranted, then every issue in
+   dependency order with `status: ready`. Frontmatter carries `touches:` + `test_paths:` per
+   [CARD-TEST.md](CARD-TEST.md). No draft artifact or extra status is created. SUPERSEDE writes
+   only after the combined receipt/对账 is aligned ([SUPERSEDE.md](SUPERSEDE.md)).
+5. **Gate.** Whole-tree: `python ~/.claude/skills/verify-artifacts.py` (in a repo checkout:
    `engineering/verify-artifacts.py`), run with the target repo root as cwd. `python3` only if
    `python` is missing; never retry python3 after a non-zero gate exit.
-4. Cold-read + audit — only on the finishing turn (待决 empty). Re-read each card written
-   this run as a fresh agent that sees nothing else: an AC that cannot run, a 做什么/AC
-   mismatch, or a hidden dependency → fix now or demote to open. PRD written this run or
+6. **Cold executor audit.** Re-read each card written this run as a fresh agent that sees nothing
+   else. Replay each recorded P# without setup; an environment drift, an AC that cannot run, a
+   做什么/AC mismatch, or a hidden dependency → fix now or demote to open. PRD written this run or
    ≥5 cards written → invoke `/atk` scoped to this run's artifacts; findings that falsify
    a card → 待决, the rest fix now and note in 已落盘.
-5. Print: 已落盘（paths or （无））；待决（unanswered: open questions + quiz, if any）；
-   尚未明确（fog, if any）；评审块（PRD written this run only）: 测试决策 seams + 不在本次
-   范围内 + AC titles, ≤6 lines；
+7. **Report.** Print: 已落盘（paths or （无））；待决（unanswered questions, if any）；
+   尚未明确（fog, if any）；对齐摘要（goal + P# readiness + verification evidence + slice titles, ≤8 lines）；
    下一句：omit if 待决 is non-empty; else `/grill` if an
    ADR-worthy open remains; else `/clear` then `/tdd <path>`, first `ready` issue this
    run; omit if none ready.
 
-Outstanding questions → wait. After an answer, resume classification on unwritten units.
-Nothing outstanding → stop.
+An audit finding that changes the aligned goal, public seam, verification/readiness contract, or
+slice DAG invalidates alignment: return to step 3. Local wording fixes do not. Nothing outstanding
+→ stop.

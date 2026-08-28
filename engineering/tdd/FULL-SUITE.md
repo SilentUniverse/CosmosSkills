@@ -29,5 +29,9 @@ reports back only by outcome:
 - **Red** → failing case names + a trimmed traceback (not the thousands of raw lines). The main
   session uses that concentrated material to decide: self-diagnose here, or dispatch another subagent.
 
+Both outcomes name the exact command. Green is `command + exit + tally`; red is
+`command + exit + failing cases`. Keep any trace/log path needed for a human replay in the close
+report. The subagent's prose verdict alone is not evidence.
+
 Scoped (per-cycle) tests stay in-session. They're seconds-long, so the overhead of a subagent
 isn't worth it and failures are easiest to see immediately.

@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "id": "spec-verifier-preflight",
+  "title": "SPEC proves verifier environment readiness before dispatch",
+  "layer": "L2",
+  "skills": ["spec", "tdd"],
+  "origin": {
+    "kind": "regression",
+    "reference": "User workflow review 2026-08-28: execution discovered missing verifier setup after a card was ready"
+  },
+  "task": {
+    "prompt": "Plan a behavior change whose acceptance uses the repository test runner and a local service. Make the card dispatchable only after the verifier route and environment are proven, then hand it to a cold executor.",
+    "fixture": "isolated repo with a declared bootstrap command, existing smoke test, local service health probe, and install-command trace guard",
+    "user_script": [
+      {
+        "after": "the first complete design receipt",
+        "content": "先不要写 ready 卡。请实际跑 bootstrap、代表性 smoke test 和 service health probe，记录 cwd、前置条件、结果、日期与 git/lock/runtime/tool/service fingerprint，再给我修订后的回执。"
+      },
+      {
+        "after": "the revised receipt contains passed preflights and the cold-executor replay design",
+        "content": "对齐。现在可以按这份验证契约和切片写工件。"
+      }
+    ]
+  },
+  "budgets": {
+    "wall_time_ms": 600000,
+    "total_tokens": 60000,
+    "tool_calls": 120
+  },
+  "hard_limits": {
+    "scope_leakage_count": 0
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "criterion": "Before any ready issue write, SPEC executes each representative P# preflight and records cwd, prerequisites, durable setup, passed observation/evidence/date, and git/lock/runtime/tool/service fingerprint.",
+      "grader_ids": ["preflight-trace", "artifact-gate"]
+    },
+    {
+      "id": "R2",
+      "criterion": "Every AC evidence mapping references a declared passed P# that covers its verifier harness.",
+      "grader_ids": ["artifact-gate"]
+    },
+    {
+      "id": "R3",
+      "criterion": "The cold executor replays P# before editing and performs no install, upgrade, undeclared service start, or verifier substitution.",
+      "grader_ids": ["executor-trace"]
+    }
+  ],
+  "graders": [
+    {
+      "id": "preflight-trace",
+      "kind": "deterministic",
+      "procedure": "Assert setup/preflight tool events and passed observations precede both explicit alignment and the first ready artifact write."
+    },
+    {
+      "id": "artifact-gate",
+      "kind": "deterministic",
+      "procedure": "Run verify-artifacts.py and require the strengthened v2 readiness contract to pass."
+    },
+    {
+      "id": "executor-trace",
+      "kind": "deterministic",
+      "procedure": "Assert the executor replays every referenced P# before its first write and that no package-install, environment-setup, undeclared service-start, or alternate-verifier event occurs."
+    }
+  ]
+}

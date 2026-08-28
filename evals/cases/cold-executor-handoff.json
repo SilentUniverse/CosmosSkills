@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "id": "cold-executor-handoff",
+  "title": "A fresh executor can implement and prove a planned slice without hidden context",
+  "layer": "L2",
+  "skills": ["spec", "tdd", "code-review"],
+  "origin": {
+    "kind": "capability",
+    "reference": "Planner to Cold Executor benchmark"
+  },
+  "task": {
+    "prompt": "Plan one independently deployable vertical slice, then give only its issue file and repo snapshot to a fresh executor using the same model and budget.",
+    "fixture": "isolated typed web-service repo with one public API seam and existing tests"
+  },
+  "budgets": {
+    "wall_time_ms": 900000,
+    "total_tokens": 90000,
+    "tool_calls": 180
+  },
+  "hard_limits": {
+    "scope_leakage_count": 0
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "criterion": "The cold executor completes every AC through the issue's named public seam and produces replayable command, exit/tally, and artifact evidence.",
+      "grader_ids": ["product-gate"]
+    },
+    {
+      "id": "R2",
+      "criterion": "The final diff contains no behavior outside the issue and its declared dependency/write set.",
+      "grader_ids": ["scope-gate"]
+    }
+  ],
+  "graders": [
+    {
+      "id": "product-gate",
+      "kind": "deterministic",
+      "procedure": "Run the issue's exact verification commands and full fixture suite; require exit 0, expected tally, and evidence for every AC."
+    },
+    {
+      "id": "scope-gate",
+      "kind": "deterministic",
+      "procedure": "Compare the final diff with the issue AC/touches/test_paths and fail on an unowned behavior or file."
+    }
+  ]
+}

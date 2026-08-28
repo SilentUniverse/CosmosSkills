@@ -20,12 +20,16 @@ during verification. An untested failure path ships as a bug.
 
 When all AC pass, set the frontmatter `status:` to `done` and append to `## Comments`. Hands-on
 checks no agent can run are not AC. They live in the PRD's 端到端验证, registered by `/spec`.
+An exact replay command/action plus its observation is the proof; “tests pass” or “implemented”
+without that tuple is self-report, not evidence.
 
 ```markdown
 ### 完成 — YYYY-MM-DD
 
 - 新增测试：<list of test files + case counts; `--log`: command + log path + `rg` predicate>
-- 验收：#N → <test path::case or log predicate>（每条 AC 一行）
+- 预检重放：P1[, P2] → fingerprint <match|drift>，<exact replay action + observed exit/assertion>
+- 验证命令：`<exact replay command>` → exit <code>，<pass/fail tally>；证据：<log/trace/screenshot path or `无（test assertion）`>
+- 验收：#N → <test path::case / CLI predicate / browser-device action>；观测：<expected observable result>（每条 AC 一行）
 - 跳过的 AC：#X 由 <existing test path::case> 已覆盖（本轮重跑绿）
 - 审查：≥2 条质疑，每条 质疑点→证据→处置。至少一条是 diff hunk → AC 或已回滚。禁止只用「查了什么」凑数。
 - 备注：<the pre-issue statement from autonomous runs + anything notable>
@@ -38,8 +42,9 @@ reading. In drain, one line per issue; the batch-level explanation is the drain 
 Standalone `/tdd` does **not** submit. It stops at validated changes + completion records. Use the
 Submit workflow named in `CLAUDE.md`.
 
-The gate enforces this record mechanically: `done` without a `### 完成` block fails; every test
-file the block names must exist on disk.
+The gate enforces the legacy-safe core mechanically: `done` without a `### 完成` block fails;
+every test file the block names must exist on disk. Contract v2 records also carry `预检重放` and
+`验证命令`; behavior evals verify their trajectory semantics.
 
 The issue file itself stays in `issues/`. `/tidy` moves it to `issues/archive/` later, not `/tdd`.
 

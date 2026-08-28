@@ -161,6 +161,8 @@ copy_file "$ROOT/engineering/ARTIFACT-FORMAT.md" "$TARGET/ARTIFACT-FORMAT.md" "C
 for gate in verify-artifacts.py; do
   copy_file "$ROOT/engineering/$gate" "$TARGET/$gate" "Gate: $gate"
 done
+copy_file "$ROOT/scripts/eval.py" "$TARGET/eval.py" "Eval: eval.py"
+copy_file "$ROOT/scripts/eval_campaign.py" "$TARGET/eval_campaign.py" "Eval: eval_campaign.py"
 
 # Prune pre-Python gate corpses (the gate was once .ps1/.sh; stale copies read as "old").
 for stale in verify-artifacts.ps1 verify-artifacts.sh; do

@@ -129,6 +129,7 @@ Rules:
 
 ```markdown
 ---
+contract_version: 2           # verification + SPEC preflight contract; omitted = legacy v1
 type: issue
 feature: balance
 status: ready       # ready | done
@@ -141,11 +142,17 @@ created: 2026-06-18           # ISO date
 ## 上级（Parent）
 ## 做什么（What to build）
 ## 验收标准（Acceptance Criteria）
+## 验证设计（Verification Design）
 ## Comments
 ```
 
 Field rules:
 
+- **contract_version** — new issues use `2`. Version 2 makes `验证设计`, the execution-readiness
+  fields, passed P# preflights, and every AC→evidence→P# mapping machine-required; a v2 `done`
+  record also requires `预检重放` and `验证命令`. Omitted means legacy v1 so upgrades do not break old projects.
+  `/spec` upgrades a legacy `ready` issue it edits only after actually running and recording the
+  preflights; it never upgrades immutable `done` issues in place.
 - **type** — always `issue`.
 - **feature** — the `<feat>` slug; must equal the parent directory name. Lets the consuming
   skills group issues without parsing paths.
@@ -169,8 +176,8 @@ Field rules:
 - **touches** — top-level dirs/modules this slice is expected to edit, at directory granularity.
   One exception: repo-root shared surfaces a slice edits (workspace manifest, any
   root config file) are declared verbatim as file paths. `/tdd -p` serializes on any overlap.
-  A lockfile is never declared: it regenerates from the package manifests on disk, and the
-  wave close regenerates it once (`tdd/DRAIN.md` step 3). Written by `/spec` from its impact
+  A lockfile is never declared: SPEC prepares it before dispatch and fingerprints it; drift during
+  a behavior wave is fatal rather than repaired by an install (`tdd/DRAIN.md` step 3). Written by `/spec` from its impact
   probe; `/tdd -p` groups waves by overlap. Optional.
 - **test_paths** — test files this slice will create or modify, repo-relative with `/` separators.
   Declared by `/spec` from the AC. This field owns the `-p` wave semantics: wave eligibility
@@ -182,7 +189,25 @@ Field rules:
   `### 完成` 新增测试 file against it. Optional.
 - **created** — ISO date, set once at creation, never changed.
 
-The body keeps the section headings from `/spec`'s issue template. The completion record still
+The body keeps the section headings from `/spec`'s issue template. `验证设计` maps every AC to an
+agent-runnable seam, expected evidence, and at least one passed P# preflight. It includes:
+
+```markdown
+- 接缝：<public seam>
+- 工作目录：`<repo-relative cwd>`
+- 环境指纹：`git=<sha|no-vcs>; lock=<hash|none>; runtime=<versions>; tools=<versions>; services=<states>`
+- 前置条件：`fixtures=<state>; services=<state>; permissions=<state>; network=<mode>`
+- 准备动作：`<repo-declared setup already run by SPEC, with result, or 无（已就绪）>`
+- P1 预检：`<representative action>` → passed；observed=<exit/assertion>；evidence=<path|inline>；checked=<YYYY-MM-DD>
+- #1 → `<final verifier>`；预检：P1；预期证据：<assertion + exit/tally/artifact>
+```
+
+Each P# is a representative harness action SPEC actually ran, not a future RED test. `准备动作`
+is either explicit `无` or contains the executed setup's `result=`. P# lines use
+unique positive integers, contain a backticked action, literal `passed`, `observed=`, `evidence=`,
+and ISO `checked=` date. Every AC mapping references only declared P# IDs. `工作目录`, all fingerprint
+keys (`git/lock/runtime/tools/services`), and all prerequisite keys
+(`fixtures/services/permissions/network`) are required. The completion record still
 appends to `## Comments`. Schema + template: `tdd/COMPLETION-RECORD.md`; frontmatter `status` and
 the `### 完成` block move together.
 

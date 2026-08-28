@@ -8,7 +8,6 @@ disable-model-invocation: true
 
 Editing or verifying an existing skill: the rules below are the resident discipline. Creating one
 from scratch: [NEW-SKILL.md](NEW-SKILL.md). It covers requirements, structure, template, scripts.
-
 ## Description Requirements
 
 The description is **the only thing your agent sees** when deciding which skill to load. It's surfaced in the system prompt alongside all other installed skills.
@@ -83,8 +82,10 @@ After drafting, verify:
 - [ ] Concrete examples included
 - [ ] References one level deep
 
-After **editing an existing skill**, add the acceptance pass: the checklist above checks
-structure; these attack content and vantage:
+After **editing an existing skill**, always run deterministic L0 checks. Behavior eval stays off
+unless the user explicitly invokes `/eval`; when open, use [EVALS.md](EVALS.md). Before claiming a
+behavior improvement or sending that claim upstream, recommend `/eval full`. Then run the structural
+acceptance pass; the checklist above checks structure, these attack content and vantage:
 
 - `/atk <skill file>` — 承重与链路（its Method, both directions）
 - `/lint <skill file>` — 视角（its one test）

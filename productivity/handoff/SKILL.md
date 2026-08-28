@@ -46,6 +46,10 @@ date: 2026-06-18
 
 Reference content already captured elsewhere (PRDs, plans, ADRs, issues, commits, diffs) by path or URL; do not copy the body.
 
+One exception: `/spec` awaiting alignment has deliberately written no PRD/issues. Preserve the
+latest full Design Receipt in §4 and mark `awaiting alignment`; the approved artifact replaces it
+on resume. This is recoverable staging, not a new durable state.
+
 ## Redact
 
 Remove any sensitive information: API keys, passwords, tokens, PII.

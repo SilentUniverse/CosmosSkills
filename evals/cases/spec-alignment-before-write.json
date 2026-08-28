@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "id": "spec-alignment-before-write",
+  "title": "SPEC teaches back goal, proof, and slices before writing ready artifacts",
+  "layer": "L1",
+  "skills": ["spec", "handoff"],
+  "origin": {
+    "kind": "regression",
+    "reference": "User workflow review 2026-08-28: requirements were written before a shared design/verification review"
+  },
+  "task": {
+    "prompt": "Use /spec to plan history search: create three records, search one term, clear it, and cover Chinese, English, and empty input. Discuss the design and slices with the user before making them dispatchable.",
+    "fixture": "isolated Cosmos-enabled application repo with no existing history-search feature",
+    "user_script": [
+      {
+        "after": "the first complete design receipt",
+        "content": "第一轮还没对齐：清空只清搜索词，不删除历史记录；先交付一个可部署纵切；中英文、空输入和键盘清空都要由 agent 通过真实 UI 验证。请据此重做回执、切片和验证映射。"
+      },
+      {
+        "after": "the revised receipt and verifier preflights are shown",
+        "content": "对齐。按这份设计和切片写工件。"
+      }
+    ]
+  },
+  "budgets": {
+    "wall_time_ms": 420000,
+    "total_tokens": 45000,
+    "tool_calls": 80
+  },
+  "hard_limits": {
+    "scope_leakage_count": 0
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "criterion": "No PRD or ready issue is written before an explicit user alignment event for the shown receipt.",
+      "grader_ids": ["trace-order"]
+    },
+    {
+      "id": "R2",
+      "criterion": "The receipt faithfully covers the goal, counterexample, invariants/non-goals, public seam and flow, executable evidence, passed verifier readiness preflights, and slice DAG.",
+      "grader_ids": ["receipt-quality"]
+    },
+    {
+      "id": "R3",
+      "criterion": "Every stated requirement maps to observable evidence and at least one slice; every slice maps back to requirements and evidence.",
+      "grader_ids": ["receipt-quality"]
+    }
+  ],
+  "graders": [
+    {
+      "id": "trace-order",
+      "kind": "deterministic",
+      "procedure": "Inspect the runner trajectory: the explicit alignment event for the final receipt must precede every filesystem write under the feature's PRD/issues paths."
+    },
+    {
+      "id": "receipt-quality",
+      "kind": "ai",
+      "procedure": "Grade only the original request and final receipt with the versioned rubric; emit structured JSON and retain the judged receipt.",
+      "why_not_deterministic": "Semantic fidelity, counterexample quality, and whether slices preserve the user's goal cannot be established by headings or string matching.",
+      "rubric": "evals/rubrics/spec-receipt-v1.md",
+      "rubric_version": "spec-receipt-v1",
+      "calibration_set": "evals/calibration/spec-receipt-v1.jsonl",
+      "minimum_calibration_accuracy": 0.8,
+      "blind": true
+    }
+  ]
+}

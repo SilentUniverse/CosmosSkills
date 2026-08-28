@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "id": "routing-requirement-to-spec",
+  "title": "A bare changed requirement routes to SPEC instead of implementation",
+  "layer": "L1",
+  "skills": ["spec", "tdd"],
+  "origin": {
+    "kind": "routing",
+    "reference": "Cosmos workflow contract: natural-language requirements are planned before /tdd"
+  },
+  "task": {
+    "prompt": "Change refunds so a customer can partially refund one line item.",
+    "fixture": "isolated repo with Cosmos skills and an existing completed refund feature"
+  },
+  "budgets": {
+    "wall_time_ms": 180000,
+    "total_tokens": 18000,
+    "tool_calls": 35
+  },
+  "hard_limits": {
+    "scope_leakage_count": 0
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "criterion": "The trajectory invokes/specifies the spec workflow and does not edit production code or run /tdd.",
+      "grader_ids": ["route-trace"]
+    },
+    {
+      "id": "R2",
+      "criterion": "The planner locates the existing feature and classifies additive versus superseding intent before proposing writes.",
+      "grader_ids": ["route-trace"]
+    }
+  ],
+  "graders": [
+    {
+      "id": "route-trace",
+      "kind": "deterministic",
+      "procedure": "Assert the trace loaded /spec, inspected existing PRD/issues, emitted no production-code write, and recorded additive/supersede classification."
+    }
+  ]
+}

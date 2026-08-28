@@ -35,6 +35,19 @@ FEN_QU = "\u5206\u533a"  # roster heading word 分区
 DONE_HEAD = re.compile(r"^#{2,3}\s*\u5b8c\u6210(?:[^\w]|$)")  # ### 完成 + non-word delimiter or EOL
 XINZENG = "\u65b0\u589e\u6d4b\u8bd5"  # 新增测试
 YANSHOU = "\u9a8c\u6536"  # 验收
+YANZHENG_SHEJI = "\u9a8c\u8bc1\u8bbe\u8ba1"  # 验证设计
+YANZHENG_MINGLING = "\u9a8c\u8bc1\u547d\u4ee4"  # 验证命令
+JIEFENG = "\u63a5\u7f1d"  # 接缝
+GONGZUO_MULU = "\u5de5\u4f5c\u76ee\u5f55"  # 工作目录
+HUANJING_ZHIWEN = "\u73af\u5883\u6307\u7eb9"  # 环境指纹
+QIANZHI_TIAOJIAN = "\u524d\u7f6e\u6761\u4ef6"  # 前置条件
+ZHUNBEI_DONGZUO = "\u51c6\u5907\u52a8\u4f5c"  # 准备动作
+YUJIAN = "\u9884\u68c0"  # 预检
+YUJIAN_CHONGFANG = "\u9884\u68c0\u91cd\u653e"  # 预检重放
+AC_CHECKBOX = re.compile(r"^\s*-\s*\[[ xX]\]\s+\S")
+EVIDENCE_MAP = re.compile(r"^\s*-\s*#(\d+)\s*(?:\u2192|->)")
+PREFLIGHT_LINE = re.compile(r"^\s*-\s*P(\d+)\s+" + YUJIAN + r"[\uff1a:]\s*(.+)$")
+PREFLIGHT_REF = re.compile(YUJIAN + r"[\uff1a:]\s*P(\d+)")
 TEST_PATH = re.compile(
     r"(?:[A-Za-z]:)?"
     r"[A-Za-z0-9_.\-]+(?:[\\/][A-Za-z0-9_.\-]+)*\."
@@ -120,6 +133,32 @@ def done_record(lines):
                 break
             block.append(s)
     return block
+
+
+def h2_section(lines, word):
+    """Body lines under the first ## heading containing word."""
+    block = None
+    for line in lines:
+        if line.startswith("## "):
+            if block is not None:
+                break
+            if word in line:
+                block = []
+            continue
+        if block is not None:
+            block.append(line)
+    return block
+
+
+def bullet_value(lines, word):
+    """Value of `- <word>: ...` or its full-width-colon form; None when absent."""
+    for line in lines:
+        stripped = line.strip()
+        for separator in ("\uff1a", ":"):
+            prefix = "- " + word + separator
+            if stripped.startswith(prefix):
+                return stripped[len(prefix) :].strip()
+    return None
 
 
 def ref_suggest(bad, candidates, self_slug):
@@ -431,6 +470,7 @@ def main(argv):
             graph = {}
             for f in files:
                 n_issues += 1
+                issue_lines = read_lines(f)
                 fm = get_frontmatter(f)
                 if fm is None:
                     err("%s: no YAML frontmatter" % f)
@@ -441,6 +481,112 @@ def main(argv):
                     err("%s: feature '%s' != directory '%s'" % (f, fm.get("feature", ""), feat))
                 if fm.get("status") not in ("ready", "done"):
                     err("%s: status '%s' not in ready|done" % (f, fm.get("status", "")))
+                contract_version = str(fm.get("contract_version", ""))
+                required_preflight_ids = set()
+                if contract_version not in ("", "1", "2"):
+                    err("%s: contract_version '%s' not in 1|2" % (f, contract_version))
+                if contract_version == "2":
+                    ac_lines = h2_section(issue_lines, YANSHOU) or []
+                    ac_count = sum(1 for line in ac_lines if AC_CHECKBOX.match(line))
+                    verification = h2_section(issue_lines, YANZHENG_SHEJI)
+                    if ac_count == 0:
+                        err("%s: contract v2 needs at least one checkbox AC" % f)
+                    if verification is None:
+                        err("%s: contract v2 missing ## 验证设计" % f)
+                    else:
+                        if not bullet_value(verification, JIEFENG):
+                            err("%s: contract v2 验证设计 missing 接缝" % f)
+                        workdir = bullet_value(verification, GONGZUO_MULU)
+                        if not workdir:
+                            err("%s: contract v2 验证设计 missing 工作目录" % f)
+                        fingerprint = bullet_value(verification, HUANJING_ZHIWEN)
+                        if not fingerprint:
+                            err("%s: contract v2 验证设计 missing 环境指纹" % f)
+                        else:
+                            missing_keys = [
+                                key
+                                for key in ("git", "lock", "runtime", "tools", "services")
+                                if not re.search(r"(?:^|[;；\s`])" + key + r"\s*=", fingerprint)
+                            ]
+                            if missing_keys:
+                                err(
+                                    "%s: contract v2 环境指纹 missing keys: %s"
+                                    % (f, ", ".join(missing_keys))
+                                )
+                        prerequisites = bullet_value(verification, QIANZHI_TIAOJIAN)
+                        if not prerequisites:
+                            err("%s: contract v2 验证设计 missing 前置条件" % f)
+                        else:
+                            missing_keys = [
+                                key
+                                for key in ("fixtures", "services", "permissions", "network")
+                                if not re.search(r"(?:^|[;；\s`])" + key + r"\s*=", prerequisites)
+                            ]
+                            if missing_keys:
+                                err(
+                                    "%s: contract v2 前置条件 missing keys: %s"
+                                    % (f, ", ".join(missing_keys))
+                                )
+                        setup = bullet_value(verification, ZHUNBEI_DONGZUO)
+                        if not setup:
+                            err("%s: contract v2 验证设计 missing 准备动作" % f)
+                        elif "无" not in setup and "result=" not in setup:
+                            err("%s: contract v2 准备动作 needs result= or explicit 无" % f)
+
+                        preflights = {}
+                        for line in verification:
+                            preflight_match = PREFLIGHT_LINE.match(line)
+                            if not preflight_match:
+                                continue
+                            preflight_id = int(preflight_match.group(1))
+                            detail = preflight_match.group(2)
+                            if preflight_id in preflights:
+                                err("%s: duplicate P%d 预检" % (f, preflight_id))
+                            preflights[preflight_id] = detail
+                            valid = (
+                                detail.count("`") >= 2
+                                and ("→ passed" in detail or "-> passed" in detail)
+                                and "observed=" in detail
+                                and "evidence=" in detail
+                                and re.search(r"checked=\d{4}-\d{2}-\d{2}(?:\b|$)", detail)
+                            )
+                            if not valid:
+                                err(
+                                    "%s: P%d 预检 needs backticked action, passed, observed=, evidence=, checked=YYYY-MM-DD"
+                                    % (f, preflight_id)
+                                )
+                        if not preflights:
+                            err("%s: contract v2 验证设计 missing passed P# 预检" % f)
+
+                        mapped = set()
+                        map_preflights = {}
+                        for line in verification:
+                            match = EVIDENCE_MAP.match(line)
+                            if not match:
+                                continue
+                            ac_id = int(match.group(1))
+                            mapped.add(ac_id)
+                            map_preflights[ac_id] = {
+                                int(value) for value in PREFLIGHT_REF.findall(line)
+                            }
+                        missing_maps = sorted(set(range(1, ac_count + 1)) - mapped)
+                        if missing_maps:
+                            err(
+                                "%s: contract v2 AC missing evidence map: %s"
+                                % (f, ", ".join("#%d" % n for n in missing_maps))
+                            )
+                        for ac_id in sorted(set(range(1, ac_count + 1)) & mapped):
+                            refs = map_preflights.get(ac_id, set())
+                            required_preflight_ids.update(refs)
+                            if not refs:
+                                err("%s: contract v2 AC #%d missing 预检 P# reference" % (f, ac_id))
+                                continue
+                            unknown = sorted(refs - set(preflights))
+                            if unknown:
+                                err(
+                                    "%s: contract v2 AC #%d references unknown 预检: %s"
+                                    % (f, ac_id, ", ".join("P%d" % n for n in unknown))
+                                )
                 cat = str(fm.get("category", ""))
                 if cat not in ("enhancement", "detail", "redo", "fix"):
                     err(
@@ -481,7 +627,7 @@ def main(argv):
                 elif not ISO_DATE.match(created):
                     err("%s: created not ISO YYYY-MM-DD" % f)
                 if fm.get("status") == "done":
-                    rec = done_record(read_lines(f))
+                    rec = done_record(issue_lines)
                     fields = []
                     if rec is not None:
                         for line in rec:
@@ -491,6 +637,26 @@ def main(argv):
                     if not fields:
                         err("%s: status done but no ### 完成 record" % f)
                     else:
+                        if contract_version == "2" and not any(
+                            line.lstrip().startswith("- " + YANZHENG_MINGLING + "：")
+                            or line.lstrip().startswith("- " + YANZHENG_MINGLING + ":")
+                            for line in (rec or [])
+                        ):
+                            err("%s: contract v2 done record missing 验证命令" % f)
+                        if contract_version == "2":
+                            replay = bullet_value(rec or [], YUJIAN_CHONGFANG)
+                            if not replay:
+                                err("%s: contract v2 done record missing 预检重放" % f)
+                            else:
+                                replayed = {int(value) for value in re.findall(r"\bP(\d+)\b", replay)}
+                                missing_replays = sorted(required_preflight_ids - replayed)
+                                if missing_replays:
+                                    err(
+                                        "%s: contract v2 done record missing preflight replays: %s"
+                                        % (f, ", ".join("P%d" % n for n in missing_replays))
+                                    )
+                                if "fingerprint" not in replay or "match" not in replay:
+                                    err("%s: contract v2 预检重放 needs fingerprint match" % f)
                         for m in sorted(set(TEST_PATH.findall("\n".join(fields)))):
                             cand = m.replace("\\", "/")
                             if not (

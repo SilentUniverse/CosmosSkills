@@ -3,13 +3,17 @@
 Loaded on demand by [`/spec`](SKILL.md) when units are being classified and cut — new work and
 additive growth both land here. Issue body and frontmatter: [ISSUE-TEMPLATE.md](ISSUE-TEMPLATE.md).
 
-A unit is an issue iff `## 做什么` + ≥1 agent-runnable AC can be written for an agent that sees
-nothing else. AC derive from invariants first, examples second, and run through a named seam's
-interface — vocabulary per `/codebase-design`. Pick the seam external callers enter; prefer
-existing seams to new ones; use the fewest that cover the ACs. Look up facts; do not ask them.
+A unit is an issue iff `## 做什么` + ≥1 agent-runnable AC + an AC→evidence→passed-P# mapping can be
+written for an agent that sees nothing else. AC derive from invariants first, examples second, and run
+through a named seam's interface — vocabulary per `/codebase-design`. Pick the seam external
+callers enter; prefer existing seams to new ones; use the fewest that cover the ACs. Evidence
+and SPEC-stage environment readiness follow
+[VERIFICATION-DESIGN.md](VERIFICATION-DESIGN.md). Look up facts and run preflights; do not ask the
+user for discoverable environment facts.
 Classify each unit:
 
-- Writable, and no outstanding question can falsify its AC / `blocked_by` / module boundary →
+- Writable, every verifier harness has passed preflight, and no outstanding question can falsify
+  its AC / `blocked_by` / module boundary →
   **settled**.
 - One missing decision, or two answers yield two AC sets → **open**. Ask that decision only,
   with a recommended answer. When a live PRD exists, bake it as an Implementation Decision instead.
@@ -35,12 +39,11 @@ No abstraction for a future the PRD doesn't name.
 
 `status`: `ready` | `done`. Human-only work is never an issue.
 
-## Grain quiz
+## Slice review
 
-Runs immediately after classification, before any write, only if the batch is likely ≥5 slices.
-Skip: 1 slice, `detail`, `redo`, `fix`. Report per slice: AC count, `blocked_by`, DAG depth,
-reasoning radius — how many modules one must read to trust the change.
-Ask: 粒度 / 依赖有要调的吗？ 这批切片共同建立在哪条假设上？它错了会塌什么？
-Parallel-draft 2–3 breakdowns only when the first cut fails AC verifiability, dependency
-depth, or vertical completeness; otherwise quiz that cut. An unanswered quiz falsifies only
-cards whose AC / `blocked_by` / module boundary it can change. Write the rest.
+The Design Receipt replaces the size-gated grain quiz: every batch exposes its slice DAG before
+write, because alignment risk is not proportional to card count. Report per slice: AC count,
+`blocked_by`, seam, requirement IDs, P# coverage, and reasoning radius — how many modules one must read to trust
+the change. Parallel-draft 2–3 alternatives only when the first cut fails evidence completeness,
+dependency depth, or vertical completeness; otherwise review one cut. Approval covers that exact
+DAG; changing a boundary or blocker returns to alignment.

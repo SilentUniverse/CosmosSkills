@@ -1,15 +1,17 @@
 # spec — Supersede and reconcile
 
 Loaded on demand by [`/spec`](SKILL.md) step 1 when a hit makes a recorded AC or decision
-false. Confirm-gated: the reconciliation executes only on user confirm.
+false. The Design Receipt and reconciliation are one confirm gate; nothing writes before it.
 
-1. **Write the versioned PRD.** Live PRD exists → `PRD-vN.md` per
+1. **Derive the next snapshot.** Live PRD exists → propose `PRD-vN.md` per
    [PRD-TEMPLATE.md](PRD-TEMPLATE.md) — highest + 1, `supersedes:` the previous filename,
-   carry forward still-open 尚未明确. No live PRD → `PRD.md` v1.
+   carry forward still-open 尚未明确. No live PRD → propose `PRD.md` v1. This is receipt input,
+   not a file write.
 2. **Reconcile.** Delivered work may be archived: also read `SUMMARY.md` and
    `issues/archive/`, so a `done` slice the new plan invalidates is classified as redo, not
-   mistaken for a brand-new slice. Classify every existing issue into the report, then ask
-   the user to confirm before executing anything (item-by-item or yes-all):
+   mistaken for a brand-new slice. Classify every existing issue into the report, then append it
+   under the Design Receipt so goal, verification, slices, and old→new consequences are corrected
+   together (item-by-item or yes-all):
 
    ```
    对账报告
@@ -30,7 +32,8 @@ false. Confirm-gated: the reconciliation executes only on user confirm.
 
    Hard rule: never edit a `done` issue; always write a new `NN-redo-X.md` (`category: redo`,
    `refines:` the original slug).
-3. **Execute on confirm.** Deletes relocate to `.scratch/tmp/reconcile-<date>/`
+3. **Execute on explicit alignment.** Write the PRD, then apply the reconciliation. Deletes
+   relocate to `.scratch/tmp/reconcile-<date>/`
    (undo = move back), never `rm`. Ready-issue edits happen in place; refresh the
    `## 上级` extract.
 4. New + redo units → [CARD-TEST.md](CARD-TEST.md).

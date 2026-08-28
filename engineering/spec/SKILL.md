@@ -1,15 +1,21 @@
 ---
 name: spec
-description: The single planning entry — turn any need into dispatchable issues, with a versioned PRD when the intent warrants one. Writes artifacts only, never code. Use for any new or changed requirement; /tdd executes what this plans.
+description: The single planning entry — align a need, prove its verifier environment ready, and turn it into dispatchable issues, with a versioned PRD when warranted. Never implements product behavior. Use for any new or changed requirement; /tdd executes what this plans.
 argument-hint: "The need — anything from one line to a full design"
 disable-model-invocation: true
 ---
 
 # Spec
 
-Writes PRDs and issues only. Never code. Never invoke `/tdd`. Frontmatter:
+Plans and proves execution readiness; never implements product behavior or invokes `/tdd`. It may
+run repository-declared environment setup and representative verifier preflights before writing
+PRDs/issues. Frontmatter:
 [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md) issue/PRD anchors (not the whole file).
 `done` issues are immutable.
+
+Planning has two phases: teach the design back in a [DESIGN-RECEIPT.md](DESIGN-RECEIPT.md),
+then write artifacts only after the user explicitly aligns. The receipt is conversation state,
+not a third issue state.
 
 ## 1. Locate
 
@@ -30,7 +36,7 @@ known invariant): write `touches:`, continue. Coupled (many refs, multiple modul
 invariant area): [impact-detection.md](impact-detection.md). Persist a new invariant to the
 area's `CODEBASE.md` block (two-axis); don't pause to offer.
 
-Both write paths end in [WRITE-LOOP.md](WRITE-LOOP.md). A genuine design trade-off →
+Both paths end in [WRITE-LOOP.md](WRITE-LOOP.md). A genuine design trade-off →
 `/prototype` before slicing. Wide refactors (mechanical change, blast radius spans the
 codebase): expand → contract. Expand adds the new form beside the old; migrate batches move
 call sites (each staying green); contract deletes the old form.

@@ -28,6 +28,27 @@ config files. The first run that figures them out should fill this in.
 - **Module boundary enforcement** (TS/JS: `effect` / `eslint-plugin-boundaries`; other stacks:
   the equivalent):
 
+## Verification adapters
+
+Cache how an agent proves behavior through the real product surface. Keep commands exact and
+replayable; a completion record points here and records the observed exit/tally/artifact.
+
+- **Static gate** (TS: `tsc --noEmit`; Python typed boundary: pyright/mypy):
+- **Runtime behavior** (TS: Vitest/Jest related tests; Python: pytest plus testmon/coverage):
+- **UI / CLI / service / device action** (browser/CDP, stdout+exit, request+response, log predicate):
+- **Evidence retention** (where traces, screenshots, benchmark output, and logs go):
+- **AI judge, if deterministic proof is impossible** (rubric version, calibration set + accuracy threshold, blind input):
+- **Human-only judgment** (taste/permission/external account; exact steps, never issue status):
+
+For each adapter also cache its repo-relative cwd, durable repo-declared setup command, cheap
+representative preflight, fixture/service/access/network prerequisites, and fingerprint command.
+SPEC executes setup + preflight before `ready`; TDD only replays the preflight and never installs.
+
+TypeScript static analysis is high-confidence for type-level reachability but still needs runtime
+behavior. Python static results are a lower bound; pair them with runtime coverage and state the
+dynamic-dispatch gap. An AI judge may grade semantic/visual output but never replace a runnable
+compiler, test, command, or trace.
+
 If a section is blank, infer from project config (`pyproject.toml` / `pytest.ini`, `package.json`
 test script, `build.gradle`, etc.), confirm once, then write it back here.
 

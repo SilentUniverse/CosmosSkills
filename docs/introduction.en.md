@@ -30,13 +30,15 @@ After extensive research, nine words survived, each carrying one question:
 
 The essential difference from conventional standards (SOLID, Clean Code, Design Patterns): those are **downstream experience** — they tell the AI what good code looks like, and rules pile up until they can't be held. These nine are **upstream laws** — each word anchored in a concept the model already knows, letting the AI derive good code on its own. And every law has a machine-enforced checkpoint in the workflow — not a poster on the wall, a check that goes red.
 
-### Three Pillars
+### Four Pillars
 
-**A machine gate.** A verification script (verify-artifacts.py) stands before every commit: every test file named in a completion record must actually exist on disk — delete tests silently and report green, and the gate goes red. Circular dependency graphs, missing frontmatter fields, requirement changes that bypass the reconciliation report — all intercepted. Most workflows audit at the code-review layer; this gate audits all the way down to the evidence layer.
+**A machine gate.** A verification script (verify-artifacts.py) stands before every commit. Circular dependency graphs, missing frontmatter fields, and v2 issues without per-AC evidence tied to a passed P# preflight are intercepted. SPEC actually runs each P# and records the environment fingerprint; TDD only replays it and never installs on the fly.
+
+**Opt-in behavior evals.** The normal development path does not run them. Explicit `/eval smoke|full` sessions retain same-project previous/candidate/no-skill comparisons; `/eval export` creates a standalone public exam for native or arbitrary external harnesses, then grades returned evidence blindly in an N-way report. Reports keep Verified Success, Success@Budget, speed, tokens, tool calls, alignment rounds, and handoff friction separate. Without a real full run, the project makes no “faster” or “better” claim.
+
+**A closed loop.** SPEC prepares the environment and runs verifier P# preflights before aligning goal, evidence, and slices in a Design Receipt. It then writes ready cards → TDD replays preflight, executes, and proves them → two-axis review plus one-screen report → tidy reclaims state. Cards are self-contained, handoffs are consumed once, and overnight.py rotates a fresh session per wave.
 
 **A constitution.** Every rule lives in a single ~1,300-word CLAUDE.md under a one-word-one-slot principle — every word must earn its place, and exceeding the budget requires deleting an old rule first. It includes battle-tested Windows defenses (PowerShell silently corrupting Chinese file content, GBK-default consoles, verifying true directory contents before destructive ops) and a host of hard-won practical details.
-
-**A closed loop.** spec slices → tdd builds → two-axis review with a one-screen report → tidy reclaims. Task cards are self-contained (one card is enough to start work), handoffs are consumed then deleted, and overnight.py drives wave after wave of fresh sessions while you sleep — every morning-review item arrives with a paste-ready command.
 
 ### Lineage and Tailoring
 

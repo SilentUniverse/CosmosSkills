@@ -212,6 +212,30 @@ foreach ($gate in @("verify-artifacts.py")) {
     }
 }
 
+$evalSource = Join-Path $root "scripts/eval.py"
+if (Test-Path -LiteralPath $evalSource) {
+    $evalTarget = Join-Path $Target "eval.py"
+    if ($DryRun) {
+        Write-Host ("[DryRun] Copy eval.py -> {0}" -f $evalTarget) -ForegroundColor Yellow
+    }
+    else {
+        Copy-Item -LiteralPath $evalSource -Destination $evalTarget -Force
+        Write-Host ("Eval: copied eval.py -> {0}" -f $evalTarget) -ForegroundColor Green
+    }
+}
+
+$campaignSource = Join-Path $root "scripts/eval_campaign.py"
+if (Test-Path -LiteralPath $campaignSource) {
+    $campaignTarget = Join-Path $Target "eval_campaign.py"
+    if ($DryRun) {
+        Write-Host ("[DryRun] Copy eval_campaign.py -> {0}" -f $campaignTarget) -ForegroundColor Yellow
+    }
+    else {
+        Copy-Item -LiteralPath $campaignSource -Destination $campaignTarget -Force
+        Write-Host ("Eval: copied eval_campaign.py -> {0}" -f $campaignTarget) -ForegroundColor Green
+    }
+}
+
 # Prune pre-Python gate corpses (the gate was once .ps1/.sh; on upgraded machines
 # stale copies outlive the rewrite and read as "still old"). Fresh installs never see them.
 foreach ($stale in @("verify-artifacts.ps1", "verify-artifacts.sh")) {

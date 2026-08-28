@@ -61,9 +61,8 @@ Loop until the ready set is empty:
    ([EDGE-CASES.md](EDGE-CASES.md)); resolve by adopt-or-revert and `collect` before any new
    wave. Exit 4 = nothing ready, batch complete. Shared surfaces (workspace manifest,
    any repo-root file a slice edits) are declared in `touches:` verbatim. The
-   script serializes on any overlap. A lockfile (pnpm-lock.yaml and the like) is not a
-   shared surface: it regenerates from the package manifests on disk, so never declare it
-   in `touches:`; step 3 regenerates it once per wave. More than half the batch undeclared →
+   script serializes on any overlap. A lockfile (pnpm-lock.yaml and the like) is part of the
+   SPEC environment fingerprint and must not drift during a behavior wave. More than half the batch undeclared →
    suggest the serial path instead: `-p` on undeclared cards is serial-with-extra-steps.
 2. **Fan out — one subagent per issue, at most 4 in flight.** Record the dispatch intent
    first: `drain-wave.py dispatch <repo-root> <slug>...` writes the wave number, the issue
@@ -91,14 +90,17 @@ Loop until the ready set is empty:
      subagents; no entering drain mode.
    - The issue is self-contained; no PRD attach. Paste the scoped-test and build command
      lines from `docs/agents/domain.md` into the brief; the brief's lines stand in for the
-     existing-test scan's domain.md lookup. Install a new dependency when the slice needs
-     one; the lockfile is not the subagent's responsibility; the wave close regenerates it.
+     existing-test scan's domain.md lookup. Replay the card's P# before edits. Never install,
+     upgrade, or start an undeclared dependency; a missing dependency means the card was not ready,
+     so report red with the preflight mismatch.
    - The **tests-so-far manifest** (earlier waves' 新增测试): don't write tests it already covers;
      report duplicates instead.
    - Report back **only** by outcome, in this fixed shape. A free-form reply is not a result;
      red/blocked reports stay under 400 words:
-     - **`result: green`** → which tests it added (files + case counts) + files changed
-       (production and tests) + scoped pass tally. The
+     - **`result: green`** → P# replay + fingerprint match, exact final command/action + observed
+       exit/tally + retained evidence paths, which tests it added (files + case counts), and files
+       changed (production and tests).
+       The
        subagent writes the completion record (syncing `test_paths:` per its template) and sets
        `status: done` itself.
      - **`result: red` / `result: blocked`** → failing case names + a trimmed traceback (error
@@ -116,15 +118,12 @@ Loop until the ready set is empty:
    `status: done`. An imperfectly shaped report trusts the disk over the note: check the issue's
    `### 完成` record and rerun that module's scoped tests. Record valid + green → accept with the
    deviation noted; record broken → treat as red (revert this issue, leave `ready`). Verify
-   **once per wave, after all subagents land**: if a lockfile drifted from the wave baseline,
-   regenerate it once (the package manager's install; a `domain.md` lockfile line when one
-   exists), then run the
+   **once per wave, after all subagents land**: run the
    union of the touched modules' scoped tests in one pass, narrowed by the domain.md
    impact-probe test command when one exists, and reconcile the write set: compare
    `git status --porcelain` against the wave baseline (exclude `.scratch/**`), attributing each
-   changed file via the wave's reported files. Lockfiles are exempt from attribution: a
-   drifted lockfile nobody reported is expected (the wave-close regenerate owns it), and a
-   failed regenerate is wave-fatal, mapped to the issues that reported new dependencies. Two issues
+   changed file via the wave's reported files. Any lockfile drift is wave-fatal and maps back to the
+   issue that changed dependency state; do not repair it with an install during execution. Two issues
    reporting the same file, or a changed
    file nobody reported → wave-fatal (recovery below). An issue's undeclared test file with green
    tests → sync its `test_paths:` (the sanctioned frontmatter edit); an undeclared production
@@ -187,7 +186,8 @@ Batches of ≥2 issues run **both review axes in parallel with the closing suite
 
 **Close report — one screen, five blocks:**
 
-1. 结果: shipped / failed / deferred counts + suite verdict.
+1. 结果: shipped / failed / deferred counts + suite verdict + exact closing command and observed
+   tally (machine evidence, not an agent confidence statement).
 2. Frontier: one line per non-shipped issue — `NN <slug> — blocked by <NN> | deferred | failed: <cause>`.
 3. 待裁决: over-build / wrong-implementation findings, each quoted to its hunk.
 4. 等你验证: every hands-on check (sources: each feature's PRD 端到端验证, plus 手动验证 lines

@@ -36,14 +36,30 @@ more precisely than prose; note that it came from a prototype.
 
 ## 测试决策（Testing Decisions）
 
-What makes a good test here, which modules get tested, prior art in the codebase.
+Name the public seam(s), what makes a good behavioral test here, which modules get tested, and prior
+art in the codebase. Then preserve the aligned verification contract:
+
+| ID | 场景 / 不变量 | 可观察结果 | agent 验证方法 | 已跑通的 P# | 证据形态 |
+|---|---|---|---|---|---|
+| R1 | ... | ... | exact test / command / browser or device action | P1 | case + exit/tally, log/trace/screenshot path |
+
+Every user scenario and invariant maps to a row. Deterministic evidence comes first; AI or human
+judgment follows [VERIFICATION-DESIGN.md](VERIFICATION-DESIGN.md).
+
+Preserve the readiness register from the aligned receipt too:
+
+| P# | cwd | prerequisites | SPEC setup | preflight result | environment fingerprint |
+|---|---|---|---|---|---|
+| P1 | ... | tools/services/fixtures/access/network | exact command or 无 | action → passed; observed evidence + date | git/lock/runtime/tools/services |
 
 ## 端到端验证（End-to-End Verification）
 
-The runnable procedure demonstrating the whole feature works — commands/steps plus expected
-observable outcome (`（无）` for non-runnable features). Per-slice AC live in issues; the drain
-batch close runs this. **Hands-on checks no agent can run are registered here**; never as issue AC
-or states. Check list: `/spec` card test.
+The runnable setup → action → assertion → cleanup procedure demonstrating the whole feature works,
+including exact expected observations and evidence paths (`（无）` only when no runnable product
+surface exists). Per-slice AC live in issues; the drain batch close runs this. The agent launches
+and operates browser/simulator/CLI when available. **Hands-on checks no agent can run are registered
+here** with exact steps and requested judgment; never as issue AC or states. Check list: `/spec`
+card test.
 
 ## 尚未明确（Fog of War）
 

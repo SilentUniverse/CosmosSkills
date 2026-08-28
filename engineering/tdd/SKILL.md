@@ -46,9 +46,15 @@ Tests verify behavior through public interfaces, not implementation details; exp
 
 Start from first principles about the approach. Use the project's domain glossary so test names and interface vocabulary match the project's language; respect ADRs in the area touched.
 
-Before writing any code: list the behaviors to test (not implementation steps); confirm interface changes, behaviors, and plan with the user *(autonomous mode: skip confirms — the spec is the issue's 做什么/AC plus the PRD extract in `## 上级`)*; shape deep modules and testable interfaces; `/codebase-design` only when a new seam is in play or the interface is unclear. Existing coverage first: [tests.md](tests.md) §Existing coverage.
+Before writing any code: list the behaviors to test (not implementation steps); confirm interface changes, behaviors, and plan with the user *(autonomous mode: skip confirms — the aligned issue's 做什么/AC/验证设计 plus the PRD extract in `## 上级` are the contract)*; shape deep modules and testable interfaces; `/codebase-design` only when a new seam is in play or the interface is unclear. Existing coverage first: [tests.md](tests.md) §Existing coverage.
 
-**Pre-issue statement (autonomous mode).** Before the first test, state in 2–3 lines: what this slice requires, which interface you'll shape, which behaviors you'll test first, the biggest assumption it rests on. Don't wait for a reply. This is the user's cheapest catch point, before any code exists.
+**Pre-issue statement (autonomous mode).** Before the first edit, recompute the recorded environment
+fingerprint and replay every P# preflight without running its setup action. Then state in 2–3 lines:
+what this slice requires, which interface you'll shape, which behaviors you'll test first, how the
+issue says to prove them, and the biggest assumption. Don't wait for a reply. A fingerprint drift or
+failed P# leaves the issue `ready`: append exact expected/observed evidence and report red. Never
+install, upgrade, start an undeclared dependency, or substitute a verifier at execution time. If an
+AC→evidence mapping cannot run, use the same red path; do not silently redesign an aligned card.
 
 ### 2. Tracer Bullet
 
