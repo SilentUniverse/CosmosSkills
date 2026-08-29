@@ -10,8 +10,10 @@
     It also distributes the global layer to $ClaudeRoot (default ~/.claude):
     claude/CLAUDE.md -> ~/.claude/CLAUDE.md; claude/*.md -> ~/.claude/references/
     (pruning removed ones); ARTIFACT-FORMAT.md -> <target>; hook scripts (explicit
-    list) -> ~/.claude/hooks/. CLAUDE.md additionally -> ~/.zcode/AGENTS.md, and the
-    shared contract files -> ~/.agents/skills/. These are COPIES, not links — re-run after edits.
+    list) -> ~/.claude/hooks/. CLAUDE.md additionally -> ~/.zcode/AGENTS.md. Skills and
+    the shared contract files mirror into ~/.agents/skills/ when the shared root or
+    ZCode is present; real entries and foreign links there are kept. CLAUDE.md and
+    the contract files are COPIES, not links; re-run after edits.
 
     Behavior:
     - Existing link: recreate it.
@@ -316,8 +318,7 @@ if (-not $DryRun -and $copiedHooks -gt 0) {
 
 # --- Distribute user instructions to ZCode: claude/CLAUDE.md -> ~/.zcode/AGENTS.md.
 #     ZCode auto-loads ~/.zcode/AGENTS.md the way Claude Code loads ~/.claude/CLAUDE.md;
-#     without this step the two hosts drift apart. Skill deployment into ~/.zcode/skills
-#     and ~/.agents/skills is managed outside this script (one live root per name is enough). ---
+#     without this step the two hosts drift apart. ---
 if ($cmMain -and (Test-Path -LiteralPath (Join-Path $HOME ".zcode"))) {
     $zcodeAgents = Join-Path $HOME ".zcode/AGENTS.md"
     if ($DryRun) { Write-Host ("[DryRun] Copy CLAUDE.md -> {0}" -f $zcodeAgents) -ForegroundColor Yellow }
@@ -327,10 +328,19 @@ if ($cmMain -and (Test-Path -LiteralPath (Join-Path $HOME ".zcode"))) {
     }
 }
 
-# --- Keep ~/.agents/skills/ shared contract files in step with the repo (junctioned skills
-#     there resolve `../ARTIFACT-FORMAT.md` textually, the same way they do in $Target). ---
+# --- Mirror skills into ~/.agents/skills/, the shared root ZCode discovers user
+#     skills from. First same-named skill wins, so one live link per name serves
+#     every host. Real entries there belong to other tools and are never touched;
+#     only links resolving into this repo are recreated. Contract files land
+#     first: junctioned skills resolve `../ARTIFACT-FORMAT.md` textually, the
+#     same way they do in $Target. ---
 $agentsSkills = Join-Path $HOME ".agents/skills"
-if (Test-Path -LiteralPath $agentsSkills) {
+$agentsLinked = 0
+if ((Test-Path -LiteralPath $agentsSkills) -or (Test-Path -LiteralPath (Join-Path $HOME ".zcode"))) {
+    if (-not (Test-Path -LiteralPath $agentsSkills)) {
+        if ($DryRun) { Write-Host "[DryRun] Create folder: $agentsSkills" }
+        else { New-Item -ItemType Directory -Path $agentsSkills -Force | Out-Null }
+    }
     foreach ($shared in @("ARTIFACT-FORMAT.md", "verify-artifacts.py")) {
         $sharedSrc = Join-Path $root "engineering/$shared"
         if (-not (Test-Path -LiteralPath $sharedSrc)) { continue }
@@ -339,6 +349,49 @@ if (Test-Path -LiteralPath $agentsSkills) {
         else {
             Copy-Item -LiteralPath $sharedSrc -Destination $sharedDst -Force
             Write-Host ("Contract: copied {0} -> {1}" -f $shared, $sharedDst) -ForegroundColor Green
+        }
+    }
+
+    $agentsLinked = 0
+    foreach ($s in $skills) {
+        $linkPath = Join-Path $agentsSkills $s.Name
+        if (Test-Path -LiteralPath $linkPath) {
+            $item = Get-Item -LiteralPath $linkPath -Force
+            $isLink = ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0
+            if ($isLink) {
+                if ((Get-JunctionTarget $linkPath) -notlike "$root\*") {
+                    Write-Host ("Agents root keeps foreign link {0}, skipping" -f $s.Name)
+                    continue
+                }
+                if ($DryRun) { Write-Host ("[DryRun] Recreate agents link {0}" -f $s.Name) }
+                else { [System.IO.Directory]::Delete($linkPath) }
+            }
+            else {
+                Write-Host ("Agents root keeps real entry {0}, skipping" -f $s.Name)
+                continue
+            }
+        }
+        if ($DryRun) {
+            Write-Host ("[DryRun] Link {0,-26} -> {1} (agents)" -f $s.Name, $s.Source)
+        }
+        else {
+            New-JunctionCompat -LinkPath $linkPath -TargetPath $s.Source
+            Write-Host ("Linked {0,-26} -> {1} (agents)" -f $s.Name, $s.Source) -ForegroundColor Green
+            $agentsLinked++
+        }
+    }
+
+    Get-ChildItem -LiteralPath $agentsSkills -Directory -Force | Where-Object {
+        ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -and
+        ((Get-JunctionTarget $_.FullName) -like "$root\*") -and
+        $linkedNames -notcontains $_.Name
+    } | ForEach-Object {
+        if ($DryRun) {
+            Write-Host ("[DryRun] Remove orphan agents link: {0}" -f $_.FullName) -ForegroundColor Yellow
+        }
+        else {
+            [System.IO.Directory]::Delete($_.FullName)
+            Write-Host ("Removed orphan agents link: {0}" -f $_.FullName) -ForegroundColor Yellow
         }
     }
 }
@@ -352,4 +405,12 @@ else {
         Write-Host ("Backed up {0} existing folders to: {1}" -f $backedUp, $backupDir) -ForegroundColor Yellow
     }
     Write-Host "Use /<name> in Claude Code. cosmos-setup is the project bootstrap entry."
+    if ($agentsLinked -gt 0) {
+        if (Test-Path -LiteralPath (Join-Path $HOME ".zcode")) {
+            Write-Host "ZCode: skills + contract files in ~/.agents/skills, AGENTS.md in ~/.zcode. Restart ZCode to load."
+        }
+        else {
+            Write-Host "Agents hosts: skills + contract files in ~/.agents/skills."
+        }
+    }
 }

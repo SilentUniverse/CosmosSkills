@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Install skills into ~/.claude/skills (symlinks) and copy the global layer.
+# Install skills into ~/.claude/skills (symlinks), copy the global layer, and
+# distribute the ZCode side (~/.zcode/AGENTS.md + shared ~/.agents/skills root).
 # Usage: bash install.sh [--dry-run] [--force] [--target DIR] [--claude-root DIR]
 set -euo pipefail
 
@@ -226,6 +227,83 @@ if [[ "$DRY_RUN" -eq 0 && "$copied_hooks" -gt 0 ]]; then
   echo "Hooks: copied $copied_hooks script(s) -> $hooks_target"
 fi
 
+# --- Distribute the ZCode side. ZCode auto-loads ~/.zcode/AGENTS.md the way
+#     Claude Code loads ~/.claude/CLAUDE.md, and discovers user skills in
+#     ~/.agents/skills, the shared root; one live link per skill name
+#     serves every host. Real entries there belong to other tools and are
+#     never touched: only links resolving into this repo are recreated. ---
+agents_deployed=0
+if [[ -d "${HOME}/.zcode" ]]; then
+  copy_file "$ROOT/claude/CLAUDE.md" "${HOME}/.zcode/AGENTS.md" "Guidelines: AGENTS.md (ZCode)"
+fi
+
+agents_skills="${HOME}/.agents/skills"
+if [[ -d "$agents_skills" || -d "${HOME}/.zcode" ]]; then
+  [[ "$DRY_RUN" -eq 1 ]] || mkdir -p "$agents_skills"
+
+  # Contract files land first: linked skills resolve ../ARTIFACT-FORMAT.md
+  # textually inside the skills root, same as in ~/.claude/skills.
+  copy_file "$ROOT/engineering/ARTIFACT-FORMAT.md" "$agents_skills/ARTIFACT-FORMAT.md" "Contract: ARTIFACT-FORMAT.md (agents)"
+  copy_file "$ROOT/engineering/verify-artifacts.py" "$agents_skills/verify-artifacts.py" "Gate: verify-artifacts.py (agents)"
+
+  for i in "${!NAMES[@]}"; do
+    name="${NAMES[$i]}"
+    src="${SOURCES[$i]}"
+    link="$agents_skills/$name"
+
+    if [[ -e "$link" || -L "$link" ]]; then
+      if [[ -L "$link" ]]; then
+        dest="$(readlink "$link")"
+        case "$dest" in
+          "$ROOT"/*) ;;
+          *) printf 'Agents root keeps foreign link %s, skipping\n' "$name"; continue ;;
+        esac
+        if [[ "$DRY_RUN" -eq 1 ]]; then
+          echo "[DryRun] Recreate agents link $name"
+        else
+          rm -f "$link"
+        fi
+      else
+        printf 'Agents root keeps real entry %s, skipping\n' "$name"
+        continue
+      fi
+    fi
+
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      printf '[DryRun] Link %-26s -> %s (agents)\n' "$name" "$src"
+    else
+      ln -s "$src" "$link"
+      printf 'Linked %-26s -> %s (agents)\n' "$name" "$src"
+      agents_deployed=1
+    fi
+  done
+
+  # Orphan links in the shared root that point into this repo but are no
+  # longer current skills (source renamed/removed).
+  for entry in "$agents_skills"/*; do
+    [[ -e "$entry" || -L "$entry" ]] || continue
+    [[ -L "$entry" ]] || continue
+    dest="$(readlink "$entry")"
+    case "$dest" in
+      "$ROOT"/*) ;;
+      *) continue ;;
+    esac
+    base="$(basename "$entry")"
+    keep=0
+    for n in "${NAMES[@]}"; do
+      [[ "$n" == "$base" ]] && keep=1 && break
+    done
+    if [[ "$keep" -eq 0 ]]; then
+      if [[ "$DRY_RUN" -eq 1 ]]; then
+        echo "[DryRun] Remove orphan agents link: $entry"
+      else
+        rm -f "$entry"
+        echo "Removed orphan agents link: $entry"
+      fi
+    fi
+  done
+fi
+
 if [[ "$DRY_RUN" -eq 1 ]]; then
   echo "Dry run done. Remove --dry-run to apply."
 else
@@ -234,4 +312,11 @@ else
     echo "Backed up $backed_up existing folders to: $BACKUP_DIR"
   fi
   echo "Use /<name> in Claude Code. cosmos-setup is the project bootstrap entry."
+  if [[ "$agents_deployed" -eq 1 ]]; then
+    if [[ -d "${HOME}/.zcode" ]]; then
+      echo "ZCode: skills + contract files in ~/.agents/skills, AGENTS.md in ~/.zcode. Restart ZCode to load."
+    else
+      echo "Agents hosts: skills + contract files in ~/.agents/skills."
+    fi
+  fi
 fi
