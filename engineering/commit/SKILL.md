@@ -23,6 +23,9 @@ Create a single git commit.
 
 Stage and commit in one message: `git add` the files this change touched, then `git commit`.
 Only `git add`, `git status`, and `git commit` run here; pushing is not part of this skill.
-Match the message shape of the recent history: `type(scope): summary`, imperative, English.
+The message is bilingual by design: the **title line is English** — `type(scope): summary`,
+imperative, matching the recent history; the **body is Chinese** — one bullet per change,
+naming files and mechanisms, written so the body alone reconstructs the change. An empty body
+is allowed only when the title already says everything.
 
 Report the hash and the files staged; nothing follows the commit.
