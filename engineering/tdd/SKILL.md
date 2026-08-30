@@ -70,7 +70,7 @@ For each remaining behavior: RED (write next test, watch it fail) → GREEN (min
 - Only enough code to pass the current test; don't anticipate future tests
 - Keep tests focused on observable behavior
 
-**What to run each cycle.** RED/GREEN runs execute only the test just written (`pytest path/test_x.py::test_y`). The touched module's tests run once per slice, at GREEN completion before refactor. The full suite stays batch-level (§5). Cache scoped-test / module-test / build commands in `docs/agents/domain.md`.
+**What to run each cycle.** RED/GREEN runs execute only the test just written (`pytest path/test_x.py::test_y`). The touched module's tests run once per slice, at GREEN completion before refactor. The full suite stays batch-level (§5). Cache scoped-test / module-test / build commands in `CODEBASE.md`'s `## Verifier commands` zone, created lazily per the ARTIFACT-FORMAT stub when absent.
 
 ### 4. Refactor
 

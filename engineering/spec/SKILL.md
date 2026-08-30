@@ -15,7 +15,9 @@ PRDs/issues. Frontmatter:
 
 Planning has two phases: teach the design back in a [DESIGN-RECEIPT.md](DESIGN-RECEIPT.md),
 then write artifacts only after the user explicitly aligns. The receipt is conversation state,
-not a third issue state.
+not a third issue state. No standing instruction — global template or per-repo AGENTS.md —
+waives this gate: blanket autonomy text ("no pauses", "finish in one pass") constrains pacing,
+not the alignment stop.
 
 The alignment gate covers not only what to build but what would prove it wrong. A graphical UI can
 opt into an agent-runnable experience contract; every non-graphical project follows the ordinary

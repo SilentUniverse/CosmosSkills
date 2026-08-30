@@ -4,7 +4,7 @@ Loaded on demand by [`/tdd`](SKILL.md) §5 **only** when a wide check runs: the 
 close of a drain run, or a manual `/tdd --full`. Per-cycle scoped tests (§3) never need this file.
 
 Per-cycle and per-issue runs stay scoped (§3) for speed, so they can't see cross-module
-regressions. The full suite + build (commands cached in `docs/agents/domain.md`) runs at two points:
+regressions. The full suite + build (commands cached in `CODEBASE.md`'s `## Verifier commands` zone) runs at two points:
 
 - **Automatic, once per batch.** When a drain run takes its **last** issue to `done` — i.e.
   the active set is empty — run the full suite + build one time as the batch's closing check. Not

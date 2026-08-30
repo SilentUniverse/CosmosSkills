@@ -311,7 +311,7 @@ else
   if [[ "$backed_up" -gt 0 ]]; then
     echo "Backed up $backed_up existing folders to: $BACKUP_DIR"
   fi
-  echo "Use /<name> in Claude Code. cosmos-setup is the project bootstrap entry."
+  echo "Use /<name> in Claude Code. cosmos-setup only handles repos that deviate from the defaults; default repos need no bootstrap."
   if [[ "$agents_deployed" -eq 1 ]]; then
     if [[ -d "${HOME}/.zcode" ]]; then
       echo "ZCode: skills + contract files in ~/.agents/skills, AGENTS.md in ~/.zcode. Restart ZCode to load."

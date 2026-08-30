@@ -1,4 +1,4 @@
-# cosmos-setup — The three decisions
+# cosmos-setup — The two decisions
 
 Loaded on demand by [cosmos-setup](SKILL.md) step 3 while walking the user through the setup
 decisions, one at a time. Each section opens with a short explainer (what it is, why these
@@ -25,12 +25,3 @@ The two canonical states:
 - `done` — completed; **immutable**. Git has the commit; revisions are new issues
 
 Hands-on checks no agent can run live in the PRD's 端到端验证; never as a state or issue AC (schema: `ARTIFACT-FORMAT.md`; check list: `/spec` card test).
-
-## Section C — Domain docs（领域文档布局）
-
-> Explainer: Some skills (`improve-arch`, `diagnose`, `tdd`) read `CONTEXT.md` for the project's domain language and `docs/adr/` for past architectural decisions. They need to know whether the repo is single-context or multi-context (e.g. a monorepo with separate frontend/backend contexts) so they look in the right place.
-
-Confirm the layout:
-
-- **Single-context** — one `CONTEXT.md` + `docs/adr/` at the repo root. Most repos are this.
-- **Multi-context** — `CONTEXT-MAP.md` at the root pointing to per-context `CONTEXT.md` files (typically a monorepo).

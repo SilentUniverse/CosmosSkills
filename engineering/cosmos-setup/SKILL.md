@@ -1,18 +1,19 @@
 ---
 name: cosmos-setup
-description: Sets up an `## Agent skills` block in AGENTS.md/CLAUDE.md and `docs/agents/` so the engineering skills know this repo's issue tracker (local markdown by default) and domain doc layout. Run before first use of `spec`, `tdd`, `diagnose`, `improve-arch`, or `map` — or if those skills appear to be missing context about the issue tracker or domain docs.
+description: Handles per-repo configuration that deviates from the defaults — a non-default issue tracker, non-default PRD/issue paths, legacy states to migrate, or a legacy docs/agents/domain.md to fold into CODEBASE.md. Default-convention repos (local markdown .scratch/, ready|done) need neither this skill nor a docs/agents/ tree; consumer skills proceed on convention and CODEBASE.md's ## Verifier commands zone is born lazily on first backfill. Also the entry for ARTIFACT-FORMAT schema upgrades.
 disable-model-invocation: true
 ---
 
 # Setup (cosmos-setup)
 
-Scaffold the per-repo configuration that the engineering skills assume:
+Configure what the engineering skills **cannot assume**: deviations from the default
+conventions. Defaults need no setup — the issue tracker is local markdown under
+`.scratch/<feat>/issues/` and the two-state vocabulary `ready|done`, both hard-coded in
+[ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md); verifier commands live lazily in
+`CODEBASE.md`'s `## Verifier commands` zone.
 
-- **Issue tracker** — where issues live (local markdown by default; see below)
-- **State vocabulary** — the strings used for the two issue states
-- **Domain docs** — where `CONTEXT.md` and ADRs live, and the consumer rules for reading them
-
-This is a prompt-driven skill, not a deterministic script. Explore, present what you found, confirm with the user, then write.
+This is a prompt-driven skill, not a deterministic script. Explore, present what you found,
+confirm with the user, then write.
 
 ## Process
 
@@ -20,79 +21,85 @@ This is a prompt-driven skill, not a deterministic script. Explore, present what
 
 Look at the current repo to understand its starting state. Read whatever exists; don't assume:
 
-- `AGENTS.md` and `CLAUDE.md` at the repo root — does either exist? Is there already an `## Agent skills` section in either?
-- `CONTEXT.md` and `CONTEXT-MAP.md` at the repo root
-- `docs/adr/` and any `src/*/docs/adr/` directories
-- `docs/agents/` — does this skill's prior output already exist? If yes, what does `issue-tracker.md` describe (local markdown, GitHub `gh` CLI, GitLab `glab`, other)?
-- `.scratch/` — sign that the local-markdown issue tracker convention is already in use. If present, sample one issue file: does it have YAML frontmatter (a `---` fence with `type: issue`), or only a bare `Status:` line? Also check whether any `issues/archive/` directories exist.
-- Other PRD-like locations (`docs/prd/`, `docs/specs/`, `requirements/`, `prds/`, `specs/`) and issue-like locations (`issues/`, `tasks/`, `tickets/`)
+- `AGENTS.md` and `CLAUDE.md` at the repo root — does either exist? Is there already an
+  `## Agent skills` section in either?
+- `docs/agents/` — a legacy `issue-tracker.md` (non-default tracker) or a legacy `domain.md`
+  (legacy command cache)
+- `.scratch/` — sample one issue file: YAML frontmatter with `type: issue`, or only a bare
+  `Status:` line? Any `issues/archive/` directories? Deprecated states?
+- Other PRD-like locations (`docs/prd/`, `docs/specs/`, `requirements/`, `prds/`, `specs/`)
+  and issue-like locations (`issues/`, `tasks/`, `tickets/`)
 
-### 2. Migration check
+### 2. Classify and announce
 
-Classify the repo into one of five cases based on what step 1 found, and announce the case to the user before proceeding:
+**Case 1 — Clean repo on defaults.** No `.scratch/`, no `docs/agents/`, no legacy states, no
+non-default paths. Nothing to configure: say so in one line ("defaults apply; nothing to set
+up — skills proceed on convention"), write nothing, done.
 
-**Case 1 — Clean repo.** No `.scratch/`, no `docs/agents/`, no existing `## Agent skills` block. Skip migration; proceed to step 3.
+**Case 2 — Legacy domain.md cache.** `docs/agents/domain.md` exists. Offer the fold: move its
+real command lines into `CODEBASE.md`'s `## Verifier commands` zone (lazy-birth per the
+ARTIFACT-FORMAT stub), then remove `domain.md` only when nothing non-template remains —
+otherwise rename it `domain.md.bak`. Detail: [MIGRATION.md](MIGRATION.md).
 
-**Case 2 — Already on cosmos conventions.** `.scratch/<feat>/issues/*.md` files have `Status:` lines (or frontmatter) that already match the 2-state vocabulary in `ARTIFACT-FORMAT.md` (`ready` / `done`). Tell the user setup will refresh `docs/agents/*.md` only, leaving issue files untouched. Legacy `ready-for-human` issues: offer to fold their hands-on checks into the PRD's 端到端验证 and set `ready` (or `done` if the user already did the work). If the issue files still carry only a bare `Status:` line (no YAML frontmatter), also run the **Case 5 frontmatter migration** ([MIGRATION.md](MIGRATION.md)) before proceeding. Otherwise proceed to step 3.
+**Case 3 — Old setup detected.** `docs/agents/issue-tracker.md` references `gh` / `glab` CLI,
+or issue files use deprecated states (`needs-triage`, `needs-info`, `wontfix`, `inbox`,
+`blocked`, `doing`, `shelved`). Offer to switch to local-markdown + 2-state, or keep the old
+tracker. Full procedure in [MIGRATION.md](MIGRATION.md).
 
-**Case 3 — Old setup detected.** `docs/agents/issue-tracker.md` references `gh` / `glab` CLI, or issue files use deprecated states (`needs-triage`, `needs-info`, `wontfix`, `inbox`, `blocked`, `doing`, `shelved`). Offer to switch to local-markdown + 2-state, or keep the old tracker. Full procedure in [MIGRATION.md](MIGRATION.md).
+**Case 4 — PRD/issue-like files at non-default paths.** Surface the paths found. Offer two
+options, recommending (i) by default since it is non-destructive:
 
-**Case 4 — PRD/issue-like files at non-default paths.** Surface the paths found. Offer two options, recommending (i) by default since it is non-destructive:
+- (i) **Configure paths in place.** Record the actual paths in the `## Agent skills` block so
+  the skills read/write there. No file moves.
+- (ii) **Adopt new layout.** Help the user move/symlink existing files into
+  `.scratch/<feat>/`. Show the planned moves before executing; use `git mv` where possible.
 
-- (i) **Configure paths in place.** Write the actual paths into `docs/agents/issue-tracker.md` so the skills read/write there. No file moves.
-- (ii) **Adopt new layout.** Help the user move/symlink existing files into `.scratch/<feat>/` structure. Show the planned moves before executing; use `git mv` where possible.
+**Case 5 — Frontmatter migration (bare `Status:` lines).** Idempotent, dry-run-first upgrade
+to the ARTIFACT-FORMAT contract: full scan → preview → execute ([MIGRATION.md](MIGRATION.md)).
 
-**Case 5 — Frontmatter migration (bare `Status:` lines).** Triggered from Case 2 (or on its own) when `.scratch/` issues use the legacy bare `Status:` line instead of YAML frontmatter, or `issues/archive/` is missing. Idempotent, dry-run-first upgrade to the [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md) contract. Full scan → preview → execute procedure in [MIGRATION.md](MIGRATION.md).
+**Case 6 — Schema upgrade.** A field is becoming required per an ARTIFACT-FORMAT revision;
+run the upgrade it names.
 
-In all cases, present what was found and the proposed migration plan for the user to confirm before any file is changed. Do not silently rewrite existing user content.
+In all cases, present what was found and the proposed plan for the user to confirm before any
+file is changed. Do not silently rewrite existing user content.
 
-### 3. Present findings and ask
+### 3. The decisions (deviation cases only)
 
-Walk the user through the three decisions **one at a time**. Assume the user does not know what
-these terms mean; explainers, choices, and defaults: [DECISIONS.md](DECISIONS.md).
+Case 3 reaches the two decision explainers, one at a time: [DECISIONS.md](DECISIONS.md)
+(issue tracker; state vocabulary). Case 4's path choice is decided inline in step 2. The doc
+layout is standardized — `CODEBASE.md` (+ optional per-area blocks), optional `CONTEXT.md`,
+optional `docs/adr/` — and is not a per-repo decision.
 
 ### 4. Confirm and edit
 
-Show the user a draft of:
+Show a draft of the `## Agent skills` block; let the user edit before writing.
 
-- The `## Agent skills` block to add to whichever of `CLAUDE.md` / `AGENTS.md` is being edited (see step 5 for selection rules)
-- The contents of `docs/agents/issue-tracker.md` and `docs/agents/domain.md`
+**Pick the file to edit:** `CLAUDE.md` if it exists, else `AGENTS.md`; if neither exists, ask
+which to create — don't pick for them. If a block already exists, update it in-place rather
+than appending a duplicate.
 
-Let them edit before writing.
-
-### 5. Write
-
-**Pick the file to edit:**
-
-- If `CLAUDE.md` exists, edit it.
-- Else if `AGENTS.md` exists, edit it.
-- If neither exists, ask the user which one to create — don't pick for them.
-
-If an `## Agent skills` block already exists in the chosen file, update its contents in-place rather than appending a duplicate. Don't overwrite user edits to the surrounding sections.
-
-The session-start orientation convention (load `CODEBASE.md`/`CONTEXT.md`, scan ADR titles, check drift) is **not** written here. It lives once in the global `CLAUDE.md` template (§6 "Document Layout"), which every session loads. Don't inject a per-repo copy; this block only records the three per-repo choices below.
-
-The block:
+**Additive-only rule.** The block is the only content this skill touches. Never edit, reorder,
+or remove surrounding user content in the host file — existing AGENTS.md/CLAUDE.md prose stays
+byte-identical. Keep the block ≤10 lines:
 
 ```markdown
 ## Agent skills
+<!-- what this repo is: 1 line; repo-specific constraints the skills can't know: 1 line each -->
 
 ### Issue tracker
+<!-- omit this subsection entirely while the default (local markdown under .scratch/) holds -->
+Non-default only: one-line summary. See `docs/agents/issue-tracker.md`.
 
-[one-line tracker summary; local markdown: the convention is this block itself]. Non-default
-trackers: See `docs/agents/issue-tracker.md`.
-
-### Domain docs
-
-[one-line summary of layout — "single-context" or "multi-context"]. See `docs/agents/domain.md`.
+### Orientation
+CODEBASE.md (## Verifier commands + map). Optional: CONTEXT.md (monorepo: CONTEXT-MAP.md), docs/adr/.
 ```
 
-Then seed `docs/agents/domain.md` from [domain.md](./domain.md) — consumer rules + layout.
-The local-markdown tracker convention lives in the `## Agent skills` block itself; no tracker
-file is written. A non-default tracker instead writes `docs/agents/issue-tracker.md`
-from the user's description.
+**Behavior authority.** Content this workflow adds anywhere must not restate or override
+process behavior the skills already define (autonomy, pauses, gates, summaries); such text in
+a per-repo file is a bug, and skill-defined gates are never waived by standing instructions.
 
-### 6. Done
+### 5. Done
 
-Verify first: `## Agent skills` appears exactly once in the chosen file; `docs/agents/domain.md`
-(and, for a non-default tracker, `issue-tracker.md`) exists non-empty. Then tell the user the setup is complete and which engineering skills will now read from these files. Mention they can edit `docs/agents/*.md` directly later. Re-running this skill is only necessary if they want to switch issue trackers or restart from scratch.
+Verify: the block appears exactly once (Case 1: nothing was written); any Case 2 fold left
+either no `domain.md` or a `domain.md.bak`. Name which skills consume what. Re-run only to
+switch trackers or handle another deviation.

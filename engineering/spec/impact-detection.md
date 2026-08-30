@@ -78,7 +78,8 @@ missed — scan manually."** Never imply the list is complete.
 
 ## Where the commands live
 
-These commands are **stack-specific**, so they belong in the project's `docs/agents/domain.md`
+These commands are **stack-specific**, so they live as lines in the project's `CODEBASE.md`
+`## Verifier commands` zone — the single hand section; they never open a section of their own
 (its "stack adaptation" home), not in any skill. Drop a section in once:
 
 ```markdown

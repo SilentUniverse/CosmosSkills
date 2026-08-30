@@ -12,7 +12,9 @@ In order:
    delegation that already fixes goal, acceptance, verification, and constraints leaves nothing to
    discover — proceed to step 2.
 2. **Prove readiness.** For every proposed verifier harness, inspect project config and the cached
-   adapters in `docs/agents/domain.md`; prepare a durable environment with repo-declared setup, then
+   commands in `CODEBASE.md`'s `## Verifier commands` zone (absent → proceed and backfill lazily;
+   a legacy `docs/agents/domain.md` → read it once, then offer `/cosmos-setup` to fold it);
+   prepare a durable environment with repo-declared setup, then
    actually run the representative P# preflight from
    [VERIFICATION-DESIGN.md](VERIFICATION-DESIGN.md). Record cwd, prerequisites, observed result,
    evidence, date, and environment fingerprint. A missing tool/service/fixture/access or a setup
@@ -27,7 +29,8 @@ In order:
    [DESIGN-RECEIPT.md](DESIGN-RECEIPT.md): goal replay, boundaries, design, verification contract,
    passed readiness register, and proposed slice DAG. Stop for correction. Every correction
    regenerates the whole compact receipt; repeat until the user explicitly says it is aligned.
-   Silence and the agent's own confidence are not approval. SUPERSEDE combines this receipt with
+   Silence and the agent's own confidence are not approval, and a standing autonomy
+   instruction never waives the stop. SUPERSEDE combines this receipt with
    its 对账报告 so the user sees one gate, not two.
 4. **Write.** Persist only the aligned design: for graphical UI write the canonical
    `.scratch/<feat>/experience-contract.json` first; write the PRD when warranted, then every issue

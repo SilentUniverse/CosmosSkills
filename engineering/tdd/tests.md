@@ -4,10 +4,10 @@ Loaded on demand by `/tdd` when writing tests.
 
 ## Existing coverage (before writing any new test)
 
-Identify the project's test convention from `docs/agents/domain.md`. If absent, infer from
+Identify the project's test convention from `CODEBASE.md`'s `## Verifier commands` zone. If absent, infer from
 project config files (`pytest.ini` / `pyproject.toml`, `package.json` test script,
 `build.gradle` `testOptions`) and ask the user to confirm. Then suggest writing it into
-`domain.md` so future runs skip this step. *(autonomous mode: adopt the inferred convention,
+`## Verifier commands` so future runs skip this step. *(autonomous mode: adopt the inferred convention,
 note it in `### 完成`)*
 
 For each AC in the issue, find existing coverage. Drain `-p`: the brief carries the

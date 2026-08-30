@@ -42,7 +42,7 @@ Look for the originating spec, in this order:
 3. The feature PRD: `.scratch/<feat>/PRD.md`.
 4. If nothing is found, ask the user where the spec is. If they say there isn't one, the **Spec** sub-agent skips and reports "无 spec 可比对".
 
-> Issue-tracker layout is configured. Run `/cosmos-setup` if `.scratch/` doesn't exist yet.
+> Issue-tracker layout is configured. Default convention (`.scratch/` local markdown) needs no setup; run `/cosmos-setup` only if this repo deviates (non-default tracker/paths or legacy states).
 
 ### 3. Identify the standards sources
 

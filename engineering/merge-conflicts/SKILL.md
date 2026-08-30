@@ -13,7 +13,7 @@ Resolve conflicts by understanding *why* each side changed the code, not by patt
 
 3. **Resolve each hunk.** Preserve both intents where possible; where they're genuinely incompatible, pick the one matching the merge's stated goal and note the trade-off (a one-liner to the user, or an ADR if it's a real decision). Never invent new behaviour or silently drop a side. Use the project's domain language (`CONTEXT.md`) for any names you introduce.
 
-4. **Run the project's automated checks.** Discover them from `docs/agents/domain.md` (cached test/build/format commands); if absent, infer from config and confirm with the user. Run typecheck → tests → format, and fix anything the merge broke. Run the suite/build in a subagent or redirect its output to `.scratch/tmp/`; bring only the pass/fail summary and failing cases into context.
+4. **Run the project's automated checks.** Discover them from `CODEBASE.md`'s `## Verifier commands` zone (cached test/build/format commands); a legacy `docs/agents/domain.md` → read it once, then offer `/cosmos-setup` to fold it; if neither exists, infer from config and confirm with the user. Run typecheck → tests → format, and fix anything the merge broke. Run the suite/build in a subagent or redirect its output to `.scratch/tmp/`; bring only the pass/fail summary and failing cases into context.
 
 5. **Finish the merge/rebase.** Stage everything and commit. Let git write the default merge message, or write a short one naming what was reconciled. If rebasing, `git rebase --continue` until all commits are replayed.
 

@@ -130,8 +130,8 @@ Loop until the ready set is empty:
      skip all "confirm with user" prompts. Run this slice yourself. No spawning further
      subagents; no entering drain mode.
    - The issue is self-contained; no PRD attach. Paste the scoped-test and build command
-     lines from `docs/agents/domain.md` into the brief; the brief's lines stand in for the
-     existing-test scan's domain.md lookup. Include any orchestrator-supplied `receipt-hit:<key>`:
+     lines from `CODEBASE.md`'s `## Verifier commands` zone into the brief; the brief's lines
+     stand in for the existing-test scan's lookup there. Include any orchestrator-supplied `receipt-hit:<key>`:
      an exact hit replaces only that matching P# replay; unique P# still replay normally. Never
      write the receipt, install, upgrade, or start an undeclared dependency; a missing dependency
      means the card was not ready, so report red with the preflight mismatch.
@@ -161,7 +161,7 @@ Loop until the ready set is empty:
    `### 完成` record and rerun that module's scoped tests. Record valid + green → accept with the
    deviation noted; record broken → treat as red (revert this issue, leave `ready`). Verify
    **once per wave, after all subagents land**: run the
-   union of the touched modules' scoped tests in one pass, narrowed by the domain.md
+   union of the touched modules' scoped tests in one pass, narrowed by the Verifier commands
    impact-probe test command when one exists, and reconcile the write set: compare
    `git status --porcelain` against the wave baseline (exclude `.scratch/**`), attributing each
    changed file via the wave's reported files. Any lockfile drift is wave-fatal and maps back to the

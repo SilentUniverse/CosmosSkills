@@ -70,7 +70,7 @@ bash scripts/install.sh
 curl -fsSL https://raw.githubusercontent.com/SilentUniverse/CosmosSkills/main/claude/CLAUDE.md -o ~/.claude/CLAUDE.md
 ```
 
-新项目第一次用，跑一次 `/cosmos-setup`，它会问你三个问题然后把目录约定都建好。
+新项目直接用 `/spec` 起步即可——默认约定（`.scratch/` 本地 issue、两态词汇、`CODEBASE.md` 验证命令区懒出生）无需任何 setup。`/cosmos-setup` 只处理偏离：非默认 tracker/路径、遗留状态、旧 `docs/agents/domain.md` 折叠。
 
 ---
 
@@ -220,16 +220,16 @@ rg '^status: ready' -g '**/issues/*.md' .scratch
 
 ## 接入一个项目（跑一次）
 
-**从 0 到 1**
+**从 0 到 1** — 零 setup，默认约定直接生效。
 
-1. `/cosmos-setup`（默认：本地 markdown / 两态 / 单 context）→ `docs/agents/` + `CLAUDE.md` 的 `## Agent skills`
-2. `CONTEXT.md` + `CODEBASE.md`（见下）
+1. 直接 `/spec` 起步；第一次预检跑通的验证命令懒写入 `CODEBASE.md` 的 `## Verifier commands` 区（文件随之出生，天生带真内容）
+2. 领域重的项目再 `/domain-modeling` 出术语表（CONTEXT.md）
 3. 护栏按需：[git-guardrails](misc/git-guardrails-claude-code/SKILL.md)、[modern-cli-guardrails](misc/modern-cli-guardrails/SKILL.md)、[setup-pre-commit](misc/setup-pre-commit/SKILL.md)
 
-**接收已有项目** — 先建地图，少让 agent 反复扫代码。
+**接收已有项目** — 导航噪声真实存在时才建地图。
 
-1. 先 `/domain-modeling` 出术语表（CONTEXT.md），再 `/map` 出结构地图（CODEBASE.md）——两个都跑，各一次起草、一次审。临时看懂某一块：`/show <path>`，一屏即弃
-2. `/cosmos-setup` 识别旧状态机、非默认路径、旧 `Status:` 行，确认后落盘
+1. 大型/遗留仓库：先 `/domain-modeling` 出术语表，再 `/map` 出结构地图，各一次起草、一次审；中小仓库跳过 map——不变量由 `/spec`、`/tdd` 在发现时事件驱动落盘。临时看懂某一块：`/show <path>`，一屏即弃
+2. `/cosmos-setup` 只处理偏离：旧状态机、非默认路径、旧 `Status:` 行、旧 `docs/agents/domain.md` 折叠；对既有 `AGENTS.md` 只增不删
 3. 护栏同上
 
 ### 文档放哪
@@ -237,7 +237,7 @@ rg '^status: ready' -g '**/issues/*.md' .scratch
 | | 位置 | 放什么 |
 |---|---|---|
 | 项目级 | 仓库根 | `CONTEXT.md` 术语、`CODEBASE.md` 结构地图 |
-| 长期 | `docs/` | `docs/adr/`、`docs/agents/`（`domain.md` 缓存测试 / 构建 / 影响面 / 性能测量命令） |
+| 长期 | `docs/` | `docs/adr/`（命令缓存在 CODEBASE.md 的 Verifier commands 区；`docs/agents/` 仅非默认 tracker 存在） |
 | 工作态 | `.scratch/<feat>/` | `PRD.md`、`issues/`、`SUMMARY.md`、`handoff.md`（`tmp/` 被 ignore） |
 | 方法评测 | skills 仓库 `evals/` | 真实 regression/capability/routing case、rubric、calibration；runner 结果按 revision 另存 |
 
@@ -251,7 +251,7 @@ rg '^status: ready' -g '**/issues/*.md' .scratch
 _Avoid_: Wallet, balance-holder
 ```
 
-`CODEBASE.md` root：综合段（≤5 句）+ 非显然路由 + 分区 roster（一行一区、≤10 词）。正文 ≤40 行。细节在 `src/<area>/CLAUDE.md` 生成块（≤8 行）。每行：`rg` 不出来 **且** 缺了会咬人。
+`CODEBASE.md` 双区：`## Verifier commands` 手维护区（测试/构建/性能命令缓存，懒出生，`/map` 再生与门禁都不动它）+ 生成区——综合段（≤5 句）、非显然路由、分区 roster（一行一区、≤10 词，索引豁免两轴法）。正文 ≤40 行。细节在 `src/<area>/CLAUDE.md` 生成块（≤8 行）。事实行：`rg` 不出来 **且** 缺了会咬人。
 
 ```markdown
 <!-- BEGIN GENERATED codebase (/map) -->
@@ -270,7 +270,7 @@ git_base: 7af387c
 
 ## 低频
 
-**ADR** 只在两处提议：`/grill`（三条标准见 `engineering/domain-modeling/ADR-FORMAT.md`）；`/improve-arch`（你否决一个重构且理由有分量）。`CONTEXT.md` 记是什么，`CODEBASE.md` 记 grep 拿不到的，`docs/adr/` 记为什么。
+**ADR** 只在两处提议：`/grill`（三条标准见 `engineering/domain-modeling/ADR-FORMAT.md`）；`/improve-arch`（你否决一个重构且理由有分量）。`CONTEXT.md` 记是什么，`CODEBASE.md` 记 grep 拿不到的 + 怎么验证，`docs/adr/` 记为什么。
 
 **少烧 token**
 
@@ -278,18 +278,21 @@ git_base: 7af387c
 2. 大文档另开 session 或 subagent
 3. 别把 PRD / issue 粘进对话
 4. 整文件读优于多次摸索
-5. 稳定的验证适配器缓存在 `docs/agents/domain.md`；每张卡只记录这次真实 P# 结果和环境指纹，执行时用重放发现漂移
+5. 稳定的验证适配器缓存在 `CODEBASE.md` 的 `## Verifier commands` 区；每张卡只记录这次真实 P# 结果和环境指纹，执行时用重放发现漂移
 
-会话边界顺序：Continue → `/clear` → `/handoff` → subagent → `/compact`（[PHASE-BOUNDARIES.md](claude/PHASE-BOUNDARIES.md)）。开机加载写在全局 CLAUDE.md §6。单 / 多 context 在 `docs/agents/domain.md`。
+会话边界顺序：Continue → `/clear` → `/handoff` → subagent → `/compact`（[PHASE-BOUNDARIES.md](claude/PHASE-BOUNDARIES.md)）。开机加载写在全局 CLAUDE.md §6。文档布局已标准化（root `CODEBASE.md` + 可选 `CONTEXT.md`/`docs/adr/`；monorepo 可加 `CONTEXT-MAP.md`），无 per-repo 布局文件。
 
-**栈** — 测试命令、ADB、影响面探测写进 `docs/agents/domain.md`：
+**栈** — 测试命令、ADB、影响面探测都是 `CODEBASE.md` 单一 `## Verifier commands` 区里的行，不开新区段：
 
 ```markdown
-## 影响面探测命令（impact detection）
-- 受影响代码：`pyright --outputjson` + `rg '\bSYM\b'`
-- 受影响测试：`pytest --testmon`
-- import 图：`grimp`
+## Verifier commands
+- Full suite + build: `npm run test && npm run build`
+- Scoped test: `pytest <path>::<test>`
+- Impact 受影响代码：`pyright --outputjson` + `rg '\bSYM\b'`
+- Impact 受影响测试：`pytest --testmon`
 ```
+
+常用类目：全量套件+构建、scoped 测试、静态门禁、性能、模块边界、证据留存、影响面探测；没用到的省略。
 
 其他语言：[impact-detection.md](engineering/spec/impact-detection.md)。
 
@@ -299,7 +302,7 @@ git_base: 7af387c
 
 | | 何时用 |
 |---|---|
-| [cosmos-setup](engineering/cosmos-setup/SKILL.md) | 项目首次接入；Case 5 迁 frontmatter |
+| [cosmos-setup](engineering/cosmos-setup/SKILL.md) | 偏离处理：非默认 tracker/路径、遗留状态迁移、domain.md 折叠、schema 升级 |
 | [grill](engineering/grill/SKILL.md) | 拷问方案。[grilling](productivity/grilling/SKILL.md) + [domain-modeling](engineering/domain-modeling/SKILL.md) |
 | [prototype](engineering/prototype/SKILL.md) | `/spec` 前造一次性原型 |
 | [spec](engineering/spec/SKILL.md) | 规划并跑通验证环境预检，再写 PRD / issue |

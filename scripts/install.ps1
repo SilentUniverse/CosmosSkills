@@ -404,7 +404,7 @@ else {
     if ($backedUp -gt 0) {
         Write-Host ("Backed up {0} existing folders to: {1}" -f $backedUp, $backupDir) -ForegroundColor Yellow
     }
-    Write-Host "Use /<name> in Claude Code. cosmos-setup is the project bootstrap entry."
+    Write-Host "Use /<name> in Claude Code. cosmos-setup only handles repos that deviate from the defaults; default repos need no bootstrap."
     if ($agentsLinked -gt 0) {
         if (Test-Path -LiteralPath (Join-Path $HOME ".zcode")) {
             Write-Host "ZCode: skills + contract files in ~/.agents/skills, AGENTS.md in ~/.zcode. Restart ZCode to load."

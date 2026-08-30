@@ -23,6 +23,13 @@ checks no agent can run are not AC. They live in the PRD's 端到端验证, regi
 An exact replay command/action plus its observation is the proof; “tests pass” or “implemented”
 without that tuple is self-report, not evidence.
 
+## Backfill checkpoint
+
+Before writing the record: every command this run actually executed — scoped test, module
+test, full suite, build — is present in the root `CODEBASE.md` `## Verifier commands` zone
+(lazy-birth per the ARTIFACT-FORMAT stub when absent). This is the check that keeps the cache
+born-full instead of half-filled.
+
 ```markdown
 ### 完成 — YYYY-MM-DD
 

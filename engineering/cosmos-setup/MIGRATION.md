@@ -1,7 +1,8 @@
-# cosmos-setup — Migration detail (Case 3 & Case 5)
+# cosmos-setup — Migration detail (Case 2, Case 3 & Case 5)
 
-Loaded on demand by [`/cosmos-setup`](SKILL.md) step 2 **only** when the repo is an old setup (Case 3)
-or its issue files use bare `Status:` lines (Case 5).
+Loaded on demand by [`/cosmos-setup`](SKILL.md) step 2 **only** when the repo holds a legacy
+`docs/agents/domain.md` (Case 2), is an old setup (Case 3), or its issue files use bare
+`Status:` lines (Case 5).
 
 In all cases, present what was found and the proposed migration plan for the user to confirm before
 any file is changed. Do not silently rewrite existing user content.
@@ -17,7 +18,7 @@ use deprecated states (`needs-triage`, `needs-info`, `wontfix`, `inbox`, `blocke
 
 ## Case 5 — Frontmatter migration (bare `Status:` lines)
 
-Triggered from Case 2 (or runnable on its own) when `.scratch/` issues use the legacy bare `Status:`
+Triggered from Case 3 (or runnable on its own) when `.scratch/` issues use the legacy bare `Status:`
 line instead of YAML frontmatter, or when `issues/archive/` is missing. This upgrades the repo to the
 [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md) contract. It is **idempotent**: skip any file that
 already has a `---` frontmatter fence. It is **dry-run-first**: never touch a file before showing the
@@ -47,3 +48,19 @@ Steps:
 5. **Generate** each feature's `.scratch/<feat>/SUMMARY.md` per the format doc.
 
 Report what changed. If `refines` can't be inferred for a non-top-level issue, leave it unset and note it. The orphan check in `/tidy` will surface it later.
+
+## Case 2 — Legacy `docs/agents/domain.md` fold
+
+Trigger: `docs/agents/domain.md` exists. Consumer skills read `CODEBASE.md`'s
+`## Verifier commands` zone, so a repo still carrying the old file has an orphaned cache until
+folded.
+
+1. Read the file; classify every line as **real** (an exact command or adapter a run actually
+   used — e.g. `pytest -q`, `vitest run <path>`) or **template** (boilerplate headings, empty
+   placeholders, consumer-rule prose).
+2. Show the user the real lines. On confirm, append them under `## Verifier commands` in the
+   root `CODEBASE.md`, lazy-birth per the ARTIFACT-FORMAT stub when absent.
+3. Delete `domain.md` only when zero non-template lines remain unaccounted for; otherwise
+   `git mv docs/agents/domain.md docs/agents/domain.md.bak` and say why.
+4. Remove `docs/agents/` entirely when it is now empty and the tracker is default; a
+   non-default `issue-tracker.md` stays.

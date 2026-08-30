@@ -1,6 +1,6 @@
 ---
 name: map
-description: Generate or refresh the structural map in CODEBASE.md — synthesis, routing table, roster, per-area invariant blocks filtered by the two-axis test. Use when onboarding a repo, when CODEBASE.md is missing/stale/legacy, or after a change that moved a seam or invariant.
+description: Generate or refresh the structural map in CODEBASE.md — synthesis, routing table, roster, per-area invariant blocks filtered by the two-axis test. Use when raw rg/tsc navigation turns noisy (large or legacy codebases, repeated cross-module impact work, many same-name seams), when CODEBASE.md is stale/legacy, or after a change that moved a seam or invariant. Small greenfield repos skip the map — invariants are born event-driven from /spec and /tdd instead. Never touches the hand-maintained ## Verifier commands section.
 argument-hint: "Area path to refresh (optional; no args or --all = whole repo)"
 disable-model-invocation: true
 ---
@@ -15,8 +15,10 @@ maps the whole repo.
 
 ## First pass (draft mode) — mapping a whole repo
 
-**When:** `CODEBASE.md` is absent or empty, or a legacy monolith (per-area sections, no roster),
-and the user wants a map of the *whole* project, not one area (`/map` with no path, or `/map --all`).
+**When:** `CODEBASE.md` is absent or empty, or holds only the hand-maintained `## Verifier
+commands` zone, or is a legacy monolith (per-area sections, no roster), and the user wants a map
+of the *whole* project, not one area (`/map` with no path, or `/map --all`). A hand zone already
+present is preserved verbatim; the generated skeleton is assembled around it.
 
 **Steps:**
 
