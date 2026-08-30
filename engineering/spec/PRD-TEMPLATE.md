@@ -57,10 +57,14 @@ The issue AC still carries behavior assertions and explicit `反证` for opted-i
 its experience line selects states and a planned evidence JSON. Do not move agent-capturable visual
 checks to manual verification.
 
-Compressed intake (SKILL.md) replaces this template with a stub: standard frontmatter plus a
-`## 需求记录源` section whose only body line is the path to the user's delegation document and one
-sentence on why it already fixes acceptance, verification, and constraints. No other sections; the
-readiness register below still applies verbatim.
+Compressed intake (SKILL.md) replaces this template with a stub only when the delegation document
+is a repo-relative tracked file available to a fresh checkout: standard frontmatter plus a
+`## 需求记录源` section whose body records its path, SHA-256 content hash, and one sentence on why it
+already fixes acceptance, verification, and constraints. Chat, URL, Downloads, mutable external,
+or untracked sources use the ordinary template; the readiness register below still applies.
+The section uses three bullets: ``- 路径：`docs/requirements/<name>.md` ``,
+``- SHA-256：`<64 lowercase hex characters>` ``, and a one-line `- 完整性：...`. The artifact gate
+verifies that the source exists, is Git-tracked, and still matches the hash.
 
 Preserve the readiness register from the aligned receipt too:
 

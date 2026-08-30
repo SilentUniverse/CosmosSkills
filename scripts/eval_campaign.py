@@ -28,12 +28,12 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, Iterator, List, Mapping, Optional, Sequence, Tuple
 
 
-CAMPAIGN_SCHEMA_VERSION = 1
+CAMPAIGN_SCHEMA_VERSION = 2
 SUBMISSION_SCHEMA_VERSION = 1
-OBSERVATION_SCHEMA_VERSION = 1
+OBSERVATION_SCHEMA_VERSION = 2
 ASSESSMENT_SCHEMA_VERSION = 1
 JUDGE_PACKET_SCHEMA_VERSION = 1
-JUDGED_RUN_SCHEMA_VERSION = 1
+JUDGED_RUN_SCHEMA_VERSION = 2
 COMPARISON_MODES = {"policy-only", "whole-system"}
 PROFILES = {"smoke", "full"}
 CONTROL_FIELDS = (
@@ -43,9 +43,10 @@ CONTROL_FIELDS = (
     "environment",
     "toolset",
     "network",
+    "wall_time_scope",
     "seed",
 )
-WHOLE_SYSTEM_CONTROL_FIELDS = ("repo_revision", "network", "seed")
+WHOLE_SYSTEM_CONTROL_FIELDS = ("repo_revision", "network", "wall_time_scope", "seed")
 METRICS = (
     "wall_time_ms",
     "time_to_first_dispatchable_ms",
@@ -64,7 +65,7 @@ METRICS = (
 )
 BUDGET_FIELDS = ("wall_time_ms", "total_tokens", "tool_calls")
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from eval_metrics import CAMPAIGN_CORE as CORE_EFFICIENCY_METRICS, metrics_basis
+from eval_metrics import CAMPAIGN_POLICY, CAMPAIGN_WHOLE_SYSTEM, metrics_basis
 TERMINAL_STATUSES = {"success", "failure", "timeout", "blocked"}
 GRADER_KINDS = {"deterministic", "ai", "human"}
 ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
@@ -451,7 +452,10 @@ procedure, rubric, calibration answer, expected output, or competing-system iden
    provide unscripted human hints to one arm.
 4. Replace `observations.jsonl` using `observations.template.jsonl` as the shape. Put replayable
    logs, traces, diffs, and screenshots below `artifacts/`. Use JSON `null` for unavailable metrics;
-   never turn an unobservable metric into zero.
+   never turn an unobservable metric into zero. For a whole-system speed claim, an external runner
+   measures elapsed time from first prompt dispatch through terminal completion and records
+   `controls.wall_time_scope` as `external-runner-elapsed`; provider-internal active-turn duration is
+   not a substitute.
 5. Seal and verify: `python3 campaign.py seal . <submission>` and
    `python3 campaign.py validate-submission . <submission>`.
 6. Return the entire sealed submission directory to the campaign owner. Do not run or request the
@@ -555,6 +559,7 @@ def export_campaign(
     script_destination = public_dir / "campaign.py"
     shutil.copy2(Path(__file__).resolve(), script_destination)
     script_destination.chmod(script_destination.stat().st_mode | 0o111)
+    shutil.copy2(Path(__file__).with_name("eval_metrics.py"), public_dir / "eval_metrics.py")
     (public_dir / "RUNBOOK.md").write_text(_public_runbook(campaign_id), encoding="utf-8")
     _write_json(public_dir / "submission.schema.json", _submission_schema())
     _write_json(public_dir / "observation.schema.json", _observation_schema())
@@ -725,6 +730,7 @@ def _observation_template(
             "environment": "unknown",
             "toolset": "unknown",
             "network": "unknown",
+            "wall_time_scope": "unknown",
             "seed": trial,
         },
         "terminal_status": "blocked",
@@ -1157,13 +1163,21 @@ def _metric(run: Mapping[str, Any], name: str) -> Optional[float]:
     return None if value is None else float(value)
 
 
-def _within_budget(run: Mapping[str, Any], case: Mapping[str, Any]) -> Optional[bool]:
+def _efficiency_fields(comparison_mode: str) -> Tuple[str, ...]:
+    return CAMPAIGN_POLICY if comparison_mode == "policy-only" else CAMPAIGN_WHOLE_SYSTEM
+
+
+def _within_budget(
+    run: Mapping[str, Any],
+    case: Mapping[str, Any],
+    fields: Sequence[str] = BUDGET_FIELDS,
+) -> Optional[bool]:
     if not run["verified_success"]:
         return False
-    values = {field: _metric(run, field) for field in BUDGET_FIELDS}
+    values = {field: _metric(run, field) for field in fields}
     if any(value is None for value in values.values()):
         return None
-    return all(values[field] <= float(case["budgets"][field]) for field in BUDGET_FIELDS)
+    return all(values[field] <= float(case["budgets"][field]) for field in fields)
 
 
 def _median(values: Sequence[float]) -> Optional[float]:
@@ -1177,15 +1191,20 @@ def _mad(values: Sequence[float]) -> Optional[float]:
     return statistics.median(abs(value - center) for value in values)
 
 
-def _arm_stats(runs: Sequence[Mapping[str, Any]], cases: Mapping[str, Mapping[str, Any]]) -> Mapping[str, Any]:
+def _arm_stats(
+    runs: Sequence[Mapping[str, Any]],
+    cases: Mapping[str, Mapping[str, Any]],
+    comparison_mode: str = "policy-only",
+) -> Mapping[str, Any]:
     metrics: Dict[str, List[float]] = defaultdict(list)
     budget_results: List[bool] = []
+    budget_fields = _efficiency_fields(comparison_mode)
     for run in runs:
         for metric in (*METRICS, "total_tokens"):
             value = _metric(run, metric)
             if value is not None:
                 metrics[metric].append(value)
-        budget = _within_budget(run, cases[str(run["case_id"])])
+        budget = _within_budget(run, cases[str(run["case_id"])], budget_fields)
         if budget is not None:
             budget_results.append(budget)
     return {
@@ -1308,6 +1327,15 @@ def _check_pair_controls(
         unknown = [field for field in fields if left[slot]["controls"][field] == "unknown"]
         if unknown:
             _fail("report", f"comparison cannot pair unknown required controls at {slot}: {unknown}")
+        if (
+            comparison_mode == "whole-system"
+            and left[slot]["controls"]["wall_time_scope"] != "external-runner-elapsed"
+        ):
+            _fail(
+                "report",
+                f"slot {slot} whole-system speed requires wall_time_scope "
+                "'external-runner-elapsed'",
+            )
 
 
 def _pair_quality_verdict(
@@ -1340,6 +1368,7 @@ def _pair_efficiency_verdict(
     baseline_runs: Sequence[Mapping[str, Any]],
     candidate_runs: Sequence[Mapping[str, Any]],
     cases: Mapping[str, Mapping[str, Any]],
+    comparison_mode: str = "policy-only",
 ) -> Tuple[str, List[str]]:
     baseline = {(str(run["case_id"]), int(run["trial"])): run for run in baseline_runs}
     candidate = {(str(run["case_id"]), int(run["trial"])): run for run in candidate_runs}
@@ -1347,21 +1376,27 @@ def _pair_efficiency_verdict(
     improvements: List[str] = []
     tied: List[str] = []
     missing: List[str] = []
+    fields = _efficiency_fields(comparison_mode)
+    budget_label = "Success@Budget" if comparison_mode == "policy-only" else "Success@TimeBudget"
 
     def format_cost(field: str, value: float) -> str:
         return _fmt_ms(value) if field == "wall_time_ms" else _fmt_number(value)
 
     for case_id in sorted(cases):
         slots = sorted(slot for slot in baseline if slot[0] == case_id)
-        base_budget_values = [_within_budget(baseline[slot], cases[case_id]) for slot in slots]
-        candidate_budget_values = [_within_budget(candidate[slot], cases[case_id]) for slot in slots]
+        base_budget_values = [
+            _within_budget(baseline[slot], cases[case_id], fields) for slot in slots
+        ]
+        candidate_budget_values = [
+            _within_budget(candidate[slot], cases[case_id], fields) for slot in slots
+        ]
         if any(value is None for value in (*base_budget_values, *candidate_budget_values)):
-            missing.append(f"{case_id}: Success@Budget")
+            missing.append(f"{case_id}: {budget_label}")
         else:
             base_budget = sum(bool(value) for value in base_budget_values) / len(slots)
             candidate_budget = sum(bool(value) for value in candidate_budget_values) / len(slots)
             detail = (
-                f"{case_id}: Success@Budget {_fmt_rate(candidate_budget)} vs "
+                f"{case_id}: {budget_label} {_fmt_rate(candidate_budget)} vs "
                 f"{_fmt_rate(base_budget)}"
             )
             if candidate_budget < base_budget:
@@ -1371,7 +1406,7 @@ def _pair_efficiency_verdict(
             else:
                 tied.append(detail)
 
-        for field in CORE_EFFICIENCY_METRICS:
+        for field in fields:
             pairs = [(_metric(baseline[slot], field), _metric(candidate[slot], field)) for slot in slots]
             if any(base is None or cand is None for base, cand in pairs):
                 missing.append(f"{case_id}: {field}")
@@ -1421,13 +1456,17 @@ def _pair_verdict(
     _check_pair_controls(baseline, candidate, comparison_mode)
     quality, quality_details = _pair_quality_verdict(baseline, candidate, cases)
     efficiency, efficiency_details = _pair_efficiency_verdict(
-        baseline_runs, candidate_runs, cases
+        baseline_runs, candidate_runs, cases, comparison_mode
     )
     if quality == "regression":
         overall = "regression"
     elif quality == "improved":
         if efficiency == "improved":
-            overall = "pareto-improved"
+            overall = (
+                "pareto-improved"
+                if comparison_mode == "policy-only"
+                else "quality-and-speed-improved"
+            )
         elif efficiency == "tied":
             overall = "quality-improved"
         elif efficiency == "insufficient-data":
@@ -1435,7 +1474,7 @@ def _pair_verdict(
         else:
             overall = "trade-off"
     elif efficiency == "improved":
-        overall = "efficiency-improved"
+        overall = "efficiency-improved" if comparison_mode == "policy-only" else "speed-improved"
     elif efficiency == "regression":
         overall = "regression"
     elif efficiency == "trade-off":
@@ -1450,6 +1489,7 @@ def _pair_verdict(
         "efficiency_verdict": efficiency,
         "quality_details": quality_details,
         "efficiency_details": efficiency_details,
+        "efficiency_basis": list(_efficiency_fields(comparison_mode)),
         "details": quality_details + efficiency_details,
     }
 
@@ -1485,10 +1525,11 @@ def render_campaign_report(
     if reference:
         ordered.remove(reference)
         ordered.insert(0, reference)
-    stats = {arm: _arm_stats(by_arm[arm], cases) for arm in ordered}
+    comparison_mode = str(campaign["comparison_mode"])
+    stats = {arm: _arm_stats(by_arm[arm], cases, comparison_mode) for arm in ordered}
     pairs = []
     for baseline, candidate in itertools.combinations(ordered, 2):
-        decision = _pair_verdict(by_arm[baseline], by_arm[candidate], cases, str(campaign["comparison_mode"]))
+        decision = _pair_verdict(by_arm[baseline], by_arm[candidate], cases, comparison_mode)
         pairs.append({"baseline": baseline, "candidate": candidate, **decision})
 
     output = io.StringIO()
@@ -1502,9 +1543,11 @@ def render_campaign_report(
     if campaign["comparison_mode"] == "policy-only":
         print("Attribution: workflow policy only; model, reasoning, repo, environment, tools, network, and seed are paired.", file=output)
     else:
-        print("Attribution: whole-system stack only; model/environment/tool differences are part of the measured system and are not a policy-only causal claim.", file=output)
+        print("Attribution: whole-system stack only; model/environment/tool differences are part of the measured system and are not a policy-only causal claim. Speed uses controlled wall time; raw tokens and tool calls are diagnostic only.", file=output)
     print(file=output)
-    print("| Arm | n | Verified Success | Success@Budget | metric coverage | Wall median ± MAD | Tokens | Tool calls |", file=output)
+    budget_label = "Success@Budget" if comparison_mode == "policy-only" else "Success@TimeBudget"
+    counter_suffix = " (diagnostic)" if comparison_mode == "whole-system" else ""
+    print(f"| Arm | n | Verified Success | {budget_label} | metric coverage | Wall median ± MAD | Tokens{counter_suffix} | Tool calls{counter_suffix} |", file=output)
     print("|---|---:|---:|---:|---:|---:|---:|---:|", file=output)
     for arm in ordered:
         item = stats[arm]
@@ -1520,7 +1563,8 @@ def render_campaign_report(
     print(file=output)
     print("## Pairwise decisions", file=output)
     print(file=output)
-    print("| Baseline | Candidate | Quality | Efficiency | Overall | Details |", file=output)
+    efficiency_label = "Efficiency" if comparison_mode == "policy-only" else "Speed"
+    print(f"| Baseline | Candidate | Quality | {efficiency_label} | Overall | Details |", file=output)
     print("|---|---|---|---|---|---|", file=output)
     for pair in pairs:
         details = "; ".join(pair["details"]) or "—"
@@ -1534,11 +1578,16 @@ def render_campaign_report(
     if not campaign.get("claimable_design"):
         print("Claim status: screening only; the packet lacks a full, >=3-trial, materialized-fixture design.", file=output)
     elif any(pair["efficiency_verdict"] == "insufficient-data" for pair in pairs):
-        print("Claim status: partial; quality remains decidable, but unknown core metrics block an efficiency claim.", file=output)
+        blocked_claim = "speed" if comparison_mode == "whole-system" else "efficiency"
+        print(f"Claim status: partial; quality remains decidable, but unknown core metrics block a {blocked_claim} claim.", file=output)
     else:
         print("Claim status: eligible for the pairwise conclusions above; retain the sealed submissions and replay evidence.", file=output)
-    print(metrics_basis(CORE_EFFICIENCY_METRICS), file=output)
-    print("No weighted overall score is computed. Quality and paired per-case efficiency remain separate; an efficiency regression turns an otherwise improved result into a trade-off.", file=output)
+    verdict_fields = _efficiency_fields(comparison_mode)
+    print(metrics_basis(verdict_fields), file=output)
+    if comparison_mode == "whole-system":
+        print("Cost verdict: unavailable unless arms provide a future standardized actual-cost metric; raw provider counters do not decide the result.", file=output)
+    decision_axis = "speed" if comparison_mode == "whole-system" else "efficiency"
+    print(f"No weighted overall score is computed. Quality and paired per-case {decision_axis} remain separate; a {decision_axis} regression turns an otherwise improved result into a trade-off.", file=output)
     report_json = {
         "campaign_id": campaign["campaign_id"],
         "comparison_mode": campaign["comparison_mode"],

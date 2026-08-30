@@ -3,6 +3,8 @@
 这条协议解决的是“Cosmos 当前版能不能和原生模型、Superpowers、Loop Engineer、其他
 harness 或闭源工作流，用同一张考卷比较”。它与本仓库已有的 previous/candidate session 并列，
 不替代后者：同项目改 skill 优先用本地 A/B；跨项目或跨宿主才导出 campaign。
+可声明的 whole-system 速度结论要求 campaign/observation/judged-run v2；缺少统一
+wall-time scope 的包只能用于 screening，需从冻结 fixture 重新导出和执行。
 
 ## 一个 campaign 是什么
 
@@ -70,11 +72,14 @@ python3 campaign.py validate-submission . /tmp/arm-a
 提交中只有 runner 观察：终态、控制变量、可为空的真实 metric、以及逐条 requirement evidence。
 它没有 `verified_success` 或 `grader_results`，因为参评工作流不能给自己判卷。不可观测的 token、
 工具调用或时间必须写 JSON `null`，不能用 0 冒充；报告把它显示为 unknown，并阻止速度/成本
-改善声明。`terminal_status=success` 至少要有可重放命令或已保留 artifact。
+改善声明。whole-system 的 wall time 必须由考卷外层 runner 从首条 prompt 发出计到终态完成，
+并写 `controls.wall_time_scope=external-runner-elapsed`；供应商内部 active-turn 时长不能替代。
+`terminal_status=success` 至少要有可重放命令或已保留 artifact。
 
 ZCode 参评时，在封存前用 [ZCode history telemetry adapter](adapters/zcode.md) 从本地历史自动
 填充活跃时间、Token、工具调用和 retry，并把原始 `zcode-history-metrics.json` 放进 artifacts。
-它按根任务 turn 时长计墙钟、排除人类 idle，不重复计算并行子任务时间。
+它按根任务 turn 时长计活跃时间、排除人类 idle，不重复计算并行子任务时间；这个值可用于同
+ZCode 遥测口径的 policy-only 比较，whole-system 速度仍使用外层 runner 的 elapsed time。
 
 ## 私有判卷与 N 路报告
 
@@ -103,17 +108,20 @@ python3 scripts/eval_campaign.py report .eval-campaigns/history-search-v1 \
   --output /tmp/campaign-report.md --json-output /tmp/campaign-report.json
 ```
 
-报告对全部 arm 做 N 选 2 的 pairwise 判断，并列展示 Verified Success、Success@Budget、指标
-覆盖率、wall time/MAD、token 和 tool calls。每对输出三个结论：质量、效率、总裁决。质量按
-每个 case 的 Verified Success；效率先在相同 `(case_id, trial)` 上配对，再按 case 比较
-Success@Budget 与 wall time、总 Token、工具调用的配对中位差。任一 case 的预算成功率下降不能
-叫效率提升；一部分成本改善、一部分退化是 `trade-off`。质量下降一定 regression；质量提升但
-效率退化仍是 trade-off，两个事实分别保留。只有质量和效率同时改善才是
-`pareto-improved`。核心成本缺失令效率和总裁决 `insufficient-data`，但不掩盖单独的质量结论。
+报告对全部 arm 做 N 选 2 的 pairwise 判断，并列展示 Verified Success、预算成功率、指标覆盖率、
+wall time/MAD、token 和 tool calls。质量始终按每个 case 的 Verified Success。`policy-only`
+在相同 `(case_id, trial)` 上比较 Success@Budget 与 wall time、总 Token、工具调用；这些控制项和
+遥测口径相同，才允许 `pareto-improved`。`whole-system` 只用受控 wall time 与
+Success@TimeBudget 裁决速度，原始 Token/tool call 仅作诊断：各 provider/harness 的缓存与动作
+计数不同，不能拿来决定胜负。质量与速度同时改善写成 `quality-and-speed-improved`，只变快写成
+`speed-improved`；没有标准化实际费用时不声明“更省”或 Pareto。wall time 缺失令速度和总裁决
+`insufficient-data`，但不掩盖质量结论。
 
 ## 公平性边界
 
 - 每个 slot 用 fresh fixture；不要让一个 arm 看到另一个 arm 的产物、grader 或额外人类提示。
+- 固定端口或本机服务必须串行运行，或为每个 slot 分配隔离端口/网络命名空间；健康检查还要验证
+  fixture/服务身份，不能把另一个 arm 的现成服务当作自己的通过证据。
 - `user-script.jsonl` 是固定人类交互带。真实工作流发起澄清时，只按预先写入的事件回应；没有的
   回应记为 blocked/clarification，不临场帮某一边补需求。
 - 公开 requirement 允许参评方知道验收目标；grader procedure、rubric、calibration 与 expected
@@ -122,3 +130,5 @@ Success@Budget 与 wall time、总 Token、工具调用的配对中位差。任�
   仍应使用受控 runner、原始 trace、隔离环境和可重放 artifact。
 - 工具不启动 agent、不自动安装依赖，也不假装 prose grader 已执行。它冻结考卷、校验提交、合并
   独立判卷并比较；具体 harness 只负责在自己的环境里完成公开任务。
+- campaign 是显式开启的事后评估旁路；不得把它的遥测、grader 或对照执行接入普通
+  `/spec → /tdd`。

@@ -10,7 +10,8 @@ In order:
    turn, cap 3. Facts still in flight are 待决. Classify provisional units with
    [CARD-TEST.md](CARD-TEST.md), but write no PRD or issue yet. Compressed intake (SKILL.md): a
    delegation that already fixes goal, acceptance, verification, and constraints leaves nothing to
-   discover — proceed to step 2.
+   discover. Use compressed intake only when that source is a repo-relative tracked file available
+   to a fresh checkout; otherwise plan an ordinary PRD, without reopening settled decisions.
 2. **Prove readiness.** For every proposed verifier harness, inspect project config and the cached
    commands in `CODEBASE.md`'s `## Verifier commands` zone (absent → proceed and backfill lazily;
    a legacy `docs/agents/domain.md` → read it once, then offer `/cosmos-setup` to fold it);
@@ -34,19 +35,20 @@ In order:
    its 对账报告 so the user sees one gate, not two.
 4. **Write.** Persist only the aligned design: for graphical UI write the canonical
    `.scratch/<feat>/experience-contract.json` first; write the PRD when warranted, then every issue
-   in dependency order with `status: ready`. Compressed intake writes the PRD as a stub that names
-   the user's document as requirements-of-record; the readiness register, issues, and gates are
-   written unchanged. Frontmatter carries `touches:` + `test_paths:` per
+   in dependency order with `status: ready`. Compressed intake writes the PRD as a stub that records
+   the tracked requirements-of-record path and content hash; the readiness register, issues, and
+   gates are written unchanged. Frontmatter carries `touches:` + `test_paths:` per
    [CARD-TEST.md](CARD-TEST.md). No draft artifact or extra status is created. SUPERSEDE writes
    only after the combined receipt/对账 is aligned ([SUPERSEDE.md](SUPERSEDE.md)).
 5. **Gate.** Whole-tree: `python ~/.claude/skills/verify-artifacts.py` (in a repo checkout:
    `engineering/verify-artifacts.py`), run with the target repo root as cwd. `python3` only if
    `python` is missing; never retry python3 after a non-zero gate exit.
-6. **Cold executor audit.** Re-read each card written this run as a fresh agent that sees nothing
-   else. Replay each recorded P# without setup; an environment drift, an AC that cannot run, a
-   做什么/AC mismatch, or a hidden dependency → fix now or demote to open. PRD written this run or
-   ≥5 cards written → invoke `/atk` scoped to this run's artifacts; findings that falsify
-   a card → 待决, the rest fix now and note in 已落盘.
+6. **Cold-read executor audit.** Re-read each card written this run as a fresh agent that sees
+   nothing else. Check that every AC points to a recorded passed P#, its exact action/evidence is
+   present, and no 做什么/AC mismatch or hidden dependency remains. Do not execute P# again here:
+   `/tdd` replays it immediately before editing as the environment-drift guard. Fix local defects
+   now or demote the card to open. PRD written this run or ≥5 cards written → invoke `/atk` scoped
+   to this run's artifacts; findings that falsify a card → 待决, the rest fix now and note in 已落盘.
 7. **Report.** Print: 已落盘（paths or （无））；待决（unanswered questions, if any）；
    尚未明确（fog, if any）；对齐摘要（goal + P# readiness + verification evidence + slice titles, ≤8 lines）；
    下一句：omit if 待决 is non-empty; else `/grill` if an

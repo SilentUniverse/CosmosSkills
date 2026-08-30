@@ -24,11 +24,12 @@ opt into an agent-runnable experience contract; every non-graphical project foll
 workflow with no experience field, artifact, rubric, or review axis.
 
 A delegation that already fixes the acceptance behaviors, the verification commands, and the
-constraints closes the decision frontier: do not re-derive or restate it. Run the ordinary
-readiness preflights, then present a receipt whose 目标回放 names the user's document as the
-requirements-of-record, with the P# register and the proposed slice DAG. The write step then
-produces a PRD stub pointing at that document instead of a restated PRD. The alignment gate is
-never compressed away, and one open decision reopens the full loop.
+constraints closes the decision frontier: do not re-derive or restate it. A compressed intake is
+safe only when that delegation is a repo-relative tracked file readable from a fresh checkout; the
+receipt and PRD stub record its path and content hash. Chat, URLs, Downloads, mutable external files,
+and untracked files use the ordinary PRD so the executor receives a durable normalized contract.
+Run the ordinary readiness preflights, then present the P# register and proposed slice DAG. The
+alignment gate is never compressed away, and one open decision reopens the full loop.
 
 ## 1. Locate
 

@@ -76,7 +76,8 @@ arm 必须在原生方案、Superpowers、Loop Engineer 或任意其他 harness 
 报告并列展示：
 
 - **Verified Success**：所有 requirement 的 grader 都通过，并且有可重放 evidence。
-- **Success@Budget**：Verified Success 且 wall time、token、tool call 都在 case budget 内。
+- **Success@Budget**：同遥测口径下，Verified Success 且 wall time、token、tool call 都在 case
+  budget 内。
 - **速度**：time-to-first-dispatchable、time-to-first-green、total wall time。
 - **成本**：input/output token、tool calls、retries。
 - **对齐成本**：alignment rounds（展示回执后的校正轮数；首次展示不算校正）。
@@ -84,11 +85,12 @@ arm 必须在原生方案、Superpowers、Loop Engineer 或任意其他 harness 
   replan、executor 发现的新 invariant。
 - **风险**：scope leakage；以及 wall time 的 MAD（跨次波动）。
 
-交接摩擦故意保留为诊断向量，不把不同错误拍脑袋加权成一个数。跨项目报告把裁决拆成质量与
-效率：质量按 Verified Success；效率在相同 case/trial 上配对，逐 case 比较 Success@Budget、
-活跃 wall time、总 Token 和工具调用。任一预算成功率下降不叫效率提升；一快两慢或跨 case
-好坏并存明确标为 trade-off。质量提高但效率下降也只叫 trade-off，不能用于“又快又好”的声明。
-诊断向量为空不掩盖核心效率数据，核心成本为空才使效率 `insufficient-data`。
+交接摩擦故意保留为诊断向量，不把不同错误拍脑袋加权成一个数。同 harness 的本地 session 和
+`policy-only` campaign 在相同 case/trial 上比较 Success@Budget、活跃 wall time、总 Token 和
+工具调用。`whole-system` campaign 的跨 provider 计数口径不可比，只用受控 wall time 与
+Success@TimeBudget 决定速度；Token/tool call 仍展示为诊断数据，不能推导“更省”。质量提高但
+速度下降仍是 trade-off；wall time 必须来自统一的外层 runner elapsed 边界，供应商内部 active
+time 不能混用。wall time 缺失使 whole-system 速度结论 `insufficient-data`。
 
 ## Case 与 evidence
 

@@ -248,8 +248,10 @@ states, all-zero `runtime_gate` counters; `graded` adds `rubric` with the
 [EXPERIENCE-RUBRIC.md](code-review/EXPERIENCE-RUBRIC.md) shape and floors). Evidence
 `.scratch/<feat>/evidence/<slug>-experience.json` is written only after the operated states ran:
 verdict `pass`, one entry per declared state with a retained real screenshot (signature-checked),
-the same zero counters, and for `graded` a `judge` block whose floors the gate re-checks. Both
-paths stay repo-relative under `.scratch/<feat>/`. Canonical JSON examples, exact field rules,
+the same zero counters, and for `graded` a `judge` block whose floors the gate re-checks. Runtime
+artifacts reject `rubric`/`judge` fields; a scored claim must opt into `graded` before execution
+rather than smuggling an unchecked score into runtime evidence. Both paths stay repo-relative under
+`.scratch/<feat>/`. Canonical JSON examples, exact field rules,
 and the rubric dimensions live in [EXPERIENCE-RUBRIC.md](code-review/EXPERIENCE-RUBRIC.md).
 
 ## Wave ledger — `.scratch/<feat>/wave-ledger.json`
@@ -325,6 +327,10 @@ created: 2026-06-18
 ```
 
 The skills read the highest `version` whose file is not listed in any other file's `supersedes`.
+A compressed PRD is recognizable by `## 需求记录源`; that section must contain `- 路径：` with a
+backticked repo-relative Git-tracked file and `- SHA-256：` with its 64-character lowercase digest.
+The gate reads and hashes the source on demand. Ordinary PRDs omit this section and pay no Git/hash
+probe.
 
 ## SUMMARY files — `.scratch/<feat>/SUMMARY.md` (generated, not authored)
 

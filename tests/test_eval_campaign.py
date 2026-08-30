@@ -1,6 +1,7 @@
 import importlib.util
 import json
 import shutil
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -114,6 +115,7 @@ class CampaignTests(unittest.TestCase):
                 "environment": "env-a",
                 "toolset": "runner-a",
                 "network": "off",
+                "wall_time_scope": "external-runner-elapsed",
             }
         )
         observation["metrics"] = metric_values(wall, tokens, tools)
@@ -209,6 +211,14 @@ class CampaignTests(unittest.TestCase):
             shutil.copytree(output / "public", detached)
             detached_manifest = campaign.verify_campaign(detached)
             self.assertEqual(manifest["public_payload_sha256"], detached_manifest["public_payload_sha256"])
+            completed = subprocess.run(
+                ["python3", "campaign.py", "verify", "."],
+                cwd=detached,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(0, completed.returncode, completed.stderr)
 
     def test_campaign_tampering_is_detected(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -268,22 +278,31 @@ class CampaignTests(unittest.TestCase):
             self.assertIn("Other harness", report)
             self.assertIn("whole-system stack only", report)
             verdicts = {item["verdict"] for item in report_json["pairwise"]}
-            self.assertIn("efficiency-improved", verdicts)
+            self.assertIn("speed-improved", verdicts)
             self.assertIn("regression", verdicts)
             self.assertIn("Quality", report)
-            self.assertIn("Efficiency", report)
+            self.assertIn("Speed", report)
 
-    def test_unknown_metrics_remain_unknown_and_block_claim(self):
+    def test_whole_system_ignores_unknown_provider_counters_for_verdict(self):
         with tempfile.TemporaryDirectory() as directory:
             output, _ = self.export(directory)
             arm_a = self.make_judged(output, directory, "arm-a")
             arm_b = self.make_judged(output, directory, "arm-b", unknown_metric="tool_calls")
             _, report_json = campaign.render_campaign_report(output, [arm_a, arm_b], reference="arm-a")
-            self.assertEqual("insufficient-data", report_json["pairwise"][0]["verdict"])
-            self.assertEqual(
-                "insufficient-data",
-                report_json["pairwise"][0]["efficiency_verdict"],
-            )
+            pair = report_json["pairwise"][0]
+            self.assertEqual("tied", pair["verdict"])
+            self.assertEqual("tied", pair["efficiency_verdict"])
+            self.assertEqual(["wall_time_ms"], pair["efficiency_basis"])
+
+    def test_whole_system_unknown_wall_time_blocks_speed_claim(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output, _ = self.export(directory)
+            arm_a = self.make_judged(output, directory, "arm-a")
+            arm_b = self.make_judged(output, directory, "arm-b", unknown_metric="wall_time_ms")
+            _, report_json = campaign.render_campaign_report(output, [arm_a, arm_b], reference="arm-a")
+            pair = report_json["pairwise"][0]
+            self.assertEqual("insufficient-data", pair["verdict"])
+            self.assertEqual("insufficient-data", pair["efficiency_verdict"])
 
     def test_process_metric_gaps_do_not_hide_core_efficiency_result(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -304,7 +323,36 @@ class CampaignTests(unittest.TestCase):
             pair = report_json["pairwise"][0]
             self.assertEqual("tied", pair["quality_verdict"])
             self.assertEqual("improved", pair["efficiency_verdict"])
-            self.assertEqual("efficiency-improved", pair["verdict"])
+            self.assertEqual("speed-improved", pair["verdict"])
+
+    def test_whole_system_provider_counters_cannot_overrule_faster_delivery(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output, _ = self.export(directory)
+            arm_a = self.make_judged(output, directory, "arm-a", wall=900, tokens=70, tools=7)
+            arm_b = self.make_judged(
+                output, directory, "arm-b", wall=700, tokens=130, tools=13, model="model-b"
+            )
+            _, report_json = campaign.render_campaign_report(
+                output, [arm_a, arm_b], reference="arm-a"
+            )
+            pair = report_json["pairwise"][0]
+            self.assertEqual("improved", pair["efficiency_verdict"])
+            self.assertEqual("speed-improved", pair["verdict"])
+
+    def test_policy_only_still_counts_paired_token_regression(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output, _ = self.export(directory, comparison="policy-only")
+            arm_a = self.make_judged(output, directory, "arm-a", wall=900, tokens=80, tools=8)
+            arm_b = self.make_judged(output, directory, "arm-b", wall=700, tokens=120, tools=8)
+            _, report_json = campaign.render_campaign_report(
+                output, [arm_a, arm_b], reference="arm-a"
+            )
+            pair = report_json["pairwise"][0]
+            self.assertEqual("trade-off", pair["efficiency_verdict"])
+            self.assertEqual("trade-off", pair["verdict"])
+            self.assertEqual(
+                ["wall_time_ms", "total_tokens", "tool_calls"], pair["efficiency_basis"]
+            )
 
     def test_quality_gate_dominates_efficiency_regression(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -368,6 +416,18 @@ class CampaignTests(unittest.TestCase):
             arm_a = self.make_judged(output, directory, "arm-a", model="model-a")
             arm_b = self.make_judged(output, directory, "arm-b", model="model-b")
             with self.assertRaises(campaign.CampaignError):
+                campaign.render_campaign_report(output, [arm_a, arm_b], reference="arm-a")
+
+    def test_whole_system_rejects_provider_internal_active_time(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output, _ = self.export(directory)
+            arm_a = self.make_judged(output, directory, "arm-a")
+            arm_b = self.make_judged(output, directory, "arm-b")
+            for path in (arm_a, arm_b):
+                rows = list(campaign._iter_jsonl(path))
+                rows[0]["controls"]["wall_time_scope"] = "zcode-active-turns"
+                campaign._write_jsonl(path, rows)
+            with self.assertRaisesRegex(campaign.CampaignError, "external-runner-elapsed"):
                 campaign.render_campaign_report(output, [arm_a, arm_b], reference="arm-a")
 
     def test_report_recomputes_verdict_instead_of_trusting_judged_boolean(self):

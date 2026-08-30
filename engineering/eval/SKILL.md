@@ -69,10 +69,11 @@ python3 scripts/eval.py session-report .eval-runs/<name> --require-improvement \
 ```
 
 `regression` rejects the candidate. `trade-off` needs the user's explicit choice. `tied` means no
-verified improvement. Campaign reports expose quality and paired efficiency separately.
-`quality-improved` supports only a quality claim; `efficiency-improved` supports only an efficiency
-claim; only `pareto-improved` from a claimable full session supports an unqualified “better/faster
-and better” claim. Put the retained report summary/evidence link in the
+verified improvement. Same-harness session reports expose quality and paired efficiency; only
+`pareto-improved` from a claimable full session supports an unqualified “better/faster and better”
+claim. A whole-system campaign uses controlled wall time for `speed-improved` or
+`quality-and-speed-improved`; provider-specific Token/tool counters stay diagnostic and cannot
+support a cheaper/more-efficient claim. Put the retained report summary/evidence link in the
 upstream change; raw sessions remain local and ignored by default. After merge/update, turn every
 real failure into a permanent regression case. Eval closes simply by leaving this skill:
 there is no global hook or active flag to slow later development.
@@ -95,4 +96,5 @@ exported `public/campaign.py` to verify, initialize, and seal one opaque-arm sub
 record observations and evidence but never self-assign `verified_success`. After blind independent
 assessment through an arm-anonymous `prepare-judging` packet, use `judge`, then `report` over two or
 more judged JSONL files. Reveal arm labels only in the final report. Preserve unavailable metrics as
-`null`; `insufficient-data` blocks an improvement claim rather than treating unknown as zero.
+`null`; missing wall time blocks a whole-system speed claim rather than treating unknown as zero.
+This rail remains post-hoc: do not add campaign telemetry, hooks, or graders to `/spec` or `/tdd`.

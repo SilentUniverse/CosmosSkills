@@ -26,6 +26,10 @@ is not added again, so parallel subagents do not inflate elapsed work. Child Tok
 count because they are consumed resources. Gaps between turns are excluded, including overnight
 human pauses. Cancelled turns retain their actual recorded duration and cost.
 
-The adapter fills `wall_time_ms`, input/output Token, tool calls, and retry count. ZCode input Token
-may include cached/context accounting, so compare it only under the same telemetry/runtime scope.
-The script refuses to mutate a submission after `seal.json` exists.
+The adapter fills `wall_time_ms`, input/output Token, tool calls, and retry count. Its wall time is
+ZCode active-turn duration, not an external-runner stopwatch, so it is eligible for policy-only
+comparison under the same ZCode scope but not for a whole-system speed verdict. Whole-system arms
+must retain the adapter output as diagnostics and put externally measured elapsed time in the
+observation with `controls.wall_time_scope=external-runner-elapsed`. ZCode input Token may include
+cached/context accounting, so compare it only under the same telemetry/runtime scope. The script
+refuses to mutate a submission after `seal.json` exists.

@@ -25,7 +25,7 @@ CosmosSkills 是一套给单人开发者的 AI 编程工程方法论：29 个 Cl
 - **九条定律**：从 Hoare、Dijkstra、Parnas、Ousterhout 等软件工程经典提炼的九个问题。不给规范，让 AI 自己推导出好代码
 - **机器门**：`verify-artifacts.py` 校验每份工件——完成记录点名的测试文件必须真实存在于磁盘，误删当场红灯；依赖图有环、绕过对账的需求变更全部拦截
 - **闭环工作流**：`/spec` 先准备环境、跑通验证器预检，再用设计回执对齐并拆卡 → `/tdd` 只需实现和举证 → 双轴审查 + 一屏报告 → `/tidy` 回收
-- **按需行为 eval**：默认关闭；项目内保留 previous / candidate / no-skill 配对实验，跨项目则导出同一份独立公开考卷，比较 Verified Success、Success@Budget、速度、成本与交接摩擦
+- **按需行为 eval**：默认关闭；项目内保留 previous / candidate / no-skill 配对实验，跨项目则导出同一份独立公开考卷，比较 Verified Success、速度、同口径成本与交接摩擦
 - **单人本地优先**：本地 markdown 队列（ready | done 两态），零外部服务；中文对话、英文思考与代码；面向人的输出固定四件套、一句一行
 
 完整背景故事与设计出处见 [中文版](docs/introduction.zh.md) · [English](docs/introduction.en.md)

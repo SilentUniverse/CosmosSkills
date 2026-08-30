@@ -1,13 +1,13 @@
 """Shared verdict metric sets so one verdict name means one computation everywhere.
 
-CAMPAIGN_CORE composes cross-harness campaign verdicts: whole-system arms differ in
-harness and provider, and process counters (alignment rounds, repairs, retries) are not
-comparable across that boundary, so only resource metrics decide campaign verdicts.
-SESSION_FULL composes same-harness session reports, where every lower-is-better metric
-was measured under one telemetry scope and may take part.
+Whole-system campaigns can compare elapsed time from the controlled runner. Raw token and tool-call
+counters remain diagnostic because providers and harnesses account for them differently.
+Policy-only campaigns and same-harness sessions may use those counters when telemetry scope is
+paired.
 """
 
-CAMPAIGN_CORE = ("wall_time_ms", "total_tokens", "tool_calls")
+CAMPAIGN_WHOLE_SYSTEM = ("wall_time_ms",)
+CAMPAIGN_POLICY = ("wall_time_ms", "total_tokens", "tool_calls")
 
 SESSION_FULL = (
     "wall_time_ms",
@@ -26,5 +26,10 @@ SESSION_FULL = (
 
 def metrics_basis(fields):
     """One-line provenance for reports: which set decided the verdict."""
-    name = "campaign-core" if tuple(fields) == CAMPAIGN_CORE else "session-full"
+    names = {
+        CAMPAIGN_WHOLE_SYSTEM: "campaign-whole-system-speed",
+        CAMPAIGN_POLICY: "campaign-policy-efficiency",
+        SESSION_FULL: "session-full",
+    }
+    name = names.get(tuple(fields), "custom")
     return "Verdict metric basis: %s (%s)" % (name, ", ".join(fields))

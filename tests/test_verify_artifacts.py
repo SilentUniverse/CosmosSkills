@@ -1,8 +1,10 @@
 import base64
+import hashlib
 import importlib.util
 import io
 import json
 import re
+import subprocess
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -20,6 +22,33 @@ SPEC.loader.exec_module(verify_artifacts)
 PNG_1X1 = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
 )
+
+
+def plant_compressed_prd(root, *, tracked=True, digest=None):
+    source = root / "docs" / "requirements" / "search.md"
+    source.parent.mkdir(parents=True)
+    source.write_text("Search requirements.\n", encoding="utf-8")
+    subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+    if tracked:
+        subprocess.run(["git", "add", "docs/requirements/search.md"], cwd=root, check=True)
+    observed = hashlib.sha256(source.read_bytes()).hexdigest()
+    prd = root / ".scratch" / "search" / "PRD.md"
+    prd.write_text(
+        """---
+type: prd
+feature: search
+version: 1
+created: 2026-08-31
+---
+
+## 需求记录源
+
+- 路径：`docs/requirements/search.md`
+- SHA-256：`%s`
+- 完整性：该文档已固定 acceptance、verification 与 constraints。
+""" % (digest or observed),
+        encoding="utf-8",
+    )
 
 
 def issue_body(
@@ -220,6 +249,27 @@ class VerifyArtifactsV2Tests(unittest.TestCase):
         self.assertEqual(1, result)
         self.assertIn("missing ## 验证设计", output)
 
+    def test_compressed_prd_accepts_tracked_source_with_matching_hash(self):
+        result, output = self.run_gate(
+            issue_body(), mutate=lambda root: plant_compressed_prd(root)
+        )
+        self.assertEqual(0, result, output)
+
+    def test_compressed_prd_rejects_untracked_source(self):
+        result, output = self.run_gate(
+            issue_body(), mutate=lambda root: plant_compressed_prd(root, tracked=False)
+        )
+        self.assertEqual(1, result)
+        self.assertIn("requirements source is not Git-tracked", output)
+
+    def test_compressed_prd_rejects_changed_source(self):
+        result, output = self.run_gate(
+            issue_body(),
+            mutate=lambda root: plant_compressed_prd(root, digest="0" * 64),
+        )
+        self.assertEqual(1, result)
+        self.assertIn("requirements source SHA-256 mismatch", output)
+
     def test_v2_issue_requires_each_ac_mapping(self):
         result, output = self.run_gate(issue_body(second_map=False))
         self.assertEqual(1, result)
@@ -310,6 +360,43 @@ class VerifyArtifactsV2Tests(unittest.TestCase):
         result, output = self.run_gate(body, mutate=inflate_min_total)
         self.assertEqual(1, result)
         self.assertIn("no run can pass", output)
+
+    def test_runtime_contract_rejects_graded_rubric(self):
+        body = issue_body(experience_review="runtime")
+
+        def add_rubric(root):
+            path = root / ".scratch" / "search" / "experience-contract.json"
+            contract = json.loads(path.read_text(encoding="utf-8"))
+            contract["rubric"] = {
+                "id": "experience-v1",
+                "dimensions": ["readability"],
+                "score_min": 0,
+                "score_max": 4,
+                "min_total": 3,
+                "min_dimension": 3,
+            }
+            path.write_text(json.dumps(contract), encoding="utf-8")
+
+        result, output = self.run_gate(body, mutate=add_rubric)
+        self.assertEqual(1, result)
+        self.assertIn("runtime experience contract must not contain rubric", output)
+
+    def test_runtime_evidence_rejects_graded_judge(self):
+        body = issue_body(done=True, experience_review="runtime")
+
+        def add_judge(root):
+            path = root / ".scratch" / "search" / "evidence" / "01-search-experience.json"
+            evidence = json.loads(path.read_text(encoding="utf-8"))
+            evidence["judge"] = {
+                "rubric_id": "experience-v1",
+                "total": 4,
+                "dimensions": {"readability": 4},
+            }
+            path.write_text(json.dumps(evidence), encoding="utf-8")
+
+        result, output = self.run_gate(body, mutate=add_judge)
+        self.assertEqual(1, result)
+        self.assertIn("runtime experience evidence must not contain judge", output)
 
     def test_falsifier_with_comparison_operator_is_not_scrubbed(self):
         body = issue_body(experience_review="runtime").replace(

@@ -34,7 +34,7 @@ CosmosSkills 从这个现实出发，构建了一套完整的工程方法论：*
 
 **一道机器门。** 一个名为 verify-artifacts.py 的验证脚本守在提交之前：完成记录里点名的每一个测试文件，必须真实存在于磁盘上。依赖图有环、frontmatter 缺字段、v2 issue 没有逐条 AC→证据→已通过 P# 预检，全部拦截。P# 在 spec 阶段实际运行并记录环境指纹，tdd 只重放，不临时安装。
 
-**一套按需行为 eval。** 默认开发链不运行它；手动 `/eval smoke|full` 保留 previous / candidate / no-skill 的项目内配对，`/eval export` 则把不含私有判卷器的同一考卷独立发给原生方案或任意其他 harness，回收证据后盲判并做 N 路比较。报告并列展示 Verified Success、Success@Budget、速度、token、工具调用、对齐轮数与交接摩擦。没有 full 的真实 runner 结果就不声称“更快”或“更好”。
+**一套按需行为 eval。** 默认开发链不运行它；手动 `/eval smoke|full` 保留 previous / candidate / no-skill 的项目内配对，`/eval export` 则把不含私有判卷器的同一考卷独立发给原生方案或任意其他 harness，回收证据后盲判并做 N 路比较。报告并列展示 Verified Success、速度、同口径成本、对齐轮数与交接摩擦；跨 provider 的原始 token/tool call 只作诊断。没有 full 的真实 runner 结果就不声称“更快”或“更好”。
 
 **一部宪法。** 全部规则住在一个约 1300 词的 CLAUDE.md 里，遵循"一词一位"原则——每个词必须挣得自己的位置，超出预算就必须先删一条旧规则。其中包括从真实踩坑中沉淀的 Windows 编码防线（PowerShell 写文件会损坏中文内容、控制台默认 GBK、删除目录前必须核对真实文件列表）等大量实战细节。
 

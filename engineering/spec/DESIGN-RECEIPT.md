@@ -10,9 +10,10 @@ Present one compact receipt in this order:
 
 1. **目标回放** — `在 <触发/场景> 下，<角色> 能 <可观察行为>，从而 <目标>`。Add one concrete
    success example and the nearest counterexample that is intentionally not supported. Compressed
-   intake (SKILL.md): when the delegation already fixes acceptance, verification, and constraints,
-   this section names that document as the requirements-of-record in one line instead of restating
-   it.
+   intake (SKILL.md): when a repo-relative tracked delegation already fixes acceptance,
+   verification, and constraints, this section names its path and content hash as the
+   requirements-of-record in one line instead of restating it. External, mutable, or untracked
+   sources use the ordinary goal replay and PRD.
 2. **边界与不变量** — what must remain true; explicit non-goals; one-way doors (public ABI,
    schema, wire protocol) called out separately. Omit empty categories.
 3. **设计回放** — the public seam(s) and the end-to-end flow through them. Prefer one existing

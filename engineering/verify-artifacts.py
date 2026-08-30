@@ -4,9 +4,11 @@
 # Invoke: python verify-artifacts.py [<repo-root>]
 # If the `python` interpreter is missing, python3 verify-artifacts.py [<repo-root>]
 # Do not retry python3 after a non-zero gate exit (that is a contract violation).
+import hashlib
 import json
 import os
 import re
+import subprocess
 import sys
 
 SKIP_DIRS = {
@@ -47,6 +49,7 @@ YUJIAN = "\u9884\u68c0"  # 预检
 YUJIAN_CHONGFANG = "\u9884\u68c0\u91cd\u653e"  # 预检重放
 FANZHENG = "\u53cd\u8bc1"  # 反证
 TIYAN_YANZHENG = "\u4f53\u9a8c\u9a8c\u8bc1"  # 体验验证
+XUQIU_JILU_YUAN = "\u9700\u6c42\u8bb0\u5f55\u6e90"  # 需求记录源
 AC_CHECKBOX = re.compile(r"^\s*-\s*\[[ xX]\]\s+\S")
 EVIDENCE_MAP = re.compile(r"^\s*-\s*#(\d+)\s*(?:\u2192|->)")
 PREFLIGHT_LINE = re.compile(r"^\s*-\s*P(\d+)\s+" + YUJIAN + r"[\uff1a:]\s*(.+)$")
@@ -81,9 +84,10 @@ def read_lines(path):
     return text.splitlines()
 
 
-def get_frontmatter(path):
+def get_frontmatter(path, lines=None):
     """Scalars -> str; flow/block lists -> list[str]. None if absent or unterminated."""
-    lines = read_lines(path)
+    if lines is None:
+        lines = read_lines(path)
     if len(lines) < 2 or lines[0].strip() != "---":
         return None
     fm = {}
@@ -239,6 +243,47 @@ def repo_artifact_path(root, value, label, err, *, must_exist):
     return path
 
 
+def validate_requirements_source(root, prd_path, lines, err):
+    section = h2_section(lines, XUQIU_JILU_YUAN)
+    if section is None:
+        return
+    source_value = bullet_value(section, "\u8def\u5f84")  # 路径
+    digest_value = bullet_value(section, "SHA-256")
+    source = (source_value or "").strip("`")
+    expected = (digest_value or "").strip("`").lower()
+    if not source_value:
+        err("%s: compressed PRD needs 需求记录源 路径" % prd_path)
+        return
+    if not re.match(r"^[0-9a-f]{64}$", expected):
+        err("%s: compressed PRD needs a 64-character SHA-256" % prd_path)
+        return
+    source_path = repo_artifact_path(
+        root, source, "compressed PRD requirements source", err, must_exist=True
+    )
+    if source_path is None:
+        return
+    try:
+        tracked = subprocess.run(
+            ["git", "-C", root, "ls-files", "--error-unmatch", "--", source],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+    except OSError as exc:
+        err("%s: cannot verify tracked requirements source: %s" % (prd_path, exc))
+        return
+    if tracked.returncode != 0:
+        err("%s: compressed PRD requirements source is not Git-tracked: %s" % (prd_path, source))
+        return
+    with open(source_path, "rb") as handle:
+        observed = hashlib.sha256(handle.read()).hexdigest()
+    if observed != expected:
+        err(
+            "%s: compressed PRD requirements source SHA-256 mismatch: expected %s, observed %s"
+            % (prd_path, expected, observed)
+        )
+
+
 def is_retained_screenshot(path):
     """Cheap stdlib signature check; proves an image artifact, not visual quality."""
     try:
@@ -386,6 +431,8 @@ def validate_experience_contract(root, feat, path_value, mode, err):
                         "%s: graded rubric min_total %s exceeds score_max %s x %d dimensions; "
                         "no run can pass" % (path, rubric["min_total"], rubric["score_max"], dim_count)
                     )
+    elif "rubric" in data:
+        contract_error("%s: runtime experience contract must not contain rubric" % path)
     return data if valid else None
 
 
@@ -476,6 +523,8 @@ def validate_experience_evidence(root, feat, path_value, mode, contract, require
             err("%s: graded experience total is below contract threshold" % path)
         if any(value < rubric.get("min_dimension", float("inf")) for value in values):
             err("%s: graded experience dimension is below contract floor" % path)
+    elif "judge" in data:
+        err("%s: runtime experience evidence must not contain judge" % path)
 
 
 def ref_suggest(bad, candidates, self_slug):
@@ -706,7 +755,8 @@ def main(argv):
             for p in prd_files:
                 n_prds += 1
                 base = os.path.basename(p)
-                fm = get_frontmatter(p)
+                prd_lines = read_lines(p)
+                fm = get_frontmatter(p, prd_lines)
                 parsed[base] = fm
                 if fm is None:
                     err("%s: no YAML frontmatter" % p)
@@ -730,6 +780,7 @@ def main(argv):
                 if sup:
                     if str(sup) not in names:
                         err("%s: supersedes '%s' not found in this directory" % (p, sup))
+                validate_requirements_source(root, p, prd_lines, err)
             if len(prd_files) > 1:
                 superseded = {}
                 for e in parsed.values():
