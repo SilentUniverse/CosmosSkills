@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "id": "resume-cold-start",
+  "title": "A fresh session extends delivered work from persisted artifacts without re-derivation",
+  "layer": "L2",
+  "skills": ["spec", "tdd"],
+  "origin": {
+    "kind": "capability",
+    "reference": "Continuity ROI of artifact discipline: round2 delivery parity showed no t0 edge, so the workflow must win at resume time"
+  },
+  "task": {
+    "prompt": "A feature was delivered and closed days ago in this repo. In a fresh session with no prior conversation, add one small adjacent behavior that the delivered work already almost supports, verify it, and leave the record consistent.",
+    "fixture": "delivered repo with persisted planning artifacts (PRD/issues or equivalent decision docs), a green suite, and one obvious adjacent extension point"
+  },
+  "budgets": {
+    "wall_time_ms": 900000,
+    "total_tokens": 90000,
+    "tool_calls": 180
+  },
+  "hard_limits": {
+    "scope_leakage_count": 0
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "criterion": "Before the first source edit, the run reads the persisted planning/decision artifacts for the delivered feature and names them in its plan.",
+      "grader_ids": ["orientation-order"]
+    },
+    {
+      "id": "R2",
+      "criterion": "The new behavior is implemented through the existing public seam, its tests pass, and the previously green suite stays green.",
+      "grader_ids": ["product-gate"]
+    },
+    {
+      "id": "R3",
+      "criterion": "The extension is recorded without rewriting delivered history: an additive record or a supersedes note, not a silently edited past decision.",
+      "grader_ids": ["record-gate"]
+    }
+  ],
+  "graders": [
+    {
+      "id": "orientation-order",
+      "kind": "deterministic",
+      "procedure": "From the retained trace, every read of the persisted artifact paths must precede the first source-file write; no artifact read at all fails R1 even if the feature lands."
+    },
+    {
+      "id": "product-gate",
+      "kind": "deterministic",
+      "procedure": "Run the new behavior's tests plus the full pre-existing suite; require exit 0 with the pre-delivery tally still passing."
+    },
+    {
+      "id": "record-gate",
+      "kind": "deterministic",
+      "procedure": "Diff the planning artifacts before/after: fail on edited delivered AC/decision text without a supersedes marker, pass on an additive record or an explicit supersedes note."
+    }
+  ]
+}

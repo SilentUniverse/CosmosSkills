@@ -65,6 +65,9 @@ def metric_values(wall=800, tokens=80, tools=8):
 
 
 class CampaignTests(unittest.TestCase):
+    def test_long_wall_time_is_rendered_in_minutes(self):
+        self.assertEqual("2.00m", campaign._fmt_ms(120000))
+
     def make_source(self, root):
         root = Path(root)
         cases = root / "cases"
@@ -265,8 +268,10 @@ class CampaignTests(unittest.TestCase):
             self.assertIn("Other harness", report)
             self.assertIn("whole-system stack only", report)
             verdicts = {item["verdict"] for item in report_json["pairwise"]}
-            self.assertIn("pareto-improved", verdicts)
+            self.assertIn("efficiency-improved", verdicts)
             self.assertIn("regression", verdicts)
+            self.assertIn("Quality", report)
+            self.assertIn("Efficiency", report)
 
     def test_unknown_metrics_remain_unknown_and_block_claim(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -275,6 +280,87 @@ class CampaignTests(unittest.TestCase):
             arm_b = self.make_judged(output, directory, "arm-b", unknown_metric="tool_calls")
             _, report_json = campaign.render_campaign_report(output, [arm_a, arm_b], reference="arm-a")
             self.assertEqual("insufficient-data", report_json["pairwise"][0]["verdict"])
+            self.assertEqual(
+                "insufficient-data",
+                report_json["pairwise"][0]["efficiency_verdict"],
+            )
+
+    def test_process_metric_gaps_do_not_hide_core_efficiency_result(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output, _ = self.export(directory)
+            arm_a = self.make_judged(output, directory, "arm-a", wall=900, tokens=90, tools=9)
+            arm_b = self.make_judged(
+                output,
+                directory,
+                "arm-b",
+                wall=700,
+                tokens=70,
+                tools=7,
+                unknown_metric="alignment_round_count",
+            )
+            _, report_json = campaign.render_campaign_report(
+                output, [arm_a, arm_b], reference="arm-a"
+            )
+            pair = report_json["pairwise"][0]
+            self.assertEqual("tied", pair["quality_verdict"])
+            self.assertEqual("improved", pair["efficiency_verdict"])
+            self.assertEqual("efficiency-improved", pair["verdict"])
+
+    def test_quality_gate_dominates_efficiency_regression(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output, _ = self.export(directory)
+            arm_a = self.make_judged(
+                output,
+                directory,
+                "arm-a",
+                success=False,
+                wall=600,
+                tokens=60,
+                tools=6,
+            )
+            arm_b = self.make_judged(
+                output,
+                directory,
+                "arm-b",
+                success=True,
+                wall=1200,
+                tokens=120,
+                tools=12,
+            )
+            _, report_json = campaign.render_campaign_report(
+                output, [arm_a, arm_b], reference="arm-a"
+            )
+            pair = report_json["pairwise"][0]
+            self.assertEqual("improved", pair["quality_verdict"])
+            self.assertEqual("regression", pair["efficiency_verdict"])
+            self.assertEqual("trade-off", pair["verdict"])
+
+    def test_success_at_budget_collapse_cannot_be_called_efficiency_improved(self):
+        def run(trial, wall, tokens, tools):
+            metrics = metric_values(wall, tokens, tools)
+            return {
+                "case_id": "portable-case",
+                "trial": trial,
+                "verified_success": True,
+                "metrics": metrics,
+            }
+
+        cases = {"portable-case": CASE}
+        baseline = [
+            run(1, 900, 90, 9),
+            run(2, 900, 90, 9),
+            run(3, 2000, 200, 20),
+        ]
+        candidate = [
+            run(1, 800, 200, 8),
+            run(2, 2000, 80, 8),
+            run(3, 800, 80, 20),
+        ]
+        self.assertEqual(2 / 3, campaign._arm_stats(baseline, cases)["success_at_budget_rate"])
+        self.assertEqual(0, campaign._arm_stats(candidate, cases)["success_at_budget_rate"])
+        verdict, details = campaign._pair_efficiency_verdict(baseline, candidate, cases)
+        self.assertNotEqual("improved", verdict)
+        self.assertTrue(any("Success@Budget" in detail for detail in details))
 
     def test_policy_only_comparison_rejects_changed_harness_controls(self):
         with tempfile.TemporaryDirectory() as directory:

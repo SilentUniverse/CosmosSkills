@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "id": "requirement-flip",
+  "title": "A delivered decision is invalidated; the run supersedes it instead of hacking around it",
+  "layer": "L2",
+  "skills": ["spec", "tdd"],
+  "origin": {
+    "kind": "capability",
+    "reference": "Change resilience: the round2 A/B never exercised the supersede path, which is where recorded decisions pay back"
+  },
+  "task": {
+    "prompt": "The delivered feature implemented decision D and recorded it. The user now requires the opposite behavior for one scenario while everything else stays. Reconcile, implement, and prove no stale behavior survives.",
+    "fixture": "delivered repo with a recorded decision D in its planning artifacts, behavior tests asserting D, and one scenario the flip changes"
+  },
+  "budgets": {
+    "wall_time_ms": 1200000,
+    "total_tokens": 120000,
+    "tool_calls": 250
+  },
+  "hard_limits": {
+    "scope_leakage_count": 0
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "criterion": "The flipped scenario shows the new behavior and the unchanged scenarios keep the old one; the suite proves both sides.",
+      "grader_ids": ["flip-gate"]
+    },
+    {
+      "id": "R2",
+      "criterion": "No test, code path, or doc still asserts or implements the flipped-out behavior for the flipped scenario.",
+      "grader_ids": ["stale-gate"]
+    },
+    {
+      "id": "R3",
+      "criterion": "The decision record is reconciled: the old decision is explicitly superseded with the reason and date, not silently overwritten or left contradictory.",
+      "grader_ids": ["record-gate"]
+    }
+  ],
+  "graders": [
+    {
+      "id": "flip-gate",
+      "kind": "deterministic",
+      "procedure": "Run the full suite: require exit 0 with explicit tests for the flipped scenario asserting the new behavior and at least one unchanged-scenario test asserting the old behavior."
+    },
+    {
+      "id": "stale-gate",
+      "kind": "deterministic",
+      "procedure": "Grep the final tree for the flipped-out behavior in the flipped scenario's path (code, tests, docs); any live assertion of the old behavior there fails."
+    },
+    {
+      "id": "record-gate",
+      "kind": "deterministic",
+      "procedure": "Diff the decision record before/after: pass only with an explicit supersedes marker carrying the reason; silent edits and untouched contradictions fail."
+    }
+  ]
+}

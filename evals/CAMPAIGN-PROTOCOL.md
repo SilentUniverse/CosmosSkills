@@ -72,6 +72,10 @@ python3 campaign.py validate-submission . /tmp/arm-a
 工具调用或时间必须写 JSON `null`，不能用 0 冒充；报告把它显示为 unknown，并阻止速度/成本
 改善声明。`terminal_status=success` 至少要有可重放命令或已保留 artifact。
 
+ZCode 参评时，在封存前用 [ZCode history telemetry adapter](adapters/zcode.md) 从本地历史自动
+填充活跃时间、Token、工具调用和 retry，并把原始 `zcode-history-metrics.json` 放进 artifacts。
+它按根任务 turn 时长计墙钟、排除人类 idle，不重复计算并行子任务时间。
+
 ## 私有判卷与 N 路报告
 
 出题方先验证每个 sealed submission，再让不知道 arm 身份的独立 grader 按私有 case 产出
@@ -100,9 +104,12 @@ python3 scripts/eval_campaign.py report .eval-campaigns/history-search-v1 \
 ```
 
 报告对全部 arm 做 N 选 2 的 pairwise 判断，并列展示 Verified Success、Success@Budget、指标
-覆盖率、wall time/MAD、token 和 tool calls。判定仍是 hard gate + Pareto，不算神秘加权总分：
-质量下降是 regression；质量相同但预算成功率下降也是 regression；只有主要成本都不差且至少
-一项更好才是 Pareto improvement；缺 metric 是 `insufficient-data`，不是输，也不是 0 分。
+覆盖率、wall time/MAD、token 和 tool calls。每对输出三个结论：质量、效率、总裁决。质量按
+每个 case 的 Verified Success；效率先在相同 `(case_id, trial)` 上配对，再按 case 比较
+Success@Budget 与 wall time、总 Token、工具调用的配对中位差。任一 case 的预算成功率下降不能
+叫效率提升；一部分成本改善、一部分退化是 `trade-off`。质量下降一定 regression；质量提升但
+效率退化仍是 trade-off，两个事实分别保留。只有质量和效率同时改善才是
+`pareto-improved`。核心成本缺失令效率和总裁决 `insufficient-data`，但不掩盖单独的质量结论。
 
 ## 公平性边界
 

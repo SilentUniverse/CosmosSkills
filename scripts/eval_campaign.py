@@ -63,19 +63,8 @@ METRICS = (
     "retry_count",
 )
 BUDGET_FIELDS = ("wall_time_ms", "total_tokens", "tool_calls")
-LOWER_IS_BETTER = (
-    "wall_time_ms",
-    "total_tokens",
-    "tool_calls",
-    "alignment_round_count",
-    "clarification_count",
-    "ac_repair_count",
-    "dependency_repair_count",
-    "replan_count",
-    "executor_discovered_invariant_count",
-    "scope_leakage_count",
-    "retry_count",
-)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from eval_metrics import CAMPAIGN_CORE as CORE_EFFICIENCY_METRICS, metrics_basis
 TERMINAL_STATUSES = {"success", "failure", "timeout", "blocked"}
 GRADER_KINDS = {"deterministic", "ai", "human"}
 ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
@@ -1222,7 +1211,11 @@ def _fmt_number(value: Optional[float]) -> str:
 
 
 def _fmt_ms(value: Optional[float]) -> str:
-    return "—" if value is None else f"{value / 1000:.2f}s"
+    if value is None:
+        return "—"
+    if value >= 60000:
+        return f"{value / 60000:.2f}m"
+    return f"{value / 1000:.2f}s"
 
 
 def _load_judged_runs(path: Path) -> List[Mapping[str, Any]]:
@@ -1317,69 +1310,148 @@ def _check_pair_controls(
             _fail("report", f"comparison cannot pair unknown required controls at {slot}: {unknown}")
 
 
+def _pair_quality_verdict(
+    baseline: Mapping[Tuple[str, int], Mapping[str, Any]],
+    candidate: Mapping[Tuple[str, int], Mapping[str, Any]],
+    cases: Mapping[str, Mapping[str, Any]],
+) -> Tuple[str, List[str]]:
+    improved: List[str] = []
+    regressions: List[str] = []
+    for case_id in sorted(cases):
+        slots = [slot for slot in baseline if slot[0] == case_id]
+        base_rate = sum(bool(baseline[slot]["verified_success"]) for slot in slots) / len(slots)
+        candidate_rate = sum(bool(candidate[slot]["verified_success"]) for slot in slots) / len(slots)
+        if candidate_rate < base_rate:
+            regressions.append(
+                f"{case_id}: verified success {_fmt_rate(candidate_rate)} < {_fmt_rate(base_rate)}"
+            )
+        elif candidate_rate > base_rate:
+            improved.append(
+                f"{case_id}: verified success {_fmt_rate(candidate_rate)} > {_fmt_rate(base_rate)}"
+            )
+    if regressions:
+        return "regression", regressions
+    if improved:
+        return "improved", improved
+    return "tied", []
+
+
+def _pair_efficiency_verdict(
+    baseline_runs: Sequence[Mapping[str, Any]],
+    candidate_runs: Sequence[Mapping[str, Any]],
+    cases: Mapping[str, Mapping[str, Any]],
+) -> Tuple[str, List[str]]:
+    baseline = {(str(run["case_id"]), int(run["trial"])): run for run in baseline_runs}
+    candidate = {(str(run["case_id"]), int(run["trial"])): run for run in candidate_runs}
+    regressions: List[str] = []
+    improvements: List[str] = []
+    tied: List[str] = []
+    missing: List[str] = []
+
+    def format_cost(field: str, value: float) -> str:
+        return _fmt_ms(value) if field == "wall_time_ms" else _fmt_number(value)
+
+    for case_id in sorted(cases):
+        slots = sorted(slot for slot in baseline if slot[0] == case_id)
+        base_budget_values = [_within_budget(baseline[slot], cases[case_id]) for slot in slots]
+        candidate_budget_values = [_within_budget(candidate[slot], cases[case_id]) for slot in slots]
+        if any(value is None for value in (*base_budget_values, *candidate_budget_values)):
+            missing.append(f"{case_id}: Success@Budget")
+        else:
+            base_budget = sum(bool(value) for value in base_budget_values) / len(slots)
+            candidate_budget = sum(bool(value) for value in candidate_budget_values) / len(slots)
+            detail = (
+                f"{case_id}: Success@Budget {_fmt_rate(candidate_budget)} vs "
+                f"{_fmt_rate(base_budget)}"
+            )
+            if candidate_budget < base_budget:
+                regressions.append(detail)
+            elif candidate_budget > base_budget:
+                improvements.append(detail)
+            else:
+                tied.append(detail)
+
+        for field in CORE_EFFICIENCY_METRICS:
+            pairs = [(_metric(baseline[slot], field), _metric(candidate[slot], field)) for slot in slots]
+            if any(base is None or cand is None for base, cand in pairs):
+                missing.append(f"{case_id}: {field}")
+                continue
+            base_values = [float(base) for base, _ in pairs]
+            candidate_values = [float(cand) for _, cand in pairs]
+            paired_delta = statistics.median(
+                candidate_value - base_value
+                for base_value, candidate_value in zip(base_values, candidate_values)
+            )
+            base_median = statistics.median(base_values)
+            candidate_median = statistics.median(candidate_values)
+            detail = (
+                f"{case_id} {field}: candidate {format_cost(field, candidate_median)} vs "
+                f"baseline {format_cost(field, base_median)}; paired median delta "
+                f"{format_cost(field, abs(paired_delta))}{' faster/less' if paired_delta < 0 else ' slower/more' if paired_delta > 0 else ''}"
+            )
+            if paired_delta < 0:
+                improvements.append(detail)
+            elif paired_delta > 0:
+                regressions.append(detail)
+            else:
+                tied.append(detail)
+
+    details = regressions + improvements + tied + (
+        ["missing paired efficiency data: " + ", ".join(missing)] if missing else []
+    )
+    if missing:
+        return "insufficient-data", details
+    if regressions and improvements:
+        return "trade-off", details
+    if regressions:
+        return "regression", details
+    if improvements:
+        return "improved", details
+    return "tied", details
+
+
 def _pair_verdict(
     baseline_runs: Sequence[Mapping[str, Any]],
     candidate_runs: Sequence[Mapping[str, Any]],
     cases: Mapping[str, Mapping[str, Any]],
     comparison_mode: str,
-) -> Tuple[str, List[str]]:
+) -> Mapping[str, Any]:
     baseline = {(str(run["case_id"]), int(run["trial"])): run for run in baseline_runs}
     candidate = {(str(run["case_id"]), int(run["trial"])): run for run in candidate_runs}
     _check_pair_controls(baseline, candidate, comparison_mode)
-    regressions: List[str] = []
-    tradeoffs: List[str] = []
-    unknown_budget = False
-    quality_up = False
-    budget_up = False
-    for case_id in sorted(cases):
-        slots = [slot for slot in baseline if slot[0] == case_id]
-        base_verified = sum(bool(baseline[slot]["verified_success"]) for slot in slots) / len(slots)
-        cand_verified = sum(bool(candidate[slot]["verified_success"]) for slot in slots) / len(slots)
-        base_budget_values = [_within_budget(baseline[slot], cases[case_id]) for slot in slots]
-        cand_budget_values = [_within_budget(candidate[slot], cases[case_id]) for slot in slots]
-        budget_known = all(value is not None for value in (*base_budget_values, *cand_budget_values))
-        base_budget = sum(bool(value) for value in base_budget_values) / len(slots) if budget_known else None
-        cand_budget = sum(bool(value) for value in cand_budget_values) / len(slots) if budget_known else None
-        if cand_verified < base_verified:
-            regressions.append(f"{case_id}: verified success")
-        elif cand_verified > base_verified:
-            quality_up = True
-            if budget_known and cand_budget < base_budget:
-                tradeoffs.append(f"{case_id}: quality up, budget down")
-            elif not budget_known:
-                unknown_budget = True
-        elif budget_known and cand_budget < base_budget:
-            regressions.append(f"{case_id}: Success@Budget")
-        elif budget_known and cand_budget > base_budget:
-            budget_up = True
-        elif not budget_known:
-            unknown_budget = True
-    if regressions:
-        return "regression", regressions
-
-    base_stats = _arm_stats(baseline_runs, cases)
-    cand_stats = _arm_stats(candidate_runs, cases)
-    comparable_costs = all(
-        base_stats["median"].get(field) is not None and cand_stats["median"].get(field) is not None
-        for field in LOWER_IS_BETTER
+    quality, quality_details = _pair_quality_verdict(baseline, candidate, cases)
+    efficiency, efficiency_details = _pair_efficiency_verdict(
+        baseline_runs, candidate_runs, cases
     )
-    no_worse = comparable_costs and all(
-        cand_stats["median"][field] <= base_stats["median"][field] for field in LOWER_IS_BETTER
-    )
-    any_better = comparable_costs and any(
-        cand_stats["median"][field] < base_stats["median"][field] for field in LOWER_IS_BETTER
-    )
-    if unknown_budget or not comparable_costs:
-        return "insufficient-data", tradeoffs + ["unavailable budget/cost metrics remain unknown"]
-    if tradeoffs or not no_worse:
-        return "trade-off", tradeoffs
-    if quality_up:
-        return "quality-improved", tradeoffs
-    if budget_up:
-        return "efficiency-improved", tradeoffs
-    if any_better:
-        return "pareto-improved", tradeoffs
-    return "tied", tradeoffs
+    if quality == "regression":
+        overall = "regression"
+    elif quality == "improved":
+        if efficiency == "improved":
+            overall = "pareto-improved"
+        elif efficiency == "tied":
+            overall = "quality-improved"
+        elif efficiency == "insufficient-data":
+            overall = "insufficient-data"
+        else:
+            overall = "trade-off"
+    elif efficiency == "improved":
+        overall = "efficiency-improved"
+    elif efficiency == "regression":
+        overall = "regression"
+    elif efficiency == "trade-off":
+        overall = "trade-off"
+    elif efficiency == "insufficient-data":
+        overall = "insufficient-data"
+    else:
+        overall = "tied"
+    return {
+        "verdict": overall,
+        "quality_verdict": quality,
+        "efficiency_verdict": efficiency,
+        "quality_details": quality_details,
+        "efficiency_details": efficiency_details,
+        "details": quality_details + efficiency_details,
+    }
 
 
 def _parse_labels(values: Optional[Sequence[str]]) -> Mapping[str, str]:
@@ -1416,8 +1488,8 @@ def render_campaign_report(
     stats = {arm: _arm_stats(by_arm[arm], cases) for arm in ordered}
     pairs = []
     for baseline, candidate in itertools.combinations(ordered, 2):
-        verdict, details = _pair_verdict(by_arm[baseline], by_arm[candidate], cases, str(campaign["comparison_mode"]))
-        pairs.append({"baseline": baseline, "candidate": candidate, "verdict": verdict, "details": details})
+        decision = _pair_verdict(by_arm[baseline], by_arm[candidate], cases, str(campaign["comparison_mode"]))
+        pairs.append({"baseline": baseline, "candidate": candidate, **decision})
 
     output = io.StringIO()
     print(f"# Evaluation campaign: {campaign['campaign_id']}", file=output)
@@ -1448,23 +1520,25 @@ def render_campaign_report(
     print(file=output)
     print("## Pairwise decisions", file=output)
     print(file=output)
-    print("| Baseline | Candidate | Verdict | Details |", file=output)
-    print("|---|---|---|---|", file=output)
+    print("| Baseline | Candidate | Quality | Efficiency | Overall | Details |", file=output)
+    print("|---|---|---|---|---|---|", file=output)
     for pair in pairs:
         details = "; ".join(pair["details"]) or "—"
         print(
             f"| {display.get(pair['baseline'], pair['baseline'])} | "
-            f"{display.get(pair['candidate'], pair['candidate'])} | {pair['verdict']} | {details} |",
+            f"{display.get(pair['candidate'], pair['candidate'])} | {pair['quality_verdict']} | "
+            f"{pair['efficiency_verdict']} | {pair['verdict']} | {details} |",
             file=output,
         )
     print(file=output)
     if not campaign.get("claimable_design"):
         print("Claim status: screening only; the packet lacks a full, >=3-trial, materialized-fixture design.", file=output)
-    elif any(pair["verdict"] == "insufficient-data" for pair in pairs):
-        print("Claim status: incomplete; unknown metrics were preserved and block a faster/better claim.", file=output)
+    elif any(pair["efficiency_verdict"] == "insufficient-data" for pair in pairs):
+        print("Claim status: partial; quality remains decidable, but unknown core metrics block an efficiency claim.", file=output)
     else:
         print("Claim status: eligible for the pairwise conclusions above; retain the sealed submissions and replay evidence.", file=output)
-    print("No weighted overall score is computed. Verified gates dominate; efficiency is decided by budget and Pareto comparisons.", file=output)
+    print(metrics_basis(CORE_EFFICIENCY_METRICS), file=output)
+    print("No weighted overall score is computed. Quality and paired per-case efficiency remain separate; an efficiency regression turns an otherwise improved result into a trade-off.", file=output)
     report_json = {
         "campaign_id": campaign["campaign_id"],
         "comparison_mode": campaign["comparison_mode"],

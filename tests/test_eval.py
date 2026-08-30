@@ -91,7 +91,7 @@ class EvalTests(unittest.TestCase):
 
     def test_committed_cases_validate(self):
         cases = cosmos_eval.load_cases(ROOT / "evals" / "cases")
-        self.assertEqual(6, len(cases))
+        self.assertEqual(9, len(cases))
 
     def test_success_requires_replayable_evidence(self):
         run = make_run()

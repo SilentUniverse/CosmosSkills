@@ -54,19 +54,8 @@ REQUIRED_METRICS = (
 )
 NULLABLE_METRICS = {"time_to_first_dispatchable_ms", "time_to_first_green_ms"}
 BUDGET_FIELDS = ("wall_time_ms", "total_tokens", "tool_calls")
-LOWER_IS_BETTER = (
-    "wall_time_ms",
-    "total_tokens",
-    "tool_calls",
-    "alignment_round_count",
-    "clarification_count",
-    "ac_repair_count",
-    "dependency_repair_count",
-    "replan_count",
-    "executor_discovered_invariant_count",
-    "scope_leakage_count",
-    "retry_count",
-)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from eval_metrics import SESSION_FULL as LOWER_IS_BETTER, metrics_basis
 ASSESSMENT_METRICS = (
     "time_to_first_dispatchable_ms",
     "time_to_first_green_ms",
@@ -525,6 +514,7 @@ def report_eval_session(path: Path, *, require_improvement: bool = False) -> Tup
         str(manifest["candidate"]),
     )
     print(f"\nVerdict: {verdict}")
+    print(metrics_basis(LOWER_IS_BETTER))
     if details:
         print("Details: " + "; ".join(details))
     if manifest["profile"] == "smoke":

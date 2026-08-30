@@ -84,10 +84,11 @@ arm 必须在原生方案、Superpowers、Loop Engineer 或任意其他 harness 
   replan、executor 发现的新 invariant。
 - **风险**：scope leakage；以及 wall time 的 MAD（跨次波动）。
 
-交接摩擦故意保留为向量，不把不同错误拍脑袋加权成一个数。采纳规则是 hard gate + Pareto：
-任何 case 的 Verified Success 下降就是回归；成功率相同但 Success@Budget 下降也是回归；质量
-持平时，只有候选在所有主要成本上不差且至少一项更好，才叫 Pareto improvement。其余明确
-标为 trade-off。系统必须允许结论是“没有改善”。
+交接摩擦故意保留为诊断向量，不把不同错误拍脑袋加权成一个数。跨项目报告把裁决拆成质量与
+效率：质量按 Verified Success；效率在相同 case/trial 上配对，逐 case 比较 Success@Budget、
+活跃 wall time、总 Token 和工具调用。任一预算成功率下降不叫效率提升；一快两慢或跨 case
+好坏并存明确标为 trade-off。质量提高但效率下降也只叫 trade-off，不能用于“又快又好”的声明。
+诊断向量为空不掩盖核心效率数据，核心成本为空才使效率 `insufficient-data`。
 
 ## Case 与 evidence
 

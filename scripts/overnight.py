@@ -19,6 +19,7 @@
 #
 # Same script on Windows and Unix.
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -68,6 +69,17 @@ def parse_wave(output):
                 slugs.append(tok)
             return slugs
     return []
+
+
+def parse_receipt_hits(output):
+    """Issue -> exact receipt-hit tokens emitted by a successful dispatch."""
+    result = {}
+    pattern = re.compile(r"^brief:\s+(\S+)\s+(receipt-hit:[0-9a-f]{64})$")
+    for line in output.splitlines():
+        match = pattern.match(line.strip())
+        if match:
+            result.setdefault(match.group(1), []).append(match.group(2))
+    return result
 
 
 def launch(exe, root, log_path, prompt):
@@ -141,6 +153,7 @@ def main(argv):
             "..", "engineering", "tdd", "scripts", "drain-wave.py",
         )
     )
+    receipt_script = os.path.join(os.path.dirname(wave_script), "preflight-receipt.py")
     next_args = ["next", root] + ([feat] if feat else [])
     audit_arg = (' "%s"' % feat) if feat else ""
     close_scope = ("feature '%s'" % feat) if feat else "全部 feature"
@@ -178,15 +191,50 @@ def main(argv):
                 )
                 return 1
             dcode, dout = run_tool(wave_script, ["dispatch", root] + slugs)
+            if dcode == 5:
+                print(
+                    "overnight: shared preflight receipt required before dispatch; "
+                    "starting one preparation-only session"
+                )
+                preflight_prompt = (
+                    "这是 /tdd -p 派发前的共享预检准备会话，只处理下面列出的 duplicate P#，"
+                    "不得编辑产品代码、issue 状态或 wave ledger，也不得安装、升级或启动未声明依赖。\n"
+                    "对每个唯一 tuple：在 repo root 为 %s、其声明 cwd 下原样执行 action 一次；"
+                    "只有 exit 0 且观察结果符合卡片预期时，才运行 python \"%s\" record，"
+                    "把 receipt/cwd/action/fingerprint 原样传入，并填写 observed 与可复核 evidence。"
+                    "任一失败就报告失败并停止，绝不能写 passed receipt。全部记录后结束会话，"
+                    "不要调用 next/dispatch。\n%s"
+                    % (root, receipt_script, dout)
+                )
+                if launch(exe, root, log_path, preflight_prompt) != 0:
+                    print(
+                        "overnight: preflight preparation session failed — aborting. See %s"
+                        % log_path,
+                        file=sys.stderr,
+                    )
+                    return 1
+                dcode, dout = run_tool(wave_script, ["dispatch", root] + slugs)
             if dcode != 0:
                 print("overnight: dispatch refused — aborting. %s" % dout, file=sys.stderr)
                 return 1
+            receipt_hits = parse_receipt_hits(dout)
+            receipt_brief = ""
+            if receipt_hits:
+                rows = [
+                    "%s=%s" % (slug, ",".join(tokens))
+                    for slug, tokens in sorted(receipt_hits.items())
+                ]
+                receipt_brief = (
+                    " 共享预检映射（逐项原样复制到对应子代理 brief，只替代匹配 P#）：%s。"
+                    % "; ".join(rows)
+                )
             prompt = (
                 "%s：若 %s 存在先读它续跑。本波已由 runner 落账派发：[%s]——会话不得调用 next/dispatch。"
+                "%s"
                 "逐个 issue 派 general-purpose 子代理跑完整红绿闭环；收波时落账："
                 "python \"%s\" collect \"%s\" <slug>=green|red|blocked|aborted。"
                 "收波后按滚动模式刷新 handoff（波号、tests-so-far、§5 写明续跑），然后结束会话。"
-                % (scope, handoff, ", ".join(slugs), wave_script, root)
+                % (scope, handoff, ", ".join(slugs), receipt_brief, wave_script, root)
             )
             detail = "wave [%s]" % ", ".join(slugs)
         else:

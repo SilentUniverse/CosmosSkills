@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "id": "electron-csp-visual-verification",
+  "title": "Electron UI verification catches CSP-blocked media and hollow DOM passes",
+  "layer": "L3",
+  "skills": ["spec", "tdd", "code-review"],
+  "origin": {
+    "kind": "regression",
+    "reference": "Anime Rule Lab 2026-08-30: visible img/src assertions passed while CSP blocked the cover and UI quality failed"
+  },
+  "task": {
+    "prompt": "Plan and implement an Electron TypeScript search-result slice that displays a loopback HTTP cover and a readable diagnostic state. The existing renderer CSP allows only self and data images. Align the executable behavior and experience verification before dispatch.",
+    "fixture": "isolated Electron repo with main/preload/renderer, img-src self data CSP, Playwright, a valid loopback PNG, and a baseline result card"
+  },
+  "budgets": {
+    "wall_time_ms": 900000,
+    "total_tokens": 90000,
+    "tool_calls": 180
+  },
+  "hard_limits": {
+    "scope_leakage_count": 0
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "criterion": "Before writing a ready card, SPEC inspects the existing CSP and main/preload/renderer resource boundary and chooses a design that can actually render the cover without contradicting that invariant.",
+      "grader_ids": ["runtime-contract"]
+    },
+    {
+      "id": "R2",
+      "criterion": "Every UI AC names a defect that turns its verifier red; image proof checks decoded output, and the operated-browser proof fails on unexpected console/page/request/CSP errors while retaining fixed-state screenshots.",
+      "grader_ids": ["runtime-contract", "artifact-gate"]
+    },
+    {
+      "id": "R3",
+      "criterion": "The completed user-visible slice passes its aligned experience rubric and threshold using the required states and retained anonymous evidence.",
+      "grader_ids": ["experience-review"]
+    }
+  ],
+  "graders": [
+    {
+      "id": "runtime-contract",
+      "kind": "deterministic",
+      "procedure": "Inspect the trajectory and final tests: require CSP/resource-boundary inspection before ready write, complete && naturalWidth > 0 or equivalent decoded-media assertion, fixed viewport state capture, and failure collectors for console, page, request, and CSP."
+    },
+    {
+      "id": "artifact-gate",
+      "kind": "deterministic",
+      "procedure": "Run verify-artifacts.py; require experience_review=graded, a canonical graphical-UI contract, per-AC UI falsifiers, and structured evidence whose retained artifacts exist, runtime counters are zero, and rubric result clears the frozen threshold."
+    },
+    {
+      "id": "experience-review",
+      "kind": "human",
+      "procedure": "Blindly score the required operated states against the aligned rubric; fail missing/incorrect states, broken media, runtime-integrity errors, a total below threshold, or any dimension below its floor.",
+      "why_not_automated": "The corpus does not yet contain a labeled image calibration set that would make an AI visual judge claimable; deterministic runtime integrity is graded separately."
+    }
+  ]
+}
