@@ -4,6 +4,7 @@
 # Invoke: python verify-artifacts.py [<repo-root>]
 # If the `python` interpreter is missing, python3 verify-artifacts.py [<repo-root>]
 # Do not retry python3 after a non-zero gate exit (that is a contract violation).
+import json
 import os
 import re
 import sys
@@ -44,10 +45,23 @@ QIANZHI_TIAOJIAN = "\u524d\u7f6e\u6761\u4ef6"  # 前置条件
 ZHUNBEI_DONGZUO = "\u51c6\u5907\u52a8\u4f5c"  # 准备动作
 YUJIAN = "\u9884\u68c0"  # 预检
 YUJIAN_CHONGFANG = "\u9884\u68c0\u91cd\u653e"  # 预检重放
+FANZHENG = "\u53cd\u8bc1"  # 反证
+TIYAN_YANZHENG = "\u4f53\u9a8c\u9a8c\u8bc1"  # 体验验证
 AC_CHECKBOX = re.compile(r"^\s*-\s*\[[ xX]\]\s+\S")
 EVIDENCE_MAP = re.compile(r"^\s*-\s*#(\d+)\s*(?:\u2192|->)")
 PREFLIGHT_LINE = re.compile(r"^\s*-\s*P(\d+)\s+" + YUJIAN + r"[\uff1a:]\s*(.+)$")
 PREFLIGHT_REF = re.compile(YUJIAN + r"[\uff1a:]\s*P(\d+)")
+FALSIFIER_REF = re.compile(FANZHENG + r"[\uff1a:]\s*([^\uff1b;]+)")
+# A placeholder is a value that is entirely one angle-bracket token (<defect>, <具体缺陷>);
+# a real falsifier may still contain "<" as a comparison operator (行数 < 1).
+PLACEHOLDER_REF = re.compile(r"^\s*<[^<>]*>\s*$")
+EXPERIENCE_RUNTIME_KEYS = (
+    "unexpected_console_errors",
+    "uncaught_page_errors",
+    "unexpected_failed_requests",
+    "csp_violations",
+    "decoded_media_failures",
+)
 TEST_PATH = re.compile(
     r"(?:[A-Za-z]:)?"
     r"[A-Za-z0-9_.\-]+(?:[\\/][A-Za-z0-9_.\-]+)*\."
@@ -159,6 +173,309 @@ def bullet_value(lines, word):
             if stripped.startswith(prefix):
                 return stripped[len(prefix) :].strip()
     return None
+
+
+def inline_value(text, key):
+    """Read `key=value` from a semicolon-delimited prose contract."""
+    match = re.search(
+        r"(?:^|[;\uff1b\s`])" + re.escape(key) + r"\s*=\s*([^;\uff1b`]+)",
+        text or "",
+    )
+    return match.group(1).strip() if match else ""
+
+
+def comma_values(value):
+    return [item.strip() for item in (value or "").split(",") if item.strip()]
+
+
+def is_number(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def has_zero_runtime_counters(value):
+    return isinstance(value, dict) and all(
+        is_number(value.get(key)) and value.get(key) == 0
+        for key in EXPERIENCE_RUNTIME_KEYS
+    )
+
+
+def load_json_object(path, label, err):
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            value = json.load(handle)
+    except (OSError, ValueError) as exc:
+        err("%s: %s is not readable JSON: %s" % (path, label, exc))
+        return None
+    if not isinstance(value, dict):
+        err("%s: %s must be a JSON object" % (path, label))
+        return None
+    return value
+
+
+def repo_artifact_path(root, value, label, err, *, must_exist):
+    value = (value or "").strip().replace("\\", "/")
+    if not value or os.path.isabs(value) or value == ".." or value.startswith("../"):
+        err("%s: %s must be a repo-relative path" % (root, label))
+        return None
+    path = os.path.abspath(os.path.join(root, value.replace("/", os.sep)))
+    try:
+        inside = os.path.commonpath([root, path]) == root
+    except ValueError:
+        inside = False
+    if not inside:
+        err("%s: %s escapes the repository: %s" % (root, label, value))
+        return None
+    if must_exist and not os.path.isfile(path):
+        err("%s: %s file does not exist: %s" % (root, label, value))
+        return None
+    if must_exist:
+        try:
+            if os.path.getsize(path) == 0:
+                err("%s: %s file is empty: %s" % (root, label, value))
+                return None
+        except OSError as exc:
+            err("%s: cannot stat %s %s: %s" % (root, label, value, exc))
+            return None
+    return path
+
+
+def is_retained_screenshot(path):
+    """Cheap stdlib signature check; proves an image artifact, not visual quality."""
+    try:
+        with open(path, "rb") as handle:
+            data = handle.read()
+    except OSError:
+        return False
+    lower = path.lower()
+    if lower.endswith(".png"):
+        return (
+            len(data) >= 24
+            and data.startswith(b"\x89PNG\r\n\x1a\n")
+            and data[12:16] == b"IHDR"
+            and int.from_bytes(data[16:20], "big") > 0
+            and int.from_bytes(data[20:24], "big") > 0
+            and b"IEND" in data[-32:]
+        )
+    if lower.endswith((".jpg", ".jpeg")):
+        # EOI may trail padding/metadata, as PNG tolerates bytes after IEND.
+        if len(data) <= 4 or not data.startswith(b"\xff\xd8"):
+            return False
+        eoi = data.rfind(b"\xff\xd9")
+        return eoi != -1 and eoi >= len(data) - 64
+    if lower.endswith(".webp"):
+        return len(data) >= 12 and data.startswith(b"RIFF") and data[8:12] == b"WEBP"
+    if lower.endswith(".gif"):
+        return data.startswith((b"GIF87a", b"GIF89a"))
+    return False
+
+
+def under_scratch_dir(root, prefix, value):
+    """Normalized containment under `<root>/<prefix>`; a raw startswith lets `../` escape."""
+    expected_dir = os.path.abspath(os.path.join(root, prefix.replace("/", os.sep)))
+    path = os.path.abspath(
+        os.path.join(root, (value or "").replace("\\", "/").replace("/", os.sep))
+    )
+    try:
+        return os.path.commonpath([expected_dir, path]) == expected_dir
+    except ValueError:
+        return False
+
+
+def validate_experience_contract(root, feat, path_value, mode, err):
+    expected_prefix = ".scratch/%s/" % feat
+    normalized = (path_value or "").replace("\\", "/")
+    if not under_scratch_dir(root, expected_prefix, normalized):
+        err("%s: experience contract must stay under %s: %s" % (root, expected_prefix, normalized))
+        return None
+    path = repo_artifact_path(root, normalized, "experience contract", err, must_exist=True)
+    if path is None:
+        return None
+    data = load_json_object(path, "experience contract", err)
+    if data is None:
+        return None
+    valid = True
+
+    def contract_error(message):
+        nonlocal valid
+        valid = False
+        err(message)
+
+    if data.get("schema_version") != 1:
+        contract_error("%s: experience contract schema_version must be 1" % path)
+    if not isinstance(data.get("id"), str) or not data.get("id", "").strip():
+        contract_error("%s: experience contract needs non-empty id" % path)
+    if data.get("surface") != "graphical-ui":
+        contract_error("%s: experience contract surface must be graphical-ui" % path)
+    if data.get("mode") != mode:
+        contract_error(
+            "%s: experience contract mode %r != issue mode %r"
+            % (path, data.get("mode"), mode)
+        )
+    viewport = data.get("viewport")
+    if not isinstance(viewport, dict) or any(
+        type(viewport.get(key)) is not int or viewport.get(key) <= 0
+        for key in ("width", "height")
+    ):
+        contract_error(
+            "%s: experience contract viewport needs positive integer width/height" % path
+        )
+    if not isinstance(data.get("theme"), str) or not data.get("theme", "").strip():
+        contract_error("%s: experience contract needs non-empty theme" % path)
+    states = data.get("states")
+    if (
+        not isinstance(states, list)
+        or not states
+        or any(not isinstance(state, str) or not state.strip() for state in states)
+        or len(set(states)) != len(states)
+    ):
+        contract_error(
+            "%s: experience contract states must be unique non-empty strings" % path
+        )
+    runtime_gate = data.get("runtime_gate")
+    if not has_zero_runtime_counters(runtime_gate):
+        contract_error(
+            "%s: experience runtime_gate must set every unexpected/error counter to numeric 0"
+            % path
+        )
+    if mode == "graded":
+        rubric = data.get("rubric")
+        if (
+            not isinstance(rubric, dict)
+            or not isinstance(rubric.get("id"), str)
+            or not rubric.get("id", "").strip()
+            or not is_number(rubric.get("min_total"))
+            or not is_number(rubric.get("min_dimension"))
+        ):
+            contract_error(
+                "%s: graded experience contract needs rubric id/min_total/min_dimension" % path
+            )
+        else:
+            dimensions = rubric.get("dimensions")
+            if (
+                not isinstance(dimensions, list)
+                or not dimensions
+                or any(not isinstance(name, str) or not name.strip() for name in dimensions)
+                or len(set(dimensions)) != len(dimensions)
+            ):
+                contract_error(
+                    "%s: graded experience rubric needs unique dimension names" % path
+                )
+            if (
+                not is_number(rubric.get("score_min"))
+                or not is_number(rubric.get("score_max"))
+                or rubric.get("score_min", 0) >= rubric.get("score_max", 0)
+            ):
+                contract_error(
+                    "%s: graded experience rubric needs score_min < score_max" % path
+                )
+            elif is_number(rubric.get("score_max")):
+                dim_count = len(dimensions) if isinstance(dimensions, list) else 0
+                if is_number(rubric.get("min_dimension")) and rubric[
+                    "min_dimension"
+                ] > rubric["score_max"]:
+                    contract_error(
+                        "%s: graded rubric min_dimension %s exceeds score_max %s; no run can pass"
+                        % (path, rubric["min_dimension"], rubric["score_max"])
+                    )
+                if (
+                    dim_count
+                    and is_number(rubric.get("min_total"))
+                    and rubric["min_total"] > rubric["score_max"] * dim_count
+                ):
+                    contract_error(
+                        "%s: graded rubric min_total %s exceeds score_max %s x %d dimensions; "
+                        "no run can pass" % (path, rubric["min_total"], rubric["score_max"], dim_count)
+                    )
+    return data if valid else None
+
+
+def validate_experience_evidence(root, feat, path_value, mode, contract, required_states, err):
+    expected_prefix = ".scratch/%s/evidence/" % feat
+    normalized = (path_value or "").replace("\\", "/")
+    if not under_scratch_dir(root, expected_prefix, normalized):
+        err("%s: experience evidence must stay under %s: %s" % (root, expected_prefix, normalized))
+        return
+    path = repo_artifact_path(root, normalized, "experience evidence", err, must_exist=True)
+    if path is None:
+        return
+    data = load_json_object(path, "experience evidence", err)
+    if data is None:
+        return
+    if data.get("schema_version") != 1:
+        err("%s: experience evidence schema_version must be 1" % path)
+    if not contract or data.get("contract_id") != contract.get("id"):
+        err("%s: experience evidence contract_id does not match contract" % path)
+    if data.get("mode") != mode:
+        err("%s: experience evidence mode %r != issue mode %r" % (path, data.get("mode"), mode))
+    if data.get("verdict") != "pass":
+        err("%s: experience evidence verdict must be pass" % path)
+    runtime = data.get("runtime")
+    if not has_zero_runtime_counters(runtime):
+        err(
+            "%s: experience evidence has non-zero or missing runtime counters "
+            "(numeric zero required)" % path
+        )
+    state_rows = data.get("states")
+    by_name = {}
+    if not isinstance(state_rows, list):
+        err("%s: experience evidence states must be a list" % path)
+        state_rows = []
+    for row in state_rows:
+        if not isinstance(row, dict) or not isinstance(row.get("name"), str):
+            err("%s: experience evidence state rows need a name" % path)
+            continue
+        name = row["name"].strip()
+        if name in by_name:
+            err("%s: duplicate experience evidence state %r" % (path, name))
+            continue
+        by_name[name] = row
+        artifacts = row.get("artifacts")
+        if not isinstance(artifacts, list) or not artifacts:
+            err("%s: state %r needs retained artifacts" % (path, name))
+            continue
+        retained_paths = []
+        for artifact in artifacts:
+            if not isinstance(artifact, str):
+                err("%s: state %r artifact path must be text" % (path, name))
+                continue
+            retained = repo_artifact_path(
+                root, artifact, "experience state artifact", err, must_exist=True
+            )
+            if retained is not None:
+                retained_paths.append(retained)
+        if retained_paths and not any(is_retained_screenshot(item) for item in retained_paths):
+            err("%s: state %r needs at least one valid retained screenshot" % (path, name))
+    missing_states = sorted(set(required_states) - set(by_name))
+    if missing_states:
+        err("%s: experience evidence missing states: %s" % (path, ", ".join(missing_states)))
+    if mode == "graded":
+        judge = data.get("judge")
+        rubric = contract.get("rubric", {}) if contract else {}
+        if not isinstance(judge, dict) or judge.get("rubric_id") != rubric.get("id"):
+            err("%s: graded experience evidence needs matching judge rubric_id" % path)
+            return
+        dimensions = judge.get("dimensions")
+        total = judge.get("total")
+        if not isinstance(dimensions, dict) or not dimensions:
+            err("%s: graded experience evidence needs dimension scores" % path)
+            return
+        values = list(dimensions.values())
+        expected_dimensions = rubric.get("dimensions", [])
+        if sorted(dimensions) != sorted(expected_dimensions):
+            err("%s: graded experience dimensions do not match the contract" % path)
+        if any(not is_number(value) for value in values):
+            err("%s: graded experience dimensions must be numeric" % path)
+            return
+        score_min = rubric.get("score_min", float("inf"))
+        score_max = rubric.get("score_max", float("-inf"))
+        if any(value < score_min or value > score_max for value in values):
+            err("%s: graded experience dimension is outside the contract score range" % path)
+        if not is_number(total) or abs(total - sum(values)) > 1e-9:
+            err("%s: graded experience total must equal the dimension sum" % path)
+        if is_number(total) and total < rubric.get("min_total", float("inf")):
+            err("%s: graded experience total is below contract threshold" % path)
+        if any(value < rubric.get("min_dimension", float("inf")) for value in values):
+            err("%s: graded experience dimension is below contract floor" % path)
 
 
 def ref_suggest(bad, candidates, self_slug):
@@ -483,8 +800,22 @@ def main(argv):
                     err("%s: status '%s' not in ready|done" % (f, fm.get("status", "")))
                 contract_version = str(fm.get("contract_version", ""))
                 required_preflight_ids = set()
+                experience_review = str(fm.get("experience_review", ""))
+                experience_contract = None
+                experience_states = []
+                experience_evidence_value = ""
                 if contract_version not in ("", "1", "2"):
                     err("%s: contract_version '%s' not in 1|2" % (f, contract_version))
+                if experience_review not in ("", "runtime", "graded"):
+                    err(
+                        "%s: experience_review '%s' not in runtime|graded or omitted"
+                        % (f, experience_review)
+                    )
+                if experience_review and contract_version != "2":
+                    err(
+                        "%s: experience_review requires contract_version 2; bump the card or "
+                        "drop the field" % f
+                    )
                 if contract_version == "2":
                     ac_lines = h2_section(issue_lines, YANSHOU) or []
                     ac_count = sum(1 for line in ac_lines if AC_CHECKBOX.match(line))
@@ -533,6 +864,63 @@ def main(argv):
                         elif "无" not in setup and "result=" not in setup:
                             err("%s: contract v2 准备动作 needs result= or explicit 无" % f)
 
+                        experience = bullet_value(verification, TIYAN_YANZHENG)
+                        if experience_review:
+                            if not experience:
+                                err("%s: opted-in experience review missing 体验验证 contract" % f)
+                            else:
+                                contract_value = inline_value(experience, "contract")
+                                states_value = inline_value(experience, "states")
+                                experience_evidence_value = inline_value(experience, "evidence")
+                                missing_keys = [key for key, value in (
+                                    ("contract", contract_value),
+                                    ("states", states_value),
+                                    ("evidence", experience_evidence_value),
+                                ) if not value]
+                                if missing_keys:
+                                    err(
+                                        "%s: 体验验证 contract missing keys: %s"
+                                        % (f, ", ".join(missing_keys))
+                                    )
+                                else:
+                                    experience_contract = validate_experience_contract(
+                                        root, feat, contract_value, experience_review, err
+                                    )
+                                    experience_states = comma_values(states_value)
+                                    if not experience_states or len(set(experience_states)) != len(experience_states):
+                                        err("%s: 体验验证 states must be unique non-empty names" % f)
+                                    elif experience_contract:
+                                        unknown_states = sorted(
+                                            set(experience_states) - set(experience_contract.get("states", []))
+                                        )
+                                        if unknown_states:
+                                            err(
+                                                "%s: 体验验证 references states outside contract: %s"
+                                                % (f, ", ".join(unknown_states))
+                                            )
+                                    evidence_path = repo_artifact_path(
+                                        root,
+                                        experience_evidence_value,
+                                        "planned experience evidence",
+                                        err,
+                                        must_exist=False,
+                                    )
+                                    expected_evidence_prefix = os.path.join(root, ".scratch", feat, "evidence")
+                                    if evidence_path is not None:
+                                        try:
+                                            under_evidence = os.path.commonpath(
+                                                [expected_evidence_prefix, evidence_path]
+                                            ) == expected_evidence_prefix
+                                        except ValueError:
+                                            under_evidence = False
+                                        if not under_evidence or not evidence_path.endswith(".json"):
+                                            err(
+                                                "%s: planned experience evidence must be JSON under .scratch/%s/evidence/"
+                                                % (f, feat)
+                                            )
+                        elif experience:
+                            err("%s: non-graphical issue must omit 体验验证 and experience_review" % f)
+
                         preflights = {}
                         for line in verification:
                             preflight_match = PREFLIGHT_LINE.match(line)
@@ -560,6 +948,7 @@ def main(argv):
 
                         mapped = set()
                         map_preflights = {}
+                        map_falsifiers = {}
                         for line in verification:
                             match = EVIDENCE_MAP.match(line)
                             if not match:
@@ -569,6 +958,14 @@ def main(argv):
                             map_preflights[ac_id] = {
                                 int(value) for value in PREFLIGHT_REF.findall(line)
                             }
+                            falsifier = FALSIFIER_REF.search(line)
+                            falsifier_value = falsifier.group(1).strip() if falsifier else ""
+                            if (
+                                falsifier_value.lower() in ("无", "none", "n/a")
+                                or PLACEHOLDER_REF.match(falsifier_value)
+                            ):
+                                falsifier_value = ""
+                            map_falsifiers[ac_id] = falsifier_value
                         missing_maps = sorted(set(range(1, ac_count + 1)) - mapped)
                         if missing_maps:
                             err(
@@ -578,6 +975,8 @@ def main(argv):
                         for ac_id in sorted(set(range(1, ac_count + 1)) & mapped):
                             refs = map_preflights.get(ac_id, set())
                             required_preflight_ids.update(refs)
+                            if experience_review and not map_falsifiers.get(ac_id):
+                                err("%s: contract v2 AC #%d missing 反证" % (f, ac_id))
                             if not refs:
                                 err("%s: contract v2 AC #%d missing 预检 P# reference" % (f, ac_id))
                                 continue
@@ -657,6 +1056,34 @@ def main(argv):
                                     )
                                 if "fingerprint" not in replay or "match" not in replay:
                                     err("%s: contract v2 预检重放 needs fingerprint match" % f)
+                            if experience_review:
+                                experience = bullet_value(rec or [], TIYAN_YANZHENG)
+                                valid_experience = (
+                                    bool(experience)
+                                    and ("→ passed" in experience or "-> passed" in experience)
+                                    and "evidence=" in experience
+                                )
+                                if not valid_experience:
+                                    err(
+                                        "%s: opted-in experience done record needs passed 体验验证 with evidence="
+                                        % f
+                                    )
+                                else:
+                                    completed_evidence = inline_value(experience, "evidence")
+                                    if completed_evidence != experience_evidence_value:
+                                        err(
+                                            "%s: completion experience evidence %r != planned %r"
+                                            % (f, completed_evidence, experience_evidence_value)
+                                        )
+                                    validate_experience_evidence(
+                                        root,
+                                        feat,
+                                        completed_evidence,
+                                        experience_review,
+                                        experience_contract,
+                                        experience_states,
+                                        err,
+                                    )
                         for m in sorted(set(TEST_PATH.findall("\n".join(fields)))):
                             cand = m.replace("\\", "/")
                             if not (

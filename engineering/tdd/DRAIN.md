@@ -16,6 +16,15 @@ close are shared.
    after its blockers. Skip (don't fail) any issue still blocked by an unfinished issue; report
    it as deferred at the end.
 
+## Shared: context budget
+
+The conversation is not the context carrier — the issue cards are. A serial drain that runs every
+issue inside one ever-growing session pays for the whole accumulated history on every later
+request; measured on a 7-issue Electron batch this reached ~550k tokens per request at the tail.
+Default for batches: each issue executes in a bounded context — a fresh subagent or session per
+issue (`-p` waves, `overnight.py` rotation, or an explicit compact at issue boundaries). Staying
+in one live session is for single-issue runs or debugging a blocked card, not for batches.
+
 ## Shared: blocked 纪律
 
 Issues have no `blocked` state; blocked is a **report classification**. A report may call an
@@ -28,11 +37,41 @@ issue blocked only when all three hold:
 3. **Everything outside the blocked path is green** — hard, slow, or partly unclear is red with a
    note, not blocked.
 
+## Shared: batch preflight receipt
+
+This optimization is dormant unless two or more ready cards in the same feature reference the exact
+same `(cwd, P# action, environment fingerprint)` tuple. `drain-wave.py dispatch` already scans the
+ready cards in-process and gates on the result, so the manual
+`python3 <tdd-skill-dir>/scripts/preflight-receipt.py plan <repo-root> [<feat>]` run is optional —
+use it in CI or when reviewing duplicates without dispatching. An empty `duplicates` list means
+stop here: create no receipt and preserve the ordinary per-card path.
+
+For each reported `miss`, the orchestrator—not a subagent—replays that action once and records only a
+passed observation with
+`python3 <tdd-skill-dir>/scripts/preflight-receipt.py record <receipt> --cwd <cwd> --action <action> --fingerprint <value> --observed <result> --evidence <path>`.
+Rerun `plan`; every duplicate must now be `hit` before fan-out. The orchestrator is the only writer,
+so parallel subagents cannot race the receipt. `drain-wave.py dispatch` enforces the hit, persists
+the assignment for serialized later waves, and emits `brief: <slug> receipt-hit:<key>`; copy each
+token verbatim into that issue's brief. It exits 5 before writing a wave when a relevant hit is
+missing.
+
+Before an issue's first edit, recompute its fingerprint:
+
+- Exact tuple + fingerprint + supplied receipt key → reuse it and name the key in `预检重放`.
+- No supplied key (unique tuple) → replay that card's P# normally.
+- Fingerprint drift or a failed replay → leave the card `ready` and report the mismatch. A subagent
+  never refreshes the receipt and never installs or repairs the environment.
+
+Standalone single-issue `/tdd` has no batch receipt and replays its referenced P# normally. The
+receipt caches readiness only; RED/GREEN behavior tests and final verification are never cached.
+
 ## Serial path (default: bare `/tdd`, `/tdd <feat>`)
 
-Run each issue, **one at a time**, through the autonomous-mode loop (SKILL.md §Workflow), all in
-the current session so you can watch each one. No worktrees, no parallel subagents. This is
-deliberately the dumb-but-legible path.
+Run each issue, **one at a time**, through the autonomous-mode loop (SKILL.md §Workflow), in the
+current session so you can watch each one — and honor the shared context budget above: past two
+or three issues, rotate the session (or compact at issue boundaries) instead of letting one
+conversation carry the whole batch. No worktrees, no parallel subagents. This is deliberately
+the dumb-but-legible path.
 
 Per-issue gate: mark `status: done` only if build + the touched module's **scoped** tests pass
 (not the whole suite). Before each issue, record its baseline (`git status --porcelain` output).
@@ -69,7 +108,9 @@ Loop until the ready set is empty:
    list, and the wave baseline (`git status --porcelain`) to
    `.scratch/<feat>/wave-ledger.json` **before any subagent starts**. A crashed run
    resumes from the ledger, not from reverse-engineering the tree. The dispatch call
-   enforces the barrier (blockers all done), the ≤4 cap, and collision serialization.
+   enforces the barrier (blockers all done), the ≤4 cap, collision serialization, and duplicate-P#
+   receipt hits. It writes the per-issue hit keys into the ledger; exit 5 returns the exact tuples
+   that must be replayed/recorded before retrying dispatch.
    A refusal is a scheduling error to fix, not a suggestion to override. A wave over 4
    issues dispatches in batches of ≤4; collect each batch, then dispatch the rest.
    Concurrent test suites thrash one machine into flaky reds. Each `general-purpose`
@@ -90,9 +131,10 @@ Loop until the ready set is empty:
      subagents; no entering drain mode.
    - The issue is self-contained; no PRD attach. Paste the scoped-test and build command
      lines from `docs/agents/domain.md` into the brief; the brief's lines stand in for the
-     existing-test scan's domain.md lookup. Replay the card's P# before edits. Never install,
-     upgrade, or start an undeclared dependency; a missing dependency means the card was not ready,
-     so report red with the preflight mismatch.
+     existing-test scan's domain.md lookup. Include any orchestrator-supplied `receipt-hit:<key>`:
+     an exact hit replaces only that matching P# replay; unique P# still replay normally. Never
+     write the receipt, install, upgrade, or start an undeclared dependency; a missing dependency
+     means the card was not ready, so report red with the preflight mismatch.
    - The **tests-so-far manifest** (earlier waves' 新增测试): don't write tests it already covers;
      report duplicates instead.
    - Report back **only** by outcome, in this fixed shape. A free-form reply is not a result;
@@ -154,7 +196,10 @@ Loop until the ready set is empty:
    subagents, `collect`s, writes §5 as 读 handoff → 续跑下一波, and stops; a zombie report
    (next exit 3) gets a session that only adopt-or-reverts and `collect`s; the close-out
    runs as its own fresh session. No wave is ever scheduled from a rotting context.
-   Interactive `-p` sessions never rotate and call `next`/`dispatch` themselves.
+   Interactive `-p` sessions never rotate and call `next`/`dispatch` themselves. If dispatch exits
+   5, the overnight runner launches one preparation-only session that may replay and record only
+   the listed shared P# tuples—no product edit, dependency install, or dispatch—then retries the
+   gate. A successful dispatch injects every emitted receipt token into the corresponding brief.
 
 ## Shared: close the batch
 
@@ -174,7 +219,7 @@ deferred); no worktree left unmerged; no subagent still running. For each draine
 its PRD's 端到端验证 unless absent or `（无）`; on failure, report it against that feature's
 batch result.
 
-Batches of ≥2 issues run **both review axes in parallel with the closing suite**, same turn
+Batches of ≥2 issues run the two base review axes in parallel with the closing suite, same turn
 (briefs, single source: [../code-review/SUBAGENT-BRIEFS.md](../code-review/SUBAGENT-BRIEFS.md)):
 
 - **Spec axis** — one read-only subagent: `git diff HEAD` + the shipped issue paths, brief §Spec
@@ -183,6 +228,14 @@ Batches of ≥2 issues run **both review axes in parallel with the closing suite
   a note (the red-close mechanism), let the drain pick it up.
 - **Standards axis** — read-only, brief §Standards, same file.
 - Over-build and wrong-implementation findings → the user for adjudication, never auto-fixed.
+
+Regardless of batch size, validate every opted-in UI issue's structured evidence through the
+artifact gate. When any shipped issue has `experience_review: graded`, additionally run one
+**Experience axis** independent read-only judge with only the canonical experience contract and
+anonymous operated-state artifacts, using brief §Experience. A runtime-integrity failure or rubric
+threshold miss maps the owning issue back to `ready` like an under-build. `inconclusive` goes to
+待裁决 and cannot be reported as experience-verified. Runtime-only UI and every non-graphical batch
+do not launch this axis.
 
 **Close report — one screen, five blocks:**
 

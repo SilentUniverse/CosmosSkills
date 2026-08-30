@@ -9,7 +9,7 @@ Write issues in dependency order (blockers first) so you can reference real file
 <issue-template>
 
 ---
-# frontmatter per ARTIFACT-FORMAT.md — contract_version / type / feature / status / category / blocked_by / refines / touches / test_paths / created
+# frontmatter per ARTIFACT-FORMAT.md — contract_version / type / feature / status / category / blocked_by / refines / touches / test_paths / created; add experience_review only for graphical UI
 # a fresh slice defaults to status: ready, category: enhancement
 ---
 
@@ -42,12 +42,15 @@ Avoid specific file paths or code snippets. Exception: if a prototype produced a
 - 前置条件：`fixtures=<state>; services=<state>; permissions=<state>; network=<mode>`
 - 准备动作：`<exact repo-declared setup already run by SPEC, with result, or 无（已就绪）>`
 - P1 预检：`<exact representative command / browser, service, or device action>` → passed；observed=<exit/assertion>；evidence=<path|inline>；checked=<YYYY-MM-DD>
-- #1 → <exact agent-runnable final test / action>；预检：P1；预期证据：<assertion + exit/tally or artifact path>
+- 体验验证：`contract=.scratch/<feat>/experience-contract.json; states=<operated states>; evidence=.scratch/<feat>/evidence/<slug>-experience.json`（仅 graphical UI）
+- #1 → <exact agent-runnable final test / action>；预检：P1；预期证据：<assertion + exit/tally or artifact path>；反证：<the missing/broken behavior that must make this fail>（仅 graphical UI / indirect proof）
 - #2 → ...
 
 Every AC has one mapping to at least one passed P#. Reuse a verifier instead of duplicating it.
 SPEC actually runs each P# after durable environment setup; a future test that does not exist yet is
-not the preflight. AI judgment is allowed only under
+not the preflight. An actual TDD RED is sufficient falsification for ordinary deterministic code
+tests. Graphical UI and indirect proof name a counterfactual defect so a shape-only assertion cannot
+masquerade as proof. AI judgment is allowed only under
 [VERIFICATION-DESIGN.md](VERIFICATION-DESIGN.md); human-only checks stay outside AC.
 
 ## 前置依赖（Blocked by）
@@ -60,7 +63,7 @@ not the preflight. AI judgment is allowed only under
 
 </issue-template>
 
-**Frontmatter** — fill every field per the schema in [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd). New issues use `contract_version: 2`; an additive edit upgrades a `ready` legacy issue after adding its fully executed 验证设计, while `done` stays immutable. The three fields that drive this skill's output: `category`, `blocked_by`, and `refines`. `category` defaults to `enhancement`; `detail`/`redo`/`fix` mark later sub-behaviour / re-work and MUST also set `refines:`. `blocked_by` holds sibling slugs that must reach `done` first; `/tdd`'s drain mode topologically sorts on it. `refines` is the parent slug, set for non-top-level slices. Parallel-bound slices also declare `touches:` + `test_paths:` from the AC. `/tdd -p` reads them as its only collision signal and skips the drain-time guess. A slice that edits a repo-root shared surface (workspace manifest or root config) declares that file verbatim in `touches:` so the drain serializes on it. Dependency/lock preparation belongs to SPEC readiness; a behavior issue does not discover or install it.
+**Frontmatter** — fill every ordinary field per the schema in [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd). New issues use `contract_version: 2`; an additive edit upgrades a `ready` legacy issue after adding its fully executed 验证设计, while `done` stays immutable. The fields that drive this skill's output are `category`, `blocked_by`, and `refines`. Graphical UI alone adds `experience_review: runtime|graded`; every non-graphical issue omits it. `category` defaults to `enhancement`; `detail`/`redo`/`fix` mark later sub-behaviour / re-work and MUST also set `refines:`. `blocked_by` holds sibling slugs that must reach `done` first; `/tdd`'s drain mode topologically sorts on it. `refines` is the parent slug, set for non-top-level slices. Parallel-bound slices also declare `touches:` + `test_paths:` from the AC. `/tdd -p` reads them as its only collision signal and skips the drain-time guess. A slice that edits a repo-root shared surface (workspace manifest or root config) declares that file verbatim in `touches:` so the drain serializes on it. Dependency/lock preparation belongs to SPEC readiness; a behavior issue does not discover or install it.
 
 Never edit a `done` issue or the parent PRD. A `ready` issue may be edited in place by an
 additive re-run or a reconciliation.

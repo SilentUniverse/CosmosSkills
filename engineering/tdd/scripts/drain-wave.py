@@ -16,7 +16,9 @@
 #   drain-wave.py selftest                       gate the gate: parse substrate +
 #                                               refusal branches (tempdir fixtures)
 #
-# Exit: 0 ok, 1 violation, 2 usage, 3 zombies (recovery first), 4 nothing ready.
+# Exit: 0 ok, 1 violation, 2 usage, 3 zombies (recovery first), 4 nothing ready,
+# 5 shared preflight receipt must be prepared before dispatch.
+import importlib.util
 import io
 import json
 import os
@@ -26,6 +28,7 @@ import sys
 import tempfile
 from contextlib import redirect_stderr, redirect_stdout
 from datetime import datetime
+from pathlib import Path
 
 RESULTS = ("green", "red", "blocked", "aborted")
 MAX_IN_FLIGHT = 4
@@ -40,10 +43,34 @@ FM_KEY = re.compile(r"^([A-Za-z][A-Za-z0-9_-]*):\s*(.*)$")
 FLOW_LIST = re.compile(r"^\[\s*(.*)\s*\]$")
 BLOCK_ITEM = re.compile(r"^\s+-\s+(.+)$")
 DONE_HEAD = re.compile(r"^#{2,3}\s*\u5b8c\u6210(?:[^\w]|$)")
+_PREFLIGHT_API = None
 
 
 def now_iso():
     return datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+
+
+class PreflightHelperMissing(RuntimeError):
+    """Install defect: the sibling script is absent; no receipt can be read or written."""
+
+
+def preflight_api():
+    """Load the sibling helper without duplicating its receipt semantics."""
+    global _PREFLIGHT_API
+    if _PREFLIGHT_API is None:
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "preflight-receipt.py")
+        if not os.path.isfile(path):
+            raise PreflightHelperMissing(
+                "preflight-receipt.py is missing next to drain-wave.py (%s); "
+                "reinstall the tdd skill so both scripts arrive together" % path
+            )
+        spec = importlib.util.spec_from_file_location("cosmos_preflight_receipt", path)
+        if spec is None or spec.loader is None:
+            raise ValueError("cannot load preflight-receipt.py at %s" % path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _PREFLIGHT_API = module
+    return _PREFLIGHT_API
 
 
 def read_lines(path):
@@ -318,6 +345,60 @@ def cmd_next(root, feat):
     return 0
 
 
+def dispatch_receipt_hits(root, issues, slugs, ledgers):
+    """Gate duplicate P# tuples and persist exact issue-to-key assignments."""
+    api = preflight_api()
+    root_path = Path(root)
+    current_keys = {}
+    rows = api.issue_preflight_rows(root_path)
+    for row in rows:
+        current_keys.setdefault(row["slug"], set()).add(row["key"])
+    hits = {slug: [] for slug in slugs}
+
+    # A previous wave can assign the same hit to an issue serialized into a later wave.
+    # Accept it only while the issue still names that exact tuple and the receipt checks.
+    for slug in slugs:
+        feat = issues[slug][0]
+        assignments = ledgers[feat].get("preflight_assignments", {}).get(slug, [])
+        for assignment in assignments:
+            if assignment.get("key") not in current_keys.get(slug, set()):
+                continue
+            entry = api.check(
+                root_path / assignment.get("receipt", ""),
+                cwd=assignment.get("cwd", ""),
+                action=assignment.get("action", ""),
+                fingerprint=assignment.get("fingerprint", ""),
+            )
+            if entry is not None:
+                hits[slug].append(assignment["key"])
+
+    plan = api.duplicate_plan(root_path, rows=rows)
+    relevant = [
+        duplicate
+        for duplicate in plan["duplicates"]
+        if any(Path(issue_path).stem in slugs for issue_path in duplicate["issues"])
+    ]
+    misses = [duplicate for duplicate in relevant if duplicate["status"] != "hit"]
+    if misses:
+        return None, misses
+
+    for duplicate in relevant:
+        assignment = {
+            key: duplicate[key]
+            for key in ("key", "cwd", "action", "fingerprint", "receipt")
+        }
+        feat = duplicate["feature"]
+        by_issue = ledgers[feat].setdefault("preflight_assignments", {})
+        for issue_path in duplicate["issues"]:
+            slug = Path(issue_path).stem
+            saved = by_issue.setdefault(slug, [])
+            saved[:] = [item for item in saved if item.get("key") != duplicate["key"]]
+            saved.append(dict(assignment))
+            if slug in hits:
+                hits[slug].append(duplicate["key"])
+    return {slug: sorted(set(keys)) for slug, keys in hits.items() if keys}, []
+
+
 def cmd_dispatch(root, slugs):
     issues = load_issues(root, None)
     if issues is None:
@@ -383,21 +464,55 @@ def cmd_dispatch(root, slugs):
     ledgers = {}
     for feat in by_feat:
         ledgers[feat] = load_ledger(root, feat)
+    try:
+        receipt_hits, misses = dispatch_receipt_hits(root, issues, slugs, ledgers)
+    except PreflightHelperMissing as exc:
+        print("drain-wave: preflight helper unusable: %s" % exc, file=sys.stderr)
+        return 1
+    except (OSError, ValueError) as exc:
+        # Corrupt/unreadable receipt data: delete it and re-record, not a reinstall.
+        print("drain-wave: preflight receipt is invalid: %s" % exc, file=sys.stderr)
+        return 1
+    if misses:
+        print(
+            "drain-wave: shared preflight must be replayed once before this wave",
+            file=sys.stderr,
+        )
+        print(
+            "preflight-required: %s"
+            % json.dumps({"duplicates": misses}, ensure_ascii=False, sort_keys=True),
+            file=sys.stderr,
+        )
+        print(
+            "run each action in its declared cwd without installing anything, then use "
+            "preflight-receipt.py record and retry dispatch",
+            file=sys.stderr,
+        )
+        return 5
     baseline = git_baseline(root)
     for feat, group in sorted(by_feat.items()):
         data = ledgers[feat]
         num = max((w["wave"] for w in data["waves"]), default=0) + 1
+        group_hits = {
+            slug: receipt_hits[slug]
+            for slug in sorted(group)
+            if slug in receipt_hits
+        }
         data["waves"].append(
             {
                 "wave": num,
                 "at": now_iso(),
                 "dispatched": sorted(group),
                 "baseline": baseline,
+                "receipt_hits": group_hits,
                 "closed": {},
             }
         )
         save_ledger(root, feat, data)
         print("drain-wave: wave %d dispatched (%s) -> .scratch/%s/wave-ledger.json" % (num, ", ".join(sorted(group)), feat))
+        for slug in sorted(group_hits):
+            for key in group_hits[slug]:
+                print("brief: %s receipt-hit:%s" % (slug, key))
     print("baseline recorded; subagents may start")
     return 0
 

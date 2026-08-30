@@ -8,7 +8,9 @@ In order:
    verification, slice boundary, dependency, or execution environment. Ask them together when
    independent. External facts fan out instead: one background `/research` subagent each, same
    turn, cap 3. Facts still in flight are 待决. Classify provisional units with
-   [CARD-TEST.md](CARD-TEST.md), but write no PRD or issue yet.
+   [CARD-TEST.md](CARD-TEST.md), but write no PRD or issue yet. Compressed intake (SKILL.md): a
+   delegation that already fixes goal, acceptance, verification, and constraints leaves nothing to
+   discover — proceed to step 2.
 2. **Prove readiness.** For every proposed verifier harness, inspect project config and the cached
    adapters in `docs/agents/domain.md`; prepare a durable environment with repo-declared setup, then
    actually run the representative P# preflight from
@@ -16,14 +18,22 @@ In order:
    evidence, date, and environment fingerprint. A missing tool/service/fixture/access or a setup
    that needs a new decision remains 待决; no behavior card becomes `ready`. SPEC does not implement
    product behavior, but it owns this setup and preflight. Keep secret values out of artifacts.
+   A deterministic code verifier proves falsifiability with its actual TDD RED; do not duplicate it
+   as prose. Only an opted-in graphical UI names the concrete defect after `反证：`; SPEC then
+   operates the baseline surface at the proposed viewport, proves screenshot/runtime-error capture
+   works, and inspects CSP/resource boundaries
+   before presenting the experience contract.
 3. **Align.** Once the decision frontier is empty and every P# passed, present the complete
    [DESIGN-RECEIPT.md](DESIGN-RECEIPT.md): goal replay, boundaries, design, verification contract,
    passed readiness register, and proposed slice DAG. Stop for correction. Every correction
    regenerates the whole compact receipt; repeat until the user explicitly says it is aligned.
    Silence and the agent's own confidence are not approval. SUPERSEDE combines this receipt with
    its 对账报告 so the user sees one gate, not two.
-4. **Write.** Persist only the aligned design: PRD first when warranted, then every issue in
-   dependency order with `status: ready`. Frontmatter carries `touches:` + `test_paths:` per
+4. **Write.** Persist only the aligned design: for graphical UI write the canonical
+   `.scratch/<feat>/experience-contract.json` first; write the PRD when warranted, then every issue
+   in dependency order with `status: ready`. Compressed intake writes the PRD as a stub that names
+   the user's document as requirements-of-record; the readiness register, issues, and gates are
+   written unchanged. Frontmatter carries `touches:` + `test_paths:` per
    [CARD-TEST.md](CARD-TEST.md). No draft artifact or extra status is created. SUPERSEDE writes
    only after the combined receipt/对账 is aligned ([SUPERSEDE.md](SUPERSEDE.md)).
 5. **Gate.** Whole-tree: `python ~/.claude/skills/verify-artifacts.py` (in a repo checkout:

@@ -18,7 +18,7 @@ argument-hint: "Issue path, feature slug, -p, --full, --log, or nothing to drain
 
 ### Drain mode
 
-Enumerate `ready` issues, topologically sort on `blocked_by`, run the batch through the autonomous loop (§Workflow), close with one full suite + build. Two paths: **serial** (default: legible, one at a time) and **parallel** (`-p`: subagent waves). Full algorithm, subagent brief, edit-in-place-vs-worktree call: **[DRAIN.md](DRAIN.md)**.
+Enumerate `ready` issues, topologically sort on `blocked_by`, run the batch through the autonomous loop (§Workflow), close with one full suite + build. Two paths: **serial** (default: legible, one at a time) and **parallel** (`-p`: subagent waves). Batches keep a bounded context per issue — the accumulated conversation never becomes the context carrier ([DRAIN.md](DRAIN.md) context budget). Full algorithm, subagent brief, edit-in-place-vs-worktree call: **[DRAIN.md](DRAIN.md)**.
 
 ### Status guard (issue-driven invocation)
 
@@ -49,7 +49,9 @@ Start from first principles about the approach. Use the project's domain glossar
 Before writing any code: list the behaviors to test (not implementation steps); confirm interface changes, behaviors, and plan with the user *(autonomous mode: skip confirms — the aligned issue's 做什么/AC/验证设计 plus the PRD extract in `## 上级` are the contract)*; shape deep modules and testable interfaces; `/codebase-design` only when a new seam is in play or the interface is unclear. Existing coverage first: [tests.md](tests.md) §Existing coverage.
 
 **Pre-issue statement (autonomous mode).** Before the first edit, recompute the recorded environment
-fingerprint and replay every P# preflight without running its setup action. Then state in 2–3 lines:
+fingerprint. A standalone run replays every referenced P# without setup. A drain run may reuse an
+exact orchestrator-supplied `receipt-hit:<key>` from [DRAIN.md](DRAIN.md); a unique tuple replays
+normally, while drift leaves the card ready. Subagents never write the receipt. Then state in 2–3 lines:
 what this slice requires, which interface you'll shape, which behaviors you'll test first, how the
 issue says to prove them, and the biggest assumption. Don't wait for a reply. A fingerprint drift or
 failed P# leaves the issue `ready`: append exact expected/observed evidence and report red. Never

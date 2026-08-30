@@ -45,7 +45,10 @@ representative preflight, fixture/service/access/network prerequisites, and fing
 SPEC executes setup + preflight before `ready`; TDD only replays the preflight and never installs.
 
 TypeScript static analysis is high-confidence for type-level reachability but still needs runtime
-behavior. Python static results are a lower bound; pair them with runtime coverage and state the
+behavior. Only a graphical UI domain adds an opt-in experience contract (viewport/theme, operated
+states, unexpected runtime collectors, retained screenshots/traces, optional graded rubric).
+Browser/Electron adapters also record CSP/resource ownership and decoded-media assertions. Python
+static results are a lower bound; pair them with runtime coverage and state the
 dynamic-dispatch gap. An AI judge may grade semantic/visual output but never replace a runnable
 compiler, test, command, or trace.
 

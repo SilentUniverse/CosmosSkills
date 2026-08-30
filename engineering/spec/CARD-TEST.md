@@ -21,7 +21,7 @@ Classify each unit:
   turn's writes, next: `/grill`. Do not hold writes the ADR cannot falsify.
 - Question cannot be stated precisely now → **fog**. PRD 尚未明确; no PRD → list at stop.
   File nothing. Ask nothing.
-- Check the agent cannot run (taste, external account, human-eye) → not an AC. Park: PRD
+- Check the agent cannot run (irreducible taste, inaccessible external account, permission) → not an AC. Park: PRD
   端到端验证; no PRD → `### 完成` 手动验证 on the issue that has the agent-runnable AC.
   A unit that is only that check is not an issue.
 
@@ -30,9 +30,13 @@ Two units always done together in the same files → one issue.
 
 Parallel-bound slices declare their write set: `touches:` (dirs) + `test_paths:` (test files,
 from the AC). `--log` slices declare no `test_paths`; their acceptance is a log predicate. `-p` wave
-semantics live with the field: [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md). A UI slice
-splits first: logic and structure become AC (testable); pure visuals go to
-the PRD 端到端验证. An unsplit UI implementation has no AC.
+semantics live with the field: [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md). Only a graphical UI
+slice adds `experience_review`: use `runtime` for operated-state/runtime integrity and `graded` when
+visual hierarchy or usability is itself an aligned requirement. Backend, library, API, CLI,
+document, report, config, and other non-graphical slices omit the field entirely. Operable visual
+properties are AC when browser/CDP or an equivalent surface can capture them. Split only irreducible
+taste or inaccessible surfaces to PRD human verification. An opted-in UI slice without fixed-state
+evidence and a verifier that can fail on the named visual defect is not writable.
 
 Slice order: first card = the smallest correct working core (tracer); later cards grow on it.
 No abstraction for a future the PRD doesn't name.

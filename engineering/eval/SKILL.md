@@ -16,7 +16,8 @@ because the case corpus and fixtures are source assets, not copied into ordinary
 Read [`../../evals/README.md`](../../evals/README.md) for a same-project run. When comparing Cosmos
 with a native workflow or another project/harness, instead read
 [`../../evals/CAMPAIGN-PROTOCOL.md`](../../evals/CAMPAIGN-PROTOCOL.md). For Claude Code traces also
-read [`../../evals/adapters/claude-code.md`](../../evals/adapters/claude-code.md).
+read [`../../evals/adapters/claude-code.md`](../../evals/adapters/claude-code.md); for ZCode history
+duration and cost read [`../../evals/adapters/zcode.md`](../../evals/adapters/zcode.md).
 
 ## Modes
 
@@ -68,8 +69,10 @@ python3 scripts/eval.py session-report .eval-runs/<name> --require-improvement \
 ```
 
 `regression` rejects the candidate. `trade-off` needs the user's explicit choice. `tied` means no
-verified improvement. Only `quality-improved`, `efficiency-improved`, or `pareto-improved` from a
-claimable full session supports “better.” Put the retained report summary/evidence link in the
+verified improvement. Campaign reports expose quality and paired efficiency separately.
+`quality-improved` supports only a quality claim; `efficiency-improved` supports only an efficiency
+claim; only `pareto-improved` from a claimable full session supports an unqualified “better/faster
+and better” claim. Put the retained report summary/evidence link in the
 upstream change; raw sessions remain local and ignored by default. After merge/update, turn every
 real failure into a permanent regression case. Eval closes simply by leaving this skill:
 there is no global hook or active flag to slow later development.

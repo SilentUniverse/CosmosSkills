@@ -46,6 +46,22 @@ art in the codebase. Then preserve the aligned verification contract:
 Every user scenario and invariant maps to a row. Deterministic evidence comes first; AI or human
 judgment follows [VERIFICATION-DESIGN.md](VERIFICATION-DESIGN.md).
 
+When the feature creates or materially changes a graphical UI, reference the aligned single-source
+contract; non-graphical PRDs omit this paragraph:
+
+`Experience contract: .scratch/<feat>/experience-contract.json` (`<contract-id>`, mode
+`runtime|graded`). The JSON owns viewport/theme, operated states, unexpected-runtime counters, and
+the optional graded rubric/threshold. Do not copy those values into the PRD.
+
+The issue AC still carries behavior assertions and explicit `反证` for opted-in graphical UI;
+its experience line selects states and a planned evidence JSON. Do not move agent-capturable visual
+checks to manual verification.
+
+Compressed intake (SKILL.md) replaces this template with a stub: standard frontmatter plus a
+`## 需求记录源` section whose only body line is the path to the user's delegation document and one
+sentence on why it already fixes acceptance, verification, and constraints. No other sections; the
+readiness register below still applies verbatim.
+
 Preserve the readiness register from the aligned receipt too:
 
 | P# | cwd | prerequisites | SPEC setup | preflight result | environment fingerprint |

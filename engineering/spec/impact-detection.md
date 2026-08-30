@@ -49,6 +49,15 @@ Two kinds of impact, very different confidence:
 `tsc --noEmit` + `vitest related` cover ~90%. The subagent only needs to add the behavioural-
 assumption layer that neither compile nor grep can see. **TS report = high confidence.**
 
+For browser/Electron work, static reachability is not runtime integrity. Inspect the current CSP
+and the main/preload/renderer ownership of network and file resources before fixing the design.
+The verification plan must operate the real surface and collect unexpected console errors, uncaught
+page errors, unexpected failed requests, and CSP violations; expected error-state events are named
+fixtures/assertions. Media assertions check decoded content (for HTML images,
+`complete && naturalWidth > 0`); element visibility or an absolute URL alone is a known false
+positive. Persist a discovered runtime invariant to the area's `CODEBASE.md` like any other
+semantic coupling.
+
 ## Python — static under-reports; add runtime
 
 | Need | Command | Confidence |
