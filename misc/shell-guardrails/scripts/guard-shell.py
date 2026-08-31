@@ -49,12 +49,19 @@ import sys
 
 # ---------------------------------------------------------------- prefilters
 
+# Heredoc bodies are data. The match starts AT '<<' (the opener-line command
+# prefix stays live: `grep -q x <<EOF` still blocks) and ends with a lookahead
+# on the terminator's newline (post-EOF text keeps its own line — gluing it
+# onto the opener forges `python - cd /d/...` phantom segments).
+# Substituting '\n' keeps the line structure intact.
 HEREDOC_RE = re.compile(
-    r'^[^\r\n]*?<<\s*-?\s*["\']?(\w+)["\']?\r?\n.*?^[ \t]*\1(?:\r?\n|$)',
+    r'<<\s*-?\s*["\']?(\w+)["\']?[ \t]*\r?\n.*?^[ \t]*\1(?=\r?\n|$)',
     re.M | re.S)
 
-GIT_RE = re.compile(r'(?<![\w.-])git(?![\w.-])')
-LEGACY_RE = re.compile(r'(?<![\w.-])(grep|find|sed)(?![\w.-])')
+# The (?:\.exe)? groups keep git.exe/grep.exe inside the prefilter — the tier
+# heads strip the suffix via basename(), so without it those forms never parse.
+GIT_RE = re.compile(r'(?<![\w.-])git(?:\.[eE][xX][eE])?(?![\w.-])')
+LEGACY_RE = re.compile(r'(?<![\w.-])(grep|find|sed)(?:\.[eE][xX][eE])?(?![\w.-])')
 POSIX_PRE_RE = re.compile(r'(^|[\s"\'(=|;&])/[A-Za-z]+([/\s"\'|)&;]|$)')
 FORCE_RE = re.compile(r'(?m)^\s*#\s*force-legacy')
 
@@ -566,7 +573,7 @@ def main():
         is_msys = True
 
     try:
-        stripped = HEREDOC_RE.sub('', command)
+        stripped = HEREDOC_RE.sub('\n', command)
         need_git = bool(GIT_RE.search(stripped))
         need_legacy = (not escape) and bool(LEGACY_RE.search(stripped))
         need_path = is_msys and bool(POSIX_PRE_RE.search(stripped))

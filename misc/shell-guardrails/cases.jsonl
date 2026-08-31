@@ -161,3 +161,7 @@
 {"id": "winpath-adb-logcat-rg", "command": "adb logcat -d | rg -i pattern", "expect": "allow", "tier": "winpath", "platform": "msys", "note": "host-side filter with the modern tool"}
 {"id": "legacy-adb-exec-out", "command": "adb exec-out screencap -p > screen.png", "expect": "allow", "tier": "legacy"}
 {"id": "legacy-adb-crlf-tr", "command": "adb shell pidof com.x | tr -d '\\r'", "expect": "allow", "tier": "legacy", "note": "host-side CRLF strip; tr is not in the legacy set"}
+{"id": "git-exe-push", "command": "git.exe push", "expect": "block", "tier": "git", "note": ".exe suffix must survive the prefilter so basename() can strip it"}
+{"id": "legacy-grep-exe", "command": "grep.exe -n x f", "expect": "block", "tier": "legacy", "note": "same: .exe form of a legacy tool"}
+{"id": "heredoc-stdin-legacy", "command": "grep -q foo <<EOF\nfoo\nEOF", "expect": "block", "tier": "legacy", "note": "heredoc feeds stdin to grep; the opener-line command must stay live"}
+{"id": "heredoc-then-posixpath", "command": "cd \"$TEMP/g\" && python - <<'EOF'\nprint(1)\nEOF\ncd /d/Code && python y.py", "expect": "allow", "tier": "winpath", "platform": "msys", "note": "post-EOF text must not glue onto the opener line (gluing forges a python - cd /d/... phantom segment)"}

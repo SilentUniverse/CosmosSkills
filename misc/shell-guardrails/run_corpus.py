@@ -23,10 +23,20 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 CORPUS = os.path.join(HERE, "cases.jsonl")
 
+# Set once main() resolves the platform: scoring the msys profile must force
+# the hook's Windows-only tiers on regardless of the host, via the hook's own
+# test switch (otherwise --platform msys on a Unix box reports false misses).
+FORCE_MSYS = False
+
 
 def platform_default():
+    # Mirror the hook's own gating: bash does not export OSTYPE, so a runner
+    # started from Git Bash sees it empty — fall back to sys.platform (win32
+    # means MSYS path rules apply) exactly like guard-shell.py does.
     ostype = os.environ.get("OSTYPE", "")
-    return "msys" if ostype.startswith(("msys", "cygwin")) else "unix"
+    if ostype:
+        return "msys" if ostype.startswith(("msys", "cygwin")) else "unix"
+    return "msys" if sys.platform in ("win32", "cygwin", "msys") else "unix"
 
 
 def hook_argv(path):
@@ -53,7 +63,8 @@ def effective_command(case):
 
 
 def run_hook(argv, command):
-    p = subprocess.run(argv, input=payload(command), capture_output=True)
+    env = dict(os.environ, GUARD_SHELL_FORCE_MSYS="1") if FORCE_MSYS else None
+    p = subprocess.run(argv, input=payload(command), capture_output=True, env=env)
     return p.returncode, p.stderr.decode("utf-8", "replace").strip()
 
 
@@ -68,6 +79,8 @@ def main():
     args = ap.parse_args()
 
     plat = args.platform or platform_default()
+    global FORCE_MSYS
+    FORCE_MSYS = (plat == "msys")
     argv = hook_argv(args.hook)
 
     cases = []
