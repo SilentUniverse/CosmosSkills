@@ -6,6 +6,8 @@ disable-model-invocation: true
 
 # Setup Modern CLI Guardrails
 
+> **Windows: prefer `shell-guardrails`** (one self-contained Python script, three prioritized tiers — this hook plus the git hook plus the path-world guard, with the `# force-legacy` escape scoped to the legacy-CLI tier only). This skill's `.ps1` remains for standalone installs and machines not yet rewired.
+
 Turns CLAUDE.md §7 (Modern CLI Tooling) from a soft guideline into a hard rule: a
 PreToolUse hook intercepts every `Bash` tool call and blocks it before execution
 if a **host-side segment** of the command invokes a legacy tool (`grep`, `find`,

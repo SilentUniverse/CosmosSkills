@@ -6,6 +6,8 @@ disable-model-invocation: true
 
 # Setup Git Guardrails
 
+> **Windows: prefer `shell-guardrails`** (one self-contained Python script, three prioritized tiers; also fixes this hook's misses like `then git push` / `FOO=1 git push` / `X=$(git push)` and false blocks like `echo sudo git push` / `adb shell sudo git push`). This skill's `.ps1` remains for standalone installs and machines not yet rewired.
+
 Sets up a PreToolUse hook that intercepts and blocks dangerous git commands before Claude executes them.
 
 > Windows default: use the bundled `.ps1` script invoked via `pwsh`; on machines without PS7, `powershell` works too (the scripts are 5.1-compatible). Unix/WSL users use the `.sh` script.

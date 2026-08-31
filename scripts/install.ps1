@@ -290,8 +290,11 @@ if (Test-Path -LiteralPath $cmSource) {
 
 # --- Distribute hook scripts -> ~/.claude/hooks/. Explicit list, not a glob:
 #     scripts/ also holds non-hook helpers (diagnose templates) that must not
-#     land in hooks/. Keeps repo and deployed hooks from drifting apart. ---
+#     land in hooks/. Keeps repo and deployed hooks from drifting apart.
+#     shell-guardrails is the combined single-process hook (three tiers) —
+#     one self-contained Python script. ---
 $hookScripts = @(
+    "misc/shell-guardrails/scripts/guard-shell.py",
     "misc/modern-cli-guardrails/scripts/block-legacy-cli.ps1",
     "misc/git-guardrails-claude-code/scripts/block-dangerous-git.ps1"
 )
