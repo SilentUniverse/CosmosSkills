@@ -84,10 +84,14 @@ HTML image, `complete && naturalWidth > 0`), not only element visibility or an a
 Electron renderer CSP plus main/preload/renderer ownership whenever a renderer loads external
 resources. Static green alone does not prove runtime behavior.
 
-**Python.** Pyright/mypy cover typed boundaries only. Pair them with pytest at the public seam and a
-runtime selector/coverage signal (`pytest --testmon` or coverage contexts) because dynamic dispatch,
-fixtures, registries, and `**kwargs` evade static analysis. Property tests are useful for broad input
-spaces when the project already supports them. Report the remaining dynamic-dispatch gap.
+**Python.** Pyright/mypy cover typed boundaries only. For a mutation-based impact probe, compare a
+baseline with the candidate and classify only new diagnostics as typed impact candidates;
+pre-existing diagnostics and line-only movement are not attributed to the mutation. This does not
+relax an independent repository typecheck gate. Pair static results with pytest at the public seam
+and a runtime selector/coverage signal (`pytest --testmon` or coverage contexts) because dynamic
+dispatch, fixtures, registries, and `**kwargs` evade static analysis. Property tests are useful for
+broad input spaces when the project already supports them. Report the remaining dynamic-dispatch
+gap.
 
 **CLI / service / device.** CLI evidence is command + exit + stdout/stderr predicate. Service
 evidence is request + response + durable side effect. Device evidence is the control action plus log

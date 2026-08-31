@@ -30,13 +30,18 @@
       "id": "R2",
       "criterion": "Each behavior AC has an executable pytest/public-seam proof tied to an actually passed Python harness P# rather than only pyright or grep output.",
       "grader_ids": ["verification-contract"]
+    },
+    {
+      "id": "R3",
+      "criterion": "A mutation-based Pyright impact probe compares baseline and candidate diagnostics, excludes pre-existing or line-shift-only diagnostics from mutation impact, treats only new diagnostics as typed candidates rather than behavior proof, and preserves any independent repository typecheck gate.",
+      "grader_ids": ["verification-contract"]
     }
   ],
   "graders": [
     {
       "id": "verification-contract",
       "kind": "deterministic",
-      "procedure": "Parse the receipt/issue evidence mappings and assert they contain typed static analysis, runtime selection/coverage, public-seam behavior tests, and an explicit dynamic gap; fail a static-only plan."
+      "procedure": "Parse the receipt/issue evidence mappings and assert they contain baseline-delta typed analysis, exclude pre-existing and line-shift-only diagnostics from mutation impact without relaxing an independent repository typecheck gate, classify new diagnostics as candidates rather than behavior proof, separate typed/structural/runtime evidence, include public-seam behavior tests, and state the dynamic gap; fail a static-only or raw-all-diagnostics plan."
     }
   ]
 }

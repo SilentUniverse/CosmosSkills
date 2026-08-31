@@ -288,7 +288,7 @@ git_base: 7af387c
 ## Verifier commands
 - Full suite + build: `npm run test && npm run build`
 - Scoped test: `pytest <path>::<test>`
-- Impact 受影响代码：`pyright --outputjson` + `rg '\bSYM\b'`
+- Impact 受影响代码：`pyright-impact.py capture/diff`（只看新增诊断）+ `rg '\bSYM\b'`
 - Impact 受影响测试：`pytest --testmon`
 ```
 
