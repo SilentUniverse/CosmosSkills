@@ -14,7 +14,7 @@ The concrete `settings.json` `PreToolUse` config, hook script install locations,
 
 `ls` is not blocked — too frequent to replace.
 
-**Matching rules.** The command is split into segments at unquoted `|` / `&&` / `;` / `(` / newlines; separators inside `'...'` / `"..."` never split. Only the first word of each segment is checked, exactly matched — `ripgrep`, `fdfind`, `lsd`, and paths like `bat cat/notes.md` are never blocked, and neither is a tool in argument position (`adb shell ls /sdcard`). Heredoc bodies (`<<EOF … EOF`) are data, never checked. So `adb shell "ls; grep x"` passes, while `adb logcat -d | grep x` still blocks — that grep runs on the host; use `rg`.
+**Matching rules.** The hook parses command positions, it does not substring-match: control flow (`if grep …`), pipelines, subshells, `$(…)`/backticks even inside double quotes (the host executes them), wrappers with options (`sudo -u root grep`, `timeout --signal TERM 5 grep`), absolute paths (`/usr/bin/grep`), and static `bash -c` / `eval` payloads all count. Look-alikes (`ripgrep`, `fdfind`, `lsd`), argument positions (`adb shell ls /sdcard`), heredoc bodies, comments, array literals, `[[ =~ ]]` operands, `case` patterns, and name lookups (`command -v grep`) never block. So `adb shell "ls; grep x"` passes, while `adb logcat -d | grep x` blocks — that grep runs on the host; use `rg`.
 
 **Escape hatch** for unavoidable cases (third-party Makefiles, inlined scripts, a `git` subcommand that shells out): prefix the command with a `# force-legacy` comment line, or set `ALLOW_LEGACY_CLI=1` in the shell that launches Claude Code — an inline `ALLOW_LEGACY_CLI=1 cmd` prefix is invisible to the hook, which runs in its own process.
 

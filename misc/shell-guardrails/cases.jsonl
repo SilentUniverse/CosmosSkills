@@ -1,0 +1,163 @@
+{"id": "legacy-grep", "command": "grep -r foo .", "expect": "block", "tier": "legacy"}
+{"id": "legacy-find", "command": "find . -name x", "expect": "block", "tier": "legacy"}
+{"id": "legacy-sed", "command": "sed -i s/a/b/ f", "expect": "block", "tier": "legacy"}
+{"id": "legacy-multiline-sed", "command": "echo hi\nsed -i s/a/b/ f", "expect": "block", "tier": "legacy"}
+{"id": "legacy-pipe-host", "command": "adb logcat -d | grep -i crash", "expect": "block", "tier": "legacy", "note": "host-side grep after adb pipe"}
+{"id": "legacy-cmdsub", "command": "echo $(grep -r x .)", "expect": "block", "tier": "legacy"}
+{"id": "legacy-cmdsub-dq", "command": "echo \"$(grep -r x .)\"", "expect": "block", "tier": "legacy", "note": "cmdsub inside double quotes still runs on host"}
+{"id": "legacy-backtick-dq", "command": "echo \"`grep x`\"", "expect": "block", "tier": "legacy", "note": "backtick inside double quotes runs on host (old suite asserted allow - wrong)"}
+{"id": "legacy-backtick", "command": "echo `find .`", "expect": "block", "tier": "legacy"}
+{"id": "legacy-if", "command": "if grep -q x f; then echo y; fi", "expect": "block", "tier": "legacy", "note": "control flow was a blind spot"}
+{"id": "legacy-while", "command": "while grep -q x f; do sleep 1; done", "expect": "block", "tier": "legacy"}
+{"id": "legacy-for-do-find", "command": "for d in a b; do find $d -name x; done", "expect": "block", "tier": "legacy"}
+{"id": "legacy-case-body", "command": "case $x in a) grep y f;; esac", "expect": "block", "tier": "legacy", "note": "case BODY commands execute; only patterns are data"}
+{"id": "legacy-cond-cmdsub", "command": "[[ $(grep -c x f) -gt 1 ]] && echo many", "expect": "block", "tier": "legacy", "note": "cmdsub inside [[ ]] executes"}
+{"id": "legacy-sudo-find", "command": "sudo find . -name x", "expect": "block", "tier": "legacy"}
+{"id": "legacy-sudo-u-find", "command": "sudo -u root find /tmp", "expect": "block", "tier": "legacy", "note": "value-taking option -u ROOT was a blind spot"}
+{"id": "legacy-env-u-grep", "command": "env -u OLD grep -n x f", "expect": "block", "tier": "legacy", "note": "env -u NAME value pair"}
+{"id": "legacy-time-find", "command": "time find .", "expect": "block", "tier": "legacy"}
+{"id": "legacy-timeout-find", "command": "timeout 10 find .", "expect": "block", "tier": "legacy"}
+{"id": "legacy-timeout-signal", "command": "timeout --signal TERM 5 grep x f", "expect": "block", "tier": "legacy", "note": "long option with separate value"}
+{"id": "legacy-nice-n", "command": "nice -n 5 find .", "expect": "block", "tier": "legacy"}
+{"id": "legacy-watch-grep", "command": "watch grep x /var/log/syslog", "expect": "block", "tier": "legacy"}
+{"id": "legacy-stdbuf-grep", "command": "stdbuf -oL grep x f", "expect": "block", "tier": "legacy"}
+{"id": "legacy-command-grep", "command": "command grep -n x f", "expect": "block", "tier": "legacy", "note": "command wrapper was a blind spot"}
+{"id": "legacy-exec-grep", "command": "exec grep -n x f", "expect": "block", "tier": "legacy"}
+{"id": "legacy-xargs-grep", "command": "cat f | xargs grep y", "expect": "block", "tier": "legacy"}
+{"id": "legacy-xargs-0", "command": "cat f | xargs -0 grep y", "expect": "block", "tier": "legacy"}
+{"id": "legacy-xargs-I", "command": "fd -e ts | xargs -I{} grep foo {}", "expect": "block", "tier": "legacy"}
+{"id": "legacy-wrapper-chain", "command": "sudo env -i timeout 5 find .", "expect": "block", "tier": "legacy"}
+{"id": "legacy-varval", "command": "FOO=1 find .", "expect": "block", "tier": "legacy"}
+{"id": "legacy-abs-path", "command": "/usr/bin/grep -n x f", "expect": "block", "tier": "legacy", "note": "absolute executable path was a blind spot"}
+{"id": "legacy-bang", "command": "! grep x f", "expect": "block", "tier": "legacy"}
+{"id": "legacy-subshell", "command": "(grep -n x f)", "expect": "block", "tier": "legacy"}
+{"id": "legacy-procsub", "command": "wc -l <(grep -n x f)", "expect": "block", "tier": "legacy", "note": "process substitution executes on host"}
+{"id": "legacy-bash-c-dq", "command": "bash -c \"grep -n x f\"", "expect": "block", "tier": "legacy", "note": "static quoted payload of bash -c runs on host"}
+{"id": "legacy-sh-c-sq", "command": "sh -c 'sed -i s/a/b/ f'", "expect": "block", "tier": "legacy"}
+{"id": "legacy-eval-static", "command": "eval 'grep -n x f'", "expect": "block", "tier": "legacy", "note": "static quoted payload of eval"}
+{"id": "legacy-heredoc-pipe", "command": "cat notes <<EOF | grep x\nhello\nEOF", "expect": "block", "tier": "legacy", "note": "same-line pipe after heredoc opener is live"}
+{"id": "legacy-after-heredoc-tab", "command": "cat f <<-EOF\n\tdata line\n\tEOF\ngrep x f", "expect": "block", "tier": "legacy", "note": "tab-indented terminator must close the heredoc; following line is live"}
+{"id": "legacy-adb-quoted-pipe", "command": "adb shell \"ps -A | grep system\"", "expect": "allow", "tier": "legacy", "note": "whole string is the device command; grep is remote"}
+{"id": "legacy-adb-plain", "command": "adb shell ls /sdcard", "expect": "allow", "tier": "legacy", "platform": "unix", "note": "valid on Unix hosts"}
+{"id": "winpath-adb-plain-unquoted", "command": "adb shell ls /sdcard", "expect": "block", "tier": "winpath", "platform": "msys", "note": "same command, but MSYS mangles the unquoted device path on Git Bash"}
+{"id": "legacy-adb-serial", "command": "adb -s emulator-5554 shell \"cd /data && ls\"", "expect": "allow", "tier": "legacy"}
+{"id": "legacy-ssh-remote", "command": "ssh user@host \"ls && grep x /var/log/syslog\"", "expect": "allow", "tier": "legacy"}
+{"id": "legacy-docker-exec", "command": "docker exec web grep x /etc/passwd", "expect": "allow", "tier": "legacy", "note": "grep runs inside the container"}
+{"id": "legacy-wsl", "command": "wsl grep x f", "expect": "allow", "tier": "legacy"}
+{"id": "legacy-msys-adb", "command": "MSYS_NO_PATHCONV=1 adb shell find /sdcard", "expect": "allow", "tier": "legacy", "note": "remote find via adb"}
+{"id": "legacy-rg", "command": "rg foo", "expect": "allow", "tier": "legacy"}
+{"id": "legacy-fd", "command": "fd . src", "expect": "allow", "tier": "legacy"}
+{"id": "legacy-sd", "command": "sd a b f", "expect": "allow", "tier": "legacy"}
+{"id": "legacy-xargs-rg", "command": "cat f | xargs rg y", "expect": "allow", "tier": "legacy"}
+{"id": "legacy-for-do-sd", "command": "for f in *.txt; do sd a b $f; done", "expect": "allow", "tier": "legacy"}
+{"id": "legacy-do-then-only", "command": "do then done", "expect": "allow", "tier": "legacy"}
+{"id": "legacy-quoted-do", "command": "echo \"do find the thing\"", "expect": "allow", "tier": "legacy"}
+{"id": "legacy-uppercase-DO", "command": "DO find .", "expect": "allow", "tier": "legacy"}
+{"id": "legacy-bare-env", "command": "env", "expect": "allow", "tier": "legacy"}
+{"id": "legacy-echo-bare-data", "command": "echo git push", "expect": "allow", "tier": "legacy", "note": "bare unquoted data in argument position"}
+{"id": "legacy-echo-quoted", "command": "echo \"grep is legacy\"", "expect": "allow", "tier": "legacy"}
+{"id": "legacy-printf-data", "command": "printf '%s\\n' \"find\"", "expect": "allow", "tier": "legacy"}
+{"id": "legacy-comment", "command": "echo ok # $(grep x file)", "expect": "allow", "tier": "legacy", "note": "comment content is data (was false-blocked)"}
+{"id": "legacy-comment2", "command": "rg x # TODO switch from grep", "expect": "allow", "tier": "legacy"}
+{"id": "legacy-array", "command": "tools=(grep find sed)", "expect": "allow", "tier": "legacy", "note": "array literal is data (was false-blocked)"}
+{"id": "legacy-array-arith", "command": "arr=(1 2 3); total=$((arr[0]+arr[1]))", "expect": "allow", "tier": "legacy"}
+{"id": "legacy-regex-cond", "command": "[[ foo =~ (grep|find) ]]", "expect": "allow", "tier": "legacy", "note": "regex operand is data (was false-blocked)"}
+{"id": "legacy-case-pattern", "command": "case $x in grep|find) echo matched;; esac", "expect": "allow", "tier": "legacy", "note": "case patterns are data; only the body executes"}
+{"id": "legacy-funcdecl", "command": "grep() { :; }", "expect": "allow", "tier": "legacy", "note": "declaration only, nothing executes (was false-blocked)"}
+{"id": "legacy-ripgrep", "command": "ripgrep --version", "expect": "allow", "tier": "legacy"}
+{"id": "legacy-fdfind", "command": "fdfind", "expect": "allow", "tier": "legacy"}
+{"id": "legacy-path-cat", "command": "bat cat/notes.md", "expect": "allow", "tier": "legacy"}
+{"id": "legacy-git-grep", "command": "git grep -n x f", "expect": "allow", "tier": "legacy", "note": "git builtin subcommand, not the binary"}
+{"id": "legacy-which-grep", "command": "which grep", "expect": "allow", "tier": "legacy", "note": "prints a path, does not run grep"}
+{"id": "legacy-type-grep", "command": "type grep", "expect": "allow", "tier": "legacy"}
+{"id": "legacy-command-v-grep", "command": "command -v grep", "expect": "allow", "tier": "legacy", "note": "-v prints the path; only command NAME runs it"}
+{"id": "legacy-heredoc-data", "command": "git commit -F- <<'EOF'\nfix: find the bug\nEOF", "expect": "allow", "tier": "legacy"}
+{"id": "legacy-escape-comment", "command": "# force-legacy\ngrep foo", "expect": "allow", "tier": "legacy"}
+{"id": "legacy-ls", "command": "ls -la", "expect": "allow", "tier": "legacy"}
+{"id": "legacy-utf8", "command": "echo \"检查 grep 的用法\"", "expect": "allow", "tier": "legacy"}
+{"id": "legacy-escaped-quotes", "command": "echo \"he said \\\"hi\\\" loudly\"", "expect": "allow", "tier": "legacy", "note": "JSON-escaped inner quotes"}
+{"id": "legacy-escaped-quotes-cmdsub", "command": "git commit -m \"run \\\"$(fd -e ts)\\\" now\"", "expect": "allow", "tier": "legacy"}
+{"id": "legacy-redirect-word", "command": "sort < grep", "expect": "allow", "tier": "legacy", "note": "grep is a redirect target filename"}
+{"id": "legacy-dynamic-cmdword", "command": "x=git; $x push", "expect": "allow", "tier": "legacy", "note": "dynamic command word - documented static-analysis gap"}
+{"id": "legacy-arith", "command": "((count+=2))", "expect": "allow", "tier": "legacy", "note": "arithmetic, pipe-like chars are operators"}
+{"id": "legacy-arith-pipe", "command": "x=$((1|2))", "expect": "allow", "tier": "legacy"}
+{"id": "legacy-escaped-pipe-data", "command": "adb logcat -d \\| rg -i pattern", "expect": "allow", "tier": "legacy", "note": "backslash-escaped pipe goes to the device (doc-copy trap)"}
+{"id": "git-push", "command": "git push", "expect": "block", "tier": "git"}
+{"id": "git-push-remote", "command": "git push origin main", "expect": "block", "tier": "git"}
+{"id": "git-push-force", "command": "git push --force origin", "expect": "block", "tier": "git"}
+{"id": "git-reset-hard", "command": "git reset --hard HEAD~1", "expect": "block", "tier": "git"}
+{"id": "git-clean-f", "command": "git clean -f", "expect": "block", "tier": "git"}
+{"id": "git-clean-fd", "command": "git clean -fd", "expect": "block", "tier": "git"}
+{"id": "git-clean-xdf", "command": "git clean -xdf", "expect": "block", "tier": "git"}
+{"id": "git-clean-long-force", "command": "git clean --force", "expect": "block", "tier": "git"}
+{"id": "git-branch-D", "command": "git branch -D feat", "expect": "block", "tier": "git"}
+{"id": "git-branch-del-force", "command": "git branch --delete --force feat", "expect": "block", "tier": "git"}
+{"id": "git-checkout-dot", "command": "git checkout .", "expect": "block", "tier": "git"}
+{"id": "git-checkout-dd-dot", "command": "git checkout -- .", "expect": "block", "tier": "git"}
+{"id": "git-restore-dot", "command": "git restore .", "expect": "block", "tier": "git"}
+{"id": "git-double-space", "command": "git  push", "expect": "block", "tier": "git"}
+{"id": "git-chained", "command": "eza -l && git push", "expect": "block", "tier": "git"}
+{"id": "git-sudo", "command": "sudo git push", "expect": "block", "tier": "git"}
+{"id": "git-sudo-u", "command": "sudo -u root git push", "expect": "block", "tier": "git", "note": "was missed: -u value pair hid git"}
+{"id": "git-time", "command": "time git push", "expect": "block", "tier": "git", "note": "was missed"}
+{"id": "git-C-variant", "command": "git -C ../repo reset --hard", "expect": "block", "tier": "git"}
+{"id": "git-git-dir", "command": "git --git-dir=x/.git push", "expect": "block", "tier": "git"}
+{"id": "git-c-config", "command": "git -c a.b=c push", "expect": "block", "tier": "git"}
+{"id": "git-abs-path", "command": "/usr/bin/git push", "expect": "block", "tier": "git", "note": "was missed: absolute path"}
+{"id": "git-cmdsub-dq", "command": "echo \"$(git push)\"", "expect": "block", "tier": "git", "note": "was missed: cmdsub in double quotes"}
+{"id": "git-if-then", "command": "if git diff --quiet; then git push; fi", "expect": "block", "tier": "git", "note": "control flow was a blind spot"}
+{"id": "git-bash-c", "command": "bash -c 'git push'", "expect": "block", "tier": "git", "note": "static payload of local bash -c"}
+{"id": "git-eval-static", "command": "eval 'git push'", "expect": "block", "tier": "git"}
+{"id": "git-adb-cmdsub", "command": "adb shell \"echo $(git push)\"", "expect": "block", "tier": "git", "note": "cmdsub runs on host even inside the adb argument"}
+{"id": "git-timeout", "command": "timeout 10 git push", "expect": "block", "tier": "git"}
+{"id": "git-escape-no-bypass", "command": "# force-legacy\ngit push", "expect": "block", "tier": "git", "note": "escape hatch covers legacy tier only"}
+{"id": "git-commit", "command": "git commit -m \"wip\"", "expect": "allow", "tier": "git"}
+{"id": "git-reset-soft", "command": "git reset --soft HEAD~1", "expect": "allow", "tier": "git"}
+{"id": "git-clean-dry", "command": "git clean -n", "expect": "allow", "tier": "git"}
+{"id": "git-branch-d", "command": "git branch -d merged", "expect": "allow", "tier": "git"}
+{"id": "git-checkout-file", "command": "git checkout src/app.ts", "expect": "allow", "tier": "git"}
+{"id": "git-checkout-branch", "command": "git checkout -b feat/x", "expect": "allow", "tier": "git"}
+{"id": "git-restore-file", "command": "git restore src/app.ts", "expect": "allow", "tier": "git"}
+{"id": "git-C-dot-status", "command": "git -C . status", "expect": "allow", "tier": "git", "note": "-C value must not read as checkout ."}
+{"id": "git-status", "command": "git status", "expect": "allow", "tier": "git"}
+{"id": "git-diff", "command": "git diff --stat", "expect": "allow", "tier": "git"}
+{"id": "git-log", "command": "git log --oneline -5", "expect": "allow", "tier": "git"}
+{"id": "git-log-grep-flag", "command": "git log --grep=push", "expect": "allow", "tier": "git"}
+{"id": "git-rg-quoted", "command": "rg \"git push\" docs", "expect": "allow", "tier": "git"}
+{"id": "git-echo-words", "command": "echo reverted git push today", "expect": "allow", "tier": "git", "note": "word pair in argument position"}
+{"id": "git-echo-sudo", "command": "echo sudo git push", "expect": "allow", "tier": "git", "note": "was false-blocked: echo data"}
+{"id": "git-echo-quoted", "command": "echo \"git reset --hard\"", "expect": "allow", "tier": "git"}
+{"id": "git-commit-msg", "command": "git commit -m \"fix: revert git push docs\"", "expect": "allow", "tier": "git"}
+{"id": "git-config-alias", "command": "git config alias.p push", "expect": "allow", "tier": "git", "note": "alias value is data"}
+{"id": "git-heredoc-data", "command": "git commit -F- <<'EOF'\nmentioned git push in prose\nEOF", "expect": "allow", "tier": "git"}
+{"id": "git-remote-ssh", "command": "ssh host git push", "expect": "allow", "tier": "git", "note": "remote domain: not this machine's repo"}
+{"id": "git-remote-adb-unquoted", "command": "adb shell sudo git push", "expect": "allow", "tier": "git", "note": "was false-blocked: device-side git, remote domain"}
+{"id": "git-remote-docker", "command": "docker exec dev git push", "expect": "allow", "tier": "git"}
+{"id": "git-dynamic-eval", "command": "eval \"$cmd\"", "expect": "allow", "tier": "git", "note": "dynamic payload - documented static-analysis gap"}
+{"id": "winpath-python-tmp-arg", "command": "python x.py /tmp/f", "expect": "block", "tier": "winpath", "platform": "msys"}
+{"id": "winpath-node-drive", "command": "node s.js /c/Users", "expect": "block", "tier": "winpath", "platform": "msys"}
+{"id": "winpath-py-tmp-bare", "command": "python x.py /tmp", "expect": "block", "tier": "winpath", "platform": "msys"}
+{"id": "winpath-cmd-quoted", "command": "cmd //c \"python /tmp/x.py\"", "expect": "block", "tier": "winpath", "platform": "msys", "note": "quoted inner command still executes via cmd"}
+{"id": "winpath-cmd-doubleslash", "command": "cmd //c dir", "expect": "allow", "tier": "winpath", "platform": "msys"}
+{"id": "winpath-cmd-switches-quoted", "command": "cmd //c \"dir /a /b D:\\x 2>nul\"", "expect": "allow", "tier": "winpath", "platform": "msys", "note": "dir switches, not paths"}
+{"id": "winpath-cmd-switches-bare", "command": "cmd //c dir /a /b D:\\Code", "expect": "allow", "tier": "winpath", "platform": "msys"}
+{"id": "winpath-devnull", "command": "python x.py 2>/dev/null", "expect": "allow", "tier": "winpath", "platform": "msys", "note": "redirect opened by the shell, not the native exe"}
+{"id": "winpath-redirect-tmp", "command": "python x.py >/tmp/out", "expect": "allow", "tier": "winpath", "platform": "msys", "note": "redirect target resolved by the shell"}
+{"id": "winpath-rg-normal", "command": "rg pattern src", "expect": "allow", "tier": "winpath", "platform": "msys"}
+{"id": "winpath-cp-tmp", "command": "cp x /tmp/", "expect": "allow", "tier": "winpath", "platform": "msys", "note": "not a native-exe segment"}
+{"id": "winpath-multi-letter", "command": "python x.py /tests", "expect": "allow", "tier": "winpath", "platform": "msys", "note": "/tests is a relative-looking path, not a drive form"}
+{"id": "winpath-escape-no-bypass", "command": "# force-legacy\npython x.py /tmp/f", "expect": "block", "tier": "winpath", "platform": "msys", "note": "escape hatch must not bypass path correctness"}
+{"id": "proto-empty", "command": "", "expect": "allow", "tier": "none"}
+{"id": "proto-whitespace", "command": "   ", "expect": "allow", "tier": "none"}
+{"id": "proto-unicode", "command": "rg \"中文\" src", "expect": "allow", "tier": "none"}
+{"id": "proto-modern-mixed", "command": "rg -n foo src && fd -e ts | bat && ls -la", "expect": "allow", "tier": "none"}
+{"id": "proto-10kb-blob", "command": "echo aaaaa...X", "expect": "allow", "tier": "none", "note": "placeholder; runner pads to 10KB - guards superlinear regressions"}
+{"id": "winpath-bash-c", "command": "bash -c 'python x.py /tmp/f'", "expect": "block", "tier": "winpath", "platform": "msys", "note": "bash -c payload must not bypass the no-escape path tier"}
+{"id": "winpath-adb-pull-device", "command": "adb pull /sdcard/x.xml out/", "expect": "block", "tier": "winpath", "platform": "msys", "note": "MSYS rewrites the device path before adb sees it"}
+{"id": "winpath-adb-pull-double-slash", "command": "adb pull //sdcard/x.xml out/", "expect": "allow", "tier": "winpath", "platform": "msys", "note": "documented working form for remote paths"}
+{"id": "winpath-adb-shell-quoted", "command": "adb shell \"uiautomator dump /sdcard/x.xml\"", "expect": "allow", "tier": "winpath", "platform": "msys", "note": "quoted device command is data"}
+{"id": "winpath-adb-shell-unquoted", "command": "adb shell uiautomator dump /sdcard/x.xml", "expect": "block", "tier": "winpath", "platform": "msys", "note": "unquoted device path gets mangled by MSYS"}
+{"id": "winpath-adb-no-pathconv", "command": "MSYS_NO_PATHCONV=1 adb pull /sdcard/x \"$TEMP/x\"", "expect": "allow", "tier": "winpath", "platform": "msys", "note": "documented working form: conversion off, local path in Windows form"}
+{"id": "winpath-adb-logcat-rg", "command": "adb logcat -d | rg -i pattern", "expect": "allow", "tier": "winpath", "platform": "msys", "note": "host-side filter with the modern tool"}
+{"id": "legacy-adb-exec-out", "command": "adb exec-out screencap -p > screen.png", "expect": "allow", "tier": "legacy"}
+{"id": "legacy-adb-crlf-tr", "command": "adb shell pidof com.x | tr -d '\\r'", "expect": "allow", "tier": "legacy", "note": "host-side CRLF strip; tr is not in the legacy set"}

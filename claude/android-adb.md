@@ -36,14 +36,14 @@ Bare `adb logcat` under `timeout 3` exits 124 (still streaming when killed).
 
 ## logcat slimming — pick ONE scope, never dump raw
 
-| Want | Command |
-|---|---|
-| crash stack | `adb logcat -b crash -d` |
-| last N lines | `adb logcat -d -t 500` |
-| errors only | `adb logcat -d *:E` |
-| one process | `adb logcat -d --pid=$(adb shell pidof com.x \| tr -d '\r')` |
-| pattern match | `adb logcat -d \| rg -i "pattern"` |
-| time window | absolute timestamp only: `adb logcat -d -T "07-05 16:40:00.000"` — relative `-T '2 minutes ago'` is rejected on Android 12 (`not in time format`) |
+Pipe forms live outside tables on purpose: a `\|` copied from a markdown table reaches the device as a literal backslash-pipe and Android tries to run `rg`.
+
+- crash stack: `adb logcat -b crash -d`
+- last N lines: `adb logcat -d -t 500`
+- errors only: `adb logcat -d *:E`
+- one process: `adb logcat -d --pid=$(adb shell pidof com.x | tr -d '\r')`
+- pattern match (host-side filter): `adb logcat -d | rg -i "pattern"`
+- time window: absolute timestamp only: `adb logcat -d -T "07-05 16:40:00.000"` — relative `-T '2 minutes ago'` is rejected on Android 12 (`not in time format`)
 
 ## Standard capture loop (reproduce → capture)
 
@@ -68,14 +68,14 @@ rg -i "FATAL|ANR|AndroidRuntime|com.pkg" .scratch/tmp/logcat.txt
 ## dumpsys / pm — filter or drown
 
 `dumpsys activity` raw = 22,750 lines; the filtered lookup below = 2 lines.
+The `| rg` filters run on the HOST (the pipe is outside the quoted device
+command) — that is why `rg`, not `grep`, is correct here.
 
-| Want | Command |
-|---|---|
-| foreground activity | `adb shell dumpsys activity activities \| rg ResumedActivity` |
-| focused window | `adb shell dumpsys window \| rg mCurrentFocus` |
-| app version | `adb shell dumpsys package com.x \| rg versionName` |
-| third-party packages | `adb shell pm list packages -3` (8) — vs all packages (252) |
-| build prop | `adb shell getprop ro.build.version.sdk` |
+- foreground activity: `adb shell dumpsys activity activities | rg ResumedActivity`
+- focused window: `adb shell dumpsys window | rg mCurrentFocus`
+- app version: `adb shell dumpsys package com.x | rg versionName`
+- third-party packages: `adb shell pm list packages -3` (8) — vs all packages (252)
+- build prop: `adb shell getprop ro.build.version.sdk`
 
 ## Long commands — background + log file
 
@@ -92,6 +92,8 @@ Pattern: `run_in_background` + output to `.scratch/tmp/<name>.log`, poll with `t
 | clear data | `adb shell pm clear com.pkg` |
 | tap / swipe / back | `adb shell input tap x y` / `input swipe x1 y1 x2 y2` / `input keyevent 4` |
 | screenshot | `adb exec-out screencap -p > s.png` |
-| app pid | `adb shell pidof com.pkg \| tr -d '\r'` |
 | screen metrics | `adb shell wm size; adb shell wm density` |
+
+App pid needs the CRLF strip from above — full form, outside any table:
+`adb shell pidof com.pkg | tr -d '\r'`
 | devices | `adb devices -l`; multi-device needs `-s <serial>` (or `-d` usb / `-e` emulator) |

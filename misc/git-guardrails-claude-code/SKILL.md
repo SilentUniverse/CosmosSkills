@@ -6,15 +6,22 @@ disable-model-invocation: true
 
 # Setup Git Guardrails
 
-> **Windows: prefer `shell-guardrails`** (one self-contained Python script, three prioritized tiers; also fixes this hook's misses like `then git push` / `FOO=1 git push` / `X=$(git push)` and false blocks like `echo sudo git push` / `adb shell sudo git push`). This skill's `.ps1` remains for standalone installs and machines not yet rewired.
+> **Prefer `shell-guardrails`** (one self-contained Python script, three prioritized tiers — the destructive-git tier of this hook plus the legacy-CLI and path-world tiers; it covers command forms this hook's legacy carriers miss, such as `sudo -u root git push`, `X=$(git push)`, `then git push`, and does not false-block data like `echo sudo git push` or `adb shell sudo git push`; same file on Windows `python` and Unix `python3`). This skill's legacy `.ps1`/`.sh` carriers remain for standalone installs and machines not yet rewired.
 
 Sets up a PreToolUse hook that intercepts and blocks dangerous git commands before Claude executes them.
 
-> Windows default: use the bundled `.ps1` script invoked via `pwsh`; on machines without PS7, `powershell` works too (the scripts are 5.1-compatible). Unix/WSL users use the `.sh` script.
+> Not yet on `shell-guardrails`? Windows uses the bundled `.ps1` via `pwsh` (5.1-compatible); Unix/WSL uses the `.sh`. Both are superseded carriers — new installs should take the combined hook.
 
 ## What Gets Blocked
 
-Matching is **token-level**: every `git` in command position (segment-initial, or right after `sudo`/`env`/`nohup`/`nice`/`timeout`/`xargs`) is checked with its subcommand and flags. Flag reordering, double spaces, and `--` long forms all match:
+The combined engine (`guard-shell.py` in `shell-guardrails`) finds
+every **host-side git command position** — control flow (`if git push; then`),
+pipelines, subshells, `$(…)`/backticks **inside double quotes** (`echo "$(git push)"`),
+wrappers with value-taking options (`sudo -u root git push`, `env -u NAME …`,
+`timeout --signal TERM 5 …`, `time git push`), absolute paths
+(`/usr/bin/git push`), and static `bash -c 'git push'` / `eval 'git push'`
+payloads — then checks subcommand and flags (flag reordering, double spaces,
+`-C <path>` variants, `--` long forms all match):
 
 - `git push` — all variants, including `--force`
 - `git reset --hard`
@@ -22,7 +29,11 @@ Matching is **token-level**: every `git` in command position (segment-initial, o
 - `git branch -D` (and `--delete --force`)
 - `git checkout .` / `git restore .` (including `-- .`)
 
-Quoted strings and heredoc bodies are data (`rg "git push" docs` never blocks). **No escape hatch by design.**
+Data never blocks: quoted strings, heredoc bodies, comments, array literals,
+case patterns (`rg "git push" docs`, `echo sudo git push`, a `git push` inside
+a commit message). Remote execution domains are not this machine's git:
+`ssh host git push`, `adb shell sudo git push`, `docker exec dev git push`
+pass. `# force-legacy` does not bypass this tier. **No escape hatch by design.**
 
 ## Steps
 
@@ -32,28 +43,26 @@ Ask the user: install for **this project only** (`.claude/settings.json`) or **a
 
 ### 2. Copy the hook script
 
-Two versions are bundled:
+New installs take the combined engine — one file, both platforms:
 
-- **Windows (default):** [scripts/block-dangerous-git.ps1](scripts/block-dangerous-git.ps1)
-- **Unix / WSL:** [scripts/block-dangerous-git.sh](scripts/block-dangerous-git.sh)
+- **Preferred:** [../shell-guardrails/scripts/guard-shell.py](../shell-guardrails/scripts/guard-shell.py) (deploy + wire per that skill's WIRING)
+- **Legacy carriers, standalone installs only:** [scripts/block-dangerous-git.ps1](scripts/block-dangerous-git.ps1) (Windows) / [scripts/block-dangerous-git.sh](scripts/block-dangerous-git.sh) (Unix; needs `jq` on PATH, fails open without)
 
-Copy the one matching the user's shell to the target location based on scope:
+Target locations by scope: `.claude/hooks/` (project) or `~/.claude/hooks/` (global).
 
-- **Project**: `.claude/hooks/block-dangerous-git.ps1` (or `.sh`)
-- **Global**: `~/.claude/hooks/block-dangerous-git.ps1` (or `.sh`)
-
-On Unix, make the `.sh` executable with `chmod +x`. The `.ps1` needs no chmod; it is invoked through `pwsh`.
+> In this repo, `install.ps1` distributes guard-shell.py and the legacy `.ps1` pair to `~/.claude/hooks/`; re-run it after editing anything under `scripts/`. The legacy `.sh` is synced manually. The manual copy is for other machines.
 
 ### 3. Add hook to settings
 
 Wire the hook into the settings file per scope and platform: [WIRING.md](WIRING.md). If the
 settings file already exists, merge the hook into the existing `hooks.PreToolUse` array; don't
-overwrite other settings.
+overwrite other settings. With the combined engine you wire ONE entry — it
+already includes the legacy-CLI tier, so do not also wire `modern-cli-guardrails`.
 
 ### 4. Ask about customization
 
-Ask if the user wants to add or remove subcommands from the blocked set. Edit the `switch ($sub)` / `case "$sub"` rule table in the copied script, then re-run the test suite.
+Ask if the user wants to add or remove subcommands from the blocked set. Edit the `sub` rule table in `dangerous_git_hit` in `guard-shell.py` (the `switch ($sub)` in the legacy `.ps1` mirrors it), then re-run the corpus.
 
 ### 5. Verify
 
-Run the regression suite and spot checks: [WIRING.md](WIRING.md) §Verify.
+Run the shared corpus (expect every git-tier case to pass): [WIRING.md](WIRING.md) §Verify.

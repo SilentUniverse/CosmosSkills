@@ -6,18 +6,20 @@ disable-model-invocation: true
 
 # Setup Modern CLI Guardrails
 
-> **Windows: prefer `shell-guardrails`** (one self-contained Python script, three prioritized tiers — this hook plus the git hook plus the path-world guard, with the `# force-legacy` escape scoped to the legacy-CLI tier only). This skill's `.ps1` remains for standalone installs and machines not yet rewired.
+> **Prefer `shell-guardrails`** (one self-contained Python script, three prioritized tiers — this hook plus the git hook plus the path-world guard, with the `# force-legacy` escape scoped to the legacy-CLI tier only; same file on Windows `python` and Unix `python3`). This skill's legacy `.ps1`/`.sh` carriers remain for standalone installs and machines not yet rewired.
 
 Turns CLAUDE.md §7 (Modern CLI Tooling) from a soft guideline into a hard rule: a
 PreToolUse hook intercepts every `Bash` tool call and blocks it before execution
 if a **host-side segment** of the command invokes a legacy tool (`grep`, `find`,
 `sed`). `ls` is deliberately not blocked; it is too frequent to replace.
 
-> Windows default: use the bundled `.ps1` script invoked via `pwsh`; on machines without PS7, `powershell` works too (the scripts are 5.1-compatible). Unix/WSL users use the `.sh` script.
+> Not yet on `shell-guardrails`? Windows uses the bundled `.ps1` via `pwsh` (5.1-compatible); Unix/WSL uses the `.sh`. Both are superseded carriers — new installs should take the combined hook.
 
 ## What Gets Blocked
 
-Legacy tool as the first word of a host-side segment (segments split at unquoted `|`, `&&`, `;`, `(`, or a newline) → blocked with a pointer to its modern replacement:
+A legacy tool in a **host-side command position** — found by a real parse
+(`guard-shell.py` in `shell-guardrails`; the legacy carriers approximate it) —
+is blocked with a pointer to its modern replacement:
 
 | Forbidden | Use instead |
 |---|---|
@@ -25,16 +27,27 @@ Legacy tool as the first word of a host-side segment (segments split at unquoted
 | `find` | `fd` |
 | `sed` | `sd` |
 
+Command positions include: segment heads, control-flow bodies (`if grep -q …`,
+`while … do find …`), pipelines, subshells, process substitution,
+`$(…)`/backtick substitution **even inside double quotes** (the host executes
+it), wrappers (`sudo`, `env`, `timeout`, `nice`, `nohup`, `xargs`, `command`,
+`exec`, `stdbuf`, `watch`) including value-taking options (`sudo -u root`,
+`env -u NAME`, `timeout --signal TERM 5`, `xargs -I {}`), absolute paths
+(`/usr/bin/grep`), `VAR=val` prefixes, and static quoted payloads of
+`bash -c` / `eval`.
+
 When blocked, Claude sees the message on stderr and retries with the modern tool or a built-in search tool.
 
-**Path-world guard**: a host segment starting with a native Windows executable (`python`/`python3`/`py`, `pwsh`/`powershell`, `cmd`, `node`, `rg`, `fd`, `bat`, `jq`, `yq`, `sd`) that carries a POSIX path token (`/tmp/…`, `/c/…`) is blocked with a `cygpath -w` / `$env:TEMP` pointer. Native processes cannot resolve MSYS paths ("two path worlds", `~/.claude/references/windows-cli.md`). `cmd`-headed segments skip bare single-letter tokens: `/a` and `/b` are `dir` switches, not paths, and the CLAUDE.md §8 directory-truth check `cmd //c dir /a /b <path>` must stay allowed; `/tmp` (any form) and `/c/…` still block. This guard lives in the `.ps1` hook only; on Unix the `.sh` needs none (MSYS paths don't exist there). Same escape hatch.
+**Path-world guard** (MSYS / Git Bash only — the tier disables itself on macOS/Linux): a host segment headed by a native Windows executable (`python`/`python3`/`py`, `pwsh`/`powershell`, `cmd`, `node`, `rg`, `fd`, `bat`, `jq`, `yq`, `sd`) that carries a POSIX path token (`/tmp/…`, `/c/…`) is blocked with a `cygpath -w` / `$env:TEMP` pointer. `cmd`-headed segments skip bare single-letter tokens: `/a` and `/b` are `dir` switches. This is a correctness rule, not a preference: **`# force-legacy` does not bypass it**.
 
 ### What does NOT get blocked
 
-- Data, not command: quoted strings (`adb shell "ls; grep x"`, `ssh host "grep x /var/log"`) and heredoc bodies.
-- Tools in argument position (`adb shell ls /sdcard`, `docker exec ctr ls /app`, `wsl ls`) are not the first word of a host segment. Host-side pipelines still block: `adb logcat -d | grep x` → use `rg`.
-- Exact first-word match only: look-alikes (`ripgrep`, `fdfind`, `pcre2grep`, `lsd`) and modern tools (`rg`, `fd`, `bat`, `sd`) pass; the bundled test suite pins the edge cases.
-- **Escape hatch** for genuinely unavoidable cases (third-party Makefiles, inlined scripts): prefix the command with a `# force-legacy` comment line, or set `ALLOW_LEGACY_CLI=1` in the shell that launches Claude Code. An inline `ALLOW_LEGACY_CLI=1 cmd` prefix is invisible to the hook, which runs in its own process.
+- Data, not command: quoted strings (`adb shell "ls; grep x"`, `ssh host "grep x /var/log"`), heredoc bodies, comments (`echo ok # $(grep x file)`), array literals (`tools=(grep find sed)`), `[[ =~ ]]` regex operands, `case` patterns, and bare function declarations (`grep() { :; }`).
+- Remote execution domains: tools in argument position of `adb shell`, `ssh`, `docker exec`, `wsl` (`docker exec web grep x /etc` runs inside the container). Host-side pipelines still block: `adb logcat -d | grep x` → use `rg`.
+- Name lookups, not executions: `which grep`, `type grep`, `command -v grep`.
+- Look-alikes (`ripgrep`, `fdfind`, `pcre2grep`, `lsd`, `git grep`) and modern tools (`rg`, `fd`, `bat`, `sd`).
+- **Escape hatch** for the legacy tier only: prefix the command with a `# force-legacy` comment line, or set `ALLOW_LEGACY_CLI=1` in the shell that launches Claude Code. An inline `ALLOW_LEGACY_CLI=1 cmd` prefix is invisible to the hook, which runs in its own process.
+- Dynamic forms static analysis cannot judge (`x=git; $x push`, `eval "$cmd"`) pass — documented gaps, see `../../shell-guardrails/README.md`.
 
 The hook is failure-safe: malformed input, a missing dependency, or any internal error exits 0 (allow).
 
@@ -46,31 +59,28 @@ Ask the user: install for **this project only** (`.claude/settings.json`) or **a
 
 ### 2. Copy the hook script
 
-Two versions are bundled:
+New installs take the combined engine — one file, both platforms:
 
-- **Windows (default):** [scripts/block-legacy-cli.ps1](scripts/block-legacy-cli.ps1)
-- **Unix / WSL:** [scripts/block-legacy-cli.sh](scripts/block-legacy-cli.sh)
+- **Preferred:** [../shell-guardrails/scripts/guard-shell.py](../shell-guardrails/scripts/guard-shell.py) (deploy + wire per that skill's WIRING)
+- **Legacy carriers, standalone installs only:** [scripts/block-legacy-cli.ps1](scripts/block-legacy-cli.ps1) (Windows) / [scripts/block-legacy-cli.sh](scripts/block-legacy-cli.sh) (Unix; needs `jq` on PATH, fails open without)
 
-Copy the one matching the user's shell to the target location based on scope:
+Target locations by scope: `.claude/hooks/` (project) or `~/.claude/hooks/` (global).
 
-- **Project**: `.claude/hooks/block-legacy-cli.ps1` (or `.sh`)
-- **Global**: `~/.claude/hooks/block-legacy-cli.ps1` (or `.sh`)
-
-On Unix, make the `.sh` executable with `chmod +x`. The `.ps1` needs no chmod; it is invoked through `pwsh`. The `.sh` needs `jq` on PATH; with jq missing it fails open (allows everything).
-
-> In this repo, `install.ps1` distributes the `.ps1` hook scripts to `~/.claude/hooks/`; re-run it after editing anything under `scripts/`. The `.sh` stays repo-only for Unix. The manual copy is for other machines.
+> In this repo, `install.ps1` distributes guard-shell.py and the legacy `.ps1` pair to `~/.claude/hooks/`; re-run it after editing anything under `scripts/`. The legacy `.sh` is synced manually. The manual copy is for other machines.
 
 ### 3. Add hook to settings
 
 Wire the hook into the settings file per scope and platform: [WIRING.md](WIRING.md). If the
 settings file already exists, merge the hook into the existing `hooks.PreToolUse` array; don't
-overwrite other settings. This composes with `git-guardrails-claude-code`: both are `Bash`
-matchers and can each live as a separate entry in the array.
+overwrite other settings. With the combined engine you wire ONE entry — it
+already includes the git tier, so do not also wire `git-guardrails-claude-code`.
 
 ### 4. Ask about customization
 
-Ask if the user wants to add or remove any tools from the blocked map. Edit `$map` (`.ps1`) or `MAP` (`.sh`) accordingly, then re-run the test script.
+Ask if the user wants to add or remove tools from the blocked map. Edit the
+legacy tier's tuple in `guard-shell.py` (`legacy_cli_hit`; the `$map` in the
+legacy `.ps1` mirrors it), then re-run the corpus.
 
 ### 5. Verify
 
-Run the regression suite and spot checks: [WIRING.md](WIRING.md) §Verify.
+Run the shared corpus (expect every case to pass): [WIRING.md](WIRING.md) §Verify.

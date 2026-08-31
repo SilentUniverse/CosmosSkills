@@ -74,7 +74,7 @@ The smart zone is the quality ceiling, not the context limit. Keep grill → spe
 
 ## 7. Modern CLI Tooling
 
-**Built-ins first**: `Read` plus `Grep`/`Glob` where the host provides them; shell fallback `rg` `fd` `bat` `sd` `jq` `yq` `sg` only — never `grep` `find` `sed` (`ls` stays). Host shell only (`adb shell`/`ssh`/`docker exec`/`wsl`): the legacy names are correct there. Hard enforcement: `modern-cli-guardrails` hook; escape: `# force-legacy` / `ALLOW_LEGACY_CLI=1`.
+**Built-ins first**: `Read` plus `Grep`/`Glob` where the host provides them; shell fallback `rg` `fd` `bat` `sd` `jq` `yq` `sg` only — never `grep` `find` `sed` (`ls` stays). Host shell only (`adb shell`/`ssh`/`docker exec`/`wsl`): the legacy names are correct there — but only inside the remote command; a host-side pipe still uses modern tools (`adb logcat -d | rg x`, never `| grep`). Hard enforcement: `modern-cli-guardrails` hook; escape: `# force-legacy` / `ALLOW_LEGACY_CLI=1`.
 
 → Mapping & matching rules: `~/.claude/references/cli-tools.md`
 
@@ -95,7 +95,7 @@ Windows console defaults to GBK (cp936); `PYTHONUTF8=1` is injected via settings
 ## 9. Run to Completion
 
 Multi-item tasks — the ask names a full set: 全部/所有/逐个, a numbered list, or 最后 / "at the end" — finish ALL items in one pass, in any conversation, not only inside a named skill.
-- Open by restating the pass contract: N 项、一个回合跑完、结尾一次汇总. Then enumerate the full set with a tool (grep / ls / git diff), never from memory.
+- Open by restating the pass contract: N 项、一个回合跑完、结尾一次汇总. Then enumerate the full set with a tool (rg / ls / git diff), never from memory.
 - Every item ends done or with a written why-not. Item fails or blocks → mark it, move on, surface it in the final summary; don't stop to negotiate.
 - Close by re-running the enumeration expecting zero left; end with N/N — conclusions carry file:line or command output as evidence.
 - A turn ends at the pass's end, or on input only the user can give. No mid-pass pauses, per-item summaries, or "shall I continue?" checkpoints. If context forces a split, break at item boundaries with a one-line N/M marker, never mid-item.

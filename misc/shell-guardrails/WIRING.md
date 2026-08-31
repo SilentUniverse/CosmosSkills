@@ -81,6 +81,15 @@ Python entry ≈35 ms).
 
 ## Verify
 
+Primary — the shared semantic corpus (run from `misc/shell-guardrails/`;
+expect every case to pass on both platform profiles):
+
+```bash
+python3 run_corpus.py scripts/guard-shell.py
+GUARD_SHELL_FORCE_MSYS=1 python3 run_corpus.py scripts/guard-shell.py --platform msys
+python3 run_corpus.py scripts/guard-shell.py --bench
+```
+
 Spot checks — feed a fake payload and assert the exit code (a blocked command
 exits 2 with a BLOCKED message on stderr; an allowed command exits 0 silently):
 
