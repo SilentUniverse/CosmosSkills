@@ -94,7 +94,7 @@ Spot checks — feed a fake payload and assert the exit code (a blocked command
 exits 2 with a BLOCKED message on stderr; an allowed command exits 0 silently):
 
 ```powershell
-'{"tool_input":{"command":"git push"}}'        | python C:/Users/<you>/.claude/hooks/guard-shell.py; $LASTEXITCODE  # 2
+'{"tool_input":{"command":"git reset --hard"}}' | python C:/Users/<you>/.claude/hooks/guard-shell.py; $LASTEXITCODE  # 2
 '{"tool_input":{"command":"grep -r foo ."}}'   | python C:/Users/<you>/.claude/hooks/guard-shell.py; $LASTEXITCODE  # 2
 '{"tool_input":{"command":"rg foo"}}'          | python C:/Users/<you>/.claude/hooks/guard-shell.py; $LASTEXITCODE  # 0
 '{"tool_input":{"command":"adb shell ls"}}'    | python C:/Users/<you>/.claude/hooks/guard-shell.py; $LASTEXITCODE  # 0
