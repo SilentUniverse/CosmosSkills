@@ -260,7 +260,10 @@ The `/tdd -p` drain's dispatch ledger, written only by the `tdd` skill's
 `scripts/drain-wave.py` (`dispatch` before subagents start, `collect` at wave close). Each
 wave entry: number, timestamp, dispatched slugs, the wave baseline (`git status --porcelain`
 snapshot), per-issue `receipt_hits` when shared P# tuples apply, per-issue closure
-(`green|red|blocked|aborted`), close timestamp. The top-level `preflight_assignments` map retains
+(`green|red|blocked|conflict|aborted`), conflict-time contract digest when applicable, close
+timestamp. The digest covers the issue before `## Comments`, so notes cannot release the barrier.
+An unchanged conflict digest blocks later `next` and `dispatch`; `/spec` realignment changes the
+contract and releases it. The top-level `preflight_assignments` map retains
 exact issue-to-key tuples so a collision-serialized issue receives the same hit in a later wave.
 A dispatched
 slug that is neither done on disk nor closed is a zombie. The recovery contract lives in

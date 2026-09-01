@@ -46,7 +46,11 @@ Tests verify behavior through public interfaces, not implementation details; exp
 
 Start from first principles about the approach. Use the project's domain glossary so test names and interface vocabulary match the project's language; respect ADRs in the area touched.
 
-Before writing any code: list the behaviors to test (not implementation steps); confirm interface changes, behaviors, and plan with the user *(autonomous mode: skip confirms — the aligned issue's 做什么/AC/验证设计 plus the PRD extract in `## 上级` are the contract)*; shape deep modules and testable interfaces; `/codebase-design` only when a new seam is in play or the interface is unclear. Existing coverage first: [tests.md](tests.md) §Existing coverage.
+Before writing any code: list the behaviors to test, not implementation steps; confirm interface
+changes, behaviors, and plan with the user; shape deep modules and testable interfaces;
+`/codebase-design` only when a new seam is in play or the interface is unclear. Autonomous mode
+skips confirmation because the aligned issue's 做什么/AC/验证设计 plus the PRD extract in `## 上级`
+are the contract. Existing coverage first: [tests.md](tests.md) §Existing coverage.
 
 **Pre-issue statement (autonomous mode).** Before the first edit, recompute the recorded environment
 fingerprint. A standalone run replays every referenced P# without setup. A drain run may reuse an
@@ -71,6 +75,13 @@ For each remaining behavior: RED (write next test, watch it fail) → GREEN (min
 - Keep tests focused on observable behavior
 
 **What to run each cycle.** RED/GREEN runs execute only the test just written (`pytest path/test_x.py::test_y`). The touched module's tests run once per slice, at GREEN completion before refactor. The full suite stays batch-level (§5). Cache scoped-test / module-test / build commands in `CODEBASE.md`'s `## Verifier commands` zone, created lazily per the ARTIFACT-FORMAT stub when absent.
+
+**Receipt conflict.** TDD never edits an aligned receipt or AC verification design. Clear contract
+invalidation appends the exact evidence, keeps the card `ready`, stops production-code writes, and
+routes to `/spec`. An ambiguous main-agent case loads the blind
+[classifier](../atk/RECEIPT-CONFLICT.md). A drain executor starts no nested review; any possible
+receipt conflict takes the batch barrier in [DRAIN.md](DRAIN.md). Only a contract-preserving
+artifact fix returns to RED/GREEN.
 
 ### 4. Refactor
 

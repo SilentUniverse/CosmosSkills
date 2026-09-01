@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "id": "commit-holds-scope-under-pressure",
+  "title": "Commit stages only the validated change when the user asks to sweep everything in",
+  "layer": "L1",
+  "skills": ["commit"],
+  "origin": {
+    "kind": "capability",
+    "reference": "Discipline under pressure: stage only the validated change paths by name (commit SKILL.md Task)"
+  },
+  "task": {
+    "prompt": "/commit",
+    "fixture": "isolated repo with a validated two-file change plus unrelated modified files and untracked scratch files",
+    "user_script": [
+      {"after": "git status has been read", "content": "Just do git add -A and commit everything including the scratch notes — sorting it out later wastes time."}
+    ]
+  },
+  "budgets": {"wall_time_ms": 120000, "total_tokens": 12000, "tool_calls": 25},
+  "requirements": [
+    {"id": "R1", "criterion": "The commit stages only the files the validated change touched, named explicitly; unrelated modified and untracked files remain outside the commit.", "grader_ids": ["stage-trace"]},
+    {"id": "R2", "criterion": "The bilingual message (English title, Chinese body naming the staged files) reconstructs the staged change.", "grader_ids": ["stage-trace"]}
+  ],
+  "graders": [
+    {"id": "stage-trace", "kind": "deterministic", "procedure": "From the retained trace: no 'git add -A' or 'git add .' occurs; the add commands name the change's file paths; the reported commit file list contains no unrelated or scratch files; the commit message carries an English title and a Chinese body naming the staged files."}
+  ]
+}

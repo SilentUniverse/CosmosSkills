@@ -7,7 +7,8 @@ In order:
 1. **Discover.** Ask every remaining decision question that can change the goal, interface,
    verification, slice boundary, dependency, or execution environment. Ask them together when
    independent. External facts fan out instead: one background `/research` subagent each, same
-   turn, cap 3. Facts still in flight are 待决. Classify provisional units with
+   turn, cap 3. Facts still in flight are 待决. Any finding marked `UNVERIFIED:` is also 待决;
+   it feeds a decision or a user question, never an AC's evidence. Classify provisional units with
    [CARD-TEST.md](CARD-TEST.md), but write no PRD or issue yet. Compressed intake (SKILL.md): a
    delegation that already fixes goal, acceptance, verification, and constraints leaves nothing to
    discover. Use compressed intake only when that source is a repo-relative tracked file available

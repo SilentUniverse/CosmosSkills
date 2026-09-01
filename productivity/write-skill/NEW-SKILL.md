@@ -58,6 +58,14 @@ disable-model-invocation: true               # optional — user-typed only, mod
 [Link to separate files: See [REFERENCE.md](REFERENCE.md)]
 ```
 
+## Failure-backed rationalizations
+
+Add a `## Rationalizations` table only after a real incident or an [eval](EVALS.md) reproduces a
+specific excuse bypassing a load-bearing rule. Add one observed phrase per row; there is no minimum
+count. Answer with the mechanism that fails, not scolding or a law citation. If strengthening the
+existing process rule closes the loophole, edit that rule instead of duplicating it in a table.
+Skills without a reproduced escape carry none.
+
 ## When to Add Scripts
 
 Add utility scripts when:

@@ -11,13 +11,15 @@
 #                                               except zombie auto-close of done slugs)
 #   drain-wave.py dispatch <repo-root> <slug>...                record intent + baseline
 #   drain-wave.py collect <repo-root> <slug>=<result>[,<slug>=<result>...]
-#                                               result: green|red|blocked|aborted
+#                                               result: green|red|blocked|conflict|aborted
 #   drain-wave.py audit <repo-root> [<feat>]    test files no issue claims
 #   drain-wave.py selftest                       gate the gate: parse substrate +
 #                                               refusal branches (tempdir fixtures)
 #
 # Exit: 0 ok, 1 violation, 2 usage, 3 zombies (recovery first), 4 nothing ready,
-# 5 shared preflight receipt must be prepared before dispatch.
+# 5 shared preflight receipt must be prepared before dispatch, 6 receipt conflict
+# requires /spec realignment.
+import hashlib
 import importlib.util
 import io
 import json
@@ -30,7 +32,7 @@ from contextlib import redirect_stderr, redirect_stdout
 from datetime import datetime
 from pathlib import Path
 
-RESULTS = ("green", "red", "blocked", "aborted")
+RESULTS = ("green", "red", "blocked", "conflict", "aborted")
 MAX_IN_FLIGHT = 4
 SKIP_DIRS = {
     ".git", "node_modules", ".scratch", ".venv", "venv", "target",
@@ -215,6 +217,41 @@ def save_ledger(root, feat, data):
     os.replace(tmp, p)
 
 
+def contract_sha256(path):
+    """Hash aligned issue content; comments/evidence do not count as realignment."""
+    with open(path, "r", encoding="utf-8") as stream:
+        text = stream.read()
+    marker = re.search(r"(?m)^## Comments\s*$", text)
+    contract = text[:marker.start()] if marker else text
+    return hashlib.sha256(contract.encode("utf-8")).hexdigest()
+
+
+def active_conflicts(root, issues):
+    """Closed conflict results whose issue has not changed since collection."""
+    active = {}
+    for feat in sorted({value[0] for value in issues.values()}):
+        data = load_ledger(root, feat)
+        for wave in data["waves"]:
+            digests = wave.get("conflict_contract_sha256", {})
+            for slug, result in wave.get("closed", {}).items():
+                if result != "conflict" or slug not in issues:
+                    continue
+                issue_feat, path, fm = issues[slug]
+                if issue_feat != feat or fm.get("status") != "ready":
+                    continue
+                recorded = digests.get(slug)
+                if not recorded or contract_sha256(path) == recorded:
+                    active[(feat, slug)] = wave.get("wave", "?")
+    return [(feat, wave, slug) for (feat, slug), wave in sorted(active.items())]
+
+
+def report_conflicts(conflicts):
+    print("drain-wave: receipt conflict requires /spec realignment:")
+    for feat, wave, slug in conflicts:
+        print("  %s (wave %s, ledger .scratch/%s/wave-ledger.json)" % (slug, wave, feat))
+    print("the recorded issue content is unchanged; no next wave or explicit dispatch is allowed")
+
+
 def git_baseline(root):
     try:
         out = subprocess.run(
@@ -299,6 +336,10 @@ def cmd_next(root, feat):
         print("edits to the wave baseline and leave it ready - then `collect` it. No new wave")
         print("until every zombie is closed (EDGE-CASES.md).")
         return 3
+    conflicts = active_conflicts(root, issues)
+    if conflicts:
+        report_conflicts(conflicts)
+        return 6
     if not issues:
         print("drain-wave: no issues found under .scratch/%s" % (feat or "*/issues"))
         return 4
@@ -447,6 +488,10 @@ def cmd_dispatch(root, slugs):
             file=sys.stderr,
         )
         return 3
+    conflicts = active_conflicts(root, issues)
+    if conflicts:
+        report_conflicts(conflicts)
+        return 6
     scratch = os.path.join(root, ".scratch")
     if os.path.isdir(scratch):
         # global wave barrier: one open wave at a time, across features
@@ -570,6 +615,10 @@ def cmd_collect(root, pairs):
         for f, slug, result in plan:
             if f == feat:
                 hits[slug].setdefault("closed", {})[slug] = result
+                if result == "conflict":
+                    hits[slug].setdefault("conflict_contract_sha256", {})[slug] = contract_sha256(
+                        issues[slug][1]
+                    )
                 touched.add(id(hits[slug]))
         for w in data["waves"]:
             if id(w) in touched and not (set(w["dispatched"]) - set(w.get("closed", {}))):
@@ -706,6 +755,20 @@ def cmd_selftest():
             run_silent(cmd_next, root, "sf") == 3
             and load_ledger(root, "sf")["waves"][-1]["closed"].get(slugs[1]) == "green",
         )
+        check(
+            "collect: conflict and ordinary red close the wave",
+            run_silent(
+                cmd_collect,
+                root,
+                [slugs[2] + "=conflict", slugs[3] + "=red"],
+            ) == 0,
+        )
+        check("next: unchanged conflict blocks the batch", run_silent(cmd_next, root, "sf") == 6)
+        check("dispatch: unchanged conflict blocks bypass", run_silent(cmd_dispatch, root, ["05-p5"]) == 6)
+        conflict_path = os.path.join(i_dir, slugs[2] + ".md")
+        with open(conflict_path, "a", encoding="utf-8", newline="\n") as f:
+            f.write("# realigned\n")
+        check("next: changed issue releases conflict barrier", run_silent(cmd_next, root, "sf") == 0)
 
     if bad:
         print("drain-wave: selftest FAILED (%d check(s))" % len(bad))

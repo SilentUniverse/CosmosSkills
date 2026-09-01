@@ -114,6 +114,47 @@ class DrainWaveReceiptTests(unittest.TestCase):
             self.assertEqual({}, ledger["waves"][0]["receipt_hits"])
             self.assertFalse((root / ".scratch" / "demo" / "preflight-receipt.json").exists())
 
+    def test_receipt_conflict_blocks_until_spec_changes_the_issue(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "demo" / "issues"
+            issues.mkdir(parents=True)
+            issue = issues / "01-conflict.md"
+            issue.write_text(issue_body("pkg"), encoding="utf-8")
+
+            code, output = self.call(wave.cmd_dispatch, str(root), ["01-conflict"])
+            self.assertEqual(0, code, output)
+            issue.write_text(
+                issue.read_text(encoding="utf-8") + "\n## Comments\n\nreceipt conflict evidence\n",
+                encoding="utf-8",
+            )
+            code, output = self.call(
+                wave.cmd_collect, str(root), ["01-conflict=conflict"]
+            )
+            self.assertEqual(0, code, output)
+
+            code, output = self.call(wave.cmd_next, str(root), "demo")
+            self.assertEqual(6, code, output)
+            self.assertIn("requires /spec realignment", output)
+            code, output = self.call(wave.cmd_dispatch, str(root), ["01-conflict"])
+            self.assertEqual(6, code, output)
+
+            issue.write_text(
+                issue.read_text(encoding="utf-8") + "\nanother comment cannot realign the contract\n",
+                encoding="utf-8",
+            )
+            code, output = self.call(wave.cmd_next, str(root), "demo")
+            self.assertEqual(6, code, output)
+
+            issue.write_text(
+                issue.read_text(encoding="utf-8").replace(
+                    "## 验证设计", "## 验证设计\n\n- 对齐修订：upstream contract"
+                ),
+                encoding="utf-8",
+            )
+            code, output = self.call(wave.cmd_next, str(root), "demo")
+            self.assertEqual(0, code, output)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,6 +1,6 @@
 ---
 name: atk
-description: Attack-mode review of the agent's own output — a diff, a design, a plan, a skill's text, or a decision. Re-derives load-bearing choices from first principles (what breaks without it?), then hunts failure modes (semantics, consistency, runtime, necessity, cost). Manual diff runs also explain every change; non-diff targets and spec WRITE-LOOP return findings only. Use when the user says 对抗式审查 / 再审一轮 / 第一性原理再想想 / 给我讲讲你改了什么. Not a substitute for `/code-review` or a `/tdd` completion 审查.
+description: "Attack-mode review of the agent's own output: a diff, design, plan, skill text, or decision. Re-derives load-bearing choices from first principles (what breaks without it?), then hunts failure modes (semantics, consistency, runtime, necessity, cost). Manual diff runs also explain every change; non-diff targets and spec WRITE-LOOP return findings only. Use when the user says 对抗式审查 / 再审一轮 / 第一性原理再想想 / 给我讲讲你改了什么. Not a substitute for `/code-review` or a `/tdd` completion 审查."
 argument-hint: "Target, --all (entire uncommitted diff), or empty = changes since the last /atk"
 ---
 
@@ -18,6 +18,8 @@ which judges a diff against standards and spec; this judges any output against i
   file target covers both its current state and its uncommitted diff.
 - Invoked by spec WRITE-LOOP step 4 — audit-only: attack the artifacts it names, return
   findings, nothing else.
+- Invoked by `/tdd` to classify a possible receipt conflict — blind classifier: return only the
+  response defined in [RECEIPT-CONFLICT.md](RECEIPT-CONFLICT.md) to the calling loop.
 
 Name what is out of scope.
 
@@ -30,7 +32,7 @@ Name what is out of scope.
    doorless entry?), cost (tokens, attention).
 3. **A restructure gets both directions.** 正向 — walk every entry, pointer, and cross-skill link
    as its consumer would; each link must still connect. 反向 — diff against the predecessor and
-   account for every rule, trigger, and checklist item of the old version: still present,
+   account for every rule, trigger, and checklist item in the predecessor: still present,
    relocated, and reachable from the replacing head, or dropped with a reason.
 4. **Verdict each finding with a quote:** 修复 / 否决 / 保留. Record the deliberate keeps so the
    next round doesn't re-litigate them.
@@ -44,13 +46,13 @@ target: attack inline. Harness and gate runs: once, after the fixes, scoped to w
 ## Output
 
 Mode is fixed by the invocation source: user-typed → audit + 讲解; spec WRITE-LOOP → findings
-only.
+only; tdd blind classifier → the response shape in [RECEIPT-CONFLICT.md](RECEIPT-CONFLICT.md).
 
 Lead line: 范围（N 文件 M 处）· 发现 X · 检查（which harness/parse/line checks ran）. Output is the
 lead line plus the lists below; no tables, nothing else.
 
-**发现** — both modes. Findings follow the fixed shape (CLAUDE.md §1); 处置 is three-valued:
-修复—改成什么 / 否决—为什么不改 / 保留—何时再动. No quote, no finding.
+**发现** — manual and spec audit modes. Findings follow the fixed shape (CLAUDE.md §1); 处置 is
+three-valued: 修复—改成什么 / 否决—为什么不改 / 保留—何时再动. No quote, no finding.
 
 **改动讲解** — user-typed only. One item per change:
 
@@ -60,9 +62,9 @@ lead line plus the lists below; no tables, nothing else.
 ```
 
 A finding's fix item writes 原因 as 见发现 #N; long text compresses to its load-bearing part.
-Audit-only runs return findings to the caller; no lead line, no chat output. Non-diff targets
-(design, plan, decision): findings only, both modes. Questions riding on the invocation are
-answered after the findings; they are the caller's ask, not leakage.
+Audit-only runs return their scoped response to the caller; no lead line or chat output. Non-diff
+targets (design, plan, decision): findings only, both modes. Questions riding on the invocation
+are answered after the findings; they are the caller's ask, not leakage.
 
 Round discipline: a later `/atk` covers only changes since the last `/atk`; an earlier item
 reappears only if it changed again. An explicitly named scope overrides the round default.

@@ -5,7 +5,8 @@
 # work, so the ledger can never be written after the fact. The fresh session then runs only
 # that wave's subagents and `collect`s; a zombie report (next exit 3) gets a session that
 # only adopt-or-reverts and `collect`s; batch completion (next exit 4) gets one final
-# close-out session (DRAIN.md close: audit + full suite, handoff dropped). The runner
+# close-out session (DRAIN.md close: audit + full suite, handoff dropped). Exit 6 stops before
+# dispatch for `/spec` receipt realignment. The runner
 # gates itself first: `drain-wave.py selftest` runs before the first session and a
 # failure aborts (1). No wave is ever
 # scheduled from a rotting context. Stops on: batch complete (0), two consecutive sessions
@@ -171,6 +172,13 @@ def main(argv):
         if code == 4:
             complete = True
             break
+        if code == 6:
+            print(
+                "overnight: receipt conflict requires /spec realignment; stopping before dispatch. %s"
+                % out,
+                file=sys.stderr,
+            )
+            return 3
         if code == 3:
             prompt = (
                 "drain-wave.py next 报 exit 3——已派发未闭环的僵尸：\n%s\n"
@@ -232,8 +240,10 @@ def main(argv):
                 "%s：若 %s 存在先读它续跑。本波已由 runner 落账派发：[%s]——会话不得调用 next/dispatch。"
                 "%s"
                 "逐个 issue 派 general-purpose 子代理跑完整红绿闭环；收波时落账："
-                "python \"%s\" collect \"%s\" <slug>=green|red|blocked|aborted。"
-                "收波后按滚动模式刷新 handoff（波号、tests-so-far、§5 写明续跑），然后结束会话。"
+                "python \"%s\" collect \"%s\" <slug>=green|red|blocked|conflict|aborted。"
+                "任一子代理返回 conflict 时，按 DRAIN.md 中断未完成兄弟并以 aborted 归账，"
+                "handoff 指向 /spec 重对齐；只有无 conflict 才在 §5 写明续跑。"
+                "收波后按滚动模式刷新 handoff（波号、tests-so-far），然后结束会话。"
                 % (scope, handoff, ", ".join(slugs), receipt_brief, wave_script, root)
             )
             detail = "wave [%s]" % ", ".join(slugs)

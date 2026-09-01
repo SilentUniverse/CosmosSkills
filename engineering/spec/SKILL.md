@@ -1,6 +1,6 @@
 ---
 name: spec
-description: The single planning entry — align a need, prove its verifier environment ready, and turn it into dispatchable issues, with a versioned PRD when warranted. Never implements product behavior. Use for any new or changed requirement; /tdd executes what this plans.
+description: "The single planning entry: align a need, prove its verifier environment ready, and turn it into dispatchable issues, with a versioned PRD when warranted. Never implements product behavior. Use for any new or changed requirement; /tdd executes what this plans."
 argument-hint: "The need — anything from one line to a full design"
 disable-model-invocation: true
 ---
@@ -54,3 +54,6 @@ Both paths end in [WRITE-LOOP.md](WRITE-LOOP.md). A genuine design trade-off →
 `/prototype` before slicing. Wide refactors (mechanical change, blast radius spans the
 codebase): expand → contract. Expand adds the new form beside the old; migrate batches move
 call sites (each staying green); contract deletes the old form.
+
+A proposed coverage, size, or timing bar →
+[NON-FUNCTIONAL-BARS.md](NON-FUNCTIONAL-BARS.md).

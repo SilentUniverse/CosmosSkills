@@ -167,6 +167,14 @@ def validate_case(case: Mapping[str, Any], label: str = "case") -> None:
     _require(task, ("prompt", "fixture"), f"{label}.task")
     _text(task["prompt"], f"{label}.task.prompt")
     _text(task["fixture"], f"{label}.task.fixture")
+    for index, raw_event in enumerate(
+        _list(task.get("user_script", []), f"{label}.task.user_script")
+    ):
+        event_label = f"{label}.task.user_script[{index}]"
+        event = _mapping(raw_event, event_label)
+        _require(event, ("after", "content"), event_label)
+        _text(event["after"], f"{event_label}.after")
+        _text(event["content"], f"{event_label}.content")
 
     budgets = _mapping(case["budgets"], f"{label}.budgets")
     _require(budgets, BUDGET_FIELDS, f"{label}.budgets")

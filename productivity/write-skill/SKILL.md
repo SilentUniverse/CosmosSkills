@@ -1,6 +1,6 @@
 ---
 name: write-skill
-description: Create and rework agent skills — structure, progressive disclosure, splitting — plus the acceptance pass after edits. Use when writing a new skill, splitting one past 100 lines, or verifying skill changes.
+description: "Create and rework agent skills: structure, progressive disclosure, splitting, and the acceptance pass after edits. Use when writing a new skill, splitting one past 100 lines, or verifying skill changes."
 disable-model-invocation: true
 ---
 
@@ -35,8 +35,6 @@ Extract text and tables from PDF files, fill forms, merge documents. Use when wo
 ```
 Helps with documents.
 ```
-
-The bad example gives your agent no way to distinguish this from other document skills.
 
 Invocation trade-off: a model-invoked skill pays an always-loaded description for discoverability
 (other skills can reach it); user-invoked pays zero context load, but you are the index.
@@ -81,6 +79,7 @@ After drafting, verify:
 - [ ] Consistent terminology
 - [ ] Concrete examples included
 - [ ] References one level deep
+- [ ] Rationalization rows, if any, trace to a reproduced failure and do not duplicate process rules
 
 After **editing an existing skill**, always run deterministic L0 checks. Behavior eval stays off
 unless the user explicitly invokes `/eval`; when open, use [EVALS.md](EVALS.md). Before claiming a

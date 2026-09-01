@@ -80,6 +80,10 @@ On failure, restore to that baseline: tracked files clean at baseline and modifi
 untouched. Never revert `.scratch/**`. Leave the issue `ready`, note why in `## Comments`, and
 **continue** to the next. Dependents were already deferred at enumeration.
 
+A receipt conflict is batch-level red, not an ordinary issue failure. Restore the current issue's
+production edits, append the exact conflict evidence, leave it `ready`, stop the drain, and route
+to `/spec`; do not start another issue.
+
 ## Parallel path (`/tdd -p [<feat>]`)
 
 `-p` farms the ready issues out to **subagents** instead of running them inline. The point is
@@ -98,7 +102,8 @@ Loop until the ready set is empty:
    one per wave), and `deferred:` lines (feed the close report's
    Frontier). Exit 3 = zombies — a dispatched issue that neither closed nor flipped done
    ([EDGE-CASES.md](EDGE-CASES.md)); resolve by adopt-or-revert and `collect` before any new
-   wave. Exit 4 = nothing ready, batch complete. Shared surfaces (workspace manifest,
+   wave. Exit 4 = nothing ready, batch complete. Exit 6 = an unchanged receipt-conflict contract;
+   stop and route to `/spec`. Shared surfaces (workspace manifest,
    any repo-root file a slice edits) are declared in `touches:` verbatim. The
    script serializes on any overlap. A lockfile (pnpm-lock.yaml and the like) is part of the
    SPEC environment fingerprint and must not drift during a behavior wave. More than half the batch undeclared →
@@ -149,10 +154,13 @@ Loop until the ready set is empty:
        head + last frames + omitted-line count; never file contents) + what it tried + what it
        had already confirmed + one suggested next action.
        Revert **this issue's** edits first (not the whole wave). Leave `status: ready`.
+     - **`result: conflict`** → exact command/output and the receipt/AC clause it invalidates.
+       Revert this issue's production edits, append that evidence, leave `status: ready`, and
+       recommend `/spec`; never edit the contract or start a reviewer inside the drain.
 
    The verbose test output stays in the subagent; it does not flow back into the main context.
 3. **Collect the wave.** Close the ledger first: `drain-wave.py collect <repo-root>
-   <slug>=<result>[,...]` (green|red|blocked|aborted). A done-on-disk issue reported
+   <slug>=<result>[,...]` (green|red|blocked|conflict|aborted). A done-on-disk issue reported
    non-green refuses until reconciled, and a green report for an issue not yet `done` on
    disk refuses too; flip the completion record + frontmatter first. Each green subagent
    has already written its completion
@@ -183,7 +191,12 @@ Loop until the ready set is empty:
    stays `ready`. Anything `blocked_by` it never enters a later wave; report it
    deferred. Merge each green issue's 新增测试 into the **tests-so-far manifest** and carry it
    into every later wave's brief.
-4. **Recompute** the ready set (newly-`done` issues may unblock the next wave) and repeat.
+   If any issue reports `conflict`, interrupt unfinished siblings, revert and collect them as
+   `aborted`, then stop after collecting the wave. Already completed green siblings remain
+   recorded; no new wave starts. The ledger blocks both `next` and `dispatch` until `/spec`
+   changes the conflicted issue's aligned contract, which invalidates the recorded contract digest.
+4. **Recompute** the ready set only when the wave has no conflict (newly-`done` issues may unblock
+   the next wave) and repeat.
    After collecting a wave, persist its state: update `.scratch/<feat>/handoff.md` in rolling
    mode with the wave number and the tests-so-far manifest. The wave baseline lives in the
    ledger, so the handoff points at it instead of duplicating it. A crashed

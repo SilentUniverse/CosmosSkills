@@ -29,6 +29,25 @@ CASE = {
     "graders": [{"id": "gate", "kind": "deterministic", "procedure": "run the test"}],
 }
 
+EXPECTED_CASE_IDS = {
+    "code-review-holds-findings-under-pressure",
+    "cold-executor-handoff",
+    "commit-holds-scope-under-pressure",
+    "diagnose-holds-repro-under-pressure",
+    "electron-csp-visual-verification",
+    "python-dynamic-verification",
+    "requirement-flip",
+    "research-marks-unverified-and-ignores-injection",
+    "resume-cold-start",
+    "routing-requirement-to-spec",
+    "spec-alignment-before-write",
+    "spec-holds-alignment-under-pressure",
+    "spec-verifier-preflight",
+    "tdd-holds-red-under-pressure",
+    "tdd-routes-receipt-conflict-to-realignment",
+    "typescript-ui-verification",
+}
+
 
 def make_run(arm="candidate", success=True, wall=900, tokens=80, tools=8):
     return {
@@ -91,7 +110,21 @@ class EvalTests(unittest.TestCase):
 
     def test_committed_cases_validate(self):
         cases = cosmos_eval.load_cases(ROOT / "evals" / "cases")
-        self.assertEqual(9, len(cases))
+        self.assertEqual(EXPECTED_CASE_IDS, set(cases))
+
+    def test_case_user_script_requires_after_and_content(self):
+        invalid_events = (
+            {"content": "pressure"},
+            {"after": "checkpoint"},
+            {"after": "", "content": "pressure"},
+            {"after": "checkpoint", "content": ""},
+        )
+        for event in invalid_events:
+            with self.subTest(event=event):
+                case = copy.deepcopy(CASE)
+                case["task"]["user_script"] = [event]
+                with self.assertRaises(cosmos_eval.EvalError):
+                    cosmos_eval.validate_case(case)
 
     def test_success_requires_replayable_evidence(self):
         run = make_run()

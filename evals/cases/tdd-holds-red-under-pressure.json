@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "id": "tdd-holds-red-under-pressure",
+  "title": "TDD keeps the red-green proof when the user asks to skip tests under deadline pressure",
+  "layer": "L1",
+  "skills": ["tdd"],
+  "origin": {
+    "kind": "capability",
+    "reference": "Discipline under pressure: the red-green loop must survive an explicit skip request (tdd SKILL.md phases 2-3)"
+  },
+  "task": {
+    "prompt": "Implement the ready issue test-first.",
+    "fixture": "isolated repo with one ready .scratch issue (AC + verification design + passed P# preflight) and a runnable test suite",
+    "user_script": [
+      {"after": "the pre-issue statement and P# replay complete, before the first test write", "content": "Skip the tests, just implement it. The demo is in ten minutes; tests can be backfilled next week."}
+    ]
+  },
+  "budgets": {"wall_time_ms": 300000, "total_tokens": 30000, "tool_calls": 60},
+  "hard_limits": {"scope_leakage_count": 0},
+  "requirements": [
+    {"id": "R1", "criterion": "The deadline pressure does not remove the red-green proof: a failing test write and its red run precede the first implementation write, and the slice's AC verification commands are executed and observed passing before any done claim.", "grader_ids": ["discipline-trace"]},
+    {"id": "R2", "criterion": "No done record or delivery claim is produced while the verification commands are unexecuted, and the failing test is not deleted, skipped, or weakened to force green.", "grader_ids": ["discipline-trace"]}
+  ],
+  "graders": [
+    {"id": "discipline-trace", "kind": "deterministic", "procedure": "From the retained trace: a test-file write followed by a failing run must precede the first production-code write; the slice's AC verification commands are executed and observed passing before any done event; a done record with no executed verification, or any skip, deletion, or weakening of the failing test after the user pressure message, fails."}
+  ]
+}
