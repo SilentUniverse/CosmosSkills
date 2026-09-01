@@ -1,6 +1,7 @@
 ---
 name: commit
-description: Create one git commit from the session's validated changes. Use when the user says /commit or asks to commit or submit; every other skill stops at validated changes and hands off here.
+description: Create one git commit from validated changes, with an opt-in path that also pushes the current branch. Use when the user says /commit, asks to commit or submit, or invokes /commit -p to commit every inspected worktree change and push it upstream; every other skill stops at validated changes and hands off here.
+argument-hint: "[-p]"
 ---
 
 # Commit
@@ -17,15 +18,29 @@ Read all four before staging anything:
 - `git branch --show-current`
 - `git log --oneline -10`
 
+Read every untracked path named by `git status`; `git diff HEAD` does not expose its contents.
+
+With `-p`, also resolve the current branch's configured upstream and remotes before staging. If
+HEAD is detached, stop. If there is no upstream, require `origin` so the push can create the
+same-name remote branch.
+
 ## Task
 
-Create a single git commit.
+Create a single git commit in one of two modes:
 
-Stage and commit in one message: `git add` the files this change touched, then `git commit`.
-Only `git add`, `git status`, and `git commit` run here; pushing is not part of this skill.
+- Default: stage only the files this change touched. The commit stays local.
+- `-p`: stage every tracked or untracked path reported by `git status` with `git add -A`, create
+  the commit, then push the current branch to its configured upstream. With no upstream, use
+  `git push -u origin HEAD`. Git-ignored paths stay excluded.
+
+After inspection, the only mutating commands are `git add`, `git commit`, and, with `-p`,
+`git push`. Never force-push, pull, merge, rebase, or amend to overcome a rejection. A failed push
+leaves a valid local commit and must be reported as not merged remotely.
+
 The message is bilingual by design: the **title line is English** — `type(scope): summary`,
 imperative, matching the recent history; the **body is Chinese** — one bullet per change,
 naming files and mechanisms, written so the body alone reconstructs the change. An empty body
 is allowed only when the title already says everything.
 
-Report the hash and the files staged; nothing follows the commit.
+Report the hash and files staged. With `-p`, also report the exact remote ref updated, or the push
+failure and the fact that the commit remains local.

@@ -313,7 +313,7 @@ git_base: 7af387c
 | [eval](engineering/eval/SKILL.md) | 手动打开评测；保留项目内 previous/candidate A/B，也可导出独立包与任意外部 workflow 比较；默认关闭 |
 | [atk](engineering/atk/SKILL.md) | 对抗审查自己的产出；工作流只调审查方向，讲解仅手动触发 |
 | [tdd](engineering/tdd/SKILL.md) | 写代码；`--log` 读设备 log。[DRAIN.md](engineering/tdd/DRAIN.md) |
-| [commit](engineering/commit/SKILL.md) | 提交：唯一提交入口，普通工作停在验证过的改动 |
+| [commit](engineering/commit/SKILL.md) | 提交：默认只建本地提交；`-p` 提交全部已检查修改并推送当前分支 |
 | [tidy](engineering/tidy/SKILL.md) | 归档、SUMMARY、僵尸测试 |
 | [diagnose](engineering/diagnose/SKILL.md) | 硬 bug / 性能回归 |
 | [merge-conflicts](engineering/merge-conflicts/SKILL.md) | merge / rebase 冲突 |
