@@ -28,8 +28,8 @@ Execution-domain model (bash semantics):
   - heredoc bodies are stripped before matching (<<- tab terminators included);
   - command position = the command word of a segment (basename-normalized, so
     /usr/bin/git counts), reachable through a prefix chain of keywords /
-    wrappers / VAR=val / wrapper flag+value pairs. 'echo sudo git push' and
-    'adb shell sudo git push' are never calls; 'command -v grep' only prints.
+    wrappers / VAR=val / wrapper flag+value pairs. 'echo sudo git clean' and
+    'adb shell sudo git clean' are never calls; 'command -v grep' only prints.
   - static quoted payloads of bash/sh/zsh -c and eval run on the host and are
     re-scanned (depth-capped); dynamic payloads (`eval "$cmd"`) stay fail-open.
 
@@ -136,7 +136,7 @@ def split_segments(text):
     | & ; newline, ( subshell, $(...) and `...` (also inside double quotes).
     Modes: T top, S single-quote, D double-quote, C $(...), B `...`,
     A array literal, K [[ ]] test interior. Structural ( ) ` characters are
-    dropped, so downstream token matching never sees glued noise like 'push)'.
+    dropped, so downstream token matching never sees glued noise like 'clean)'.
     Comments, array interiors, [[ ]] operands and case patterns are dropped
     as data; a case pattern's ) and ;; toggle pattern->body->pattern zones."""
     segs = []
@@ -415,8 +415,6 @@ def dangerous_git_hit(segments):
         sub = next((t for t in after if not t.startswith('-')), None)
         if not sub:
             continue
-        if sub == 'push':
-            return 'git push'
         if sub == 'reset' and '--hard' in after:
             return 'git reset --hard'
         if sub == 'clean':

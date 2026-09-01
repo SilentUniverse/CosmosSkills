@@ -42,7 +42,7 @@ quoted device commands and `MSYS_NO_PATHCONV=1` prefixes stay allowed.
 ## Known static-analysis gaps (documented, fail-open)
 
 - Dynamic payloads (`eval "$cmd"`, `bash -c "$var"`) and dynamic command
-  words (`x=git; $x push`) pass.
+  words (`x=git; $x reset --hard`) pass.
 - `[[ … ]]` interiors drop quoted `]]` sequences blindly — a test operand
   containing the literal string `]]` can close the zone early (harmless:
   the remainder fails to match any command word).

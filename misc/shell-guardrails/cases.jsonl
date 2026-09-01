@@ -82,9 +82,9 @@
 {"id": "legacy-arith", "command": "((count+=2))", "expect": "allow", "tier": "legacy", "note": "arithmetic, pipe-like chars are operators"}
 {"id": "legacy-arith-pipe", "command": "x=$((1|2))", "expect": "allow", "tier": "legacy"}
 {"id": "legacy-escaped-pipe-data", "command": "adb logcat -d \\| rg -i pattern", "expect": "allow", "tier": "legacy", "note": "backslash-escaped pipe goes to the device (doc-copy trap)"}
-{"id": "git-push", "command": "git push", "expect": "block", "tier": "git"}
-{"id": "git-push-remote", "command": "git push origin main", "expect": "block", "tier": "git"}
-{"id": "git-push-force", "command": "git push --force origin", "expect": "block", "tier": "git"}
+{"id": "git-push", "command": "git push", "expect": "allow", "tier": "git", "note": "push is reserved for the user's own workflow, not blocked"}
+{"id": "git-push-remote", "command": "git push origin main", "expect": "allow", "tier": "git"}
+{"id": "git-push-force", "command": "git push --force origin", "expect": "allow", "tier": "git"}
 {"id": "git-reset-hard", "command": "git reset --hard HEAD~1", "expect": "block", "tier": "git"}
 {"id": "git-clean-f", "command": "git clean -f", "expect": "block", "tier": "git"}
 {"id": "git-clean-fd", "command": "git clean -fd", "expect": "block", "tier": "git"}
@@ -95,22 +95,22 @@
 {"id": "git-checkout-dot", "command": "git checkout .", "expect": "block", "tier": "git"}
 {"id": "git-checkout-dd-dot", "command": "git checkout -- .", "expect": "block", "tier": "git"}
 {"id": "git-restore-dot", "command": "git restore .", "expect": "block", "tier": "git"}
-{"id": "git-double-space", "command": "git  push", "expect": "block", "tier": "git"}
-{"id": "git-chained", "command": "eza -l && git push", "expect": "block", "tier": "git"}
-{"id": "git-sudo", "command": "sudo git push", "expect": "block", "tier": "git"}
-{"id": "git-sudo-u", "command": "sudo -u root git push", "expect": "block", "tier": "git", "note": "was missed: -u value pair hid git"}
-{"id": "git-time", "command": "time git push", "expect": "block", "tier": "git", "note": "was missed"}
+{"id": "git-double-space", "command": "git  reset --hard", "expect": "block", "tier": "git"}
+{"id": "git-chained", "command": "eza -l && git reset --hard", "expect": "block", "tier": "git"}
+{"id": "git-sudo", "command": "sudo git reset --hard", "expect": "block", "tier": "git"}
+{"id": "git-sudo-u", "command": "sudo -u root git reset --hard", "expect": "block", "tier": "git", "note": "was missed: -u value pair hid git"}
+{"id": "git-time", "command": "time git reset --hard", "expect": "block", "tier": "git", "note": "was missed"}
 {"id": "git-C-variant", "command": "git -C ../repo reset --hard", "expect": "block", "tier": "git"}
-{"id": "git-git-dir", "command": "git --git-dir=x/.git push", "expect": "block", "tier": "git"}
-{"id": "git-c-config", "command": "git -c a.b=c push", "expect": "block", "tier": "git"}
-{"id": "git-abs-path", "command": "/usr/bin/git push", "expect": "block", "tier": "git", "note": "was missed: absolute path"}
-{"id": "git-cmdsub-dq", "command": "echo \"$(git push)\"", "expect": "block", "tier": "git", "note": "was missed: cmdsub in double quotes"}
-{"id": "git-if-then", "command": "if git diff --quiet; then git push; fi", "expect": "block", "tier": "git", "note": "control flow was a blind spot"}
-{"id": "git-bash-c", "command": "bash -c 'git push'", "expect": "block", "tier": "git", "note": "static payload of local bash -c"}
-{"id": "git-eval-static", "command": "eval 'git push'", "expect": "block", "tier": "git"}
-{"id": "git-adb-cmdsub", "command": "adb shell \"echo $(git push)\"", "expect": "block", "tier": "git", "note": "cmdsub runs on host even inside the adb argument"}
-{"id": "git-timeout", "command": "timeout 10 git push", "expect": "block", "tier": "git"}
-{"id": "git-escape-no-bypass", "command": "# force-legacy\ngit push", "expect": "block", "tier": "git", "note": "escape hatch covers legacy tier only"}
+{"id": "git-git-dir", "command": "git --git-dir=x/.git reset --hard", "expect": "block", "tier": "git"}
+{"id": "git-c-config", "command": "git -c a.b=c reset --hard", "expect": "block", "tier": "git"}
+{"id": "git-abs-path", "command": "/usr/bin/git reset --hard", "expect": "block", "tier": "git", "note": "was missed: absolute path"}
+{"id": "git-cmdsub-dq", "command": "echo \"$(git reset --hard)\"", "expect": "block", "tier": "git", "note": "was missed: cmdsub in double quotes"}
+{"id": "git-if-then", "command": "if git diff --quiet; then git reset --hard; fi", "expect": "block", "tier": "git", "note": "control flow was a blind spot"}
+{"id": "git-bash-c", "command": "bash -c 'git reset --hard'", "expect": "block", "tier": "git", "note": "static payload of local bash -c"}
+{"id": "git-eval-static", "command": "eval 'git reset --hard'", "expect": "block", "tier": "git"}
+{"id": "git-adb-cmdsub", "command": "adb shell \"echo $(git reset --hard)\"", "expect": "block", "tier": "git", "note": "cmdsub runs on host even inside the adb argument"}
+{"id": "git-timeout", "command": "timeout 10 git reset --hard", "expect": "block", "tier": "git"}
+{"id": "git-escape-no-bypass", "command": "# force-legacy\ngit reset --hard", "expect": "block", "tier": "git", "note": "escape hatch covers legacy tier only"}
 {"id": "git-commit", "command": "git commit -m \"wip\"", "expect": "allow", "tier": "git"}
 {"id": "git-reset-soft", "command": "git reset --soft HEAD~1", "expect": "allow", "tier": "git"}
 {"id": "git-clean-dry", "command": "git clean -n", "expect": "allow", "tier": "git"}
@@ -130,9 +130,9 @@
 {"id": "git-commit-msg", "command": "git commit -m \"fix: revert git push docs\"", "expect": "allow", "tier": "git"}
 {"id": "git-config-alias", "command": "git config alias.p push", "expect": "allow", "tier": "git", "note": "alias value is data"}
 {"id": "git-heredoc-data", "command": "git commit -F- <<'EOF'\nmentioned git push in prose\nEOF", "expect": "allow", "tier": "git"}
-{"id": "git-remote-ssh", "command": "ssh host git push", "expect": "allow", "tier": "git", "note": "remote domain: not this machine's repo"}
-{"id": "git-remote-adb-unquoted", "command": "adb shell sudo git push", "expect": "allow", "tier": "git", "note": "was false-blocked: device-side git, remote domain"}
-{"id": "git-remote-docker", "command": "docker exec dev git push", "expect": "allow", "tier": "git"}
+{"id": "git-remote-ssh", "command": "ssh host git reset --hard", "expect": "allow", "tier": "git", "note": "remote domain: not this machine's repo"}
+{"id": "git-remote-adb-unquoted", "command": "adb shell sudo git reset --hard", "expect": "allow", "tier": "git", "note": "was false-blocked: device-side git, remote domain"}
+{"id": "git-remote-docker", "command": "docker exec dev git reset --hard", "expect": "allow", "tier": "git"}
 {"id": "git-dynamic-eval", "command": "eval \"$cmd\"", "expect": "allow", "tier": "git", "note": "dynamic payload - documented static-analysis gap"}
 {"id": "winpath-python-tmp-arg", "command": "python x.py /tmp/f", "expect": "block", "tier": "winpath", "platform": "msys"}
 {"id": "winpath-node-drive", "command": "node s.js /c/Users", "expect": "block", "tier": "winpath", "platform": "msys"}
@@ -161,7 +161,7 @@
 {"id": "winpath-adb-logcat-rg", "command": "adb logcat -d | rg -i pattern", "expect": "allow", "tier": "winpath", "platform": "msys", "note": "host-side filter with the modern tool"}
 {"id": "legacy-adb-exec-out", "command": "adb exec-out screencap -p > screen.png", "expect": "allow", "tier": "legacy"}
 {"id": "legacy-adb-crlf-tr", "command": "adb shell pidof com.x | tr -d '\\r'", "expect": "allow", "tier": "legacy", "note": "host-side CRLF strip; tr is not in the legacy set"}
-{"id": "git-exe-push", "command": "git.exe push", "expect": "block", "tier": "git", "note": ".exe suffix must survive the prefilter so basename() can strip it"}
+{"id": "git-exe-reset", "command": "git.exe reset --hard", "expect": "block", "tier": "git", "note": ".exe suffix must survive the prefilter so basename() can strip it"}
 {"id": "legacy-grep-exe", "command": "grep.exe -n x f", "expect": "block", "tier": "legacy", "note": "same: .exe form of a legacy tool"}
 {"id": "heredoc-stdin-legacy", "command": "grep -q foo <<EOF\nfoo\nEOF", "expect": "block", "tier": "legacy", "note": "heredoc feeds stdin to grep; the opener-line command must stay live"}
 {"id": "heredoc-then-posixpath", "command": "cd \"$TEMP/g\" && python - <<'EOF'\nprint(1)\nEOF\ncd /d/Code && python y.py", "expect": "allow", "tier": "winpath", "platform": "msys", "note": "post-EOF text must not glue onto the opener line (gluing forges a python - cd /d/... phantom segment)"}
