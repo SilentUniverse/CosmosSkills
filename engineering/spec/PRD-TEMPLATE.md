@@ -96,5 +96,6 @@ What is explicitly excluded, with a one-line reason each.
 
 Adversarial self-review before hand-off: name the vaguest 用户场景 and the shakiest 实现决策.
 Tighten them or move them to 尚未明确. Equivalent designs: keep the shorter correctness
-argument. Any decision made for an imagined future: justify it or park it. Done criterion:
-every named item rewritten or parked.
+argument; a real tie gets one line in 实现决策 naming the candidates and why the kept one
+argues shorter. Any decision made for an imagined future: justify it or park it. Done
+criterion: every named item rewritten or parked; every real design tie recorded.

@@ -28,7 +28,7 @@ After extensive research, nine words survived, each carrying one question:
 | 8 | Reversibility | Can you come back from being wrong? |
 | 9 | Evolution | What is the smallest correct next step? |
 
-The essential difference from conventional standards (SOLID, Clean Code, Design Patterns): those are **downstream experience** — they tell the AI what good code looks like, and rules pile up until they can't be held. These nine are **upstream laws** — each word anchored in a concept the model already knows, letting the AI derive good code on its own. And every law has a machine-enforced checkpoint in the workflow — not a poster on the wall, a check that goes red.
+The essential difference from conventional standards (SOLID, Clean Code, Design Patterns): those are **downstream experience** — they tell the AI what good code looks like, and rules pile up until they can't be held. These nine are **upstream laws** — each word anchored in a concept the model already knows, letting the AI derive good code on its own. And every law has a designated checkpoint in the workflow, at one of three enforcement grades — a machine gate that goes red, a mandatory process step, or a self-review done criterion — never a poster on the wall; every grade's check is written into the workflow files.
 
 ### Four Pillars
 
