@@ -70,5 +70,14 @@ If the spec is missing, skip the Spec sub-agent and note it in the final report.
 
 Before presenting, verify each finding's quoted hunk / spec line appears in the diff / spec; drop or mark 未验证 any that don't.
 
+Then attack each finding before it ships: reproduce it against the quoted hunk, check the obvious
+refutations (the guard exists upstream, the case is unreachable, the convention was superseded,
+the requirement is met elsewhere), and label the verdict `confirmed` / `cannot-reproduce` /
+`refuted`. Only `confirmed` findings reach the report; a `cannot-reproduce` on something serious
+earns one line saying so. A Standards finding must cite the file that establishes the convention
+it enforces; a convention it cannot cite is a preference, not a finding.
+
 Present reports under `## Standards`, `## Spec`, and when activated `## Experience`; keep the axes
-separate. End with a one-line summary: total findings per axis, and the worst issue within each axis.
+separate. State coverage first: refs and paths reviewed, file count, and what was skipped
+(generated files, vendored trees, a dropped axis and why). An unstated gap reads as a clean bill
+of health. End with a one-line summary: total findings per axis, and the worst issue within each axis.

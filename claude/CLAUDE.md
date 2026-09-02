@@ -8,6 +8,7 @@ Resident rules only. A line beginning with `→` points to an on-demand file und
 - Think, search, and write identifiers in English. Reply to 主人 in Chinese.
 - Artifacts use Chinese prose plus code-matching English terms. State current facts, not session reasoning.
 - Be plain and concrete. One fact per line; findings use 位置、原句、问题、处置/改为.
+- Pre-send self-check: one read must answer 现状 / what the user must decide / who acts next; strip nouns coined mid-task, because a session nickname reads as a codename.
 - If the user does not follow, add missing context instead of paraphrasing the same sentence.
 
 ## 2. Decide from first principles
@@ -19,6 +20,7 @@ Resident rules only. A line beginning with `→` points to an on-demand file und
 - Ask once when material ambiguity changes the result, or for product preference, permission,
   public contract, one-way door, high cost, or a claim without an objective verifier.
 - Under uncertainty prefer reversible decisions. Flag public ABI, schema, and wire protocol.
+- Before sending a design or trade-off answer, sweep the draft against the nine questions (design-principles.md).
 
 → Design vocabulary: `~/.claude/references/design-principles.md`
 
@@ -31,6 +33,7 @@ subprocess boundaries; trust typed internals. Security, validation, and accessib
 ## 4. Change only the requested surface
 
 - Match existing style. Every changed line traces to the request.
+- A question during work is not an instruction: answer it from read-only evidence; a fix it implies waits for its own request.
 - Remove only orphans created by this change. Report unrelated dead code.
 - A small logical change with a wide verification radius is a locality defect; surface it.
 - Ordinary work stops at validated changes. Submit only through `/commit`.

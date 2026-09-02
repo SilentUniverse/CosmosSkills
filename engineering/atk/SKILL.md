@@ -54,6 +54,26 @@ lead line plus the lists below; no tables, nothing else.
 **发现** — manual and spec audit modes. Findings follow the fixed shape (CLAUDE.md §1); 处置 is
 three-valued: 修复—改成什么 / 否决—为什么不改 / 保留—何时再动. No quote, no finding.
 
+Calibration — only the second entry is a finding; the first survives any outcome:
+
+Not a finding (“查了什么”凑数：无位置、无引用、无可证伪断言):
+
+```text
+位置：workflow-state.py
+原句：（无）
+问题：导入和路径逻辑整体看下来没发现问题
+处置：保留
+```
+
+A finding (定位到行、引用原句、断言可错):
+
+```text
+位置：workflow-state.py:121
+原句：os.path.join(root, *relative.split("/"))
+问题：../ 组件可逃逸仓库根
+处置：修复—路径锁在 .scratch/<feat>/receipts/ 下
+```
+
 **改动讲解** — user-typed only. One item per change:
 
 ```

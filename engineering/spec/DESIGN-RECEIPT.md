@@ -64,6 +64,14 @@ Present one compact receipt in this order:
    frontier was not empty: ask it instead of requesting alignment.
 7. End with exactly one request: `请校正目标、边界、验证或切片；若完全一致，请回复“对齐”。`
 
+## Decision points
+
+Any question this receipt puts to the user follows the two-option protocol: one decision per item,
+at most two options, the recommendation marked and first, answerable `A` / `B` (the final ask stays
+`对齐`). Batch every decision point into this one receipt, never drip-feed rounds, and never
+answer one on the user's behalf or let a timeout decide it. Information processing moves to the
+agent; authorization does not.
+
 Scale presentation by **decision risk**, not prose volume. A one-slice change with no new seam,
 one-way door, coupled impact, or human-only proof may compress the same seven fields to ≤8 lines.
 Any of those risks, or ≥2 slices, uses the full tables. The alignment event remains explicit in

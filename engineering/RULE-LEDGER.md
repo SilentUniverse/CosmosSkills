@@ -42,10 +42,12 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | 定位 | 要旨 | 性质 | 层级 | 防什么失败 · 出处 / 探针 |
 |---|---|---|---|---|
 | §1·d | 用户没跟上 → 补上下文，不复述同句 | 过程 | 自审 | 未溯源 |
+| §1·e | 发送前十秒自检：一遍答三问，清自造代号 | 过程 | 自审 | dev-skills 对标借入（lowband/readout 自检协议）；未溯源 |
 | §2·b | 可查事实不问人 | 过程 | 自审 | 未溯源（近邻探针：research-marks-unverified-and-ignores-injection） |
 | §2·c | 五固定＋局部可逆＋确定验证器＝请求即对齐 | 过程·经济 | 流程 | 仪式性确认税；7be5338 压缩摄入、51a7d4a fast path / spec-alignment-before-write |
 | §2·d | 七类决策前沿集中问一轮 | 权威 | 流程 | 结果分叉未问人；DESIGN-RECEIPT / spec-holds-alignment-under-pressure |
 | §4·d | 止于已验证改动；提交只走 /commit | 产物 | 流程 | 未经检查的提交；9263475 / commit-holds-scope-under-pressure |
+| §4·b | 工作中提问非指令：只读作答，修复另起请求 | 过程 | 流程 | 顺手扩权修改；dev-skills 对标借入（just-ask）；未溯源 |
 | §5·a | step→why→verify 后跑到底 | 过程 | 自审 | 38a1fa2（why + shakiest-steps） |
 | §5·c | 平时专注测试，全量只在批末 | 过程·经济 | 流程 | c4e34f2（scope per-cycle, batch-end suite） |
 | §5·d | 同因两次修复失败 → 换路或 /diagnose | 过程 | 流程 | 97a7998（anti-thrash）/ diagnose-holds-repro-under-pressure（近邻） |
@@ -65,6 +67,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | 头部 | 规划/执行分界：不写产品码、不调 /tdd | 产物 | 流程 | 工作流闭环立法（README）/ routing-requirement-to-spec |
 | 头部 | settled intake 不复述、不停顿 | 过程·经济 | 流程 | 51a7d4a（settled-intake fast path）/ spec-alignment-before-write |
 | 头部 | 七类决策 → 设计回执，问完即等 | 权威 | 流程 | 7be5338（compressed intake）/ spec-holds-alignment-under-pressure |
+| 回执·决策点 | 两选一协议：≤2 选项、推荐先行、A/B 可答、绝不代答 | 权威 | 流程 | 应答成本税与越权代答；dev-skills 对标借入（lowband）；未溯源 |
 | §1 | 定位：点名即 rg 单特性；否则 3–5 关键词 | 过程·经济 | 流程 | 未溯源（token 经济） |
 | §2 | 影响探测非审批门，廉价 rg/ast-grep 先行 | 过程·经济 | 流程 | 10dd737（blast-radius impact）、5f7b1ac（pyright 误报修复） |
 | §2 | 新不变量当场落块，不停顿征询 | 过程 | 流程 | 6b411d8（从失败捕获 invariant） |

@@ -17,4 +17,6 @@ Finding facts is your job, not mine. When a frontier question needs a fact you c
 
 Each round's answers reshape the tree; settled decisions push the frontier outward. Recompute and continue.
 
-End when the next artifact is obvious: decisions, route-changing assumptions, next skill. A design question needing a concrete artifact: note it, recommend `/prototype` at the end. No code or submit; write artifacts only when the calling skill owns them. Invoked bare, grilling writes nothing.
+End when the next artifact is obvious: decisions, route-changing assumptions, next skill. When you
+stop, name what was left unasked and why it is safe to defer; do not grind every branch to the
+bottom. A design question needing a concrete artifact: note it, recommend `/prototype` at the end. No code or submit; write artifacts only when the calling skill owns them. Invoked bare, grilling writes nothing.
