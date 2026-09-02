@@ -7,10 +7,11 @@ Spin up a **background subagent** to do the research, so you keep working while 
 
 Its job:
 
-1. **Ground in the repo's durable layer first**: `CODEBASE.md`, `CONTEXT.md`, accepted ADRs, prior
-   research files. Sort the question into already answered (cite the file; never re-research it),
-   assumed but unverified (verify cheaply), genuinely open (the actual research delta). Verification
-   effort scales with decision impact, not with how interesting a claim is.
+1. **Ground in the repo's durable layer first**: the `CODEBASE.md` / `CONTEXT.md` entries
+   relevant to the question, ADR titles (a body only for the area it governs), and prior research
+   files on this topic. Sort the question into already answered (cite the file; never re-research
+   it), assumed but unverified (verify cheaply), genuinely open (the actual research delta).
+   Verification effort scales with decision impact, not with how interesting a claim is.
 2. Investigate against **primary sources**: official docs, source code, specs, first-party APIs. Secondary pages and training memory may locate a source, never prove a claim. Fetch the specific page, not a site root.
 3. **Anchor applicability when version matters.** Repository dependency → read its manifest/lockfile version. Otherwise cite the owning API/spec version or update date. Material ambiguity stays unknown.
 4. **Mark what didn't verify.** No owning source or materially unresolved version → prefix the claim `UNVERIFIED:` and keep it separate from verified findings.

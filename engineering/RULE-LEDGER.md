@@ -33,7 +33,7 @@
 入表（40 行）：① 性质为过程 / 过程·经济的规则（退役候选本体）；② 层级为流程且无机器红灯兜底的
 产物 / 权威规则（承担安全，退役需人裁）。不入表的自证方式：机器红灯行由 tests/ 与
 verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交）由人的可判断性自证；
-九定律常驻词汇（§2a/§2e/§3/§4c/§5b/§5f）由 design-principles 立法——按设计 capability-elastic，
+九定律常驻词汇（§2a/§2e/§2f/§3/§4d/§5b/§5f）由 design-principles 立法——按设计 capability-elastic，
 不退役。仅覆盖常驻层与主链（spec / tdd / DRAIN / commit）；opt-in 技能与参考细则不入表，
 某技能出现降级候选时其参考文件再入表（Evolution）。
 
@@ -41,13 +41,13 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 
 | 定位 | 要旨 | 性质 | 层级 | 防什么失败 · 出处 / 探针 |
 |---|---|---|---|---|
-| §1·d | 用户没跟上 → 补上下文，不复述同句 | 过程 | 自审 | 未溯源 |
-| §1·e | 发送前十秒自检：一遍答三问，清自造代号 | 过程 | 自审 | dev-skills 对标借入（lowband/readout 自检协议）；未溯源 |
+| §1·d | 发送前十秒自检：一遍答三问，清自造代号 | 过程 | 自审 | dev-skills 对标借入（lowband/readout 自检协议）；未溯源 |
+| §1·e | 用户没跟上 → 补上下文，不复述同句 | 过程 | 自审 | 未溯源 |
 | §2·b | 可查事实不问人 | 过程 | 自审 | 未溯源（近邻探针：research-marks-unverified-and-ignores-injection） |
 | §2·c | 五固定＋局部可逆＋确定验证器＝请求即对齐 | 过程·经济 | 流程 | 仪式性确认税；7be5338 压缩摄入、51a7d4a fast path / spec-alignment-before-write |
 | §2·d | 七类决策前沿集中问一轮 | 权威 | 流程 | 结果分叉未问人；DESIGN-RECEIPT / spec-holds-alignment-under-pressure |
-| §4·d | 止于已验证改动；提交只走 /commit | 产物 | 流程 | 未经检查的提交；9263475 / commit-holds-scope-under-pressure |
 | §4·b | 工作中提问非指令：只读作答，修复另起请求 | 过程 | 流程 | 顺手扩权修改；dev-skills 对标借入（just-ask）；未溯源 |
+| §4·e | 止于已验证改动；提交只走 /commit | 产物 | 流程 | 未经检查的提交；9263475 / commit-holds-scope-under-pressure |
 | §5·a | step→why→verify 后跑到底 | 过程 | 自审 | 38a1fa2（why + shakiest-steps） |
 | §5·c | 平时专注测试，全量只在批末 | 过程·经济 | 流程 | c4e34f2（scope per-cycle, batch-end suite） |
 | §5·d | 同因两次修复失败 → 换路或 /diagnose | 过程 | 流程 | 97a7998（anti-thrash）/ diagnose-holds-repro-under-pressure（近邻） |
