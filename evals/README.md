@@ -189,6 +189,10 @@ python3 scripts/eval.py from-claude artifacts/planner.jsonl artifacts/executor.j
 `/eval full` → 只有通过的候选才提交 → 合并/同步后把这轮暴露的真实失败固化成 regression
 case。评测结果服务于一次决策，不常驻生产开发链。
 
+换模型代际是另一条固定触发：对 [RULE-LEDGER](../engineering/RULE-LEDGER.md) 标注了探针的
+case 子集重跑一次 `full` 三臂基线，把逐条规则的保护差距（candidate vs no-skill）回填账本。
+流程规则的降级 / 退役只认这份数据或机器门兜底；没有它，规则只增不减。
+
 ## Failure → regression
 
 真实失败发生后，先把当时 prompt、repo fixture、可观察错误和 budget 固化成 `origin.kind =

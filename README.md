@@ -362,6 +362,7 @@ git_base: 7af387c
 | 改完 CLAUDE.md / references / hooks | Windows 再双击 `install.cmd` |
 | 全局规则源 | 只改 [`claude/CLAUDE.md`](claude/CLAUDE.md)；安装器复制到 Claude / ZCode 目标 |
 | 改 skill | 改仓库即可（junction）；平时跑 L0，想验证或上游前手动 `/eval`，再做 previous RED → candidate GREEN → 全回归 |
+| 加 / 改 / 退役流程规则 | 先登记 [RULE-LEDGER.md](engineering/RULE-LEDGER.md)（防什么失败 · 出处 · 探针）；换模型代际 → 对探针子集跑一次 `/eval full` 基线 |
 | SKILL.md | <100 行；超了按 [write-skill](productivity/write-skill/SKILL.md) 拆；`/atk` + `/lint` + `wc -l` 常跑，行为 eval 仅显式开启 |
 | 改 hook | 先跑 `test-block-legacy-cli.ps1` / `test-block-dangerous-git.ps1` |
 | 改 verify-artifacts | 跨平台先跑 `python3 -m unittest discover -s tests -v`；Windows 再跑 `test-verify-codebase.ps1` 全集 |
