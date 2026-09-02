@@ -1,95 +1,85 @@
 ---
 name: handoff
-description: Compact the current conversation into a handoff document for another agent to pick up. Use before /clear, when context is nearly full, or to checkpoint a long multi-session task. In unattended runs (drain -p, overnight batches), overwrite-in-place a rolling mini-refresh at batch close; interactive sessions never auto-invoke — the user calls /handoff at the smart-zone boundary.
-argument-hint: "What will the next session be used for?"
+description: Write one compact, integrity-stamped bridge for unfinished work that must cross a session boundary. Use before /clear at the smart-zone edge or for an unattended batch checkpoint; never summarize completed work.
+argument-hint: "What must the next session continue?"
 ---
 
-Write a minimal recoverable snapshot so the next session can continue from the current node by reading this one file. This is **not** a conversation summary: extract current state, key decisions, and next actions. Discard exploration; preserve decisions.
+# Handoff
 
-## Fidelity rules
+Write the smallest state packet from which a cold session can execute the next action. This is not a
+conversation summary. Preserve decisions and exact replay strings; discard exploration and narration.
 
-- **6 个固定节一个不删**：某节无内容写 `（无）`。
-- **精确字符串逐字保留**：路径、命令、错误信息、标识符、签名。
+## When and where
 
-## Where to save
+- Feature work → `.scratch/<feat>/handoff.md`.
+- Cross-feature work → `.scratch/handoff.md`.
+- Interactive work writes only on explicit `/handoff`; unattended batches may overwrite at wave close.
+- Finished work gets no handoff. Never use an OS temp directory.
 
-Per `ARTIFACT-FORMAT.md` §Handoff files (installed: `~/.claude/skills/ARTIFACT-FORMAT.md`; repo: `engineering/ARTIFACT-FORMAT.md`):
+## Input budget
 
-- **Feature-scoped work** → `.scratch/<feat>/handoff.md`. Rolling: overwrite in place each time; git keeps history.
-- **Cross-feature work** → `.scratch/handoff.md` (a single rolling file at the `.scratch/` root).
+Read current `git status --short`, the named active issue/plan, and only artifacts required by the
+next action. Do not reread completed issues, whole diffs, logs, or conversation history. Reference
+their paths instead.
 
-Do **not** use the OS temp directory. If not inside a git repo, fall back to the working directory root.
+Run `python <handoff-skill-dir>/scripts/handoff-state.py snapshot <repo-root>` once
+(`python3` only when `python` is absent). Copy its
+`git_base` and `worktree_digest` exactly into frontmatter. The digest tracks product drift only:
+it excludes handoff files and workflow-internal writes (preflight cache, wave ledger, execution
+receipts). Evidence integrity is the artifact gate's job, not the digest's; overwriting this
+bridge or replaying a preflight does not invalidate the baseline.
 
-## Rolling mode (unattended runs only)
-
-In autonomous runs (`/tdd -p` waves, overnight batches), overwrite-in-place at each batch close with a **fixed mini-refresh touching every section that moved** (~6–8 lines, seconds):
-
-- §1 one status line · §2 one baseline line (re-stamp `git_base` in frontmatter too) · §3 the current next fork · §5's first boot action · §4 any new decisions/invariants · §6 any newly discarded approach
-- Heavy detail stays in its artifacts (completion records, issues, commits); the handoff carries pointers and deltas only (What-not-to-duplicate).
-- Sufficiency bar: a **cold session crash-lands mid-task** → this file plus the artifacts it names must be enough to continue. §2 and §6 are what a delta most easily starves. Never skip them.
-
-The final `/handoff` verifies and tops up the existing file instead of recompressing the session. Interactive sessions never auto-invoke; the user sees the context level and calls `/handoff` at the smart-zone boundary.
-
-Every handoff carries YAML frontmatter:
-
-```yaml
----
-type: handoff
-feature: balance      # the feature slug, or null for cross-feature work
-git_base: 3451766     # `git rev-parse --short HEAD` at write time
-status: active        # active when written; /resume deletes the file when the bridged work finishes — one handoff, one consume
-date: 2026-06-18
----
-```
-
-## What not to duplicate
-
-Reference content already captured elsewhere (PRDs, plans, ADRs, issues, commits, diffs) by path or URL; do not copy the body.
-
-One exception: `/spec` awaiting alignment has deliberately written no PRD/issues. Preserve the
-latest full Design Receipt in §4 and mark `awaiting alignment`; the approved artifact replaces it
-on resume. This is recoverable staging, not a new durable state.
-
-## Redact
-
-Remove any sensitive information: API keys, passwords, tokens, PII.
-
-## Output structure (6 fixed sections)
+## Format
 
 ```markdown
-# Handoff: <topic> (<date>)
+---
+schema_version: 2
+type: handoff
+feature: <slug|null>
+capsule: active-work
+git_base: <short HEAD>
+worktree_digest: <sha256>
+status: active
+date: YYYY-MM-DD
+---
 
-## 1. 当前状态
-Where we are + key artifact paths and their status. One sentence that tells someone "how far we got".
+# Handoff: <topic>
 
-## 2. 基线
-git HEAD (commit hash), working directory cleanliness, key file list relevant to this work.
-If this work changed the **shape** of a module (moved a seam, introduced/removed an invariant, altered
-how things wire up), the `CODEBASE.md` block for that area is now stale — refresh it via `/map`
-before handing off, or note here that it needs refreshing, so the next session's session-start load
-(which compares each section's `git_base` to HEAD) hands over a map aligned with the code, not one a
-commit behind. Skip this if the work touched no structure — don't run `/map` for its own sake.
+## Continue
+1. READ `<minimum exact paths>`
+2. RUN `<exact bounded command>`
+3. CONFIRM `<observable predicate>`; THEN `<next edit/decision>`
 
-## 3. 下一步分叉
-Candidate options for the user / next session to decide (A / B / C) with tradeoffs. If the path is already decided, state the next concrete step.
+## State
+<one line: current node + pointers to authoritative artifacts/evidence>
 
-## 4. 关键口径清单
-Decisions and invariants that must survive across sessions. Each entry includes a "why".
-- Decision: … | Why: …
-- Invariant: … | Why: …
+## Decisions
+- <decision or invariant> — <why a future agent cannot safely re-derive it>
 
-## 5. 开机动作序列
-First ordered actions after /clear (which files to read, which command to run, what to confirm first).
-
-## 6. 明确不写的
-What was actively discarded (dead-end explorations, failed approaches) — let the user do a final scan to confirm nothing critical was dropped.
-
-## Suggested skills
-Skills appropriate for the next session (e.g. `/tdd`, `/diagnose`, `/grill`), one sentence each on why.
+## Avoid
+- <failed or rejected path> — <evidence>; omit this section when empty
 ```
 
-Section 4 is the core. If the user passed arguments, treat them as the focus of the next session and tailor the document accordingly.
+`Continue` is machine-facing execution input: terse, ordered, exact. `State` and `Decisions` are the
+human review surface: plain language, only facts that affect the next choice. Never duplicate PRDs,
+issues, ADRs, completion records, receipts, logs, commits, or diffs.
 
-## Done criteria
+`capsule` sets what resume does first:
 
-Report the saved path and `git_base`; confirm §1 and §5 are non-empty before finishing.
+- `active-work` (default) — mid red-green or a dirty worktree; `Continue` is the entry.
+- `awaiting-alignment` — blocked on a human decision; `Decisions` carries the open question and,
+  when no PRD exists yet, the latest Design Receipt (the sole body-copy exception); `Continue`
+  starts by asking that question.
+- `external-pending` — waiting on an external task or result; `State` names it and its recovery
+  condition.
+
+## Rolling update
+
+Update only fields that moved: restamp both baselines, replace `Continue`, advance the one-line
+`State`, and add only new non-derivable decisions or failed paths. Do not append history.
+
+## Safety and done
+
+Preserve paths, commands, errors, identifiers, and signatures byte-for-byte. Remove secrets and PII.
+Before returning, confirm `Continue` has a READ/RUN/CONFIRM chain and the snapshot values match the
+written frontmatter. Report only path, `git_base`, and the first action.

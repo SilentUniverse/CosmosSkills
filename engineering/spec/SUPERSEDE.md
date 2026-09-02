@@ -7,9 +7,10 @@ false. The Design Receipt and reconciliation are one confirm gate; nothing write
    [PRD-TEMPLATE.md](PRD-TEMPLATE.md) — highest + 1, `supersedes:` the previous filename,
    carry forward still-open 尚未明确. No live PRD → propose `PRD.md` v1. This is receipt input,
    not a file write.
-2. **Reconcile.** Delivered work may be archived: also read `SUMMARY.md` and
-   `issues/archive/`, so a `done` slice the new plan invalidates is classified as redo, not
-   mistaken for a brand-new slice. Classify every existing issue into the report, then append it
+2. **Reconcile.** Run `python <skills-root>/workflow-state.py inspect <repo-root> <feat>
+   --format json`; use `python3` only when `python` is absent. The projection reads top-level and
+   legacy archived done issues and folds completed redo lineage, so delivered work is not mistaken
+   for a brand-new slice. Classify every existing issue into the report, then append it
    under the Design Receipt so goal, verification, slices, and old→new consequences are corrected
    together (item-by-item or yes-all):
 

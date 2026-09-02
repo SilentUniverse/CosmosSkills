@@ -53,6 +53,36 @@ tests. Graphical UI and indirect proof name a counterfactual defect so a shape-o
 masquerade as proof. AI judgment is allowed only under
 [VERIFICATION-DESIGN.md](VERIFICATION-DESIGN.md); human-only checks stay outside AC.
 
+### contract_version: 3（精简形态）
+
+Multi-slice features with a `verifier.json` use the lean form: `contract_version: 3`, and the
+per-card boilerplate moves into `.scratch/<feat>/verifier.json` (cwd、fingerprint、prerequisites、
+prepare、named commands — schema in [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md)). The card keeps
+seam, per-AC mapping, preflight evidence, and deviations only:
+
+```markdown
+## 验证设计（Verification Design）
+
+- profile: verifier.json
+- 接缝：<external/public interface used by the AC>
+- P1 预检：`profile:scoped` → passed；observed=<exit/assertion>；evidence=<path|inline>；checked=<YYYY-MM-DD>
+- #1 → <exact agent-runnable final test / action>；预检：P1；预期证据：<assertion + exit/tally>
+- 偏差（仅有时写）：<与 profile 默认不同的指纹键/命令，一行一条>
+```
+
+A `profile:NAME` action resolves through `verifier.json` `commands` at replay; full command text
+still works. Graphical-UI issues (`experience_review`) stay on contract_version 2.
+
+## 相关面（Read contract）
+
+The slice's reasoning radius as pointers, written by SPEC together with the radius. The
+executor reads exactly these — never the whole map. Omit a line only when the radius truly
+does not cross it.
+
+- invariants: `CODEBASE.md` 的 `<area>` 不变量块（多块用顿号分隔）
+- adr: `<NNNN-slug>`（本区无 ADR 治理则省略本行）
+- neighbors: `<邻接模块/文件>`（无邻接则省略本行）
+
 ## 前置依赖（Blocked by）
 
 - A reference to the blocking issue file (e.g. `01-init-schema.md`), or "无". Keep this in sync with the `blocked_by` frontmatter list.

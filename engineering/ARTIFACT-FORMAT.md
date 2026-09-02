@@ -3,7 +3,7 @@
 The single source of truth for the YAML frontmatter and index files that the engineering
 skills produce and consume. Every skill that reads or writes an issue, PRD, handoff, or index
 file references THIS document instead of restating the schema. Keeping the contract in one
-place is what lets `/tdd`, `/resume`, and `/tidy` parse deterministically instead of
+place is what lets `/tdd`, `/resume`, and workflow-state tools parse deterministically instead of
 grepping prose.
 
 All frontmatter is YAML between `---` fences at the very top of the file. The human-readable
@@ -24,14 +24,14 @@ new artifact, place and name it by these rules instead of guessing; if it doesn'
 |---|---|---|---|
 | **Project-level singletons** | repo **root** | `CONTEXT.md`, `CONTEXT-MAP.md`, `CODEBASE.md` | one per repo, read at session start, true project-wide |
 | **Long-lived series docs** | `docs/` | `adr/`, `agents/` | kept long-term, humans read them, grows file-by-file |
-| **Feature-local work state** | `.scratch/` | `<feat>/PRD`, `issues/`, `SUMMARY`, `handoff`, cross-feature `handoff` | scoped to one feature, working-state, disposable |
+| **Feature-local work state** | `.scratch/` | `<feat>/PRD`, `issues/`, `handoff`, cross-feature `handoff` | scoped to one feature, working-state, disposable |
 
 The rule of thumb: **the more project-wide / long-lived / read-at-startup an artifact is, the closer
 to root it lives; the more feature-local and disposable, the deeper into `.scratch/` it goes.**
 
 **Casing — two classes:**
 
-- **ALL-CAPS** (`CONTEXT.md`, `CONTEXT-MAP.md`, `CODEBASE.md`, `SUMMARY.md`,
+- **ALL-CAPS** (`CONTEXT.md`, `CONTEXT-MAP.md`, `CODEBASE.md`,
   `PRD.md`) — a **singleton with special standing** in its directory: at most one exists, and it is
   the landmark file you look for by name. Multi-word names use `SCREAMING-KEBAB` (`CONTEXT-MAP.md`).
 - **kebab-case** (`adr/NNNN-slug.md`, `issues/NN-slug.md`, `agents/*.md`) — a **member of a series**:
@@ -39,9 +39,7 @@ to root it lives; the more feature-local and disposable, the deeper into `.scrat
 
 **One deliberate exception:** everything under `.scratch/` that is *per-feature
 working state* is lowercase regardless of singleton-ness — `handoff.md`, the feature dir `<feat>/`
-itself. `.scratch/` is the disposable working tier; its files don't earn ALL-CAPS landmark status
-even when there's only one. The generated index that *summarizes* that tier (`SUMMARY.md`)
-keeps ALL-CAPS because it is the landmark you navigate to.
+itself. `.scratch/` is the disposable working tier; its files don't earn ALL-CAPS landmark status.
 
 ## CODEBASE.md — structural map (generated, not authored)
 
@@ -191,12 +189,12 @@ Field rules:
   adds an independent rubric review when visual hierarchy/usability is itself part of the aligned
   goal. Agent-capturable visual quality is not human-only work.
 - **blocked_by** — list of slugs (filename without `.md`) that must reach `done` first.
-  A slug may be a live sibling under `issues/` **or** a `done` issue in `issues/archive/`.
-  Tidy moves `done` there; the gate still resolves it. `/tdd`'s drain mode topologically
+  A slug may be a live sibling under `issues/` **or** a legacy `done` issue in `issues/archive/`.
+  The gate validates both locations and `/tdd`'s drain mode topologically
   sorts on this. `[]` (or omit) means no blocker.
-- **refines** — slug of the parent slice this elaborates (live or `issues/archive/`). Required
-  for `detail`/`redo`/`fix`, omitted for top-level `enhancement` slices. `/tidy`'s orphan check
-  flags any non-top-level issue with neither a PRD user-story link nor a `refines`.
+- **refines** — slug of the parent slice this elaborates (live or legacy `issues/archive/`). Required
+  for `detail`/`redo`/`fix`, omitted for top-level `enhancement` slices. Missing or ambiguous lineage
+  returns to `/spec`; GC never guesses it.
 - **touches** — top-level dirs/modules this slice is expected to edit, at directory granularity.
   One exception: repo-root shared surfaces a slice edits (workspace manifest, any
   root config file) are declared verbatim as file paths. `/tdd -p` serializes on any overlap.
@@ -209,8 +207,8 @@ Field rules:
   into successive waves; an issue missing either runs alone in its own wave. Completed at green
   by the run that wrote the files. Appending a newly written test
   file is the one sanctioned frontmatter edit to a `done` card (body stays immutable). `--log`
-  slices omit it: acceptance is a log predicate, not test files. The gate checks every
-  `### 完成` 新增测试 file against it. Optional.
+  slices omit it: acceptance is a log predicate, not test files. The gate checks
+  `### 完成` 新增测试 files against it only in legacy records that still carry that line. Optional.
 - **created** — ISO date, set once at creation, never changed.
 
 The body keeps the section headings from `/spec`'s issue template. `验证设计` maps every AC to an
@@ -268,7 +266,7 @@ exact issue-to-key tuples so a collision-serialized issue receives the same hit 
 A dispatched
 slug that is neither done on disk nor closed is a zombie. The recovery contract lives in
 `tdd/EDGE-CASES.md`. The ledger is append-oriented machine state; humans read it only for
-crash diagnosis. Tidy may delete it once every wave is closed and the batch shipped.
+crash diagnosis. `workflow-state.py gc` may delete it once every wave is closed and the batch shipped.
 
 ## Batch preflight receipt — `.scratch/<feat>/preflight-receipt.json`
 
@@ -278,7 +276,30 @@ keyed by the exact `(cwd, P# action, environment fingerprint)` tuple and retains
 evidence path, and UTC check time. The orchestrator is its only writer; subagents receive immutable
 hit keys. A changed action or fingerprint is a cache miss. The receipt may
 reuse readiness checks across cards in one batch; it never caches RED/GREEN behavior tests or final
-verification. `/tidy` may remove it after the batch closes.
+verification. `workflow-state.py gc` may remove it after the batch closes.
+
+## Verifier profile — `.scratch/<feat>/verifier.json`（contract v3）
+
+Feature-scoped defaults owned by `/spec`; one per feature, written when the feature gets a PRD or
+≥2 cards. Cards with `contract_version: 3` reference it from `## 验证设计` via `- profile:
+verifier.json` and carry only deviations. A `profile:NAME` P# action resolves through `commands`.
+
+```json
+{
+  "schema_version": 1,
+  "cwd": ".",
+  "fingerprint": "git=<sha|no-vcs>; lock=<sha256|none>; runtime=<versions>; tools=<versions>; services=<states>",
+  "prerequisites": "fixtures=<state>; services=<state>; permissions=<state>; network=<mode>",
+  "prepare": "<setup with result, or 无（已就绪）>",
+  "commands": {"scoped": "<command>", "full": "<command>", "build": "<command>"}
+}
+```
+
+The gate requires the file (valid JSON, non-empty `commands`, fingerprint keys git/lock/runtime/
+tools/services) for every v3 card. Graphical-UI issues stay on contract_version 2. Machine
+execution receipts under `.scratch/<feat>/receipts/*.json` are durable evidence — v3 `### 完成`
+records reference them (gate re-verifies JSON + `outcome: pass` + AC coverage); `gc` never
+deletes them.
 
 ## Handoff files — `.scratch/<feat>/handoff.md` or `.scratch/handoff.md`
 
@@ -293,15 +314,20 @@ history). There are exactly two locations:
 
 ```markdown
 ---
+schema_version: 2
 type: handoff
 feature: balance              # the feature slug, or null for cross-feature work
 git_base: 3451766             # commit hash HEAD was at when written
+worktree_digest: <sha256>      # uncommitted state excluding handoff files
 status: active                # active; /resume deletes the file on completion
 date: 2026-06-18
 ---
 
-# Handoff: <topic> (<date>)
-## 1. 当前状态 ... (6 fixed sections — schema in the `/handoff` skill)
+# Handoff: <topic>
+## Continue ... (READ/RUN/CONFIRM; compact schema in the `/handoff` skill)
+## State ...
+## Decisions ...
+## Avoid ... (optional)
 ```
 
 Field rules:
@@ -310,6 +336,8 @@ Field rules:
   `.scratch/<feat>/handoff.md`); `null` for cross-feature work (file at `.scratch/handoff.md`).
 - **git_base** — HEAD's short hash at write time. `/resume` compares this against current HEAD and
   warns if they diverged (work happened since the handoff).
+- **worktree_digest** — schema v2 digest of tracked diff plus untracked contents, excluding handoff
+  files. `/resume` detects uncommitted drift without loading the whole diff.
 - **status** — `active` when written; `/resume` **deletes the file** once the work it describes is
   finished. One handoff, one consume; git keeps the history. Only `active` handoffs are resume
   candidates.
@@ -335,37 +363,14 @@ backticked repo-relative Git-tracked file and `- SHA-256：` with its 64-charact
 The gate reads and hashes the source on demand. Ordinary PRDs omit this section and pay no Git/hash
 probe.
 
-## SUMMARY files — `.scratch/<feat>/SUMMARY.md` (generated, not authored)
+## Current-reality projection
 
-A regenerable view of "what has actually been built", aggregated from the `### 完成` blocks of all
-`done` issues in the feature. Overwrite-in-place every time `/tidy` runs. It is a derived
-artifact, never hand-edited.
+`workflow-state.py inspect <repo-root> <feat> --format json|human` derives effective delivered
+behavior from canonical done issues. It reads top-level and legacy archive locations, folds completed
+`redo` siblings by `refines`, and includes source paths plus SHA-256 digests. It never writes a file.
 
-```markdown
----
-type: summary
-feature: balance
-generated: 2026-06-18         # regeneration timestamp
-source_issues: 7              # number of done issues aggregated
----
-
-# Balance — 已建成现实
-
-<one-paragraph synthesis of delivered capability, in domain vocabulary from CONTEXT.md>
-
-## 已交付切片
-- 01-init-schema — <one line> (commit abc123)
-- 02-balance-api — <one line> (commit def456)
-...
-
-## 当前测试覆盖
-- tests/test_balance_rest.py (4 cases) ← 02-balance-api
-...
-```
-
-`SUMMARY.md` exists so the PRD never needs perpetual "live" upkeep: the PRD is a versioned
-*intent snapshot*, while `SUMMARY.md` is the *current-reality view*. Detail work updates reality
-(issues → SUMMARY) without forcing a PRD revision.
+Legacy `.scratch/<feat>/SUMMARY.md` is a migration input only. The gate accepts its basic shape so
+old repositories remain readable, but no skill treats it as current reality or regenerates it.
 
 ## Directory layout (canonical)
 
@@ -380,12 +385,11 @@ repo/
     ├── handoff.md                    ← cross-feature rolling handoff
     └── <feat>/
         ├── PRD.md / PRD-vN.md
-        ├── SUMMARY.md                ← generated
         ├── handoff.md                ← this feature's rolling handoff
         └── issues/
             ├── NN-slug.md            ← active issues
             └── archive/
-                └── NN-slug.md        ← done issues moved here by /tidy
+                └── NN-slug.md        ← legacy done location; still resolved
 ```
 
 ## Inspecting state (active working set only)
@@ -397,7 +401,7 @@ feature's top-level issues but not the nested `archive/`:
 rg '^status: ready' -g '**/issues/*.md' .scratch   # dispatchable
 ```
 
-To read a single field deterministically (for `/tdd`'s drain order, `/tidy`'s survey), use `yq`
+To read a single field deterministically (for `/tdd`'s drain order), use `yq`
 against the frontmatter rather than line-matching:
 
 ```bash
@@ -405,23 +409,28 @@ yq --front-matter=extract '.status'       .scratch/balance/issues/02-api.md
 yq --front-matter=extract '.blocked_by[]' .scratch/balance/issues/02-api.md
 ```
 
-To see history, list `issues/archive/` explicitly.
+To inspect effective delivered behavior without loading history bodies:
+
+```bash
+python engineering/workflow-state.py inspect . balance --format human
+```
 
 ## Machine gate
 
 The mechanically checkable subset of this contract ships as a script next to this file
 (`verify-artifacts.py`): non-UTF-8 content, required frontmatter fields and enum values, `done`
-issues carry a `### 完成` record whose named test files exist, `test_paths` declared ⇒ 新增测试
-files are within it,
-V2 readiness/P# mappings, and opted-in graphical UI contracts plus structured evidence (real files,
+issues carry a `### 完成` record whose named test files exist, `test_paths` declared ⇒ legacy
+`新增测试` entries are within it,
+V2 readiness/P# mappings, V3 verifier profiles (`verifier.json` JSON, non-empty `commands`,
+fingerprint keys) plus done-record receipts (JSON, `outcome: pass`, AC coverage, `审查` present), and opted-in graphical UI contracts plus structured evidence (real files,
 zero unexpected runtime counters, graded thresholds),
 `NN` uniqueness per directory, `blocked_by` / `refines` resolution + acyclicity, `feature` vs
 directory name, PRD `version` vs filename, `supersedes` target existence, single live PRD head,
 handoff field shape. CODEBASE.md leaves: root `type`/`generated` + body budget (excl. roster
 lines; `budget:` frontmatter override), nested generated-block marker pairs + `git_base` + block
 budget, roster placeholder syntax rejected, roster↔directory bidirectional check. Missing `.scratch/` and absent `CODEBASE.md` pass
-clean. Run it wherever state could drift
-— `/spec` post-write, `/tidy` before regenerating, or any time the state looks off:
+clean. Run it wherever state could drift: `/spec` post-write, before workflow GC, or any time the
+state looks off:
 
     python verify-artifacts.py [<repo-root>]
     # if the `python` interpreter is missing: python3 verify-artifacts.py [<repo-root>]
@@ -434,5 +443,5 @@ Prompt-enforced remainder: body sections, AC quality, `touches` honesty.
 Repos created before frontmatter existed carry a bare `Status:` line.
 `/cosmos-setup` handles the upgrade (its Case 5). It is idempotent: it skips files that already
 have frontmatter. It is dry-run-first: it prints the full plan before touching anything, covering
-which files get frontmatter, which `done` issues move to `archive/`, and which `SUMMARY.md` files
-get generated.
+which files get frontmatter and which legacy archive or SUMMARY inputs remain. It does not generate
+new SUMMARY files.

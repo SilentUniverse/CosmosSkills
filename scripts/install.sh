@@ -159,7 +159,7 @@ copy_file() {
 
 echo
 copy_file "$ROOT/engineering/ARTIFACT-FORMAT.md" "$TARGET/ARTIFACT-FORMAT.md" "Contract: ARTIFACT-FORMAT.md"
-for gate in verify-artifacts.py; do
+for gate in verify-artifacts.py workflow-state.py; do
   copy_file "$ROOT/engineering/$gate" "$TARGET/$gate" "Gate: $gate"
 done
 copy_file "$ROOT/scripts/eval.py" "$TARGET/eval.py" "Eval: eval.py"
@@ -245,6 +245,7 @@ if [[ -d "$agents_skills" || -d "${HOME}/.zcode" ]]; then
   # textually inside the skills root, same as in ~/.claude/skills.
   copy_file "$ROOT/engineering/ARTIFACT-FORMAT.md" "$agents_skills/ARTIFACT-FORMAT.md" "Contract: ARTIFACT-FORMAT.md (agents)"
   copy_file "$ROOT/engineering/verify-artifacts.py" "$agents_skills/verify-artifacts.py" "Gate: verify-artifacts.py (agents)"
+  copy_file "$ROOT/engineering/workflow-state.py" "$agents_skills/workflow-state.py" "State: workflow-state.py (agents)"
 
   for i in "${!NAMES[@]}"; do
     name="${NAMES[$i]}"

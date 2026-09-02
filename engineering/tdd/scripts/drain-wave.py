@@ -189,6 +189,39 @@ def load_issues(root, feat):
     return issues
 
 
+def load_archived_done(root, feat):
+    """Return archived done slugs used only to satisfy dependency barriers."""
+    done = set()
+    owners = {}
+    for fd in feature_dirs(root, feat):
+        arch_dir = os.path.join(fd, "issues", "archive")
+        if not os.path.isdir(arch_dir):
+            continue
+        feature = os.path.basename(fd)
+        for name in sorted(os.listdir(arch_dir)):
+            path = os.path.join(arch_dir, name)
+            if not name.endswith(".md") or not os.path.isfile(path):
+                continue
+            slug = os.path.splitext(name)[0]
+            fm = get_frontmatter(path)
+            if fm is None or fm.get("status") != "done":
+                print(
+                    "drain-wave: archived issue '%s' must have status: done" % path,
+                    file=sys.stderr,
+                )
+                return None
+            if slug in owners and owners[slug] != feature:
+                print(
+                    "drain-wave: duplicate archived slug '%s' in features '%s' and '%s'"
+                    % (slug, owners[slug], feature),
+                    file=sys.stderr,
+                )
+                return None
+            owners[slug] = feature
+            done.add(slug)
+    return done
+
+
 def ledger_path(root, feat):
     return os.path.join(root, ".scratch", feat, "wave-ledger.json")
 
@@ -290,7 +323,8 @@ def open_waves(data):
     return [w for w in data["waves"] if set(w["dispatched"]) - set(w.get("closed", {}))]
 
 
-def settle_zombies(root, issues):
+def settle_zombies(root, issues, archived_done=None):
+    archived_done = archived_done or set()
     """Auto-close dispatched slugs that are done on disk (trust disk); report the rest."""
     zombies = []
     auto = []
@@ -306,7 +340,9 @@ def settle_zombies(root, issues):
         changed = False
         for w in open_waves(data):
             for slug in set(w["dispatched"]) - set(w.get("closed", {})):
-                if slug in issues and issues[slug][2].get("status") == "done":
+                if slug in archived_done or (
+                    slug in issues and issues[slug][2].get("status") == "done"
+                ):
                     w.setdefault("closed", {})[slug] = "green"
                     changed = True
                     auto.append("%s (auto-closed: done on disk)" % slug)
@@ -321,33 +357,11 @@ def settle_zombies(root, issues):
     return zombies, auto
 
 
-def cmd_next(root, feat):
-    issues = load_issues(root, feat)
-    if issues is None:
-        return 1
-    zombies, auto = settle_zombies(root, issues)
-    for line in auto:
-        print("ledger: %s" % line)
-    if zombies:
-        print("drain-wave: %d zombie(s) - dispatched but neither done nor closed:" % len(zombies))
-        for f, w, slug in zombies:
-            print("  %s (wave %d, ledger .scratch/%s/wave-ledger.json)" % (slug, w, f))
-        print("recovery: adopt the on-disk code and finish the slice, or revert this issue's")
-        print("edits to the wave baseline and leave it ready - then `collect` it. No new wave")
-        print("until every zombie is closed (EDGE-CASES.md).")
-        return 3
-    conflicts = active_conflicts(root, issues)
-    if conflicts:
-        report_conflicts(conflicts)
-        return 6
-    if not issues:
-        print("drain-wave: no issues found under .scratch/%s" % (feat or "*/issues"))
-        return 4
-    done = {s for s, (_, _, fm) in issues.items() if fm.get("status") == "done"}
+def plan_waves(issues, archived_done):
+    done = {
+        s for s, (_, _, fm) in issues.items() if fm.get("status") == "done"
+    } | archived_done
     ready = {s for s, (_, _, fm) in issues.items() if fm.get("status") == "ready"}
-    if not ready:
-        print("drain-wave: nothing ready (%d done) - batch complete" % len(done))
-        return 4
     blocked = []
     eligible = []
     for s in sorted(ready):
@@ -371,19 +385,110 @@ def cmd_next(root, feat):
         # no packable wave available - schedule one undeclared card alone (one per wave)
         solo_now = sorted(undeclared)[0]
         undeclared = [s for s in undeclared if s != solo_now]
+    return {
+        "done": done,
+        "ready": ready,
+        "blocked": blocked,
+        "wave": wave,
+        "later": later,
+        "undeclared": undeclared,
+        "solo_now": solo_now,
+    }
+
+
+def cmd_next(root, feat):
+    issues = load_issues(root, feat)
+    if issues is None:
+        return 1
+    archived_done = load_archived_done(root, feat)
+    if archived_done is None:
+        return 1
+    zombies, auto = settle_zombies(root, issues, archived_done)
+    for line in auto:
+        print("ledger: %s" % line)
+    if zombies:
+        print("drain-wave: %d zombie(s) - dispatched but neither done nor closed:" % len(zombies))
+        for f, w, slug in zombies:
+            print("  %s (wave %d, ledger .scratch/%s/wave-ledger.json)" % (slug, w, f))
+        print("recovery: adopt the on-disk code and finish the slice, or revert this issue's")
+        print("edits to the wave baseline and leave it ready - then `collect` it. No new wave")
+        print("until every zombie is closed (EDGE-CASES.md).")
+        return 3
+    conflicts = active_conflicts(root, issues)
+    if conflicts:
+        report_conflicts(conflicts)
+        return 6
+    if not issues:
+        print("drain-wave: no issues found under .scratch/%s" % (feat or "*/issues"))
+        return 4
+    plan = plan_waves(issues, archived_done)
+    if not plan["ready"]:
+        print("drain-wave: nothing ready (%d done) - batch complete" % len(plan["done"]))
+        return 4
     nf = feat if feat else "all features"
-    print("drain-wave: %s - %d ready, %d done" % (nf, len(ready), len(done)))
-    if solo_now:
-        print("wave: %s (solo - undeclared, runs alone)" % solo_now)
+    print("drain-wave: %s - %d ready, %d done" % (nf, len(plan["ready"]), len(plan["done"])))
+    if plan["solo_now"]:
+        print("wave: %s (solo - undeclared, runs alone)" % plan["solo_now"])
     else:
-        print("wave: %s" % (" ".join(wave) if wave else "(none this pass)"))
-    if later:
-        print("next waves (serialized): %s" % " ".join(later))
-    if undeclared:
-        print("solo (missing touches/test_paths - one per wave): %s" % " ".join(sorted(undeclared)))
-    for s, missing in blocked:
+        print("wave: %s" % (" ".join(plan["wave"]) if plan["wave"] else "(none this pass)"))
+    if plan["later"]:
+        print("next waves (serialized): %s" % " ".join(plan["later"]))
+    if plan["undeclared"]:
+        print(
+            "solo (missing touches/test_paths - one per wave): %s"
+            % " ".join(sorted(plan["undeclared"]))
+        )
+    for s, missing in plan["blocked"]:
         print("deferred: %s blocked by %s" % (s, ", ".join(missing)))
     return 0
+
+
+def cmd_step(root, feat):
+    issues = load_issues(root, feat)
+    if issues is None:
+        return 1
+    archived_done = load_archived_done(root, feat)
+    if archived_done is None:
+        return 1
+    zombies, auto = settle_zombies(root, issues, archived_done)
+    for line in auto:
+        print("ledger: %s" % line)
+    if zombies:
+        print("action: finish-or-revert, then collect")
+        for f, w, slug in zombies:
+            print("zombie: %s (wave %d, ledger .scratch/%s/wave-ledger.json)" % (slug, w, f))
+        print(
+            "run: drain-wave.py collect <repo-root> <slug>=<green|red|blocked|conflict|aborted>[,...]"
+            " - no new wave until every zombie closes (EDGE-CASES.md)"
+        )
+        return 3
+    conflicts = active_conflicts(root, issues)
+    if conflicts:
+        report_conflicts(conflicts)
+        return 6
+    if not issues:
+        print("action: none - no issues found under .scratch/%s" % (feat or "*/issues"))
+        return 4
+    plan = plan_waves(issues, archived_done)
+    if not plan["ready"]:
+        print("action: close - nothing ready (%d done)" % len(plan["done"]))
+        print(
+            "run: drain-wave.py audit <repo-root> %s; close per FULL-SUITE.md via"
+            " test-supervisor.py; then workflow-state.py gc <repo-root> <feat> --apply"
+            % (feat or "<feat>")
+        )
+        return 4
+    if plan["solo_now"]:
+        wave = [plan["solo_now"]]
+    else:
+        wave = plan["wave"]
+    if wave:
+        print("action: dispatch %s" % " ".join(wave))
+        print("run: drain-wave.py dispatch <repo-root> %s" % " ".join(wave))
+        return 0
+    print("action: blocked - every ready issue is blocked or deferred")
+    print("run: drain-wave.py next <repo-root> %s" % (feat or ""))
+    return 4
 
 
 def dispatch_receipt_hits(root, issues, slugs, ledgers):
@@ -444,6 +549,9 @@ def cmd_dispatch(root, slugs):
     issues = load_issues(root, None)
     if issues is None:
         return 1
+    archived_done = load_archived_done(root, None)
+    if archived_done is None:
+        return 1
     if not slugs:
         print("drain-wave: dispatch needs at least one slug", file=sys.stderr)
         return 2
@@ -454,7 +562,9 @@ def cmd_dispatch(root, slugs):
             file=sys.stderr,
         )
         return 1
-    done = {s for s, (_, _, fm) in issues.items() if fm.get("status") == "done"}
+    done = {
+        s for s, (_, _, fm) in issues.items() if fm.get("status") == "done"
+    } | archived_done
     for s in slugs:
         if s not in issues:
             print("drain-wave: unknown slug '%s'" % s, file=sys.stderr)
@@ -480,7 +590,7 @@ def cmd_dispatch(root, slugs):
                     file=sys.stderr,
                 )
                 return 1
-    zombies, auto = settle_zombies(root, issues)
+    zombies, auto = settle_zombies(root, issues, archived_done)
     if zombies:
         print(
             "drain-wave: open wave with unresolved issue(s) - collect them first;"
@@ -529,8 +639,8 @@ def cmd_dispatch(root, slugs):
             file=sys.stderr,
         )
         print(
-            "run each action in its declared cwd without installing anything, then use "
-            "preflight-receipt.py record and retry dispatch",
+            "run each action through test-supervisor.py with scope=preflight, then use "
+            "preflight-receipt.py record --execution-receipt and retry dispatch",
             file=sys.stderr,
         )
         return 5
@@ -784,7 +894,8 @@ def main(argv):
         except (AttributeError, ValueError):
             pass
     usage = (
-        "usage: drain-wave.py next <repo-root> [<feat>] | dispatch <repo-root> <slug>... | "
+        "usage: drain-wave.py step <repo-root> [<feat>] | next <repo-root> [<feat>] | "
+        "dispatch <repo-root> <slug>... | "
         "collect <repo-root> <slug>=<result>[,...] | audit <repo-root> [<feat>] | selftest"
     )
     cmd = argv[1] if len(argv) >= 2 else None
@@ -797,6 +908,12 @@ def main(argv):
     if not os.path.isdir(root):
         print("drain-wave: no such directory '%s'" % root, file=sys.stderr)
         return 2
+    if cmd == "step":
+        feat = argv[3] if len(argv) == 4 else None
+        if len(argv) > 4:
+            print(usage, file=sys.stderr)
+            return 2
+        return cmd_step(root, feat)
     if cmd == "next":
         feat = argv[3] if len(argv) == 4 else None
         if len(argv) > 4:

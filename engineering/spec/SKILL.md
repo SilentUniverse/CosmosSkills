@@ -13,23 +13,22 @@ PRDs/issues. Frontmatter:
 [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md) issue/PRD anchors (not the whole file).
 `done` issues are immutable.
 
-Planning has two phases: teach the design back in a [DESIGN-RECEIPT.md](DESIGN-RECEIPT.md),
-then write artifacts only after the user explicitly aligns. The receipt is conversation state,
-not a third issue state. No standing instruction — global template or per-repo AGENTS.md —
-waives this gate: blanket autonomy text ("no pauses", "finish in one pass") constrains pacing,
-not the alignment stop.
+Intent has two paths:
 
-The alignment gate covers not only what to build but what would prove it wrong. A graphical UI can
-opt into an agent-runnable experience contract; every non-graphical project follows the ordinary
-workflow with no experience field, artifact, rubric, or review axis.
+- **Settled intake.** The request itself is alignment when it fixes observable outcome, scope,
+  constraints, acceptance evidence, and the work is local, reversible, and has a deterministic
+  verifier. Do not restate or pause. Prove readiness, then persist the normalized execution contract.
+- **Decision intake.** Material ambiguity, product preference, permission, public contract,
+  one-way door, high cost, or a claim without an objective verifier loads
+  [DESIGN-RECEIPT.md](DESIGN-RECEIPT.md). Ask all material decisions once and wait for alignment.
 
-A delegation that already fixes the acceptance behaviors, the verification commands, and the
-constraints closes the decision frontier: do not re-derive or restate it. A compressed intake is
-safe only when that delegation is a repo-relative tracked file readable from a fresh checkout; the
-receipt and PRD stub record its path and content hash. Chat, URLs, Downloads, mutable external files,
-and untracked files use the ordinary PRD so the executor receives a durable normalized contract.
-Run the ordinary readiness preflights, then present the P# register and proposed slice DAG. The
-alignment gate is never compressed away, and one open decision reopens the full loop.
+The receipt is conversation state, not a third issue state. Confidence never closes a decision
+frontier. A settled request does because the user already supplied the decision. A graphical UI may
+opt into an agent-runnable experience contract; non-graphical work creates no experience artifact.
+
+A repo-relative tracked delegation may be referenced by path and content hash instead of copied.
+Chat, URLs, Downloads, mutable external files, and untracked files are normalized into the ordinary
+PRD/issue contract so a fresh executor does not need the conversation.
 
 ## 1. Locate
 

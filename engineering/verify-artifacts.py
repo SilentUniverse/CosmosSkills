@@ -50,6 +50,9 @@ YUJIAN_CHONGFANG = "\u9884\u68c0\u91cd\u653e"  # 预检重放
 FANZHENG = "\u53cd\u8bc1"  # 反证
 TIYAN_YANZHENG = "\u4f53\u9a8c\u9a8c\u8bc1"  # 体验验证
 XUQIU_JILU_YUAN = "\u9700\u6c42\u8bb0\u5f55\u6e90"  # 需求记录源
+PROFILE = "profile"  # profile
+RECEIPT_KEY = "receipt"  # receipt
+CHASHEN = "\u5ba1\u67e5"  # 审查
 AC_CHECKBOX = re.compile(r"^\s*-\s*\[[ xX]\]\s+\S")
 EVIDENCE_MAP = re.compile(r"^\s*-\s*#(\d+)\s*(?:\u2192|->)")
 PREFLIGHT_LINE = re.compile(r"^\s*-\s*P(\d+)\s+" + YUJIAN + r"[\uff1a:]\s*(.+)$")
@@ -622,8 +625,21 @@ def main(argv):
             err("%s: feature '%s' != directory '%s'" % (path, feat, expected_feature))
         if not fm.get("git_base"):
             err("%s: git_base missing" % path)
+        if str(fm.get("schema_version", "")) == "2" and not re.match(
+            r"^[0-9a-f]{64}$", str(fm.get("worktree_digest", ""))
+        ):
+            err("%s: schema v2 worktree_digest must be a 64-character SHA-256" % path)
         if fm.get("status") not in ("active", "consumed"):
             err("%s: status '%s' not in active|consumed" % (path, fm.get("status", "")))
+        if "capsule" in fm and fm.get("capsule") not in (
+            "active-work",
+            "awaiting-alignment",
+            "external-pending",
+        ):
+            err(
+                "%s: capsule '%s' not in active-work|awaiting-alignment|external-pending"
+                % (path, fm.get("capsule"))
+            )
         if not ISO_DATE.match(str(fm.get("date", ""))):
             err("%s: date not ISO YYYY-MM-DD" % path)
 
@@ -827,14 +843,46 @@ def main(argv):
                 else:
                     err("%s: filename not NN-slug" % f)
             resolved = dict(by_slug)
+            archive_files = []
             arch_dir = os.path.join(i_dir, "archive")
             if os.path.isdir(arch_dir):
                 for n in os.listdir(arch_dir):
                     af = os.path.join(arch_dir, n)
                     if n.endswith(".md") and os.path.isfile(af):
                         slug = os.path.splitext(n)[0]
-                        if slug not in resolved:
+                        archive_files.append(af)
+                        if slug in resolved:
+                            err("%s: duplicate live/archive slug '%s'" % (af, slug))
+                        else:
                             resolved[slug] = af
+                        m = NN_SLUG.match(slug)
+                        if not m:
+                            err("%s: filename not NN-slug" % af)
+                        elif m.group(1) in nn_seen:
+                            err(
+                                "%s: duplicate NN %s (also %s)"
+                                % (af, m.group(1), nn_seen[m.group(1)])
+                            )
+                        else:
+                            nn_seen[m.group(1)] = slug
+            for af in sorted(archive_files):
+                n_issues += 1
+                archived_lines = read_lines(af)
+                archived_fm = get_frontmatter(af)
+                if archived_fm is None:
+                    err("%s: no YAML frontmatter" % af)
+                    continue
+                if archived_fm.get("type") != "issue":
+                    err("%s: archived type '%s' != issue" % (af, archived_fm.get("type", "")))
+                if archived_fm.get("feature") != feat:
+                    err(
+                        "%s: archived feature '%s' != directory '%s'"
+                        % (af, archived_fm.get("feature", ""), feat)
+                    )
+                if archived_fm.get("status") != "done":
+                    err("%s: archived issue must be done" % af)
+                if done_record(archived_lines) is None:
+                    err("%s: archived done issue has no ### 完成 record" % af)
             graph = {}
             for f in files:
                 n_issues += 1
@@ -851,12 +899,13 @@ def main(argv):
                     err("%s: status '%s' not in ready|done" % (f, fm.get("status", "")))
                 contract_version = str(fm.get("contract_version", ""))
                 required_preflight_ids = set()
+                mapped_acs = set()
                 experience_review = str(fm.get("experience_review", ""))
                 experience_contract = None
                 experience_states = []
                 experience_evidence_value = ""
-                if contract_version not in ("", "1", "2"):
-                    err("%s: contract_version '%s' not in 1|2" % (f, contract_version))
+                if contract_version not in ("", "1", "2", "3"):
+                    err("%s: contract_version '%s' not in 1|2|3" % (f, contract_version))
                 if experience_review not in ("", "runtime", "graded"):
                     err(
                         "%s: experience_review '%s' not in runtime|graded or omitted"
@@ -867,53 +916,97 @@ def main(argv):
                         "%s: experience_review requires contract_version 2; bump the card or "
                         "drop the field" % f
                     )
-                if contract_version == "2":
+                if contract_version in ("2", "3"):
+                    cv = "contract v%s" % contract_version
                     ac_lines = h2_section(issue_lines, YANSHOU) or []
                     ac_count = sum(1 for line in ac_lines if AC_CHECKBOX.match(line))
                     verification = h2_section(issue_lines, YANZHENG_SHEJI)
                     if ac_count == 0:
-                        err("%s: contract v2 needs at least one checkbox AC" % f)
+                        err("%s: %s needs at least one checkbox AC" % (f, cv))
                     if verification is None:
-                        err("%s: contract v2 missing ## 验证设计" % f)
+                        err("%s: %s missing ## 验证设计" % (f, cv))
                     else:
                         if not bullet_value(verification, JIEFENG):
-                            err("%s: contract v2 验证设计 missing 接缝" % f)
-                        workdir = bullet_value(verification, GONGZUO_MULU)
-                        if not workdir:
-                            err("%s: contract v2 验证设计 missing 工作目录" % f)
-                        fingerprint = bullet_value(verification, HUANJING_ZHIWEN)
-                        if not fingerprint:
-                            err("%s: contract v2 验证设计 missing 环境指纹" % f)
+                            err("%s: %s 验证设计 missing 接缝" % (f, cv))
+                        if contract_version == "2":
+                            workdir = bullet_value(verification, GONGZUO_MULU)
+                            if not workdir:
+                                err("%s: contract v2 验证设计 missing 工作目录" % f)
+                            fingerprint = bullet_value(verification, HUANJING_ZHIWEN)
+                            if not fingerprint:
+                                err("%s: contract v2 验证设计 missing 环境指纹" % f)
+                            else:
+                                missing_keys = [
+                                    key
+                                    for key in ("git", "lock", "runtime", "tools", "services")
+                                    if not re.search(r"(?:^|[;；\s`])" + key + r"\s*=", fingerprint)
+                                ]
+                                if missing_keys:
+                                    err(
+                                        "%s: contract v2 环境指纹 missing keys: %s"
+                                        % (f, ", ".join(missing_keys))
+                                    )
+                            prerequisites = bullet_value(verification, QIANZHI_TIAOJIAN)
+                            if not prerequisites:
+                                err("%s: contract v2 验证设计 missing 前置条件" % f)
+                            else:
+                                missing_keys = [
+                                    key
+                                    for key in ("fixtures", "services", "permissions", "network")
+                                    if not re.search(r"(?:^|[;；\s`])" + key + r"\s*=", prerequisites)
+                                ]
+                                if missing_keys:
+                                    err(
+                                        "%s: contract v2 前置条件 missing keys: %s"
+                                        % (f, ", ".join(missing_keys))
+                                    )
+                            setup = bullet_value(verification, ZHUNBEI_DONGZUO)
+                            if not setup:
+                                err("%s: contract v2 验证设计 missing 准备动作" % f)
+                            elif "无" not in setup and "result=" not in setup:
+                                err("%s: contract v2 准备动作 needs result= or explicit 无" % f)
                         else:
-                            missing_keys = [
-                                key
-                                for key in ("git", "lock", "runtime", "tools", "services")
-                                if not re.search(r"(?:^|[;；\s`])" + key + r"\s*=", fingerprint)
-                            ]
-                            if missing_keys:
-                                err(
-                                    "%s: contract v2 环境指纹 missing keys: %s"
-                                    % (f, ", ".join(missing_keys))
+                            if not bullet_value(verification, PROFILE):
+                                err("%s: contract v3 验证设计 missing profile" % f)
+                            else:
+                                profile_path = os.path.join(
+                                    root, ".scratch", feat, "verifier.json"
                                 )
-                        prerequisites = bullet_value(verification, QIANZHI_TIAOJIAN)
-                        if not prerequisites:
-                            err("%s: contract v2 验证设计 missing 前置条件" % f)
-                        else:
-                            missing_keys = [
-                                key
-                                for key in ("fixtures", "services", "permissions", "network")
-                                if not re.search(r"(?:^|[;；\s`])" + key + r"\s*=", prerequisites)
-                            ]
-                            if missing_keys:
-                                err(
-                                    "%s: contract v2 前置条件 missing keys: %s"
-                                    % (f, ", ".join(missing_keys))
-                                )
-                        setup = bullet_value(verification, ZHUNBEI_DONGZUO)
-                        if not setup:
-                            err("%s: contract v2 验证设计 missing 准备动作" % f)
-                        elif "无" not in setup and "result=" not in setup:
-                            err("%s: contract v2 准备动作 needs result= or explicit 无" % f)
+                                profile = None
+                                if not os.path.isfile(profile_path):
+                                    err(
+                                        "%s: contract v3 profile file missing: .scratch/%s/verifier.json"
+                                        % (f, feat)
+                                    )
+                                else:
+                                    try:
+                                        with open(profile_path, "r", encoding="utf-8") as stream:
+                                            profile = json.load(stream)
+                                    except (OSError, ValueError) as exc:
+                                        err(
+                                            "%s: contract v3 profile file not valid JSON: %s"
+                                            % (f, exc)
+                                        )
+                                if profile is not None:
+                                    commands = profile.get("commands")
+                                    if not isinstance(commands, dict) or not commands:
+                                        err("%s: contract v3 profile needs non-empty commands" % f)
+                                    fingerprint = str(profile.get("fingerprint", ""))
+                                    if not fingerprint:
+                                        err("%s: contract v3 profile missing fingerprint" % f)
+                                    else:
+                                        missing_keys = [
+                                            key
+                                            for key in ("git", "lock", "runtime", "tools", "services")
+                                            if not re.search(
+                                                r"(?:^|[;；\s`])" + key + r"\s*=", fingerprint
+                                            )
+                                        ]
+                                        if missing_keys:
+                                            err(
+                                                "%s: contract v3 profile fingerprint missing keys: %s"
+                                                % (f, ", ".join(missing_keys))
+                                            )
 
                         experience = bullet_value(verification, TIYAN_YANZHENG)
                         if experience_review:
@@ -991,11 +1084,11 @@ def main(argv):
                             )
                             if not valid:
                                 err(
-                                    "%s: P%d 预检 needs backticked action, passed, observed=, evidence=, checked=YYYY-MM-DD"
-                                    % (f, preflight_id)
+                                    "%s: %s P%d 预检 needs backticked action, passed, observed=, evidence=, checked=YYYY-MM-DD"
+                                    % (f, cv, preflight_id)
                                 )
                         if not preflights:
-                            err("%s: contract v2 验证设计 missing passed P# 预检" % f)
+                            err("%s: %s 验证设计 missing passed P# 预检" % (f, cv))
 
                         mapped = set()
                         map_preflights = {}
@@ -1020,22 +1113,23 @@ def main(argv):
                         missing_maps = sorted(set(range(1, ac_count + 1)) - mapped)
                         if missing_maps:
                             err(
-                                "%s: contract v2 AC missing evidence map: %s"
-                                % (f, ", ".join("#%d" % n for n in missing_maps))
+                                "%s: %s AC missing evidence map: %s"
+                                % (f, cv, ", ".join("#%d" % n for n in missing_maps))
                             )
+                        mapped_acs.update(mapped)
                         for ac_id in sorted(set(range(1, ac_count + 1)) & mapped):
                             refs = map_preflights.get(ac_id, set())
                             required_preflight_ids.update(refs)
                             if experience_review and not map_falsifiers.get(ac_id):
-                                err("%s: contract v2 AC #%d missing 反证" % (f, ac_id))
+                                err("%s: %s AC #%d missing 反证" % (f, cv, ac_id))
                             if not refs:
-                                err("%s: contract v2 AC #%d missing 预检 P# reference" % (f, ac_id))
+                                err("%s: %s AC #%d missing 预检 P# reference" % (f, cv, ac_id))
                                 continue
                             unknown = sorted(refs - set(preflights))
                             if unknown:
                                 err(
-                                    "%s: contract v2 AC #%d references unknown 预检: %s"
-                                    % (f, ac_id, ", ".join("P%d" % n for n in unknown))
+                                    "%s: %s AC #%d references unknown 预检: %s"
+                                    % (f, cv, ac_id, ", ".join("P%d" % n for n in unknown))
                                 )
                 cat = str(fm.get("category", ""))
                 if cat not in ("enhancement", "detail", "redo", "fix"):
@@ -1079,11 +1173,18 @@ def main(argv):
                 if fm.get("status") == "done":
                     rec = done_record(issue_lines)
                     fields = []
+                    test_named_fields = []
                     if rec is not None:
                         for line in rec:
                             s = line.lstrip()
-                            if s.startswith("- " + XINZENG) or s.startswith("- " + YANSHOU):
+                            if (
+                                s.startswith("- " + XINZENG)
+                                or s.startswith("- " + YANSHOU)
+                                or s.startswith("- " + RECEIPT_KEY)
+                            ):
                                 fields.append(s)
+                                if not s.startswith("- " + RECEIPT_KEY):
+                                    test_named_fields.append(s)
                     if not fields:
                         err("%s: status done but no ### 完成 record" % f)
                     else:
@@ -1093,6 +1194,71 @@ def main(argv):
                             for line in (rec or [])
                         ):
                             err("%s: contract v2 done record missing 验证命令" % f)
+                        if contract_version == "3":
+                            receipt_line = bullet_value(rec or [], RECEIPT_KEY)
+                            if not receipt_line:
+                                err("%s: contract v3 done record missing receipt" % f)
+                            else:
+                                relative = (
+                                    receipt_line.split("；")[0].split(";")[0].strip().strip("` ")
+                                )
+                                if not relative.endswith(".json"):
+                                    err(
+                                        "%s: contract v3 receipt must reference a .json file: %r"
+                                        % (f, relative)
+                                    )
+                                else:
+                                    parts = relative.replace("\\", "/").split("/")
+                                    if (
+                                        len(parts) < 4
+                                        or parts[0] != ".scratch"
+                                        or parts[2] != "receipts"
+                                        or ".." in parts
+                                    ):
+                                        err(
+                                            "%s: contract v3 receipt path must stay under"
+                                            " .scratch/<feat>/receipts/: %r" % (f, relative)
+                                        )
+                                        parts = None
+                                    payload = None
+                                    if parts is not None:
+                                        receipt_file = os.path.join(root, *parts)
+                                        if not os.path.isfile(receipt_file):
+                                            err(
+                                                "%s: contract v3 receipt file missing: %s"
+                                                % (f, relative)
+                                            )
+                                        else:
+                                            try:
+                                                with open(receipt_file, "r", encoding="utf-8") as stream:
+                                                    payload = json.load(stream)
+                                            except (OSError, ValueError) as exc:
+                                                err(
+                                                    "%s: contract v3 receipt not valid JSON: %s"
+                                                    % (f, exc)
+                                                )
+                                    if payload is not None:
+                                        if str(payload.get("outcome")) != "pass":
+                                            err(
+                                                "%s: contract v3 receipt outcome %r != pass"
+                                                % (f, payload.get("outcome"))
+                                            )
+                                claimed = set()
+                                for part in re.findall(r"AC\s*([\d,\-]+)", receipt_line):
+                                    for token in part.split(","):
+                                        if re.match(r"^\d+$", token):
+                                            claimed.add(int(token))
+                                        elif re.match(r"^\d+-\d+$", token):
+                                            low, high = token.split("-")
+                                            claimed.update(range(int(low), int(high) + 1))
+                                unclaimed = sorted(mapped_acs - claimed)
+                                if unclaimed:
+                                    err(
+                                        "%s: contract v3 receipt does not cover AC: %s"
+                                        % (f, ", ".join("#%d" % n for n in unclaimed))
+                                    )
+                            if not bullet_value(rec or [], CHASHEN):
+                                err("%s: contract v3 done record missing 审查" % f)
                         if contract_version == "2":
                             replay = bullet_value(rec or [], YUJIAN_CHONGFANG)
                             if not replay:
@@ -1135,7 +1301,7 @@ def main(argv):
                                         experience_states,
                                         err,
                                     )
-                        for m in sorted(set(TEST_PATH.findall("\n".join(fields)))):
+                        for m in sorted(set(TEST_PATH.findall("\n".join(test_named_fields)))):
                             cand = m.replace("\\", "/")
                             if not (
                                 os.path.isfile(os.path.join(root, cand))

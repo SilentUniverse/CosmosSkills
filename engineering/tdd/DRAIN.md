@@ -5,6 +5,20 @@ batch of `ready` issues to completion in dependency order. Two paths — serial
 (default, legible) and parallel (fast). Pick by the flag; the enumeration and the batch
 close are shared.
 
+## Driver
+
+Each round starts with the driver, not this whole file:
+
+```text
+python3 <tdd-skill-dir>/scripts/drain-wave.py step <repo-root> [<feat>]
+```
+
+`step` prints the next action (`dispatch <slugs>`, finish-or-revert then `collect`,
+`close`, or blocked-with-`next` pointer) plus the exact command to run and its exit code
+carries the state (0 dispatchable, 3 zombies, 4 nothing-ready, 6 conflicts). Read the
+sections below only for the state `step` names; they are the invariants and the full
+algorithm, not a per-round checklist.
+
 ## Shared: enumerate the batch
 
 1. Enumerate candidates: bare / `-p` scans `.scratch/*/issues/*.md` (top level, never
@@ -46,9 +60,9 @@ ready cards in-process and gates on the result, so the manual
 use it in CI or when reviewing duplicates without dispatching. An empty `duplicates` list means
 stop here: create no receipt and preserve the ordinary per-card path.
 
-For each reported `miss`, the orchestrator—not a subagent—replays that action once and records only a
-passed observation with
-`python3 <tdd-skill-dir>/scripts/preflight-receipt.py record <receipt> --cwd <cwd> --action <action> --fingerprint <value> --observed <result> --evidence <path>`.
+For each reported `miss`, the orchestrator—not a subagent—runs the action once through
+`test-supervisor.py --scope preflight`, then records its passing execution receipt with
+`python3 <tdd-skill-dir>/scripts/preflight-receipt.py record <receipt> --cwd <cwd> --action <action> --fingerprint <value> --execution-receipt <execution.json>`.
 Rerun `plan`; every duplicate must now be `hit` before fan-out. The orchestrator is the only writer,
 so parallel subagents cannot race the receipt. `drain-wave.py dispatch` enforces the hit, persists
 the assignment for serialized later waves, and emits `brief: <slug> receipt-hit:<key>`; copy each
@@ -140,8 +154,10 @@ Loop until the ready set is empty:
      an exact hit replaces only that matching P# replay; unique P# still replay normally. Never
      write the receipt, install, upgrade, or start an undeclared dependency; a missing dependency
      means the card was not ready, so report red with the preflight mismatch.
-   - The **tests-so-far manifest** (earlier waves' 新增测试): don't write tests it already covers;
-     report duplicates instead.
+   - The **tests-so-far manifest** (earlier waves' `test_paths:`): don't write tests it already
+     covers; report duplicates instead.
+   - Copy the card's `## 相关面` pointer block verbatim into the brief; a fresh executor reads
+     exactly those invariant blocks and ADRs, never the whole map.
    - Report back **only** by outcome, in this fixed shape. A free-form reply is not a result;
      red/blocked reports stay under 400 words:
      - **`result: green`** → P# replay + fingerprint match, exact final command/action + observed
@@ -186,10 +202,10 @@ Loop until the ready set is empty:
    recovery against the step-2 baseline: code files clean in the baseline and modified now →
    `git checkout -- <file>`; files the wave added → delete; files already modified in the
    baseline → report, don't restore. Never touch `.scratch/**`; completion records and revert
-   notes live there. Map the defect to its issues via each `### 完成` 新增测试
-   list, set those issues back to `ready`, append the note, report the mapping. A red issue
+   notes live there. Map the defect to its issues via each issue's
+   `test_paths:`, set those issues back to `ready`, append the note, report the mapping. A red issue
    stays `ready`. Anything `blocked_by` it never enters a later wave; report it
-   deferred. Merge each green issue's 新增测试 into the **tests-so-far manifest** and carry it
+   deferred. Merge each green issue's `test_paths:` into the **tests-so-far manifest** and carry it
    into every later wave's brief.
    If any issue reports `conflict`, interrupt unfinished siblings, revert and collect them as
    `aborted`, then stop after collecting the wave. Already completed green siblings remain
@@ -206,7 +222,7 @@ Loop until the ready set is empty:
    scheduling: it runs `next` and `dispatch`es the wave itself **before launching the
    session**. Every dispatch timestamp provably precedes the session's work, so the ledger
    can never be written after the fact. The session receives the dispatched wave, runs the
-   subagents, `collect`s, writes §5 as 读 handoff → 续跑下一波, and stops; a zombie report
+   subagents, `collect`s, writes `Continue` as read handoff → resume next wave, and stops; a zombie report
    (next exit 3) gets a session that only adopt-or-reverts and `collect`s; the close-out
    runs as its own fresh session. No wave is ever scheduled from a rotting context.
    Interactive `-p` sessions never rotate and call `next`/`dispatch` themselves. If dispatch exits
@@ -221,11 +237,11 @@ After the last issue takes the active set to empty, run
 `touches:` must be claimed by some issue's `test_paths:`; the pattern list is the script's,
 and vendored/build trees are skipped. Assign each unowned file (sanctioned append) or
 open a cleanup issue before the review, so no unreviewed test rides the batch. Then run
-the **full suite + build once** as the
-batch's closing check (**[FULL-SUITE.md](FULL-SUITE.md)**), in a subagent, forking green (one-line
-tally) vs red (failing names + trimmed traceback). `--log` drain: rerun each shipped issue's log
-command (from 新增测试); do not run FULL-SUITE.md. **If the closing suite is red**: map each
-failing case to its issue via that issue's `### 完成` 新增测试 list; revert matched issues to
+the **full suite + build once** as the batch's closing check
+(**[FULL-SUITE.md](FULL-SUITE.md)**), through the test supervisor, reporting green (one-line tally)
+vs red (failing names + trimmed traceback). `--log` drain: rerun each shipped issue's log
+command (from its `### 完成` 验证命令 line); do not run FULL-SUITE.md. **If the closing suite is red**: map each
+failing case to its issue via that issue's `test_paths:`; revert matched issues to
 `ready` with a note; `done` does not survive a red close. Report unmapped failures as
 unowned regressions. Closing assertions: every dispatched issue accounted for (shipped / failed /
 deferred); no worktree left unmerged; no subagent still running. For each drained feature, run
@@ -262,9 +278,9 @@ do not launch this axis.
 5. 详文: per-issue `### 完成` records; anything the one screen can't hold goes into the final
    rolling handoff as pointers, consumed and deleted by the morning `/resume`.
 
-The final rolling `/handoff` refresh at close is the morning briefing. Its §5 开机动作序列 points
+The final rolling `/handoff` refresh at close is the morning briefing. Its `Continue` chain points
 at the close report's 等你验证 / 待裁决 items; the morning `/resume` consumes it and deletes the
 file. A fully green close with nothing pending for the human deletes the rolling handoff instead.
 
-If a feature's `done` count crossed ~8, run `/tidy` in drain-caller mode and report: execute the
-previewed plan with no confirm; skip its full suite unless it moved tests.
+After every wave is closed, `workflow-state.py gc <repo-root> <feat>` may remove only the closed
+ledger and shared preflight cache. It never moves issue or test files and never runs another suite.

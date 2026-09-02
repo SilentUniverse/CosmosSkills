@@ -1,6 +1,8 @@
 import importlib.util
 import io
 import json
+import shlex
+import sys
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
@@ -26,12 +28,17 @@ preflight = load_module(
     "preflight_receipt_for_wave",
     ROOT / "engineering" / "tdd" / "scripts" / "preflight-receipt.py",
 )
+supervisor = load_module(
+    "test_supervisor_for_wave",
+    ROOT / "engineering" / "tdd" / "scripts" / "test-supervisor.py",
+)
 
 
-def issue_body(touches, action="python -m unittest -q"):
+def issue_body(touches, action=None, blocked_by=""):
+    action = action or shlex.join([sys.executable, "-m", "unittest", "-q"])
     return f"""---
 status: ready
-blocked_by: []
+blocked_by: [{blocked_by}]
 touches: [{touches}]
 test_paths: [{touches}/test_feature.py]
 ---
@@ -67,13 +74,23 @@ class DrainWaveReceiptTests(unittest.TestCase):
             self.assertIn("preflight-required:", output)
 
             duplicate = preflight.duplicate_plan(root)["duplicates"][0]
+            execution_receipt = root / ".scratch" / "demo" / "preflight-execution.json"
+            result, exit_code = supervisor.run_command(
+                shlex.split(duplicate["action"]),
+                cwd=root,
+                receipt=execution_receipt,
+                log=root / ".scratch" / "demo" / "preflight.log",
+                timeout=5,
+                grace=0.1,
+                scope="preflight",
+            )
+            self.assertEqual(("pass", 0), (result["outcome"], exit_code))
             key = preflight.record(
                 root / duplicate["receipt"],
                 cwd=duplicate["cwd"],
                 action=duplicate["action"],
                 fingerprint=duplicate["fingerprint"],
-                observed="exit 0, verifier available",
-                evidence=".scratch/demo/preflight-evidence/shared.log",
+                execution_receipt=execution_receipt,
             )
 
             code, first_output = self.call(wave.cmd_dispatch, str(root), ["01-one"])
@@ -153,6 +170,56 @@ class DrainWaveReceiptTests(unittest.TestCase):
                 encoding="utf-8",
             )
             code, output = self.call(wave.cmd_next, str(root), "demo")
+            self.assertEqual(0, code, output)
+
+    def test_step_names_dispatch_then_close_actions(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "demo" / "issues"
+            issues.mkdir(parents=True)
+            (issues / "01-one.md").write_text(issue_body("pkg"), encoding="utf-8")
+
+            code, output = self.call(wave.cmd_step, str(root), None)
+
+            self.assertEqual(0, code, output)
+            self.assertIn("action: dispatch 01-one", output)
+            self.assertIn("drain-wave.py dispatch <repo-root> 01-one", output)
+
+            (issues / "01-one.md").write_text(
+                issue_body("pkg").replace("status: ready", "status: done", 1),
+                encoding="utf-8",
+            )
+            code, output = self.call(wave.cmd_step, str(root), None)
+            self.assertEqual(4, code, output)
+            self.assertIn("action: close", output)
+            self.assertIn("workflow-state.py gc", output)
+
+    def test_archived_done_issue_satisfies_ready_dependency(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "demo" / "issues"
+            archive = issues / "archive"
+            archive.mkdir(parents=True)
+            (archive / "01-parent.md").write_text(
+                """---
+status: done
+---
+
+### 完成 — 2026-09-03
+
+- 验收：#1 → archived parent delivered
+""",
+                encoding="utf-8",
+            )
+            (issues / "02-child.md").write_text(
+                issue_body("pkg", blocked_by="01-parent"), encoding="utf-8"
+            )
+
+            code, output = self.call(wave.cmd_next, str(root), "demo")
+            self.assertEqual(0, code, output)
+            self.assertIn("02-child", output)
+
+            code, output = self.call(wave.cmd_dispatch, str(root), ["02-child"])
             self.assertEqual(0, code, output)
 
 

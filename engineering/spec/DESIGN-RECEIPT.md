@@ -1,6 +1,7 @@
 # spec — Design Receipt（设计回执）
 
-Loaded by [`/spec`](SKILL.md) after requirements are understood and before any PRD/issue write.
+Loaded by [`/spec`](SKILL.md) only for decision intake, after requirements are understood and before
+any PRD/issue write. Settled intake does not create or display this receipt.
 This is a **teach-back and falsification gate**, not a prose summary: the user should be able to
 spot a wrong goal, wrong boundary, unprovable result, or bad slice without reading implementation.
 

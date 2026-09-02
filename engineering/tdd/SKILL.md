@@ -8,7 +8,7 @@ argument-hint: "Issue path, feature slug, -p, --full, --log, or nothing to drain
 
 ## Invocation
 
-- `/tdd <issue-path>` — run that one issue. Read its frontmatter `status:` first (per [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd)) and obey the guard. One slice, fully visible.
+- `/tdd <issue-path>` — run that one issue. Read its frontmatter `status:` first (per [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd)) and obey the guard. One slice, fully visible. For a minimal projection instead of the full card, run `python <skills-root>/workflow-state.py packet <repo-root> <feat> <slug>` (`python3` only when `python` is absent); it prints status, `blocked_by`, `test_paths`, the `## 相关面` context pointers, contract digest, and the source path without writing anything.
 - `/tdd` (bare) — **drain (serial)**: every `ready` issue across `.scratch/`, one at a time, dependency order, to completion. The dumb-but-legible batch path: no worktrees; watch each one in this session.
 - `/tdd <feat>` — drain scoped to one feature's `issues/` directory.
 - `/tdd -p [<feat>]` — **drain (parallel)**: ready issues fan out to subagents (one per issue, ≤4 in flight); each issue's verbose output stays isolated, independent slices finish in parallel. Wave rules: declared collisions serialize, undeclared issues run alone. Worktree only on explicit request, and runner-driven session rotation: [DRAIN.md](DRAIN.md).
@@ -89,4 +89,4 @@ After all tests pass: [refactoring.md](refactoring.md). Unexpected red exposing 
 
 ### 5. Full-suite check
 
-Scoped per-cycle tests (§3) can't see cross-module regressions. The full suite + build runs **automatically once per batch** (drain's last issue to `done`) and **manually** (`/tdd --full`). Both run in a subagent that keeps verbose output out of context. Full procedure: **[FULL-SUITE.md](FULL-SUITE.md)**.
+Scoped per-cycle tests (§3) can't see cross-module regressions. The full suite + build runs **automatically once per batch** (drain's last issue to `done`) and **manually** (`/tdd --full`). Run each command inline through the timeout/log supervisor; load only its compact result into context. Full procedure: **[FULL-SUITE.md](FULL-SUITE.md)**.

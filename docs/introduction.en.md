@@ -32,13 +32,15 @@ The essential difference from conventional standards (SOLID, Clean Code, Design 
 
 ### Four Pillars
 
-**A machine gate.** A verification script (verify-artifacts.py) stands before every commit. Circular dependency graphs, missing frontmatter fields, and v2 issues without per-AC evidence tied to a passed P# preflight are intercepted. SPEC actually runs each P# and records the environment fingerprint; TDD only replays it and never installs on the fly.
+**A machine gate.** `verify-artifacts.py` intercepts dependency cycles, missing frontmatter, and v2 issues without AC-to-evidence-to-P# mappings. P# and tests run through a bounded supervisor that records scope, duration, exit, log digest, and process-tree termination. Prose cannot self-report success.
 
 **Opt-in behavior evals.** The normal development path does not run them. Explicit `/eval smoke|full` sessions retain same-project previous/candidate/no-skill comparisons; `/eval export` creates a standalone public exam for native or arbitrary external harnesses, then grades returned evidence blindly in an N-way report. Reports keep Verified Success, speed, same-scope cost, alignment rounds, and handoff friction separate; raw cross-provider token and tool-call counters are diagnostic only. Without a real full run, the project makes no “faster” or “better” claim.
 
-**A closed loop.** SPEC prepares the environment and runs verifier P# preflights before aligning goal, evidence, and slices in a Design Receipt. It then writes ready cards → TDD replays preflight, executes, and proves them → two-axis review plus one-screen report → tidy reclaims state. Cards are self-contained, handoffs are consumed once, and overnight.py rotates a fresh session per wave.
+**A closed loop.** SPEC fixes intent and prepares P#; a Design Receipt appears only when a human decision can change the result. Ready cards flow to TDD execution and proof, then two-axis review and a one-screen report. Delivered state is projected on demand instead of copied into SUMMARY files; tidy only removes closed-batch caches. Handoffs carry HEAD and worktree digests and are consumed once.
 
-**A constitution.** Every rule lives in a single ~1,300-word CLAUDE.md under a one-word-one-slot principle — every word must earn its place, and exceeding the budget requires deleting an old rule first. It includes battle-tested Windows defenses (PowerShell silently corrupting Chinese file content, GBK-default consoles, verifying true directory contents before destructive ops) and a host of hard-won practical details.
+**A resident constitution.** Global CLAUDE.md keeps only rules needed every turn; detailed platform and workflow guidance is loaded through pointers. A clear, local, reversible request with an objective verifier proceeds without ceremonial reconfirmation. Explanatory inline comments are off by default; only code-inexpressible contracts, reasons, and external constraints remain.
+
+**Two audiences.** Human-facing text optimizes for decisions: goals, boundaries, evidence, risks, and unresolved choices. AI-facing text optimizes for execution: paths, commands, compact state, receipts, and invariants. Logs and derived views remain on disk rather than consuming conversation context.
 
 ### Lineage and Tailoring
 

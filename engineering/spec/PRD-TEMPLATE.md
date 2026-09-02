@@ -7,7 +7,7 @@ Loaded on demand by [`/spec`](SKILL.md) when the intent warrants a PRD snapshot.
 - New feature → `PRD.md` (version 1, no `supersedes`)
 - Supersede → `PRD-vN.md` (highest + 1) with `supersedes:` pointing at the previous filename,
   plus a one-paragraph `取代理由` block; carry forward the superseded PRD's still-open `尚未明确`
-  items; drop graduated ones (check `SUMMARY.md` and `issues/archive/`)
+  items. Drop graduated ones after checking the on-demand `workflow-state.py inspect` projection.
 
 <prd-template>
 

@@ -1,6 +1,6 @@
 # Android / ADB Reference
 
-CLAUDE.md §11 points here. All rules and lookup tables live in this file.
+CLAUDE.md §9 points here. All rules and lookup tables live in this file.
 All traps hold on Pixel 3 / Android 12 / Git Bash host.
 
 ## Traps that break commands outright (Git Bash host)

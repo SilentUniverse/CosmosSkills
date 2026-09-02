@@ -1,37 +1,48 @@
 # tdd — Full-suite check (§5 detail)
 
-Loaded on demand by [`/tdd`](SKILL.md) §5 **only** when a wide check runs: the automatic once-per-batch
-close of a drain run, or a manual `/tdd --full`. Per-cycle scoped tests (§3) never need this file.
+Load only for the automatic batch close or `/tdd --full`. Scoped RED/GREEN cycles do not read it.
 
-Per-cycle and per-issue runs stay scoped (§3) for speed, so they can't see cross-module
-regressions. The full suite + build (commands cached in `CODEBASE.md`'s `## Verifier commands` zone) runs at two points:
+## Execution contract
 
-- **Automatic, once per batch.** When a drain run takes its **last** issue to `done` — i.e.
-  the active set is empty — run the full suite + build one time as the batch's closing check. Not
-  per issue; per batch. Report a wider failure rather than letting it pass silently.
-- **Manual, on demand.** `/tdd --full` (or "run the full suite") runs build + the whole suite now,
-  for an interactive session that wants the wide signal without finishing a batch.
+Run each verifier inline through `scripts/test-supervisor.py`; a slow command is not a reason to
+delegate. Use one invocation per command so build and test failures remain distinct:
 
-**Keep test/build output out of context.** A full suite or build can emit thousands of lines —
-passing-test noise, progress bars, ANSI codes. Redirect the verbose output to `.scratch/tmp/` and
-pull only what you need into context: the
-pass/fail tally, and the failing cases' messages (e.g. `<cmd> > .scratch/tmp/suite.log 2>&1` then
-grep the failures, or use the runner's quiet/summary reporter). Read the full log only when a
-failure's cause isn't clear from the summary. Same for `git diff` / search dumps; summarise, don't
-inline the whole thing.
+```text
+python <tdd-skill-dir>/scripts/test-supervisor.py \
+  --receipt .scratch/<feat>/receipts/<owner>-<scope>.json --log .scratch/tmp/<scope>.log \
+  --cwd <cwd> --timeout <budget-seconds> --grace 5 --scope <scope> -- <command> <args...>
+```
 
-**Run the full suite in a subagent (forks green vs red).** A full suite is slow and its output is
-dense. Run it in a subagent so the main session stays free.
-The verbose output stays in the subagent. It does NOT need the `.scratch/tmp/` redirect above (that
-rule is for the main session running a command directly). The subagent keeps what it needs and
-reports back only by outcome:
-- **Green** → one line: pass tally. The main session absorbs nothing else.
-- **Red** → failing case names + a trimmed traceback (not the thousands of raw lines). The main
-  session uses that concentrated material to decide: self-diagnose here, or dispatch another subagent.
+Use `python3` only when `python` is absent. Receipts under `.scratch/<feat>/receipts/` are durable
+evidence a completion record can reference; name them `<owner>-<scope>.json` (issue slug for a
+single card, feature for batch closes) so batch commands never overwrite an issue's receipt. Logs
+stay under `.scratch/tmp/`. Scopes are `preflight`, `targeted`, `module`, `full`, `build`, or
+`other`. The receipt records exact
+argv, cwd, git state, outcome, exit code, duration, budget-relative duration class, termination,
+and log digest. Use the project's known budget; when none exists, choose one explicit budget from
+recent local or CI evidence and report that assumption.
 
-Both outcomes name the exact command. Green is `command + exit + tally`; red is
-`command + exit + failing cases`. Keep any trace/log path needed for a human replay in the close
-report. The subagent's prose verdict alone is not evidence.
+The supervisor redirects output before launch. It returns only outcome, scope, exit, duration, log,
+and receipt paths to the conversation. On timeout it stops the process group/tree, waits the grace
+period, escalates, and exits 124. Launch or signal crashes exit 125. A normal failure preserves its
+exit code when possible.
 
-Scoped (per-cycle) tests stay in-session. They're seconds-long, so the overhead of a subagent
-isn't worth it and failures are easiest to see immediately.
+## Reading results
+
+- Green: report command, exit, duration, duration class, and suite tally from the log summary.
+- Red: report command, outcome, exit, duration, failing cases, and a trimmed error or tail.
+- Timeout: the receipt carries the log tail (last active test or phase). Rerun once at the
+  narrowest scope that still shows the hang — for pytest, the single last active node; a second
+  timeout routes to `/diagnose`. Never retry unbounded.
+- `slow` or `near-timeout`: keep the receipt as evidence and classify the next investigation by
+  scope. For pytest, add native `--durations=<N>` on the next bounded run when per-test timing is
+  needed; do not make ordinary runs verbose.
+
+Read the full log only when the bounded summary cannot identify the failure. Receipt and log are
+evidence; agent prose is not.
+
+## When to run
+
+- Once after the last issue in a drain batch reaches `done`: full suite plus build.
+- Immediately for `/tdd --full` or an explicit whole-suite request.
+- Never per issue unless that issue's verifier contract requires it.

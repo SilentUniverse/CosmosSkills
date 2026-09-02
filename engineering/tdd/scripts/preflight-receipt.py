@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Record and reuse exact SPEC preflight results within one TDD drain batch.
+"""Reuse supervised SPEC preflight results within one TDD drain batch.
 
-This script never executes setup or verifier commands. The caller runs the recorded action, then
-records only a passed observation. A cache hit requires an exact cwd/action/fingerprint tuple.
+The test supervisor executes the action and writes evidence. This script accepts only a passing,
+integrity-checked preflight receipt for the exact cwd/action/fingerprint tuple.
 
 Exit codes: 0 hit/recorded, 1 invalid receipt or input, 2 usage, 3 cache miss.
 """
@@ -14,6 +14,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import sys
 import time
 from datetime import datetime, timezone
@@ -46,6 +47,43 @@ def _key(cwd: str, action: str, fingerprint: str) -> str:
         sort_keys=True,
     ).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(65536), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _declared_cwd(receipt: Path, cwd: str) -> Path:
+    declared = Path(cwd)
+    if declared.is_absolute():
+        return declared.resolve()
+    for parent in receipt.resolve().parents:
+        if parent.name == ".scratch":
+            return (parent.parent / declared).resolve()
+    return declared.resolve()
+
+
+def _execution(receipt: Path, cwd: str, action: str) -> Dict[str, Any]:
+    try:
+        data = json.loads(receipt.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"{receipt}: invalid execution receipt: {exc}") from exc
+    if not isinstance(data, dict) or data.get("schema_version") != 1:
+        raise ValueError(f"{receipt}: unsupported execution receipt schema")
+    if data.get("scope") != "preflight" or data.get("outcome") != "pass":
+        raise ValueError(f"{receipt}: preflight execution did not pass")
+    if data.get("exit_code") != 0 or data.get("argv") != shlex.split(action):
+        raise ValueError(f"{receipt}: execution does not match action")
+    if Path(str(data.get("cwd", ""))).resolve() != _declared_cwd(receipt, cwd):
+        raise ValueError(f"{receipt}: execution does not match cwd")
+    log = Path(str(data.get("log", "")))
+    if not log.is_file() or data.get("log_sha256") != _sha256(log):
+        raise ValueError(f"{receipt}: execution log is missing or changed")
+    return data
 
 
 def _load(path: Path) -> Dict[str, Any]:
@@ -118,30 +156,44 @@ def _exclusive_writer(path: Path):
             pass
 
 
+def _resolve_action(receipt: Path, action: str) -> str:
+    if not action.startswith("profile:"):
+        return action
+    name = action[len("profile:"):].strip()
+    profile = receipt.resolve().parent / "verifier.json"
+    try:
+        data = json.loads(profile.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"{receipt}: cannot resolve {action}: {profile} unreadable") from exc
+    command = (data.get("commands") or {}).get(name)
+    if not command:
+        raise ValueError(f"{receipt}: verifier.json has no command '{name}'")
+    return command
+
+
 def record(
     path: Path,
     *,
     cwd: str,
     action: str,
     fingerprint: str,
-    observed: str,
-    evidence: str,
+    execution_receipt: Path,
 ) -> str:
     cwd = _normal_cwd(cwd)
     action = _text(action, "action")
     fingerprint = _text(fingerprint, "fingerprint")
-    observed = _text(observed, "observed")
-    evidence = _text(evidence, "evidence")
+    execution = _execution(execution_receipt, cwd, _resolve_action(path, action))
     key = _key(cwd, action, fingerprint)
     with _exclusive_writer(path):
         data = _load(path)
         data["entries"][key] = {
             "action": action,
-            "checked_at": datetime.now(timezone.utc).isoformat(),
+            "checked_at": execution["ended_at"],
             "cwd": cwd,
-            "evidence": evidence,
+            "duration_seconds": execution["duration_seconds"],
+            "evidence": str(execution_receipt.resolve()),
             "fingerprint": fingerprint,
-            "observed": observed,
+            "observed": "exit 0",
             "result": "passed",
         }
         _save(path, data)
@@ -215,13 +267,24 @@ def issue_preflight_rows(
             continue
         for issue in sorted(issues_dir.glob("*.md")):
             lines = issue.read_text(encoding="utf-8-sig").splitlines()
-            if _frontmatter(lines).get("status") not in statuses:
+            card = _frontmatter(lines)
+            if card.get("status") not in statuses:
                 continue
             verification = _verification(lines)
             cwd = _bullet(verification, "工作目录")
             fingerprint = _bullet(verification, "环境指纹")
             if not cwd or not fingerprint:
-                continue
+                profile_path = feature_dir / "verifier.json"
+                if str(card.get("contract_version", "")) != "3" or not profile_path.is_file():
+                    continue
+                try:
+                    profile = json.loads(profile_path.read_text(encoding="utf-8"))
+                except (OSError, json.JSONDecodeError):
+                    continue
+                cwd = cwd or str(profile.get("cwd", "") or "")
+                fingerprint = fingerprint or str(profile.get("fingerprint", "") or "")
+                if not cwd or not fingerprint:
+                    continue
             for line in verification:
                 match = PREFLIGHT.match(line)
                 if match:
@@ -296,8 +359,7 @@ def build_parser() -> argparse.ArgumentParser:
         command.add_argument("--action", required=True)
         command.add_argument("--fingerprint", required=True)
         if name == "record":
-            command.add_argument("--observed", required=True)
-            command.add_argument("--evidence", required=True)
+            command.add_argument("--execution-receipt", type=Path, required=True)
     plan = commands.add_parser("plan", help="list only duplicate ready-card preflight tuples")
     plan.add_argument("repo_root", type=Path)
     plan.add_argument("feature", nargs="?")
@@ -316,8 +378,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                 cwd=args.cwd,
                 action=args.action,
                 fingerprint=args.fingerprint,
-                observed=args.observed,
-                evidence=args.evidence,
+                execution_receipt=args.execution_receipt,
             )
             print(f"recorded: {key}")
             return 0

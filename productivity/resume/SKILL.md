@@ -1,62 +1,58 @@
 ---
 name: resume
-description: Resume work from the most recent handoff. Finds the active handoff under .scratch/ by frontmatter, verifies the git baseline still matches, then executes its 开机动作序列. Use at the start of a new session to continue a multi-session task without hunting for the handoff file. Self-invoke when a session starts with an active handoff present and the first message (or orchestrating prompt) is a continuation cue; never when the user signals a fresh start.
-argument-hint: "Feature slug (optional; omit to use the latest active handoff)"
+description: Locate and continue the newest active handoff through its minimal boot chain. Uses git and worktree digests to detect drift, reads only named inputs, and consumes the bridge when its objective finishes.
+argument-hint: "Feature slug (optional)"
 ---
 
 # Resume
 
-The inverse of `/handoff` — locate the active handoff, verify its baseline, continue from its 开机动作序列.
-Handoffs live under `.scratch/` (feature-scoped `.scratch/<feat>/handoff.md` or cross-feature
-`.scratch/handoff.md`); frontmatter per `ARTIFACT-FORMAT.md` (installed: `~/.claude/skills/ARTIFACT-FORMAT.md`; repo: `engineering/ARTIFACT-FORMAT.md`).
+Resume is the inverse of `/handoff`; it layers one bounded packet over session-start orientation.
 
-## Invocation
+## 1. Locate and classify drift
 
-- `/resume` — locate the most recent `status: active` handoff and continue from it.
-- `/resume <feat>` — continue from `.scratch/<feat>/handoff.md`.
+Run once:
 
-## Process
+```text
+python <handoff-skill-dir>/scripts/handoff-state.py locate <repo-root> [<feature>]
+```
 
-### 0. Orientation is already loaded — don't re-own it
+Use `python3` only when `python` is absent. The helper checks only `.scratch/handoff.md` and
+`.scratch/*/handoff.md`, selects the newest active
+packet, and compares both committed and uncommitted baselines.
 
-CLAUDE.md §6 loads the orientation layer at session start, before `/resume` runs. So `/resume` only
-*layers a handoff on top*. Don't re-load or re-explore what orientation already gave you.
+- `none` → report no resumable work and stop.
+- `match` → proceed without rereading repository orientation.
+- `worktree-diverged` or `head-diverged` → inspect compact `git status --short`, relevant diff stat,
+  and overlapping named paths. Continue autonomously if changes are disjoint and decisions remain
+  true; ask once only for an overlap that changes the result or contract.
+- `unknown-base` → show `git reflog -15` and ask which revision anchors the work.
+- `legacy-no-worktree-digest` → inspect status once, proceed cautiously, and emit schema v2 next time.
 
-### 1. Locate the handoff
+## 2. Load in execution order
 
-- `/resume <feat>` → read `.scratch/<feat>/handoff.md`.
-- `/resume` (no arg) → scan `.scratch/**/handoff.md` for `status: active` and pick the newest by
-  `date` (tie-break on file mtime). If none is `active`, tell the user there's nothing to resume and
-  stop. A stray non-`active` handoff: confirm explicitly before touching it. Step 0 has
-  already run, so even with no handoff the session is oriented; say so.
+Read the selected handoff once, then route by its `capsule`:
 
-### 2. Verify the baseline
+- `active-work` (default) — execute the chain below.
+- `awaiting-alignment` — surface the open question and its Design Receipt to the user before
+  touching anything; do not auto-execute `Continue`.
+- `external-pending` — check the external task named in `State`; wait or re-check its recovery
+  condition instead of running `Continue`.
 
-Compare the handoff's `git_base` against current `git rev-parse --short HEAD`.
+For `active-work`, load in execution order:
 
-- **Match** — clean continuation; proceed.
-- **Diverged** — commits landed since the handoff was written. Warn the user and show
-  `git log --oneline <git_base>..HEAD` so they can see what changed, then ask whether to proceed.
-  The handoff's "关键口径清单" may be stale relative to those commits.
-- **Unknown revision** — `git_base` no longer resolves (rebase / force-push / branch switch). Show
-  `git reflog -15`, ask the user which commit to anchor to, offer to rewrite `git_base` before
-  continuing.
+1. `Continue` — execute its READ/RUN/CONFIRM chain.
+2. `Decisions` — treat non-drifted decisions and invariants as binding.
+3. `State` — follow pointers only when the current action needs them.
+4. `Avoid` — consult only before trying a related approach.
 
-Also check working-tree cleanliness; if dirty, surface `git status` briefly before acting.
+Do not reopen completed issues, broad logs, or the full diff. Confirm live any claim that controls an
+edit. The handoff is routing plus decisions, not proof.
 
-### 3. Execute the 开机动作序列
-
-Read the handoff's six sections. Section 5 (开机动作序列) is the script: read the listed files, run
-the listed commands, confirm the stated first decision. Section 4 (关键口径清单) is the load-bearing
-context. Treat those decisions and invariants as binding. Don't re-explore what the handoff already
-decided. Confirm any claim you're about to act on (a test passes, a file exists, a command works)
-against the workspace first. The handoff is a bounded handoff, not truth.
-
-If the handoff names a feature, also glance at its live working set:
+For feature work, query live cards only when the next action needs dispatch:
 `rg '^status: ready' -g '*.md' -g '!**/archive/**' .scratch/<feat>/issues`.
 
-### 4. Delete the handoff when the work is finished
+## 3. Consume
 
-Once the work reaches a natural stopping point (issue `done`, or the user starts something else),
-**delete the handoff file**. One handoff, one consume. If the session runs long and needs a fresh
-handoff, write a new one via `/handoff`; one live handoff per feature at any time.
+Delete the handoff only when the objective it bridges is complete or explicitly abandoned. A long
+continuation needing another boundary overwrites it through `/handoff`; never keep two active packets
+for one feature. Report the resumed action and current evidence, not a second summary of the packet.

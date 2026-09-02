@@ -1,70 +1,71 @@
-# tdd — Completion record (issue-based runs)
+# tdd — Completion record
 
-Loaded on demand by [`/tdd`](SKILL.md) at the end of an **issue-based** run, when it's time to write
-the completion record.
+Load only when an issue-based run is ready to become `done`. The issue is the human-readable decision
+record; execution receipts and tests hold machine evidence. Do not narrate the implementation session.
 
-Adversarial review is a required artifact, not a step: the `### 完成` block carries a 审查 line; missing or zero-word 审查 means the issue is not done. 写不出质疑 = 没审，换角度再攻一遍。
+## Before done
 
-**Before marking done** — glance over `git diff`: every change should trace to this issue's AC.
-Revert what doesn't; if something out-of-scope is genuinely required, say why first.
+1. Trace every diff hunk to an AC; revert unrelated work.
+2. Append newly written test files to frontmatter `test_paths:`.
+3. Cover chosen failure modes: empty/boundary/error and relevant concurrency/timeout behavior.
+4. Ensure executed verifier commands exist in `CODEBASE.md` `## Verifier commands`.
+5. Run the required adversarial review. No substantive challenge means no review.
 
-**Sync `test_paths:` before `done`.** A test file this run wrote outside the card's declared
-`test_paths:` is appended to it first. Frontmatter field sync only; the body stays immutable
-once `done`. This rule is the same on every path (single, serial, `-p`) and is what keeps the
-gate green; the wave-level reconciliation in drain only verifies it.
+Hands-on checks an agent cannot run belong in the PRD's 端到端验证, not an issue AC. Exact command,
+exit, observable result, and evidence path are proof; “implemented” or “tests pass” is not.
 
-**Murphy before done.** Green only proves the cases you wrote tests for. Cover each chosen
-behavior's failure modes too — null/empty input, boundary values, error paths, and where
-relevant concurrency/timeouts. Occam trims during dev (no speculative features); Murphy expands
-during verification. An untested failure path ships as a bug.
+## Compact record
 
-When all AC pass, set the frontmatter `status:` to `done` and append to `## Comments`. Hands-on
-checks no agent can run are not AC. They live in the PRD's 端到端验证, registered by `/spec`.
-An exact replay command/action plus its observation is the proof; “tests pass” or “implemented”
-without that tuple is self-report, not evidence.
-
-## Backfill checkpoint
-
-Before writing the record: every command this run actually executed — scoped test, module
-test, full suite, build — is present in the root `CODEBASE.md` `## Verifier commands` zone
-(lazy-birth per the ARTIFACT-FORMAT stub when absent). This is the check that keeps the cache
-born-full instead of half-filled.
+Append the record to `## Comments` first, then flip the card mechanically:
 
 ```markdown
 ### 完成 — YYYY-MM-DD
 
-- 新增测试：<list of test files + case counts; `--log`: command + log path + `rg` predicate>
-- 预检重放：P1[, P2] → fingerprint <match|drift>，<exact replay action + observed exit/assertion>
-- 验证命令：`<exact replay command>` → exit <code>，<pass/fail tally>；证据：<log/trace/screenshot path or `无（test assertion）`>
-- 体验验证：`<exact operated-state capture>` → passed；evidence=.scratch/<feat>/evidence/<slug>-experience.json
-  - graphical-UI opted-in issues only; graded mode appends the judge action inside the first backticks. The evidence value must be the bare planned path — nothing may follow it on the line.
-- 验收：#N → <test path::case / CLI predicate / browser-device action>；观测：<expected observable result>（每条 AC 一行）
-- 跳过的 AC：#X 由 <existing test path::case> 已覆盖（本轮重跑绿）
-- 审查：≥2 条质疑，每条 质疑点→证据→处置。至少一条是 diff hunk → AC 或已回滚。禁止只用「查了什么」凑数。
-- 备注：<the pre-issue statement from autonomous runs + anything notable>
+- 预检重放：P1[, P2] → fingerprint match；<exact action> → exit 0
+- 验证命令：`<exact command>` → exit <code>，<tally>，<duration class/time>；evidence=<receipt/log path or test assertion>
+- 验收：#1 → `<test path::case or CLI predicate>`；#2 → `<evidence>`
+- 审查：<failure challenge>→<evidence>→<disposition>；<diff hunk>→<AC or reverted>
+- 体验验证：`<operated-state action>` → passed；evidence=.scratch/<feat>/evidence/<slug>-experience.json
 ```
 
-After validation: a single-issue run explains the changed flow, the design, and where to start
-reading. In drain, one line per issue; the batch-level explanation is the drain close report
-(DRAIN.md five blocks), never a separate file.
+Then flip the card mechanically:
 
-Standalone `/tdd` does **not** submit. It stops at validated changes + completion records. Use the
-Submit workflow named in `CLAUDE.md`.
+```text
+python <skills-root>/workflow-state.py close <repo-root> <feat> <slug>
+```
 
-The gate enforces the legacy-safe core mechanically: `done` without a `### 完成` block fails;
-every test file the block names must exist on disk. Contract v2 records also carry `预检重放` and
-`验证命令`; an opted-in graphical UI also carries a passed `体验验证` whose structured evidence
-file matches the canonical contract, has zero unexpected runtime failures, and retains real state
-artifacts. Behavior evals verify their trajectory semantics.
+Use `python3` only when `python` is absent. `close` refuses a card without its `### 完成` record or
+one that is not `ready`, flips `status: done` atomically, and prints the transient-GC candidates.
 
-The issue file itself stays in `issues/`. `/tidy` moves it to `issues/archive/` later, not `/tdd`.
+For `contract_version: 3` cards the record is the receipt-reference form:
 
-For an issue with `experience_review`, write its evidence JSON and tentative completion record, then
-run `python ~/.claude/skills/verify-artifacts.py <repo-root>` before accepting `done` (`python3` only
-when `python` is absent). A gate
-failure restores only that issue to `ready` and reports the exact evidence violation. Issues without
-the field do not run this extra per-issue gate; their existing completion path is unchanged.
+```markdown
+### 完成 — YYYY-MM-DD
 
-If the run is aborted (test framework broken, environment unfixable), revert `status:` to its
-original value and append a brief failure note to `## Comments`. The note names the specific
-blocker (exact command + error + what's missing) and any facts already confirmed before the abort.
+- receipt: .scratch/<feat>/receipts/<slug>-<scope>.json；AC 1-<N> pass
+- 审查：pass
+```
+
+Run each command through `test-supervisor.py` with `--receipt` under `.scratch/<feat>/receipts/`
+(durable evidence; logs stay in `.scratch/tmp/`). The gate re-verifies the receipt file (JSON,
+outcome pass) and its AC coverage; expand 审查 to one line only for a finding —
+`<finding> → 已落在 <test/invariant/revert>`. `close` enforces the same receipt check before
+flipping.
+
+Omit `体验验证` unless the issue opts into graphical experience review. Add `备注` only for a fact
+the next maintainer cannot derive from code, issue, receipt, or git. `test_paths:` already lists test
+files; do not repeat a “新增测试” inventory unless a legacy consumer requires it.
+
+For multiple commands, add one `验证命令` line per distinct scope (`targeted`, `module`, `full`,
+`build`). Map every AC on `验收`; combine them on one line when still unambiguous.
+
+## Gate and failure
+
+For experience-review issues, write structured evidence first and run
+`python ~/.claude/skills/verify-artifacts.py <repo-root>` (`python3` only when `python` is absent)
+before accepting `done`. A gate failure
+restores only that issue to `ready`.
+
+If execution aborts, restore the original status and append one failure note containing exact
+command, error, missing condition, and confirmed facts. `/tdd` stops at validated changes; submission
+is a separate workflow.

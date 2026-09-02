@@ -201,7 +201,7 @@ if (Test-Path -LiteralPath $afSource) {
 }
 
 # --- Ship the artifact gate scripts next to ARTIFACT-FORMAT.md (same distribution reason). ---
-foreach ($gate in @("verify-artifacts.py")) {
+foreach ($gate in @("verify-artifacts.py", "workflow-state.py")) {
     $gSrc = Join-Path $root "engineering/$gate"
     if (-not (Test-Path -LiteralPath $gSrc)) { continue }
     $gTarget = Join-Path $Target $gate
@@ -344,7 +344,7 @@ if ((Test-Path -LiteralPath $agentsSkills) -or (Test-Path -LiteralPath (Join-Pat
         if ($DryRun) { Write-Host "[DryRun] Create folder: $agentsSkills" }
         else { New-Item -ItemType Directory -Path $agentsSkills -Force | Out-Null }
     }
-    foreach ($shared in @("ARTIFACT-FORMAT.md", "verify-artifacts.py")) {
+    foreach ($shared in @("ARTIFACT-FORMAT.md", "verify-artifacts.py", "workflow-state.py")) {
         $sharedSrc = Join-Path $root "engineering/$shared"
         if (-not (Test-Path -LiteralPath $sharedSrc)) { continue }
         $sharedDst = Join-Path $agentsSkills $shared

@@ -4,10 +4,10 @@ Loaded on demand by [`/spec`](SKILL.md) on every turn that asks, aligns, or writ
 
 In order:
 
-1. **Discover.** Ask every remaining decision question that can change the goal, interface,
-   verification, slice boundary, dependency, or execution environment. Ask them together when
-   independent. External facts fan out instead: one background `/research` subagent each, same
-   turn, cap 3. Facts still in flight are 待决. Any finding marked `UNVERIFIED:` is also 待决;
+1. **Discover.** Resolve environment and code facts inline. Use one bounded research subagent only
+   when multi-source reading is large enough to repay its brief and verification cost. Ask every
+   remaining human decision that can change the goal, interface, verification, slice boundary, or
+   authority; ask independent decisions together. Facts still in flight are 待决. Any finding marked `UNVERIFIED:` is also 待决;
    it feeds a decision or a user question, never an AC's evidence. Classify provisional units with
    [CARD-TEST.md](CARD-TEST.md), but write no PRD or issue yet. Compressed intake (SKILL.md): a
    delegation that already fixes goal, acceptance, verification, and constraints leaves nothing to
@@ -27,19 +27,19 @@ In order:
    operates the baseline surface at the proposed viewport, proves screenshot/runtime-error capture
    works, and inspects CSP/resource boundaries
    before presenting the experience contract.
-3. **Align.** Once the decision frontier is empty and every P# passed, present the complete
-   [DESIGN-RECEIPT.md](DESIGN-RECEIPT.md): goal replay, boundaries, design, verification contract,
-   passed readiness register, and proposed slice DAG. Stop for correction. Every correction
-   regenerates the whole compact receipt; repeat until the user explicitly says it is aligned.
-   Silence and the agent's own confidence are not approval, and a standing autonomy
-   instruction never waives the stop. SUPERSEDE combines this receipt with
-   its 对账报告 so the user sees one gate, not two.
-4. **Write.** Persist only the aligned design: for graphical UI write the canonical
+3. **Align.** Classify the intake using [SKILL.md](SKILL.md). Settled intake proceeds because the
+   request itself is alignment; preserve its exact decisions in the durable contract. Decision
+   intake presents [DESIGN-RECEIPT.md](DESIGN-RECEIPT.md) and stops once for correction. Confidence
+   cannot turn a decision intake into a settled one. SUPERSEDE combines its receipt and 对账报告.
+4. **Write.** Persist only the settled or explicitly aligned design: for graphical UI write the canonical
    `.scratch/<feat>/experience-contract.json` first; write the PRD when warranted, then every issue
    in dependency order with `status: ready`. Compressed intake writes the PRD as a stub that records
    the tracked requirements-of-record path and content hash; the readiness register, issues, and
    gates are written unchanged. Frontmatter carries `touches:` + `test_paths:` per
-   [CARD-TEST.md](CARD-TEST.md). No draft artifact or extra status is created. SUPERSEDE writes
+   [CARD-TEST.md](CARD-TEST.md). Each card's `## 相关面` block is written together with its
+   reasoning radius: the CODEBASE invariant blocks, governing ADRs, and neighboring modules the
+   radius crosses — the executor reads exactly these, never the whole map. No draft artifact or
+   extra status is created. SUPERSEDE writes
    only after the combined receipt/对账 is aligned ([SUPERSEDE.md](SUPERSEDE.md)).
 5. **Gate.** Whole-tree: `python ~/.claude/skills/verify-artifacts.py` (in a repo checkout:
    `engineering/verify-artifacts.py`), run with the target repo root as cwd. `python3` only if

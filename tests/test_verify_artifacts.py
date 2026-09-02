@@ -603,6 +603,214 @@ class VerifyArtifactsV2Tests(unittest.TestCase):
         result, output = self.run_gate(legacy)
         self.assertEqual(0, result, output)
 
+    def test_archived_done_issue_with_completion_record_passes(self):
+        def archive_issue(root):
+            issue = root / ".scratch" / "search" / "issues" / "01-search.md"
+            archive = issue.parent / "archive"
+            archive.mkdir()
+            issue.rename(archive / issue.name)
+
+        result, output = self.run_gate(issue_body(done=True), mutate=archive_issue)
+        self.assertEqual(0, result, output)
+
+    def test_archived_ready_issue_fails(self):
+        def archive_issue(root):
+            issue = root / ".scratch" / "search" / "issues" / "01-search.md"
+            archive = issue.parent / "archive"
+            archive.mkdir()
+            issue.rename(archive / issue.name)
+
+        result, output = self.run_gate(issue_body(), mutate=archive_issue)
+        self.assertEqual(1, result)
+        self.assertIn("archived issue must be done", output)
+
+    def test_archived_done_issue_without_completion_record_fails(self):
+        body = issue_body(done=True).replace("### 完成", "### 记录")
+
+        def archive_issue(root):
+            issue = root / ".scratch" / "search" / "issues" / "01-search.md"
+            archive = issue.parent / "archive"
+            archive.mkdir()
+            issue.rename(archive / issue.name)
+
+        result, output = self.run_gate(body, mutate=archive_issue)
+        self.assertEqual(1, result)
+        self.assertIn("archived done issue has no ### 完成 record", output)
+
+
+def plant_v3_profile(root):
+    profile = root / ".scratch" / "search" / "verifier.json"
+    profile.parent.mkdir(parents=True, exist_ok=True)
+    profile.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "cwd": ".",
+                "fingerprint": "git=abc123; lock=none; runtime=python-3.13; tools=pytest-8; services=none",
+                "prerequisites": "fixtures=ready; services=none; permissions=local; network=off",
+                "prepare": "无（已就绪）",
+                "commands": {"scoped": "python -m pytest tests/test_search.py -q"},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def plant_v3_receipt(root, outcome="pass"):
+    receipts = root / ".scratch" / "search" / "receipts"
+    receipts.mkdir(parents=True, exist_ok=True)
+    (receipts / "01-search-targeted.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "scope": "targeted",
+                "outcome": outcome,
+                "argv": ["python", "-m", "pytest", "tests/test_search.py", "-q"],
+                "exit_code": 0,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def v3_issue_body(
+    done=True,
+    ac_claim="AC 1-2 pass",
+    review=True,
+    receipt_ref=".scratch/search/receipts/01-search-targeted.json",
+):
+    review_line = "- 审查：pass\n" if review else ""
+    completion = ""
+    if done:
+        completion = (
+            "\n### 完成 — 2026-09-03\n\n"
+            f"- receipt: {receipt_ref}；"
+            f"{ac_claim}\n{review_line}"
+        )
+    return f"""---
+contract_version: 3
+type: issue
+feature: search
+status: {'done' if done else 'ready'}
+category: enhancement
+blocked_by: []
+test_paths: [tests/test_search.py]
+created: 2026-09-03
+---
+
+## 上级
+
+（无）
+
+## 做什么（What to build）
+
+Search history.
+
+## 验收标准（Acceptance Criteria）
+
+- [ ] Matching query returns one record.
+- [ ] Empty query returns all records.
+
+## 验证设计（Verification Design）
+
+- profile: verifier.json
+- 接缝：HistorySearch public API
+- P1 预检：`profile:scoped` → passed；observed=exit 0, 2 collected；evidence=inline；checked=2026-09-03
+- #1 → `pytest tests/test_search.py::test_match`；预检：P1；预期证据：exit 0
+- #2 → `pytest tests/test_search.py::test_empty`；预检：P1；预期证据：exit 0
+
+## 相关面（Read contract）
+
+- invariants: CODEBASE.md 的 search 不变量块
+
+## 前置依赖（Blocked by）
+
+- 无
+
+## Comments
+{completion}
+"""
+
+
+class VerifyArtifactsV3Tests(unittest.TestCase):
+    def run_gate(self, body, mutate=None):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / ".scratch" / "search" / "issues").mkdir(parents=True)
+            (root / ".scratch" / "search" / "issues" / "01-search.md").write_text(
+                body, encoding="utf-8"
+            )
+            plant_v3_profile(root)
+            plant_v3_receipt(root)
+            tests = root / "tests"
+            tests.mkdir()
+            (tests / "test_search.py").write_text("# fixture\n", encoding="utf-8")
+            if mutate:
+                mutate(root)
+            output = io.StringIO()
+            with redirect_stdout(output):
+                result = verify_artifacts.main(["verify-artifacts.py", str(root)])
+            return result, output.getvalue()
+
+    def test_v3_done_issue_with_valid_receipt_passes(self):
+        result, output = self.run_gate(v3_issue_body())
+        self.assertEqual(0, result, output)
+
+    def test_v3_ready_issue_without_completion_passes(self):
+        result, output = self.run_gate(v3_issue_body(done=False))
+        self.assertEqual(0, result, output)
+
+    def test_v3_missing_receipt_file_fails(self):
+        def drop_receipt(root):
+            (root / ".scratch" / "search" / "receipts" / "01-search-targeted.json").unlink()
+
+        result, output = self.run_gate(v3_issue_body(), mutate=drop_receipt)
+        self.assertEqual(1, result)
+        self.assertIn("receipt file missing", output)
+
+    def test_v3_receipt_outcome_not_pass_fails(self):
+        def flip_outcome(root):
+            plant_v3_receipt(root, outcome="fail")
+
+        result, output = self.run_gate(v3_issue_body(), mutate=flip_outcome)
+        self.assertEqual(1, result)
+        self.assertIn("receipt outcome 'fail' != pass", output)
+
+    def test_v3_receipt_not_json_fails(self):
+        def corrupt_receipt(root):
+            (root / ".scratch" / "search" / "receipts" / "01-search-targeted.json").write_text(
+                "{not json", encoding="utf-8"
+            )
+
+        result, output = self.run_gate(v3_issue_body(), mutate=corrupt_receipt)
+        self.assertEqual(1, result)
+        self.assertIn("receipt not valid JSON", output)
+
+    def test_v3_missing_profile_file_fails(self):
+        def drop_profile(root):
+            (root / ".scratch" / "search" / "verifier.json").unlink()
+
+        result, output = self.run_gate(v3_issue_body(), mutate=drop_profile)
+        self.assertEqual(1, result)
+        self.assertIn("profile file missing", output)
+
+    def test_v3_done_without_review_line_fails(self):
+        result, output = self.run_gate(v3_issue_body(review=False))
+        self.assertEqual(1, result)
+        self.assertIn("done record missing 审查", output)
+
+    def test_v3_receipt_without_full_ac_coverage_fails(self):
+        result, output = self.run_gate(v3_issue_body(ac_claim="AC 1 pass"))
+        self.assertEqual(1, result)
+        self.assertIn("does not cover AC: #2", output)
+
+    def test_v3_receipt_path_escape_is_rejected(self):
+        result, output = self.run_gate(
+            v3_issue_body(receipt_ref="../../outside/receipt.json")
+        )
+        self.assertEqual(1, result)
+        self.assertIn("must stay under .scratch/<feat>/receipts/", output)
+
 
 if __name__ == "__main__":
     unittest.main()

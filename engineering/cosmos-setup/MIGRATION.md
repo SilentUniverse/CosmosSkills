@@ -36,18 +36,21 @@ Steps:
      .scratch/balance/issues/04-cache.md          (ready)
    已有 frontmatter（跳过）:
      .scratch/auth/issues/01-login.md
-   移动到 archive/（done issue，git mv 保历史）:
-     .scratch/balance/issues/01-init-schema.md → issues/archive/01-init-schema.md
-   生成索引:
-     .scratch/balance/SUMMARY.md   (从 done issue 的 ## Comments 完成记录聚合)
+   保留当前位置（done 由 status 查询，legacy archive 仍兼容）:
+     .scratch/balance/issues/01-init-schema.md
+   旧派生文件（停止读取，确认后删除）:
+     .scratch/balance/SUMMARY.md
    确认执行？(y / 逐项挑)
    ```
 
 3. **On confirm, execute.** For each bare-`Status:` file, derive the frontmatter fields from the [issue schema](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd): `type: issue`; `feature` from the directory name; `status` from the old `Status:` line with the legacy mapping: `ready-for-agent` → `ready`; `ready-for-human` → fold its hands-on check into the PRD's 端到端验证 and set `ready`. `category: enhancement` by default; the user can refine later. `blocked_by` parsed from any existing `前置依赖` section if filenames are referenced, else `[]`; `created` from one `git log --diff-filter=A --name-only --format=%as -- <issues dir>` pass (paths→dates; today if unseen by git). Remove the now-redundant bare `Status:` line. Do not touch the body otherwise; the change is surgical, frontmatter only.
-4. **Archive done issues** with `git mv` into `issues/archive/`. Skip if the user opted out of archiving during migration.
-5. **Generate** each feature's `.scratch/<feat>/SUMMARY.md` per the format doc.
+4. **Keep issue paths stable.** Do not move newly migrated done issues. Existing archive files stay
+   supported by the resolver and gate.
+5. **Retire legacy SUMMARY.** Compare `workflow-state.py inspect` against the delivered slugs, then
+   delete the derived SUMMARY only with the user's migration confirmation. Git history is recovery.
 
-Report what changed. If `refines` can't be inferred for a non-top-level issue, leave it unset and note it. The orphan check in `/tidy` will surface it later.
+Report what changed. If `refines` cannot be proven for a non-top-level issue, leave it unset and
+route the intent question to `/spec`; GC never hides it.
 
 ## Case 2 — Legacy `docs/agents/domain.md` fold
 

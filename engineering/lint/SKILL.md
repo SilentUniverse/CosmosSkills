@@ -32,7 +32,7 @@ a resolvable change story is still change narration; class 3 routes it out.
 4. **Review choreography** — "Rejected in review:", "the reviewer confirmed", draft ordinals
    ("v5 of this note"). Keep the surviving decision as plain fact; delete who said it when.
 5. **Reviewer-addressed justification** — "this is correct because…". State the invariant that
-   makes the code safe, or delete the comment if the code shows it.
+   makes the code safe, or apply the [code-comment gate](references/code-comments.md).
 6. **Restatement / derivation transcripts** — control-flow narration ("first we X, then Y"), test
    walkthroughs, proofs of obvious branches. Delete; keep only a non-obvious contract.
 7. **Hedges and planning residue** — "probably fine for now", "should be enough". Promote to
