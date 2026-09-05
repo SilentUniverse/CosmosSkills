@@ -7,11 +7,8 @@ disable-model-invocation: true
 # Setup Shell Guardrails (combined)
 
 One PreToolUse hook, one Python process per Bash tool call, three policy tiers.
-Supersedes dual wiring (`modern-cli-guardrails` + `git-guardrails-claude-code`):
-the two separate hooks each spawn their own interpreter, so ZCode's sequential
-hook execution pays twice; this script decides everything in one process.
-A Python interpreter starts in ~25 ms where pwsh needs ~210 ms (measured), so
-the guardrail costs ~35 ms per Bash call end to end.
+Combines the CLI, path, and destructive-git checks in one process. Unlike the standalone git
+carrier, this engine allows `git push`; preserve a requested push block when choosing wiring.
 
 ## Policy tiers (evaluated in this order, first hit wins)
 
@@ -45,17 +42,7 @@ Known limits (fail-open by design): dynamic payloads (`eval "$cmd"`,
 `bash -c "$var"`) and dynamic command words (`x=git; $x reset --hard`) cannot be
 judged statically and pass.
 
-## Perf contract
-
-Necessary-condition prefilters run first — commands containing no `git` /
-`grep|find|sed` / (on MSYS) POSIX-path token never reach the parser at all,
-and long inputs cost the same as short ones (single-pass scan). Measured on a
-Windows dev box (Python 3.12): bare interpreter start ≈ 24 ms, full hook
-≈ 35 ms per Bash call; the slowest measured case (a block with full parse)
-was 45 ms. On macOS (CommandLineTools Python 3.9): ≈ 32 ms per call, flat
-across a 10 KB command. For scale, the legacy `.ps1` pair behind a pwsh
-spawn costs ≈ 470 ms per call, and the legacy `.sh` pair ≈ 1.2 s on a
-single 10 KB command.
+Performance measurements and parser limits: [README.md](README.md).
 
 ## Files
 
@@ -73,32 +60,24 @@ The script is platform-neutral: Unix machines can wire the same file with
 
 ## Steps
 
-### 1. Ask scope
+### 1. Resolve scope
 
-Project only (`.claude/settings.json`) or all projects (`~/.claude/settings.json`)?
+Reuse the requested scope or existing target. A repository-scoped request uses
+`.claude/settings.json`; all-project scope uses `~/.claude/settings.json`. Ask only if the
+intended scope remains unclear after inspecting the request and existing configuration.
 
 ### 2. Deploy the script
 
-In this repo, `scripts/install.ps1` copies it to `~/.claude/hooks/`; on other
-machines copy `guard-shell.py` there. Requires a Python 3 interpreter on PATH
+Copy `guard-shell.py` to `.claude/hooks/` for project scope or `~/.claude/hooks/` for global
+scope. Preserve local customizations. Requires a Python 3 interpreter on PATH
 (`python` on Windows, `python3` on Unix).
 
 ### 3. Wire a single hook entry
 
-Follow [WIRING.md](WIRING.md). If the two old hooks are wired, REPLACE both
-entries with this one — running all three triples the work for no extra
-protection.
+Follow [WIRING.md](WIRING.md). Merge the entry while preserving unrelated settings. Replace
+superseded entries only when their required protections remain covered; the standalone git
+carrier's push block is not covered by this engine.
 
 ### 4. Verify
 
-Primary: the shared corpus (expect every case to pass on both platform
-profiles; `run_corpus.py` feeds payloads and asserts exit codes without
-executing anything):
-
-```bash
-python3 run_corpus.py scripts/guard-shell.py
-GUARD_SHELL_FORCE_MSYS=1 python3 run_corpus.py scripts/guard-shell.py --platform msys
-python3 run_corpus.py scripts/guard-shell.py --bench   # latency guard
-```
-
-Then the spot checks in [WIRING.md](WIRING.md) §Verify for the deployed copy.
+Run [WIRING.md](WIRING.md) §Verify once for the final changed surface.

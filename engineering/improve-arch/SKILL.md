@@ -1,6 +1,6 @@
 ---
 name: improve-arch
-description: Find deepening opportunities in a codebase, informed by the domain language in CONTEXT.md and the decisions in docs/adr/.
+description: Find deepening opportunities grounded in code, domain language, and ADRs. Use when the user asks to improve architecture, reduce coupling, or investigate poor testability.
 disable-model-invocation: true
 ---
 
@@ -24,7 +24,8 @@ This skill is _informed_ by the project's domain model and built on a shared des
 
 Read the project's domain glossary and any ADRs in the area you're touching first.
 
-Then use the Agent tool with `subagent_type=Explore` to walk the codebase. Don't follow rigid heuristics. Explore organically and note where you experience friction:
+Explore inline by default; use bounded read-only subagents for separable areas when useful and
+available. Read existing docs when present; their absence is not a bootstrap prerequisite. Look for:
 
 - Where does understanding one concept require bouncing between many small modules?
 - Where are modules **shallow** — interface nearly as complex as the implementation?
@@ -42,14 +43,17 @@ reading call sites:
 - only tests/docs consume it, and the behavior they pin is not load-bearing → deletion candidate
 - ambiguous → read the usage first
 
-A correct-but-tiny idea becomes an inline TODO with a stable, rg-able tag (`TODO(unused-default)`), not an issue.
-Keep surveying after the first good candidate. Weigh net deletion: implementation plus dedicated
+A small idea belongs in the report; an audit alone does not authorize adding TODOs to code.
+Survey enough to compare credible candidates, then stop. Weigh net deletion: implementation plus dedicated
 tests plus docs, minus the glue that remains. A wrapper that relocates the same complexity is not
 a win.
 
-### 2. Present candidates as an HTML report
+### 2. Present candidates
 
-Write a self-contained HTML file to the OS temp directory so nothing lands in the repo. On Windows resolve the temp dir from `$env:TEMP`; on Unix use `$TMPDIR` falling back to `/tmp`. Write to `<tmpdir>/architecture-review-<timestamp>.html` so each run gets a fresh file. Open it for the user and tell them the absolute path: `explorer.exe <path>` on Windows, `xdg-open <path>` on Linux, `open <path>` on macOS.
+Use a concise text report for a small scope. Use HTML when requested or when multiple candidates
+benefit from diagrams; load [HTML-REPORT.md](HTML-REPORT.md) only for that output.
+
+For HTML output, write one file to the OS temp directory: `$env:TEMP` on Windows, `$TMPDIR` or `/tmp` on Unix. Use `<tmpdir>/architecture-review-<timestamp>.html`, open it with an available viewer, and return its absolute path. If viewing is unavailable, report that verification gap.
 
 The report uses **Tailwind via CDN** for layout and styling, and **Mermaid via CDN** for diagrams where a graph/flow/sequence reliably communicates the structure. Both CDNs need network access. If the user is fully offline, fall back to a plain-markdown report instead. Each candidate gets a **before/after visualisation**. Be visual.
 
@@ -63,23 +67,25 @@ End the report with a **Top recommendation** section: which candidate you'd tack
 
 See [HTML-REPORT.md](HTML-REPORT.md) for the full HTML scaffold, diagram patterns, and styling guidance.
 
-Do NOT propose interfaces yet. After the file is written, ask the user: "Which of these would you like to explore?"
+For an audit-only request, deliver recommendations. If deeper work is authorized, use the named
+candidate or strongest reversible option within scope; ask only when unresolved priorities change
+the choice. Include enough of the interface to make the recommendation concrete.
 
 ### 3. Grilling loop
 
-Once the user picks a candidate, run the `/grilling` skill to walk the decision tree with them: constraints, dependencies, the shape of the deepened module, what sits behind the seam, what tests survive.
+For the selected candidate, resolve constraints, dependencies, interface, and surviving tests from
+repo evidence and settled decisions. Use `/grilling` only for consequential open choices; if it is
+unavailable, ask a focused question directly while continuing independent analysis.
 
 Side effects happen inline as decisions crystallize. Run the `/domain-modeling` skill to keep the domain model current as you go:
 
 - **Naming a deepened module after a concept not in `CONTEXT.md`?** Add the term to `CONTEXT.md`. Create the file lazily if it doesn't exist.
 - **Sharpening a fuzzy term during the conversation?** Update `CONTEXT.md` right there.
-- **User rejects the candidate with a load-bearing reason?** Offer the ADR: _"Record this as an ADR so future architecture reviews don't re-suggest it?"_ Only when the reason would actually be needed by a future explorer to avoid re-suggesting the same thing. Skip ephemeral reasons ("not worth it right now") and self-evident ones.
-- **Want to explore alternative interfaces for the deepened module?** Run the `/codebase-design` skill and use its design-it-twice parallel sub-agent pattern.
+- **A settled rejection meets the ADR criteria?** Record it when domain-document updates are in scope. Skip ephemeral or self-evident reasons; no separate permission to document a settled decision.
+- **Alternative interfaces would resolve a trade-off?** Use `/codebase-design`'s design-it-twice comparison, inline when delegation is unavailable or unnecessary.
 
 ### 4. Refresh the structural map
 
-A deepening that lands changes the structure `CODEBASE.md` describes. By definition it goes
-stale. On wrap-up, if a refactor was actually applied (not just discussed), offer to refresh the
-affected `CODEBASE.md` blocks via `/map`: _"This changed the shape of <module> — want me to
-refresh its CODEBASE.md block so the next session sees the new structure?"_ Only the blocks you
-touched, not the whole file.
+If an authorized refactor changed structure, refresh affected existing `CODEBASE.md` blocks in the
+same change via `/map`; no extra approval. Do not bootstrap a whole map for a small unmapped repo.
+Resume authorized implementation and validation after this design phase; review-only stops at the report.

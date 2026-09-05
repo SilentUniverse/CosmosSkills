@@ -1,6 +1,7 @@
 # UI Prototype
 
-Generate **several radically different UI variations** on a single route, switchable from a floating bottom bar. The user flips between variants in the browser, picks one (or steals bits from each), then throws the rest away.
+For UI comparison, generate distinct variants on one route with a floating switcher. A requested
+single mockup needs one design and no switcher. Preserve the runnable result for user exploration.
 
 If the question is about logic/state rather than what something looks like, that's the wrong branch. Use [LOGIC.md](LOGIC.md).
 
@@ -35,7 +36,8 @@ In both sub-shapes the floating bottom bar is identical.
 
 ### 1. State the question and pick N
 
-Default to **3 variants**. More than 5 stops being radically different and starts being noise. Cap there.
+Honor a requested single mockup. For open-ended comparison, start with **2–3 distinct variants**;
+add more only for unresolved design choices, up to 5. No taste approval is needed to build them.
 
 Write down the plan in one line, in the prototype's location or a top-of-file comment:
 
@@ -58,7 +60,7 @@ Variants must be **structurally different**: different layout, different informa
 Create a single switcher component on the route:
 
 ```tsx
-// pseudo-code — adapt to the project's framework
+// Development-only variant branch; keep existing page rendering as the default.
 const variant = searchParams.get('variant') ?? 'A';
 return (
   <>
@@ -87,26 +89,29 @@ Behaviour:
 - Clicking an arrow updates the URL search param so the variant is shareable and reload-stable; use the framework's router (`router.replace` on Next, `navigate` on React Router, etc).
 - Keyboard: `←` and `→` arrow keys also cycle. Don't intercept arrow keys when an `<input>`, `<textarea>`, or `[contenteditable]` is focused.
 - Visually distinct from the page (e.g. high-contrast pill, subtle shadow) so it's obviously not part of the design being evaluated.
-- Hidden in production builds. Gate on `process.env.NODE_ENV !== 'production'` or an equivalent check, so a stray prototype merge can't ship the bar to users.
+- Gate the switcher and prototype variants out of production using the project's development check; the existing page remains the default unless a development variant is explicitly selected.
 
 Put the switcher in a single shared component so both sub-shapes can reuse it. Locate it wherever shared UI lives in the project.
 
 ### 5. Hand it over
 
-Surface the URL (and the `?variant=` keys). The user will flip through whenever they get to it. The interesting feedback is usually **"I want the header from B with the sidebar from C"**. That's the actual design they want.
+Open and operate each variant, check navigation and runtime errors, then provide the URL and keys.
+For one mockup, omit the switcher. If browser control is unavailable, run available build/static
+checks and clearly report the missing visual verification.
 
 ### 6. Capture the answer and clean up
 
-Once a variant has won, write down which one and why (commit message, ADR, issue, or a `NOTES.md` next to the prototype if running AFK and the user hasn't responded yet). Then:
+Record an observed or user-selected result; an unanswered preference stays pending. When the
+broader task authorizes implementation and the design is settled:
 
 - **Sub-shape A** — delete the losing variants and the switcher; fold the winner into the existing page.
 - **Sub-shape B** — promote the winning variant to a real route, delete the throwaway route and the switcher.
 
-Don't leave variant components or the switcher lying around. They rot fast and confuse the next reader.
+Remove task-owned variant scaffolding after absorption. Keep it runnable for prototype-only review.
 
 ## Anti-patterns
 
 - **Variants that differ only in colour or copy.** That's a tweak, not a prototype. Real variants disagree about structure.
 - **Sharing too much code between variants.** A shared `<Header>` is fine; a shared `<Layout>` defeats the point. Each variant should be free to throw out the layout.
 - **Wiring variants to real mutations.** Read-only prototypes are fine. If a variant needs to mutate, point it at a stub. The question is "what should this look like", not "does the backend work".
-- **Promoting the prototype directly to production.** The variant code was written under prototype constraints (no tests, minimal error handling). Rewrite it properly when you fold it in.
+- **Promoting without production validation.** Retain sound code, add the required error handling and tests, and validate the chosen flow before shipping it. A wholesale rewrite is not a gate.

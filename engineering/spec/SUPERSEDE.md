@@ -1,7 +1,8 @@
 # spec — Supersede and reconcile
 
 Loaded on demand by [`/spec`](SKILL.md) step 1 when a hit makes a recorded AC or decision
-false. The Design Receipt and reconciliation are one confirm gate; nothing writes before it.
+false. Reconcile against the requested change. An explicit reversal already settles that decision;
+ask only about consequences the request and repository cannot resolve.
 
 1. **Derive the next snapshot.** Live PRD exists → propose `PRD-vN.md` per
    [PRD-TEMPLATE.md](PRD-TEMPLATE.md) — highest + 1, `supersedes:` the previous filename,
@@ -11,8 +12,8 @@ false. The Design Receipt and reconciliation are one confirm gate; nothing write
    --format json`; use `python3` only when `python` is absent. The projection reads top-level and
    legacy archived done issues and folds completed redo lineage, so delivered work is not mistaken
    for a brand-new slice. Classify every existing issue into the report, then append it
-   under the Design Receipt so goal, verification, slices, and old→new consequences are corrected
-   together (item-by-item or yes-all):
+   to the change summary. If consequential choices remain, include only those in the Design Receipt;
+   otherwise apply the reconciliation without another approval:
 
    ```
    对账报告
@@ -33,7 +34,7 @@ false. The Design Receipt and reconciliation are one confirm gate; nothing write
 
    Hard rule: never edit a `done` issue; always write a new `NN-redo-X.md` (`category: redo`,
    `refines:` the original slug).
-3. **Execute on explicit alignment.** Write the PRD, then apply the reconciliation. Deletes
+3. **Execute settled changes.** Write the PRD, then apply the reconciliation. Deletes
    relocate to `.scratch/tmp/reconcile-<date>/`
    (undo = move back), never `rm`. Ready-issue edits happen in place; refresh the
    `## 上级` extract.

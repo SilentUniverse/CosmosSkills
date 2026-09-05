@@ -7,11 +7,11 @@ disable-model-invocation: true
 
 # Map
 
-Draw or refresh this repo's structural map into `CODEBASE.md`. Read `CONTEXT.md` first so the
+Draw or refresh this repo's structural map into `CODEBASE.md`. Read `CONTEXT.md` when present so the
 names line up. One-time understanding without an artifact → `/show <path>`.
 
-Scope: `/map <path>` drafts that area's block and shows it before writing; no args or `--all`
-maps the whole repo.
+Scope: `/map <path>` refreshes that area; no args or `--all` maps the whole repo. The request
+authorizes writing the map unless preview-only. Missing maps are not prerequisites for other work.
 
 ## First pass (draft mode) — mapping a whole repo
 
@@ -22,11 +22,10 @@ present is preserved verbatim; the generated skeleton is assembled around it.
 
 **Steps:**
 
-1. **Partition first.** Identify the top-level areas (by directory or domain concept). Confirm the
-   partition with the user *before* deep exploration.
-2. **Explore in parallel, isolated.** Dispatch one read-only `Explore` subagent
-   per partition so each area's exploration burns a *subagent's* context, not the main
-   session's. Local files only (Read/Glob/Grep); no web mirrors. Each returns:
+1. **Partition first.** Infer areas from existing paths, ownership, and domain concepts. Ask only
+   when unresolved ownership would materially change the map; explore clear areas meanwhile.
+2. **Explore the relevant areas.** Work inline; delegate separable areas to bounded read-only
+   subagents when useful and available. Local files only; no web mirrors. Collect per area:
    - a **roster line** — a real existing directory path + responsibility in ≤10 words,
      never `<placeholder>`, `{brace-set}`, or glob syntax;
    - **candidate facts** — each pre-filtered by the two-axis test below.
@@ -35,12 +34,10 @@ present is preserved verbatim; the generated skeleton is assembled around it.
      surviving facts → generated block in `src/<area>/CLAUDE.md`. Areas without facts → roster
      line only, no file.
    - **≤8 areas:** single root file, one `## ` section per area.
-4. **One review gate.** Present root + all area blocks at once for the user to edit: merge, drop,
-   set the level of detail. Order the review by confidence: low-confidence entries (roster line /
-   routing row / block line) form a focused question block presented first. Naming and boundaries
-   are never auto-passed. Never write the files before this gate.
-5. **Only** loop back on areas where the code structure genuinely confused you. List those few;
-   don't re-walk the whole map.
+4. **Verify and write.** Check paths, apply the two-axis test, and preserve hand-maintained content.
+   Write evidence-backed blocks directly; report unresolved facts instead of inventing invariants.
+5. Clarify only consequential unknowns that inspection cannot settle. Resume the caller's task
+   after the scoped refresh; do not restart whole-map review for a local correction.
 
 ## The two-axis test (what earns a persisted line)
 
@@ -55,7 +52,7 @@ Decisions → ADR. Vocabulary → CONTEXT.md.
 
 ## Writing CODEBASE.md
 
-**Schema, templates, and budgets are owned by [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#codebasemd--structural-map-generated-not-authored)**. Read it before writing. Files are written only after the review gate (whole-repo) or the block showing (single area).
+**Schema, templates, and budgets are owned by [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#codebasemd--structural-map-generated-not-authored)**. Read the relevant section before writing. Use its deterministic checks; a preview-only request returns the proposed blocks without writes.
 
 ## Maintaining existing blocks
 

@@ -21,7 +21,8 @@ Parent PRD path + the PRD lines governing this slice: 用户场景 + related 实
 
 ≤3 sentences of end-to-end behavior, not layer-by-layer implementation. Never paste PRD text; point to its section. `## 上级` carries the extract.
 
-Avoid specific file paths or code snippets. Exception: if a prototype produced a snippet that encodes a decision more precisely than prose can (state machine, reducer, schema, type shape), inline it here and note briefly that it came from a prototype.
+Name concrete paths/interfaces when needed to remove ambiguity. Include a small schema/type shape
+only when it defines the contract more precisely than prose; omit implementation recipes.
 
 ## 验收标准（Acceptance Criteria）
 
@@ -32,7 +33,7 @@ Avoid specific file paths or code snippets. Exception: if a prototype produced a
 **写 AC 的三条规则：**
 1. **只写本切片新增的行为**。上一切片已提供的能力（schema、已存在的授权、已覆盖的校验）不要重复列出；靠 `blocked_by` 串联。
 2. **验收要可独立验证**（“执行 X 后能看到 Y”），不是“应该工作正常”。
-3. **至少一条写失败/边界行为**（空值、越界、错误路径）。
+3. **覆盖与改动相关的失败/边界行为**；已有测试能证明的直接引用，不为凑条目创造无关 AC。
 
 ## 验证设计（Verification Design）
 
@@ -76,7 +77,7 @@ still works. Graphical-UI issues (`experience_review`) stay on contract_version 
 ## 相关面（Read contract）
 
 The slice's reasoning radius as pointers, written by SPEC together with the radius. The
-executor reads exactly these — never the whole map. Omit a line only when the radius truly
+executor starts with these and expands only when evidence exposes another dependency. Omit a line only when the radius truly
 does not cross it.
 
 - invariants: `CODEBASE.md` 的 `<area>` 不变量块（多块用顿号分隔）

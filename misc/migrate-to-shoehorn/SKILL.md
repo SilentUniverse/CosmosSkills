@@ -8,13 +8,14 @@ disable-model-invocation: true
 
 `shoehorn` lets you pass partial data in tests while keeping TypeScript happy. **Test code only**; never in production code.
 
-Problems with `as` in tests: trained not to use it, must manually specify the target type, double-as (`as unknown as Type`) for intentionally wrong data.
+Use partial fixtures to remove unnecessary type assertions while preserving the tested behavior.
 
 ## Install
 
 ```bash
 npm i -D @total-typescript/shoehorn   # devDependency — test code only
 ```
+Use the repository's package manager and reuse an existing dependency; npm above is an example.
 
 ## When to use each
 
@@ -28,17 +29,16 @@ Before/after examples: [PATTERNS.md](PATTERNS.md).
 
 ## Workflow
 
-1. **Gather requirements**: ask user:
-   - What test files have `as` assertions causing problems?
-   - Are they dealing with large objects where only some properties matter?
-   - Do they need to pass intentionally wrong data for error testing?
+1. **Inspect the requested test scope**: locate assertions, fixture intent, package manager,
+   and validation commands yourself. Infer partial versus deliberately invalid data from the
+   tests; ask only if an unresolved intent would change what behavior is being exercised.
 
 2. **Install and migrate**:
-   - [ ] Install: `npm i -D @total-typescript/shoehorn`
-   - [ ] Find `as` assertions in test files (structural, cross-platform):
-     - **ast-grep (preferred):** `sg -p '$EXPR as $TYPE' -l ts --globs '*.test.ts' --globs '*.spec.ts'`. Same scope as the rg fallback. For double-casts: `sg -p '$EXPR as unknown as $TYPE' -l ts --globs '*.test.ts' --globs '*.spec.ts'`.
-     - **Fallback (rg):** `rg ' as [A-Z]' -g '*.test.ts' -g '*.spec.ts'`
-   - [ ] Replace `as Type` with `fromPartial()`
-   - [ ] Replace `as unknown as Type` with `fromAny()`
+   - [ ] Add the devDependency only if missing.
+   - [ ] Find assertions with ast-grep when available, or `rg '\bas\b' <test-paths>` and
+     inspect the candidates. Include the repository's actual test naming and TSX files.
+   - [ ] Use `fromPartial()` for partial fixtures; use `fromAny()` only for deliberately invalid
+     data. A double assertion alone is not evidence that the test intends invalid data.
+   - [ ] Preserve meaningful narrowing, `as const`, and fields exercised by the test.
    - [ ] Add imports from `@total-typescript/shoehorn`
    - [ ] Run type check **and the affected test files** to verify

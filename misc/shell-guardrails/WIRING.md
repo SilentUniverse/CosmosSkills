@@ -5,9 +5,9 @@ SKILL.md; this file only wires and verifies the single hook entry.
 
 ## Project (`.claude/settings.json`)
 
-One entry replaces the `block-legacy-cli.ps1` + `block-dangerous-git.ps1`
-pair. Windows invokes `python` (a real install on PATH, not the WindowsApps
-stub); Unix uses `python3` on the same script.
+One entry replaces overlapping checks when the requested policy is covered. Preserve an existing
+push block; this engine allows pushes. Merge settings without replacing unrelated hooks. Windows
+invokes an installed `python`; Unix uses `python3` on the same script.
 
 ```json
 {
@@ -18,7 +18,7 @@ stub); Unix uses `python3` on the same script.
         "hooks": [
           {
             "type": "command",
-            "command": "python \"C:/Users/<you>/.claude/hooks/guard-shell.py\""
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-shell.py\""
           }
         ]
       }
@@ -81,14 +81,15 @@ Python entry ≈35 ms).
 
 ## Verify
 
-Primary — the shared semantic corpus (run from `misc/shell-guardrails/`;
-expect every case to pass on both platform profiles):
+Engine or policy changes: run the shared corpus once on both profiles from
+`misc/shell-guardrails/`. The runner feeds JSON payloads; it does not execute their commands.
+For wiring-only changes, verify the deployed copy and settings with the spot checks below.
 
 ```bash
 python3 run_corpus.py scripts/guard-shell.py
 GUARD_SHELL_FORCE_MSYS=1 python3 run_corpus.py scripts/guard-shell.py --platform msys
-python3 run_corpus.py scripts/guard-shell.py --bench
 ```
+Add `--bench` when changing performance-sensitive code or when latency is part of the request.
 
 Spot checks — feed a fake payload and assert the exit code (a blocked command
 exits 2 with a BLOCKED message on stderr; an allowed command exits 0 silently):

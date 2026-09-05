@@ -45,7 +45,9 @@ getUser({ body: { id: "123" } } as Request);
 getUser(fromPartial({ body: { id: "123" } }));
 ```
 
-### `as unknown as Type` → `fromAny()`
+### Intentionally invalid data → `fromAny()`
+
+Use the test's intent, not the presence of a double assertion, to choose this helper.
 
 ```ts
 getUser({ body: { id: 123 } } as unknown as Request); // wrong type on purpose

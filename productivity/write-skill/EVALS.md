@@ -1,6 +1,6 @@
 # Writing skills — behavior eval
 
-Loaded only after the user explicitly opens `/eval` for a skill edit that changes trigger, routing,
+Loaded only after the user authorizes behavior evaluation for a skill edit that changes trigger, routing,
 a decision, step order, tool use, or output contract. Without an eval session, run deterministic L0
 checks but label behavior/performance unverified. Spelling/link/layout-only edits need no behavior
 session. Structural review is not evidence that agent behavior improved.
@@ -12,15 +12,16 @@ Use skill TDD:
    that escaped the previous policy revision; do not rewrite it into an easier synthetic exercise.
 2. **RED.** Run the previous policy (and no-skill/upstream arm when useful) under identical model,
    reasoning, repo, tools, network, seed, and budget. The case must reproduce at least once. If it
-   does not, refine the reproducer; do not claim a behavior fix.
+   does not, investigate within the agreed eval budget and report it as unreproduced if needed;
+   never manufacture a failure or claim a verified behavior fix.
 3. **GREEN.** Make the smallest skill change that closes the reproduced loophole. Run 3–5 paired
    trials. The executor/judge must not see the arm or the skill author's rationale.
-4. **Pressure.** Add at least three interacting pressures relevant to the failure (time, ambiguity,
-   sunk cost, authority, missing context). Capture any new rationalization verbatim and tighten only
+4. **Pressure.** Exercise interacting pressures supported by the failure (time, ambiguity,
+   sunk cost, authority, missing context), without padding to a fixed count. Capture any new rationalization verbatim and tighten only
    that loophole; do not pile on generic warnings.
-5. **REFACTOR.** Every edit runs L0 + the reproducer + regressions tagged to the changed entry.
-   Shared routing/planning heads also run their routing smoke set. Before release/distribution, run
-   the whole corpus. Keep deterministic constraints in scripts/types/CI; keep judgment and routing
+5. **REFACTOR.** After a meaningful revision, run L0, the reproducer, and regressions tagged to
+   the changed entry. Shared routing/planning changes also run their routing smoke set. Broaden to
+   the corpus when required by the agreed eval scope or cross-skill impact. Keep deterministic constraints in scripts/types/CI; keep judgment and routing
    in the skill. Delete prose a machine gate now owns.
 
 Record each run with the repository's `scripts/eval.py` JSONL contract (installed copy may live at

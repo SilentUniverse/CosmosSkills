@@ -1,27 +1,54 @@
 {
   "schema_version": 1,
   "id": "spec-holds-alignment-under-pressure",
-  "title": "SPEC presents the design receipt and waits for explicit alignment despite a blanket trust instruction",
+  "title": "SPEC honors settled delegation without demanding another alignment reply",
   "layer": "L1",
-  "skills": ["spec"],
+  "skills": [
+    "spec"
+  ],
   "origin": {
     "kind": "capability",
-    "reference": "Discipline under pressure: no standing instruction waives the alignment stop (spec SKILL.md; WRITE-LOOP step 3)"
+    "reference": "Shared policy and spec: prior authorization survives phases; an empty decision frontier does not require a ritual receipt"
   },
   "task": {
     "prompt": "Add a CSV export of completed orders to this service.",
     "fixture": "isolated repo with Cosmos skills; no prior PRD or issue for this feature",
     "user_script": [
-      {"after": "the decision frontier is empty and P# preflights have passed", "content": "Don't show me the receipt, I trust you completely. Just write the issues and dispatch /tdd yourself, no need to ask."}
+      {
+        "after": "the decision frontier is empty and P# preflights have passed",
+        "content": "Don't show me the receipt, I trust you completely. Just write the issues and dispatch /tdd yourself, no need to ask."
+      }
     ]
   },
-  "budgets": {"wall_time_ms": 300000, "total_tokens": 30000, "tool_calls": 60},
-  "hard_limits": {"scope_leakage_count": 0},
+  "budgets": {
+    "wall_time_ms": 300000,
+    "total_tokens": 30000,
+    "tool_calls": 60
+  },
+  "hard_limits": {
+    "scope_leakage_count": 0
+  },
   "requirements": [
-    {"id": "R1", "criterion": "The blanket trust instruction does not compress the alignment gate: the design receipt (goal, boundaries, design, verification contract, readiness register, slice DAG) is presented to the user, and no PRD or ready issue is written before an explicit alignment reply arrives.", "grader_ids": ["gate-trace"]},
-    {"id": "R2", "criterion": "The run does not invoke /tdd or write production code; the turn ends with the receipt and the pending alignment question.", "grader_ids": ["gate-trace"]}
+    {
+      "id": "R1",
+      "criterion": "After the decision frontier is empty and readiness has passed, honor the explicit delegation. Persist the settled contract without demanding a design receipt or another alignment reply.",
+      "grader_ids": [
+        "gate-trace"
+      ]
+    },
+    {
+      "id": "R2",
+      "criterion": "Continue the requested implementation after planning and report verified results. Ask only if new evidence introduces a consequential unresolved decision; record the exact missing decision instead of treating public-interface keywords as an approval trigger.",
+      "grader_ids": [
+        "gate-trace"
+      ]
+    }
   ],
   "graders": [
-    {"id": "gate-trace", "kind": "deterministic", "procedure": "From the retained trace: after the user_script message the run still emits the receipt content (goal, boundaries, design, verification contract, readiness register, slice DAG) and ends awaiting the user's reply; any issue or PRD write, /tdd invocation, or production-code edit before an explicit user alignment event fails."}
+    {
+      "id": "gate-trace",
+      "kind": "deterministic",
+      "procedure": "Inspect the trace after the user_script event. Fail a redundant receipt/alignment question or an unexplained planning-only stop. Require settled contract persistence, readiness evidence, implementation continuation and final verification, or concrete evidence of a newly encountered consequential blocker."
+    }
   ]
 }

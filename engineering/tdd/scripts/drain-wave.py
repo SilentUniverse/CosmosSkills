@@ -13,6 +13,7 @@
 #   drain-wave.py collect <repo-root> <slug>=<result>[,<slug>=<result>...]
 #                                               result: green|red|blocked|conflict|aborted
 #   drain-wave.py audit <repo-root> [<feat>]    test files no issue claims
+#   drain-wave.py dismiss-conflict <repo-root> <feat> <slug> <evidence.json>
 #   drain-wave.py selftest                       gate the gate: parse substrate +
 #                                               refusal branches (tempdir fixtures)
 #
@@ -283,6 +284,59 @@ def report_conflicts(conflicts):
     for feat, wave, slug in conflicts:
         print("  %s (wave %s, ledger .scratch/%s/wave-ledger.json)" % (slug, wave, feat))
     print("the recorded issue content is unchanged; no next wave or explicit dispatch is allowed")
+    print("a disproved report may use dismiss-conflict with contract-bound review evidence (DRAIN.md)")
+
+
+def cmd_dismiss_conflict(root, feat, slug, evidence):
+    """Correct one closed false-positive report without changing the issue contract."""
+    try:
+        if not feat or feat in (".", "..") or "/" in feat or "\\" in feat:
+            raise ValueError("feature must be a directory name")
+        base = Path(root).resolve()
+        evidence_path = (base / evidence).resolve()
+        evidence_path.relative_to(base / ".scratch" / feat / "receipts")
+        raw = evidence_path.read_bytes()
+        review = json.loads(raw.decode("utf-8"))
+        if not isinstance(review, dict):
+            raise ValueError("review must be a JSON object")
+        if review.get("feature") != feat or review.get("slug") != slug:
+            raise ValueError("review must identify this feature and issue")
+        if review.get("classification") not in ("noise", "artifact_defect"):
+            raise ValueError("only a disproved conflict may be dismissed")
+        if any(not isinstance(review.get(key), str) or not review[key].strip()
+               for key in ("reason", "evidence")):
+            raise ValueError("review requires a reason and observed evidence")
+        if type(review.get("wave")) is not int:
+            raise ValueError("review must identify its wave number")
+        issues = load_issues(root, feat)
+        if not issues or slug not in issues or issues[slug][2].get("status") != "ready":
+            raise ValueError("dismissal requires an existing ready issue")
+        digest = contract_sha256(issues[slug][1])
+        if review.get("contract_sha256") != digest:
+            raise ValueError("review does not match the current issue contract")
+        data = load_ledger(root, feat)
+        if open_waves(data):
+            raise ValueError("collect unfinished waves before dismissing a conflict")
+        matches = [w for w in data["waves"]
+                   if w.get("wave") == review["wave"]
+                   and w.get("closed", {}).get(slug) == "conflict"
+                   and w.get("conflict_contract_sha256", {}).get(slug) == digest]
+        if len(matches) != 1:
+            raise ValueError("review must match one recorded unchanged conflict")
+    except (OSError, ValueError) as exc:
+        print("drain-wave: conflict dismissal refused: %s" % exc, file=sys.stderr)
+        return 1
+    target = matches[0]
+    target.setdefault("conflict_dismissals", {})[slug] = {
+        **review,
+        "evidence_path": evidence_path.relative_to(base).as_posix(),
+        "evidence_sha256": hashlib.sha256(raw).hexdigest(),
+        "dismissed_at": now_iso(),
+    }
+    target["closed"][slug] = "red"
+    save_ledger(root, feat, data)
+    print("drain-wave: dismissed false conflict for %s; issue remains ready" % slug)
+    return 0
 
 
 def git_baseline(root):
@@ -896,7 +950,8 @@ def main(argv):
     usage = (
         "usage: drain-wave.py step <repo-root> [<feat>] | next <repo-root> [<feat>] | "
         "dispatch <repo-root> <slug>... | "
-        "collect <repo-root> <slug>=<result>[,...] | audit <repo-root> [<feat>] | selftest"
+        "collect <repo-root> <slug>=<result>[,...] | audit <repo-root> [<feat>] | "
+        "dismiss-conflict <repo-root> <feat> <slug> <evidence.json> | selftest"
     )
     cmd = argv[1] if len(argv) >= 2 else None
     if cmd == "selftest":
@@ -925,6 +980,11 @@ def main(argv):
     if cmd == "collect":
         pairs = [p.strip() for arg in argv[3:] for p in arg.split(",") if p.strip()]
         return cmd_collect(root, pairs)
+    if cmd == "dismiss-conflict":
+        if len(argv) != 6:
+            print(usage, file=sys.stderr)
+            return 2
+        return cmd_dismiss_conflict(root, argv[3], argv[4], argv[5])
     if cmd == "audit":
         feat = argv[3] if len(argv) == 4 else None
         if len(argv) > 4:

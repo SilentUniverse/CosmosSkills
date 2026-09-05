@@ -17,7 +17,8 @@ disable-model-invocation: true
 
 ### 1. Detect package manager
 
-Check for `package-lock.json` (npm), `pnpm-lock.yaml` (pnpm), `yarn.lock` (yarn), `bun.lock` (bun ≥1.2), `bun.lockb` (legacy bun). Default to npm if unclear.
+Inspect `packageManager`, lockfiles, existing hooks, and CI commands. Use the established package
+manager; default to npm only when the repository has none. Resolve conflicting evidence before installing.
 
 ### 2. Install dependencies
 
@@ -29,7 +30,8 @@ husky lint-staged prettier
 
 ### 3. Initialize Husky
 
-Before init, confirm: this is a git repo, `package.json` exists, and `.husky/` is absent. If `.husky/` is present, adapt the existing hooks instead of re-init.
+Before init, check that this is a git repo and `package.json` exists. Adapt existing hooks instead
+of reinitializing `.husky/`; preserve existing `prepare` actions when adding Husky.
 
 ```bash
 npx husky init
@@ -39,7 +41,7 @@ This creates `.husky/` dir and adds `prepare: "husky"` to package.json.
 
 ### 4. Create `.husky/pre-commit`
 
-Write this file (no shebang needed for Husky v9+):
+Merge these commands into the existing hook; preserve its checks and failure propagation:
 
 ```
 npx lint-staged
@@ -47,9 +49,13 @@ npm run typecheck
 npm run test
 ```
 
-**Adapt**: map `npx`/`npm run` to the detected PM (`pnpm exec` / `pnpm run`, `yarn` …). No `typecheck`/`test` script in package.json → omit those lines and say so. Watch-mode test scripts (`jest --watch`): prefix `CI=true`; if it can't run once, omit.
+**Adapt**: use the detected package manager and existing non-watch verification commands. Reuse
+the project's commit-check scope; do not add costly full suites by default. If a requested check
+has no runnable command, report that limitation; do not silently treat it as verified.
 
 ### 5. Create `.lintstagedrc` + `.prettierignore`
+
+Merge into existing lint-staged and ignore configuration; create only missing files.
 
 ```json
 {
@@ -82,16 +88,18 @@ Only create if no Prettier config exists. Use these defaults:
 
 ### 7. Verify
 
-- [ ] `.husky/pre-commit`, `.lintstagedrc`, `.prettierrc` exist; `prepare: "husky"` in package.json
-- [ ] End-to-end: stage a badly formatted temp file (`printf 'const  x=1' > fmt-check.ts; git add fmt-check.ts`), run lint-staged, confirm the file comes back formatted, then unstage. An empty staged set always passes and verifies nothing
+- [ ] Effective Husky, lint-staged, and Prettier configuration is valid, including existing config
+  formats; `prepare` retains existing actions and initializes Husky.
+- [ ] Exercise formatting on a disposable fixture with the final configuration in an isolated
+  temporary repository. Check successful formatting and hook failure propagation without touching
+  the user's index or partially staged files. An empty staged set verifies no formatting behavior.
 
 ### 8. Hand off to submit workflow
 
-Do not stage or submit here. Tell the user to run the Submit workflow named in `CLAUDE.md` with summary: `Add pre-commit hooks (husky + lint-staged + prettier)`.
-
-That workflow will exercise the hooks again; Verify is the local smoke test.
+Report the setup and verification. If submission was already requested, continue through `/commit`;
+otherwise finish with validated changes. Hook setup alone does not authorize a submission.
 
 ## Notes
 
 - `prettier --ignore-unknown` skips files Prettier can't parse (images, etc.)
-- The pre-commit runs lint-staged first (fast, staged-only), then full typecheck and tests
+- The pre-commit runs lint-staged first, then the selected non-watch checks.

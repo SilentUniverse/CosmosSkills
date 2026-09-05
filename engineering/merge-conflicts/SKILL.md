@@ -5,20 +5,21 @@ description: Resolve an in-progress git merge or rebase conflict by understandin
 
 # Resolving Merge Conflicts
 
-Resolve conflicts by understanding *why* each side changed the code, not by pattern-matching the `<<<<<<<` markers. Report to the user in Chinese (per `~/.claude/CLAUDE.md` §1).
+Resolve conflicts by understanding each side's intent. Report the reconciled behavior, verification,
+and remaining conflicts in the user's language.
 
 1. **See the current state** of the merge/rebase — `git status`, `git log --oneline --graph -20`, and the conflicting files (`git diff --name-only --diff-filter=U`). Know which two commits/branches are meeting and what the merge is *for*.
 
 2. **Find the primary sources** for each conflicting hunk — the intent behind each change. Read the commit messages and, since this repo tracks work locally, the originating issue under `.scratch/<feat>/issues/NN-*.md` (its `## 验收标准` and `### 完成` record) and any `docs/adr/` decision the hunk touches.
 
-3. **Resolve each hunk.** Preserve both intents where possible; where they're genuinely incompatible, pick the one matching the merge's stated goal and note the trade-off (a one-liner to the user, or an ADR if it's a real decision). Never invent new behaviour or silently drop a side. Use the project's domain language (`CONTEXT.md`) for any names you introduce.
+3. **Resolve each hunk.** Preserve both intents where possible. Resolve incompatible changes against the stated goal and prior decisions; if neither settles a consequential conflict, ask with the concrete alternatives and continue other hunks. Never silently drop a side. Use `CONTEXT.md` vocabulary when present.
 
-4. **Run the project's automated checks.** Discover them from `CODEBASE.md`'s `## Verifier commands` zone (cached test/build/format commands); a legacy `docs/agents/domain.md` → read it once, then offer `/cosmos-setup` to fold it; if neither exists, infer from config and confirm with the user. Run typecheck → tests → format, and fix anything the merge broke. Run the suite/build in a subagent or redirect its output to `.scratch/tmp/`; bring only the pass/fail summary and failing cases into context.
+4. **Run automated checks.** Discover commands from `CODEBASE.md`, a legacy command cache, or project configuration; no confirmation or map bootstrap for routine local checks. Run relevant typecheck/tests/format/build and fix merge regressions. Run inline with bounded logs; widen checks for affected contracts or unresolved risk. Missing tooling warrants available static checks and a precise unverified gap.
 
-5. **Finish the merge/rebase.** Stage everything and commit. Let git write the default merge message, or write a short one naming what was reconciled. If rebasing, `git rebase --continue` until all commits are replayed.
+5. **Finish the requested operation.** Stage only resolved paths. Inspect the final index against the initial operation state; never include unrelated user changes. When the request authorizes completing the merge/rebase, continue it through all replayed commits after checks pass. If unrelated staged work would be swept in, leave it intact and ask how to separate it. A resolve-only request leaves verified resolutions for the caller's submission step.
 
-## Resolve, don't abort — with one exception
+## Preserve unresolved work
 
-The default is to **resolve**, never `git merge --abort`.
-
-The one exception is **unattended automation**: an agent merging with no human watching should *abort*, leaving `main` clean, rather than guess and corrupt `main`. This skill is the **attended** counterpart: reach for it when a human is present to adjudicate the trade-offs.
+Resolve within existing authority whether attended or unattended. If a decision blocks completion,
+preserve the operation and report the exact conflict after completing independent work. Abort only
+when the user or an explicit automation rollback contract calls for it.

@@ -15,7 +15,8 @@ which judges a diff against standards and spec; this judges any output against i
 - User-typed `/atk` — manual mode. Bare: the changes since this session's last `/atk` run
   (first run in a session: this conversation's latest round). `--all`: the entire uncommitted
   working tree — `git status` + per-file `git diff HEAD`. A named target: that target only. A
-  file target covers both its current state and its uncommitted diff.
+  file target covers both its current state and its uncommitted diff. Caller-invoked acceptance
+  checks return findings to that caller; they do not require a separate user command.
 - Invoked by spec WRITE-LOOP step 4 — audit-only: attack the artifacts it names, return
   findings, nothing else.
 - Invoked by `/tdd` to classify a possible receipt conflict — blind classifier: return only the
@@ -37,8 +38,9 @@ Name what is out of scope.
 4. **Verdict each finding with a quote:** 修复 / 否决 / 保留. Record the deliberate keeps so the
    next round doesn't re-litigate them.
 
-Big or unfamiliar target? Get one unbiased pass from a read-only subagent. Brief it with the
-target, the single claim to attack, a 12-call cap, and the contract to attack against, never a
+For a large target with an independently checkable risk, get one unbiased read-only subagent pass
+when available; otherwise review inline and disclose the missing independence. Brief it with the
+target, the single claim to attack, a bounded evidence return, and the contract to attack against, never a
 deleted predecessor. Launch it first and attack inline while it runs. Import its check results
 instead of re-running them; verify each finding against its quote before importing. Small
 target: attack inline. Harness and gate runs: once, after the fixes, scoped to what changed.
@@ -48,10 +50,10 @@ target: attack inline. Harness and gate runs: once, after the fixes, scoped to w
 Mode is fixed by the invocation source: user-typed → audit + 讲解; spec WRITE-LOOP → findings
 only; tdd blind classifier → the response shape in [RECEIPT-CONFLICT.md](RECEIPT-CONFLICT.md).
 
-Lead line: 范围（N 文件 M 处）· 发现 X · 检查（which harness/parse/line checks ran）. Output is the
-lead line plus the lists below; no tables, nothing else.
+Lead with scope, actionable findings, and checks actually run. A clean review is valid. A caller
+may integrate this result into its own report instead of repeating a full skill report.
 
-**发现** — manual and spec audit modes. Findings follow the fixed shape (CLAUDE.md §1); 处置 is
+**发现** — manual and spec audit modes. Findings include location, exact quote, consequence, and disposition. 处置 is
 three-valued: 修复—改成什么 / 否决—为什么不改 / 保留—何时再动. No quote, no finding.
 
 Calibration — only the second entry is a finding; the first survives any outcome:

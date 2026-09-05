@@ -10,8 +10,8 @@ disable-model-invocation: true
 Area: $ARGUMENTS
 
 I don't know this area. Explain it so I can work in it. My question is the calibration: keep
-what connects to it, cut what doesn't. No question given → ask for my entry point first.
-Read `CONTEXT.md` first so the names line up.
+what connects to it, cut what doesn't. Infer the entry point from the named path or active task;
+ask only when no useful scope is identifiable after lookup. Read `CONTEXT.md` when present.
 
 Scope: the named area only; whole-repo orientation is `/map`'s job.
 
@@ -28,7 +28,8 @@ One screen, this shape:
 The four parts as one self-contained HTML page, with real typography and the traced flow as a
 visual sequence, for reading away from the terminal or handing to someone. Write to
 `.scratch/show-<area>.html` (kebab-case slug, overwrite on re-run) and open it in the
-browser; nothing else is written. Few words still applies; file:line as code spans.
+browser when available; otherwise return the file path and state the preview gap. Nothing else is
+written. Verify cited paths and the traced flow; distinguish static tracing from executed behavior.
 
 No caller enumerations, no export lists; rg answers those. CONTEXT.md vocabulary.
 Worth keeping for future sessions → say so and point to `/map <path>`.

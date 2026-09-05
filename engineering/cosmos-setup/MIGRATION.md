@@ -4,22 +4,23 @@ Loaded on demand by [`/cosmos-setup`](SKILL.md) step 2 **only** when the repo ho
 `docs/agents/domain.md` (Case 2), is an old setup (Case 3), or its issue files use bare
 `Status:` lines (Case 5).
 
-In all cases, present what was found and the proposed migration plan for the user to confirm before
-any file is changed. Do not silently rewrite existing user content.
+Preview concrete paths and mappings, then execute changes covered by the migration request.
+Ask once for unresolved semantic mappings or removal of content that is not proven derived.
+Leave uncertain files intact while completing independent mechanical changes.
 
 ## Case 3 — Old setup detected (`mattpocock/skills` 5-state, or earlier cosmos 6-state)
 
-Trigger: either `docs/agents/issue-tracker.md` references `gh` / `glab` CLI, or existing issue files
+Trigger: a requested tracker switch, or existing issue files
 use deprecated states (`needs-triage`, `needs-info`, `wontfix`, `inbox`, `blocked`, `doing`,
 `shelved`, `ready-for-human`, `ready-for-agent`). Offer:
 
-- (a) **Switch to local-markdown + 2-state vocabulary.** Rewrite `docs/agents/*.md`. The `ready-for-agent` → `ready` rename is mechanical: `sd 'ready-for-agent' 'ready'` over `.scratch/**/issues/*.md`; show the file list first. Every other deprecated state asks the user one-by-one: promote to `ready` or mark `done` (if commit already exists) / delete. Do not silently rewrite the `Status:` line.
-- (b) **Keep the old GitHub/GitLab tracker.** User explicitly chose `Other` in Section A.
+- (a) **Switch to local-markdown + 2-state vocabulary** when requested. Update only affected configuration. Rename `ready-for-agent` to `ready` only in status metadata; verify readiness against the current schema. For other states, infer mappings from AC/evidence and completion records; group unresolved mappings for one user decision. Do not infer deletion authority from a deprecated state.
+- (b) **Keep the configured tracker.** A `gh` / `glab` reference alone does not justify switching it.
 
 ## Case 5 — Frontmatter migration (bare `Status:` lines)
 
 Triggered from Case 3 (or runnable on its own) when `.scratch/` issues use the legacy bare `Status:`
-line instead of YAML frontmatter, or when `issues/archive/` is missing. This upgrades the repo to the
+line instead of YAML frontmatter. An absent `issues/archive/` needs no migration. This upgrades to the
 [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md) contract. It is **idempotent**: skip any file that
 already has a `---` frontmatter fence. It is **dry-run-first**: never touch a file before showing the
 plan.
@@ -38,19 +39,21 @@ Steps:
      .scratch/auth/issues/01-login.md
    保留当前位置（done 由 status 查询，legacy archive 仍兼容）:
      .scratch/balance/issues/01-init-schema.md
-   旧派生文件（停止读取，确认后删除）:
+    旧派生文件（核对投影和迁移授权后删除）:
      .scratch/balance/SUMMARY.md
-   确认执行？(y / 逐项挑)
+    已授权的机械迁移直接执行；未决语义映射单列。
    ```
 
-3. **On confirm, execute.** For each bare-`Status:` file, derive the frontmatter fields from the [issue schema](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd): `type: issue`; `feature` from the directory name; `status` from the old `Status:` line with the legacy mapping: `ready-for-agent` → `ready`; `ready-for-human` → fold its hands-on check into the PRD's 端到端验证 and set `ready`. `category: enhancement` by default; the user can refine later. `blocked_by` parsed from any existing `前置依赖` section if filenames are referenced, else `[]`; `created` from one `git log --diff-filter=A --name-only --format=%as -- <issues dir>` pass (paths→dates; today if unseen by git). Remove the now-redundant bare `Status:` line. Do not touch the body otherwise; the change is surgical, frontmatter only.
+3. **Execute resolved mappings.** For each bare-`Status:` file, derive fields from the [issue schema](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd): `type: issue`; `feature` from the directory; `status` from the resolved mapping. For `ready-for-human`, retain its hands-on check in the PRD's 端到端验证 and set `ready` only after current readiness requirements pass. Infer `category` from the issue's purpose; `blocked_by` from existing dependency references; `created` from one `git log --diff-filter=A --name-only --format=%as -- <issues dir>` pass (today if unseen by git). Leave ambiguous dependencies or status unresolved. Remove the redundant bare `Status:` line only on migrated files; preserve the body except the explicitly relocated hands-on check.
 4. **Keep issue paths stable.** Do not move newly migrated done issues. Existing archive files stay
    supported by the resolver and gate.
 5. **Retire legacy SUMMARY.** Compare `workflow-state.py inspect` against the delivered slugs, then
-   delete the derived SUMMARY only with the user's migration confirmation. Git history is recovery.
+    delete SUMMARY only if it is fully derived and removal is covered by the migration request.
+    Preserve unique user content and untracked files unless their removal is explicitly authorized.
 
-Report what changed. If `refines` cannot be proven for a non-top-level issue, leave it unset and
-route the intent question to `/spec`; GC never hides it.
+Run `verify-artifacts.py <repo-root>` and report changes plus unresolved schema gaps. If `refines`
+cannot be proven, leave it unset and resolve intent through `/spec`; GC never hides it. Preserve
+historical completion bodies; active-batch failure recovery follows [DRAIN](../tdd/DRAIN.md), not migration.
 
 ## Case 2 — Legacy `docs/agents/domain.md` fold
 
@@ -61,7 +64,7 @@ folded.
 1. Read the file; classify every line as **real** (an exact command or adapter a run actually
    used — e.g. `pytest -q`, `vitest run <path>`) or **template** (boilerplate headings, empty
    placeholders, consumer-rule prose).
-2. Show the user the real lines. On confirm, append them under `## Verifier commands` in the
+2. For an authorized fold, append the real lines under `## Verifier commands` in the
    root `CODEBASE.md`, lazy-birth per the ARTIFACT-FORMAT stub when absent.
 3. Delete `domain.md` only when zero non-template lines remain unaccounted for; otherwise
    `git mv docs/agents/domain.md docs/agents/domain.md.bak` and say why.

@@ -28,11 +28,16 @@ issues, folds completed redo lineage, and prints source digests. It writes nothi
 ## GC
 
 `gc` lists only `preflight-receipt.json` and a fully closed `wave-ledger.json`. A ready issue or
-open wave makes the candidate list empty. Show the JSON plan; on confirmation rerun with `--apply`.
-Drain close may apply the same plan after every wave is closed.
+open wave makes the candidate list empty. Inspect the JSON plan; an explicit cleanup request
+authorizes `--apply` for these proven disposable caches without a second confirmation. Inspect-only
+requests stop at the preview. Drain close may apply the same plan after every wave is closed.
 
 Run `verify-artifacts.py <repo-root>` before GC. A gate failure stops cleanup. The apply pass uses
 explicit paths from one feature and reports every removed cache.
+
+If the runtime is unavailable, inspect source artifacts read-only and report that GC was not run.
+Historical `done` issues stay immutable; active-batch failed-verification recovery belongs to
+[DRAIN](../tdd/DRAIN.md), never to GC. Resume the caller's authorized work after inspection or cleanup.
 
 ## Ownership
 

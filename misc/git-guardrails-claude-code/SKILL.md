@@ -6,22 +6,16 @@ disable-model-invocation: true
 
 # Setup Git Guardrails
 
-> **Prefer `shell-guardrails`** (one self-contained Python script, three prioritized tiers — the destructive-git tier of this hook plus the legacy-CLI and path-world tiers; it covers command forms this hook's legacy carriers miss, such as `sudo -u root git push`, `X=$(git push)`, `then git push`, and does not false-block data like `echo sudo git push` or `adb shell sudo git push`; same file on Windows `python` and Unix `python3`). This skill's legacy `.ps1`/`.sh` carriers remain for standalone installs and machines not yet rewired.
-
 Sets up a PreToolUse hook that intercepts and blocks dangerous git commands before Claude executes them.
 
-> Not yet on `shell-guardrails`? Windows uses the bundled `.ps1` via `pwsh` (5.1-compatible); Unix/WSL uses the `.sh`. Both are superseded carriers — new installs should take the combined hook.
+Use the standalone carrier for git-only or push-blocking requests. Use
+[shell-guardrails](../shell-guardrails/SKILL.md) when the requested policy includes its additional
+tiers and allows pushes. Its parser covers more host command forms, but its git tier allows
+`git push`, including `--force`; replacing a push-blocking hook with it alone loses that protection.
 
 ## What Gets Blocked
 
-The combined engine (`guard-shell.py` in `shell-guardrails`) finds
-every **host-side git command position** — control flow (`if git push; then`),
-pipelines, subshells, `$(…)`/backticks **inside double quotes** (`echo "$(git push)"`),
-wrappers with value-taking options (`sudo -u root git push`, `env -u NAME …`,
-`timeout --signal TERM 5 …`, `time git push`), absolute paths
-(`/usr/bin/git push`), and static `bash -c 'git push'` / `eval 'git push'`
-payloads — then checks subcommand and flags (flag reordering, double spaces,
-`-C <path>` variants, `--` long forms all match):
+The standalone carriers match host-side git commands and check subcommands and flags:
 
 - `git push` — all variants, including `--force`
 - `git reset --hard`
@@ -29,28 +23,28 @@ payloads — then checks subcommand and flags (flag reordering, double spaces,
 - `git branch -D` (and `--delete --force`)
 - `git checkout .` / `git restore .` (including `-- .`)
 
-Data never blocks: quoted strings, heredoc bodies, comments, array literals,
-case patterns (`rg "git push" docs`, `echo sudo git push`, a `git push` inside
-a commit message). Remote execution domains are not this machine's git:
-`ssh host git push`, `adb shell sudo git push`, `docker exec dev git push`
-pass. `# force-legacy` does not bypass this tier. **No escape hatch by design.**
+Quoted command text is data. The standalone parsers approximate shell syntax; the
+[combined engine's execution-domain model](../shell-guardrails/SKILL.md) and
+[known limits](../shell-guardrails/README.md) distinguish carrier coverage. Verify the selected
+carrier against the requested forms. `# force-legacy` does not bypass git blocking.
 
 ## Steps
 
-### 1. Ask scope
+### 1. Resolve scope
 
-Ask the user: install for **this project only** (`.claude/settings.json`) or **all projects** (`~/.claude/settings.json`)?
+Reuse the requested scope or existing target. A request scoped to this repository uses
+`.claude/settings.json`; all-project scope uses `~/.claude/settings.json`. Ask only if the
+intended scope remains unclear after inspecting the request and existing configuration.
 
 ### 2. Copy the hook script
 
-New installs take the combined engine — one file, both platforms:
-
-- **Preferred:** [../shell-guardrails/scripts/guard-shell.py](../shell-guardrails/scripts/guard-shell.py) (deploy + wire per that skill's WIRING)
-- **Legacy carriers, standalone installs only:** [scripts/block-dangerous-git.ps1](scripts/block-dangerous-git.ps1) (Windows) / [scripts/block-dangerous-git.sh](scripts/block-dangerous-git.sh) (Unix; needs `jq` on PATH, fails open without)
+- **Standalone:** [scripts/block-dangerous-git.ps1](scripts/block-dangerous-git.ps1) on Windows;
+  [scripts/block-dangerous-git.sh](scripts/block-dangerous-git.sh) on Unix, requiring `jq`.
+- **Combined, when its policy fits:** [../shell-guardrails/scripts/guard-shell.py](../shell-guardrails/scripts/guard-shell.py).
 
 Target locations by scope: `.claude/hooks/` (project) or `~/.claude/hooks/` (global).
 
-> In this repo, `install.ps1` distributes guard-shell.py and the legacy `.ps1` pair to `~/.claude/hooks/`; re-run it after editing anything under `scripts/`. The legacy `.sh` is synced manually. The manual copy is for other machines.
+Copy only to the selected target. A source edit does not itself request global installation.
 
 ### 3. Add hook to settings
 
@@ -59,10 +53,11 @@ settings file already exists, merge the hook into the existing `hooks.PreToolUse
 overwrite other settings. With the combined engine you wire ONE entry — it
 already includes the legacy-CLI tier, so do not also wire `modern-cli-guardrails`.
 
-### 4. Ask about customization
+### 4. Apply requested customization
 
-Ask if the user wants to add or remove subcommands from the blocked set. Edit the `sub` rule table in `dangerous_git_hit` in `guard-shell.py` (the `switch ($sub)` in the legacy `.ps1` mirrors it), then re-run the corpus.
+Keep the default blocked set unless customization was requested. Modify the selected carrier's
+rule table when needed, preserving other protections, then verify that policy.
 
 ### 5. Verify
 
-Run the shared corpus (expect every git-tier case to pass): [WIRING.md](WIRING.md) §Verify.
+Verify the selected carrier and deployed wiring: [WIRING.md](WIRING.md) §Verify.

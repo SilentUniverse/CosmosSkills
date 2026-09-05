@@ -20,12 +20,15 @@ Use `python3` only when `python` is absent. The helper checks only `.scratch/han
 `.scratch/*/handoff.md`, selects the newest active
 packet, and compares both committed and uncommitted baselines.
 
-- `none` → report no resumable work and stop.
+- `none` → report no active handoff; continue an objective supplied by the user from available
+  context, or report that no objective can be recovered.
 - `match` → proceed without rereading repository orientation.
 - `worktree-diverged` or `head-diverged` → inspect compact `git status --short`, relevant diff stat,
   and overlapping named paths. Continue autonomously if changes are disjoint and decisions remain
-  true; ask once only for an overlap that changes the result or contract.
-- `unknown-base` → show `git reflog -15` and ask which revision anchors the work.
+  true. Resolve compatible overlap from live evidence; ask only if it leaves a consequential
+  decision unresolved.
+- `unknown-base` → inspect the named refs and `git reflog -15` to recover the anchor. Ask only
+  when competing anchors change the next action and evidence cannot distinguish them.
 - `legacy-no-worktree-digest` → inspect status once, proceed cautiously, and emit schema v2 next time.
 
 ## 2. Load in execution order
@@ -33,17 +36,18 @@ packet, and compares both committed and uncommitted baselines.
 Read the selected handoff once, then route by its `capsule`:
 
 - `active-work` (default) — execute the chain below.
-- `awaiting-alignment` — surface the open question and its Design Receipt to the user before
-  touching anything; do not auto-execute `Continue`.
-- `external-pending` — check the external task named in `State`; wait or re-check its recovery
-  condition instead of running `Continue`.
+- `awaiting-alignment` — check the open question against current instructions and evidence. If
+  resolved, proceed; otherwise ask with the relevant receipt and continue independent work.
+- `external-pending` — check the task and recovery condition in `State`. Resume the dependent
+  chain when recovered; while pending, continue independent authorized work.
 
 For `active-work`, load in execution order:
 
-1. `Continue` — execute its READ/RUN/CONFIRM chain.
-2. `Decisions` — treat non-drifted decisions and invariants as binding.
-3. `State` — follow pointers only when the current action needs them.
-4. `Avoid` — consult only before trying a related approach.
+1. Read `Continue` to identify the action, then `Decisions` and `State` for its objective,
+   authorization, and constraints. Current user instructions take precedence.
+2. Consult `Avoid` before trying a related approach; follow evidence pointers only as needed.
+3. Verify the claims controlling the action, then execute READ/RUN/CONFIRM. `CONFIRM` is an
+   observable check, not another approval. Continue toward the remaining objective.
 
 Do not reopen completed issues, broad logs, or the full diff. Confirm live any claim that controls an
 edit. The handoff is routing plus decisions, not proof.

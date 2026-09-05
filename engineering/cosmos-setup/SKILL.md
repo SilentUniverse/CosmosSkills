@@ -1,6 +1,6 @@
 ---
 name: cosmos-setup
-description: Handles per-repo configuration that deviates from the defaults — a non-default issue tracker, non-default PRD/issue paths, legacy states to migrate, or a legacy docs/agents/domain.md to fold into CODEBASE.md. Default-convention repos (local markdown .scratch/, ready|done) need neither this skill nor a docs/agents/ tree; consumer skills proceed on convention and CODEBASE.md's ## Verifier commands zone is born lazily on first backfill. Also the entry for ARTIFACT-FORMAT schema upgrades.
+description: Configure non-default trackers or paths and migrate legacy workflow metadata. Use when a repo needs a tracker/path deviation, legacy state or domain.md migration, or an ARTIFACT-FORMAT schema upgrade. Default local markdown repos need no setup.
 disable-model-invocation: true
 ---
 
@@ -12,8 +12,8 @@ conventions. Defaults need no setup — the issue tracker is local markdown unde
 [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md); verifier commands live lazily in
 `CODEBASE.md`'s `## Verifier commands` zone.
 
-This is a prompt-driven skill, not a deterministic script. Explore, present what you found,
-confirm with the user, then write.
+Inspect the repo and existing authorization, then apply the requested setup or mechanical migration.
+Preview affected paths; ask only about unresolved tracker choices, semantic mappings, or data loss.
 
 ## Process
 
@@ -34,17 +34,17 @@ Look at the current repo to understand its starting state. Read whatever exists;
 
 **Case 1 — Clean repo on defaults.** No `.scratch/`, no `docs/agents/`, no legacy states, no
 non-default paths. Nothing to configure: say so in one line ("defaults apply; nothing to set
-up — skills proceed on convention"), write nothing, done.
+up — skills proceed on convention"), write nothing, and resume the calling task.
 
 **Case 2 — Legacy domain.md cache.** `docs/agents/domain.md` exists. Offer the fold: move its
 real command lines into `CODEBASE.md`'s `## Verifier commands` zone (lazy-birth per the
 ARTIFACT-FORMAT stub), then remove `domain.md` only when nothing non-template remains —
 otherwise rename it `domain.md.bak`. Detail: [MIGRATION.md](MIGRATION.md).
 
-**Case 3 — Old setup detected.** `docs/agents/issue-tracker.md` references `gh` / `glab` CLI,
-or issue files use deprecated states (`needs-triage`, `needs-info`, `wontfix`, `inbox`,
-`blocked`, `doing`, `shelved`). Offer to switch to local-markdown + 2-state, or keep the old
-tracker. Full procedure in [MIGRATION.md](MIGRATION.md).
+**Case 3 — Legacy states or tracker change.** Issue files use deprecated states (`needs-triage`,
+`needs-info`, `wontfix`, `inbox`, `blocked`, `doing`, `shelved`), or the user requests a tracker
+switch. An existing `gh` / `glab` tracker alone is not a migration trigger. Preserve it unless
+the user chose a replacement. Procedure: [MIGRATION.md](MIGRATION.md).
 
 **Case 4 — PRD/issue-like files at non-default paths.** Surface the paths found. Offer two
 options, recommending (i) by default since it is non-destructive:
@@ -60,23 +60,20 @@ to the ARTIFACT-FORMAT contract: full scan → preview → execute ([MIGRATION.m
 **Case 6 — Schema upgrade.** A field is becoming required per an ARTIFACT-FORMAT revision;
 run the upgrade it names.
 
-In all cases, present what was found and the proposed plan for the user to confirm before any
-file is changed. Do not silently rewrite existing user content.
-
 ### 3. The decisions (deviation cases only)
 
-Case 3 reaches the two decision explainers, one at a time: [DECISIONS.md](DECISIONS.md)
+Case 3 uses only the unresolved decisions in [DECISIONS.md](DECISIONS.md)
 (issue tracker; state vocabulary). Case 4's path choice is decided inline in step 2. The doc
 layout is standardized — `CODEBASE.md` (+ optional per-area blocks), optional `CONTEXT.md`,
 optional `docs/adr/` — and is not a per-repo decision.
 
-### 4. Confirm and edit
+### 4. Edit
 
-Show a draft of the `## Agent skills` block; let the user edit before writing.
+Write the resolved `## Agent skills` block. Group consequential open choices into one question;
+continue independent migration work while waiting. A requested preview-only run writes nothing.
 
-**Pick the file to edit:** `CLAUDE.md` if it exists, else `AGENTS.md`; if neither exists, ask
-which to create — don't pick for them. If a block already exists, update it in-place rather
-than appending a duplicate.
+**Pick the file to edit:** update the existing block's host; otherwise `CLAUDE.md` if present,
+else `AGENTS.md` (create lazily if needed). Never append a duplicate block.
 
 **Additive-only rule.** The block is the only content this skill touches. Never edit, reorder,
 or remove surrounding user content in the host file — existing AGENTS.md/CLAUDE.md prose stays
@@ -94,12 +91,10 @@ Non-default only: one-line summary. See `docs/agents/issue-tracker.md`.
 CODEBASE.md (## Verifier commands + map). Optional: CONTEXT.md (monorepo: CONTEXT-MAP.md), docs/adr/.
 ```
 
-**Behavior authority.** Content this workflow adds anywhere must not restate or override
-process behavior the skills already define (autonomy, pauses, gates, summaries); such text in
-a per-repo file is a bug, and skill-defined gates are never waived by standing instructions.
+**Behavior authority.** Record repo configuration, not duplicate process policy. Existing user
+authorization persists across phases; required deterministic evidence still must be obtained.
 
 ### 5. Done
 
-Verify: the block appears exactly once (Case 1: nothing was written); any Case 2 fold left
-either no `domain.md` or a `domain.md.bak`. Name which skills consume what. Re-run only to
-switch trackers or handle another deviation.
+Verify: exactly one block (Case 1: no writes), and any Case 2 fold left no `domain.md` or a backup.
+Name consumers and unresolved deviations; resume the authorized task that setup unblocked.

@@ -5,11 +5,13 @@ record; execution receipts and tests hold machine evidence. Do not narrate the i
 
 ## Before done
 
-1. Trace every diff hunk to an AC; revert unrelated work.
+1. Trace this issue's owned diff hunks to AC. Remove only this issue's own out-of-scope edits;
+   preserve user changes and other workers' hunks even when they appear in the same working tree.
 2. Append newly written test files to frontmatter `test_paths:`.
 3. Cover chosen failure modes: empty/boundary/error and relevant concurrency/timeout behavior.
 4. Ensure executed verifier commands exist in `CODEBASE.md` `## Verifier commands`.
-5. Run the required adversarial review. No substantive challenge means no review.
+5. Challenge the most plausible failure and trace it to evidence. A review with no finding is
+   valid; do not invent a defect, new test, or extra round to satisfy this field.
 
 Hands-on checks an agent cannot run belong in the PRD's 端到端验证, not an issue AC. Exact command,
 exit, observable result, and evidence path are proof; “implemented” or “tests pass” is not.
@@ -68,4 +70,4 @@ restores only that issue to `ready`.
 
 If execution aborts, restore the original status and append one failure note containing exact
 command, error, missing condition, and confirmed facts. `/tdd` stops at validated changes; submission
-is a separate workflow.
+continues through `/commit` in this task when already requested.

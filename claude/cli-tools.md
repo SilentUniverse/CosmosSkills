@@ -2,7 +2,7 @@
 
 ## Forbidden → modern (hard-enforced)
 
-CLAUDE.md §7 is enforced by a `PreToolUse` hook (skill `modern-cli-guardrails`): a `Bash` command is blocked (exit 2) before it runs when a **host-side segment** invokes a legacy tool in command position.
+When the `modern-cli-guardrails` or combined `shell-guardrails` hook is installed, a `Bash` command is blocked (exit 2) before it runs when a **host-side segment** invokes a legacy tool in command position.
 
 The concrete `settings.json` `PreToolUse` config, hook script install locations, and verification steps live in `misc/modern-cli-guardrails/WIRING.md` — not duplicated here.
 
@@ -24,7 +24,7 @@ The harness exposes ripgrep-backed `Grep`, `Glob`, and `Read` tools with permiss
 
 ## Key distinctions
 
-- `jq` is JSON-only; YAML frontmatter needs `yq`. To read an issue's `status` / `blocked_by` / `refines` deterministically: `yq --front-matter=extract '.blocked_by[]' <file>`, never parse frontmatter by hand or by line-grep.
+- `jq` is JSON-only; YAML frontmatter needs `yq`. To read an issue's `status` / `blocked_by` / `refines` deterministically: `yq --front-matter=extract '.blocked_by[]' <file>`, use the workflow parser for mutations; `rg` is sufficient for a simple status inventory.
 - `rg` and `ast-grep` are complementary, not interchangeable. `rg` matches text/lines (fast, use for `^status:` and prose); `ast-grep` matches syntax tree nodes (use for "find all calls to X", "find all `as Type` assertions"). Reach for `ast-grep` only when text matching would be brittle.
 - `rg`/`fd` respect `.gitignore` and let glob exclude paths, e.g. `rg '^status:' -g '**/issues/*.md'` matches active issues without touching `issues/archive/`.
 
@@ -57,6 +57,7 @@ Live watch (print + file):
 <cmd> 2>&1 | Tee-Object -FilePath .scratch/tmp/run-<label>.log # pwsh
 ```
 
-- Digest then delete: remove the log once the failure is resolved.
-- Too big to digest even with rg? Hand the log **path** to a read-only subagent; it reads the file and reports the verdict.
+- Keep logs referenced by completion receipts; delete only unreferenced temporary logs after resolution.
+- Read targeted log windows. Delegate only when independent analysis can run alongside useful main work;
+  output size alone does not justify a subagent.
 - An `@`-mentioned log path means "read this file" — same digestion rules; never ask the user to paste log contents.

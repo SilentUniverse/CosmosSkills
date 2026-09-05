@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Test-driven development with red-green-refactor loop. Runs one issue path, or drains ready issues (serial, or `-p` parallel waves). Use when the user names an issue/feature to implement test-first, or says "red-green-refactor" / `--log`. A bare requirement with no issue is `/spec`. A failure without a known cause is `/diagnose`, not this skill.
+description: Test-driven development with red-green-refactor loop. Runs one issue path, or drains ready issues (serial, or `-p` parallel waves). Use when the user names an issue/feature to implement test-first, or says "red-green-refactor" / `--log`. A small settled requirement can run inline; substantial planning routes through `/spec` in the same task. A failure without a known cause is `/diagnose`, not this skill.
 argument-hint: "Issue path, feature slug, -p, --full, --log, or nothing to drain all ready issues"
 ---
 
@@ -14,7 +14,9 @@ argument-hint: "Issue path, feature slug, -p, --full, --log, or nothing to drain
 - `/tdd -p [<feat>]` — **drain (parallel)**: ready issues fan out to subagents (one per issue, ≤4 in flight); each issue's verbose output stays isolated, independent slices finish in parallel. Wave rules: declared collisions serialize, undeclared issues run alone. Worktree only on explicit request, and runner-driven session rotation: [DRAIN.md](DRAIN.md).
 - `/tdd --full` — run build + the whole suite now (§5); combines with any form above.
 - `/tdd --log` — the verdict is a command's log file, not test runs: [LOG.md](LOG.md). Same mode when the user says this run drives a device and the result lands in a log file. Combines with any form above.
-- Natural-language ask without an issue path — stop; tell the user to `/spec` first. Do not interview, do not write tests.
+- No issue path: for one settled local behavior, keep outcome, constraints, and evidence inline
+  and execute this loop without issue artifacts. Multi-slice or unresolved product work uses `/spec`
+  first, then resumes here within the original request. Unknown failures use `/diagnose`.
 
 ### Drain mode
 
@@ -25,16 +27,16 @@ Enumerate `ready` issues, topologically sort on `blocked_by`, run the batch thro
 | Status | Action |
 | --- | --- |
 | `ready` | **Autonomous mode** — skip "confirm with user" prompts; run unattended. |
-| `done` | **Refuse.** Print: "this issue is `done`; create a redo issue or set `status:` back to `ready` first." |
-| anything else | Refuse with the same guidance. |
+| `done` | Verify/report existing completion. A requested behavior change routes to `/spec` for a redo; do not ask the user to edit status. Active-batch recovery follows DRAIN. |
+| anything else | Inspect the invalid state; repair an unambiguous schema typo, otherwise report the exact ambiguity. Do not guess approval from status. |
 
 Edge cases — prior `### 完成` on a `ready` issue, or `category: redo`/`fix` (parent-test fate): [EDGE-CASES.md](EDGE-CASES.md).
 
 ## Completion record
 
-**Issue-based runs only.** When all AC pass, run an adversarial review, check `git diff` traces to this issue's AC, set `status: done`, append a `### 完成` block to `## Comments`. Procedure + template (incl. the Murphy failure-mode check): **[COMPLETION-RECORD.md](COMPLETION-RECORD.md)**.
+**Issue-based runs only.** When all AC pass, review this issue's owned diff against its AC, preserve other work, write the completion record, then close to `done`: **[COMPLETION-RECORD.md](COMPLETION-RECORD.md)**.
 
-Standalone `/tdd` does **not** submit; use the Submit workflow named in `CLAUDE.md`.
+Submit through `/commit` only when the user requested it; then continue there after validation.
 
 ## Test philosophy
 
@@ -46,21 +48,22 @@ Tests verify behavior through public interfaces, not implementation details; exp
 
 Start from first principles about the approach. Use the project's domain glossary so test names and interface vocabulary match the project's language; respect ADRs in the area touched.
 
-Before writing any code: list the behaviors to test, not implementation steps; confirm interface
-changes, behaviors, and plan with the user; shape deep modules and testable interfaces;
-`/codebase-design` only when a new seam is in play or the interface is unclear. Autonomous mode
-skips confirmation because the aligned issue's 做什么/AC/验证设计 plus the PRD extract in `## 上级`
-are the contract. Existing coverage first: [tests.md](tests.md) §Existing coverage.
+Use settled requirements as the contract; infer routine interface and test mechanics from the repo.
+Ask only a new consequential decision. Shape a new seam with `/codebase-design` when needed.
+Existing coverage first: [tests.md](tests.md) §Existing coverage. Inline runs use their stated
+behavior/evidence contract; issue runs use 做什么/AC/验证设计 and the parent extract.
 
 **Pre-issue statement (autonomous mode).** Before the first edit, recompute the recorded environment
-fingerprint. A standalone run replays every referenced P# without setup. A drain run may reuse an
+fingerprint. Replay the issue’s referenced P#; reuse a just-observed identical check in this task if its
+action, cwd, and fingerprint are unchanged. A drain run may reuse an
 exact orchestrator-supplied `receipt-hit:<key>` from [DRAIN.md](DRAIN.md); a unique tuple replays
 normally, while drift leaves the card ready. Subagents never write the receipt. Then state in 2–3 lines:
 what this slice requires, which interface you'll shape, which behaviors you'll test first, how the
 issue says to prove them, and the biggest assumption. Don't wait for a reply. A fingerprint drift or
-failed P# leaves the issue `ready`: append exact expected/observed evidence and report red. Never
-install, upgrade, start an undeclared dependency, or substitute a verifier at execution time. If an
-AC→evidence mapping cannot run, use the same red path; do not silently redesign an aligned card.
+failed P# leaves the issue `ready`: record expected/observed evidence. The caller restores declared
+setup or repairs a stale environment record outside the behavior wave, replays P#, then resumes.
+Ask only if that repair needs new authority or changes product/dependency choices. Keep production
+writes paused until readiness passes; never silently replace the required verifier.
 
 ### 2. Tracer Bullet
 
@@ -76,12 +79,11 @@ For each remaining behavior: RED (write next test, watch it fail) → GREEN (min
 
 **What to run each cycle.** RED/GREEN runs execute only the test just written (`pytest path/test_x.py::test_y`). The touched module's tests run once per slice, at GREEN completion before refactor. The full suite stays batch-level (§5). Cache scoped-test / module-test / build commands in `CODEBASE.md`'s `## Verifier commands` zone, created lazily per the ARTIFACT-FORMAT stub when absent.
 
-**Receipt conflict.** TDD never edits an aligned receipt or AC verification design. Clear contract
+**Receipt conflict.** TDD never weakens aligned behavior or required proof to make a failure pass. Clear contract
 invalidation appends the exact evidence, keeps the card `ready`, stops production-code writes, and
-routes to `/spec`. An ambiguous main-agent case loads the blind
+routes to `/spec` within this task; the caller resumes after repair or the required decision. An ambiguous main-agent case loads the blind
 [classifier](../atk/RECEIPT-CONFLICT.md). A drain executor starts no nested review; any possible
-receipt conflict takes the batch barrier in [DRAIN.md](DRAIN.md). Only a contract-preserving
-artifact fix returns to RED/GREEN.
+receipt conflict takes the batch barrier in [DRAIN.md](DRAIN.md). A contract-preserving artifact fix returns directly to RED/GREEN without user realignment.
 
 ### 4. Refactor
 

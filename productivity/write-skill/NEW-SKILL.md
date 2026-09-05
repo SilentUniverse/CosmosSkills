@@ -6,28 +6,26 @@ rules stay in SKILL.md.
 
 ## Process
 
-1. **Gather requirements** - ask user about:
-   - What task/domain does the skill cover?
-   - What specific use cases should it handle?
-   - Does it need executable scripts or just instructions?
-   - Any reference materials to include?
+1. **Establish scope**: extract the task, triggers, use cases, and references from the request,
+   prior answers, and workspace. Ask only about a missing consequential requirement. Choose
+   reversible structure and implementation details yourself.
 
 2. **Draft the skill** - create:
    - SKILL.md with concise instructions
-   - Additional reference files if content exceeds 100 lines
-   - Utility scripts if deterministic operations needed
+   - Reference files for branch-specific material that benefits from separate loading
+   - Utility scripts when repeated deterministic work justifies maintaining them
 
-3. **Review with user** - present draft and ask:
-   - Does this cover your use cases?
-   - Anything missing or unclear?
-   - Should any section be more/less detailed?
+3. **Validate and deliver**: complete the acceptance pass in [SKILL.md](SKILL.md), then report
+   the resulting files and any unresolved limitation. A request to create a skill authorizes
+   completing it; a draft-only request ends at the reviewed draft. Installation or publication
+   follows the user's existing authorization, not an automatic new phase confirmation.
 
 ## Skill Structure
 
 ```
 skill-name/
 ├── SKILL.md           # Main instructions (required)
-├── <Semantic>.md      # Detailed docs if >100 lines — semantic names (PEDAGOGY.md,
+├── <Semantic>.md      # Optional branch-specific docs — semantic names (PEDAGOGY.md,
 │                      #   not REFERENCE.md); header: "Loaded on demand … when"
 └── scripts/           # Utility scripts (if needed)
     └── helper.js
@@ -68,10 +66,5 @@ Skills without a reproduced escape carry none.
 
 ## When to Add Scripts
 
-Add utility scripts when:
-
-- Operation is deterministic (validation, formatting)
-- Same code would be generated repeatedly
-- Errors need explicit handling
-
-Scripts save tokens and improve reliability vs generated code.
+Reuse an existing tool first. Add a script when repeated deterministic work or error-prone boundary
+handling justifies maintenance; a one-off operation does not need a permanent helper.

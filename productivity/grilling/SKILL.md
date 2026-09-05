@@ -5,18 +5,19 @@ description: Interview engine called by `/grill` and `/improve-arch`. Work the d
 
 Start from first principles.
 
-Interview me relentlessly about every aspect of this plan until we reach a shared understanding. Map this as a **design tree**: every decision branches into the decisions that depend on it.
+Stress-test the plan's consequential decisions. Map their dependencies as a **design tree**, carrying forward the user's stated goals, constraints, and settled answers.
 
-Work the tree in **rounds**. The **frontier** is every decision whose prerequisites are already settled: the questions you can ask now without guessing at answers you haven't heard. Ask the whole frontier at once: number each question, give your recommended answer. Then wait for my answers before the next round.
+Work in **rounds**. The **frontier** contains unresolved decisions whose prerequisites are settled. Ask a small batch of the highest-impact questions with recommended answers; defer details that cannot change the next artifact. While answers are pending, continue fact-finding and independent branches.
 
-Split what's in front of you into two piles: **facts** — anything you could settle by exploring the environment (codebase, files, tools, docs), look those up yourself; and **decisions** — the calls only I can make, put each one to me with your recommended answer.
+Look up facts in the environment yourself. Resolve reversible implementation details within the agreed constraints; ask only for consequential choices the user has not already settled.
 
-When a decision's options are enumerable, present it via the AskUserQuestion tool with your recommended option first; otherwise ask in free text.
+When options are enumerable, use the host's question tool if available, with your recommended option first; otherwise ask in free text.
 
-Finding facts is your job, not mine. When a frontier question needs a fact you can't find in the codebase, dispatch `/research`; only the questions downstream of that fact wait. Ask the rest of the frontier now.
+When local evidence is insufficient, research the missing fact; use `/research` when its workflow helps. Only questions downstream of that fact wait.
 
 Each round's answers reshape the tree; settled decisions push the frontier outward. Recompute and continue.
 
-End when the next artifact is obvious: decisions, route-changing assumptions, next skill. When you
-stop, name what was left unasked and why it is safe to defer; do not grind every branch to the
-bottom. A design question needing a concrete artifact: note it, recommend `/prototype` at the end. No code or submit; write artifacts only when the calling skill owns them. Invoked bare, grilling writes nothing.
+Return to the caller when the consequential decisions support its next artifact; identify any
+remaining dependency and why other questions can be deferred. A question requiring an experiment
+may route to `/prototype` within the caller's authorization. This interview writes no code or
+submissions; artifacts belong to the calling skill. Invoked bare, grilling writes nothing.

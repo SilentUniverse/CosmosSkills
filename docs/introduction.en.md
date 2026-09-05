@@ -38,7 +38,7 @@ The essential difference from conventional standards (SOLID, Clean Code, Design 
 
 **A closed loop.** SPEC fixes intent and prepares P#; a Design Receipt appears only when a human decision can change the result. Ready cards flow to TDD execution and proof, then two-axis review and a one-screen report. Delivered state is projected on demand instead of copied into SUMMARY files; tidy only removes closed-batch caches. Handoffs carry HEAD and worktree digests and are consumed once.
 
-**A resident constitution.** Global CLAUDE.md keeps only rules needed every turn; detailed platform and workflow guidance is loaded through pointers. A clear, local, reversible request with an objective verifier proceeds without ceremonial reconfirmation. Explanatory inline comments are off by default; only code-inexpressible contracts, reasons, and external constraints remain.
+**A resident constitution.** AGENTS.md routes Codex to the shared CLAUDE.md policy; resident rules stay small; detailed platform and workflow guidance is loaded through pointers. A settled request proceeds using repository evidence and reversible implementation defaults; prior authorization survives skill transitions. Explanatory inline comments are off by default; only code-inexpressible contracts, reasons, and external constraints remain.
 
 **Two audiences.** Human-facing text optimizes for decisions: goals, boundaries, evidence, risks, and unresolved choices. AI-facing text optimizes for execution: paths, commands, compact state, receipts, and invariants. Logs and derived views remain on disk rather than consuming conversation context.
 

@@ -19,7 +19,8 @@ Before writing code, write down what state model and what question you're protot
 
 ### 2. Pick the language
 
-Use whatever the host project uses. If the project has no obvious runtime (e.g. a docs repo), ask.
+Use the host project's runtime. If none is prescribed, choose an installed runtime with a small
+standard-library implementation; ask only if runtime compatibility changes the experiment.
 
 Match the project's existing conventions for tooling. Don't add a new package manager or runtime just for the prototype.
 
@@ -58,21 +59,25 @@ The whole frame should fit on one screen.
 
 ### 5. Make it runnable in one command
 
-Add a script to the project's existing task runner (`package.json` scripts, `Makefile`, `justfile`, `pyproject.toml`). The user should run `pnpm run <prototype-name>` or equivalent; they should never need to remember a path.
+Use a direct run command when sufficient. Add a task-runner alias only if it materially simplifies
+setup or repeated use; a throwaway prototype does not require project configuration churn.
 
 If the host project has no task runner, just put the command at the top of the prototype's README.
 
 ### 6. Hand it over
 
-Give the user the run command. They'll drive it themselves; the interesting moments are when they say "wait, that shouldn't be possible" or "huh, I assumed X would be different". Those are the bugs in the _idea_. If they want new actions added, add them.
+Run startup, representative transitions, and quit; report the observed state. Then give the run
+command for exploration. If interactive control is unavailable, exercise the logic directly and
+state the untested TUI gap rather than claiming an operated UI.
 
 ### 7. Capture the answer
 
-When the prototype has done its job, the answer to the question is the only thing worth keeping. If the user is around, ask what it taught them. If not, leave a `NOTES.md` next to the prototype so the answer can be filled in (or filled in by you, if you've watched the session) before the prototype gets deleted.
+Capture the observed answer and unresolved model choices. Ask for user judgment only when needed;
+retain the runnable artifact while that judgment is pending. Resume broader authorized work when settled.
 
 ## Anti-patterns
 
-- **Don't add tests.** A prototype that needs tests is no longer a prototype.
+- **Keep verification proportional.** Exercise the model and add a small assertion when it proves the question; avoid production test infrastructure.
 - **Don't wire it to the real database.** Use an in-memory store unless the question is specifically about persistence.
 - **Don't generalise.** No "what if we wanted to support X later." The prototype answers one question.
 - **Don't blur the logic and the TUI together.** If the reducer / state machine references `console.log`, prompts, or terminal escape codes, it's no longer portable. Keep the TUI as a thin shell over a pure module.

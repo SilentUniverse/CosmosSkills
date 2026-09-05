@@ -1,8 +1,8 @@
 # spec — Additive re-run
 
 Loaded on demand by [`/spec`](SKILL.md) step 1 when a hit in the target feature falsifies
-nothing recorded. The older PRD stays untouched; additive re-runs do not supersede. The bullets
-below are proposals until the Design Receipt is aligned; WRITE-LOOP then applies them together.
+nothing recorded. The older PRD stays untouched; additive re-runs do not supersede. Apply the settled request through WRITE-LOOP; use a Design Receipt only for a newly unresolved
+consequential decision. An additive re-run does not itself require confirmation.
 
 - Growing an existing unit → edit the `ready` issue in place; refresh its `## 上级` extract
   if the parent PRD lines it cites moved. `done` issues are never edited. A change that

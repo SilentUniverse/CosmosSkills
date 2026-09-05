@@ -8,20 +8,25 @@ Don't restate what the environment answers (package.json scripts, config values,
 
 ## Session start protocol
 
-Before working, load the project's orientation layer if present:
-0. **Cheap-path escape**: a trivial or read-only task (quick question, single-file glance) pulls only what the task names.
-1. `CODEBASE.md` and `CONTEXT.md` in full (root is the skeleton — synthesis + routing + roster; per-area detail lives in `src/<area>/CLAUDE.md` generated blocks, auto-injected by Claude Code when files in that area are read — no manual pull).
-2. `docs/adr/` **titles only** (pull an ADR body only when you touch the area it governs).
-3. Skip silently anything absent — this self-disables in repos that don't use these conventions.
-4. If **none** of the three exists yet, don't keep silent: say so once and offer to build the layer (`/domain-modeling` for the glossary, `/map` for the structural map) — then proceed either way.
-5. Drift check last, after the stable loads: `git rev-list --count <oldest git_base>..HEAD` (collect `git_base` from the root and `**/CLAUDE.md` marker blocks); zero → skip. Non-zero → one `git log --name-only` pass mapping changed paths to root sections and per-area blocks. Drifted = commits touched the block's area since its `git_base`; HEAD moving alone is not drift. Offer to refresh drifted blocks via `/map`.
+Start with named inputs. For unfamiliar nontrivial work, use `CODEBASE.md` routing and relevant
+`CONTEXT.md` terms; read ADR titles and open only decisions governing the affected area. Issue or
+handoff pointers are the initial read set, not a ban on investigating a discovered dependency.
+Skip missing orientation files. Create/refresh a map only when navigation or a changed invariant
+needs it; no bootstrap offer or full-map drift scan on every session.
 
-This load happens every session unconditionally; `/resume` reuses it and layers a handoff on top. The doc layout is standardized (root `CODEBASE.md` with its hand `## Verifier commands` zone and generated map; optional `CONTEXT.md`; optional `docs/adr/`); monorepos may add `CONTEXT-MAP.md`. Issue state is queried, never cached: live roster via `rg '^status:' -g '**/issues/*.md' .scratch` (the glob excludes `archive/`); effective delivered behavior via `workflow-state.py inspect`, which reads top-level and legacy archived done issues without writing a `SUMMARY.md`.
+Claude Code may inject per-area `CLAUDE.md` blocks. Other hosts read the relevant referenced blocks
+explicitly when needed. Do not assume one host's automatic loading applies to every host.
+At a real resume, follow `/resume`'s minimal boot chain before unrelated orientation work.
+
+Issue state is queried on demand: live roster via `rg '^status:' -g '**/issues/*.md' .scratch`;
+effective delivered behavior via `workflow-state.py inspect`. Neither creates `SUMMARY.md`.
 
 `AGENTS.md`/`CLAUDE.md` is the always-loaded doorplate: what this repo is, the pointer block, deviation declarations, repo-specific constraints. Content the workflow adds there is additive-only and never restates process behavior the skills define.
 
 ## Immutability rules
 
-- An issue with `status: done` (in YAML frontmatter) is immutable: never edit its body or change its `status`. The git commit is the source of truth. To revise, create a new redo issue (`NN-redo-<slug>.md`).
+- A shipped `done` issue preserves its contract and history. Later requirement changes create a
+  redo issue. During its active batch only, failed integration/review may reopen it to `ready` with
+  evidence; appending test ownership is also permitted by ARTIFACT-FORMAT. Preserve prior records.
 - An ADR superseded by another ADR is immutable: never edit its body. Mark it superseded; the new ADR carries the change.
 - Re-running `/spec` writes `PRD-vN.md` only when a recorded AC or decision goes false. Additive re-runs edit `ready` issues or add `detail`; they do not supersede. The older PRD stays untouched.

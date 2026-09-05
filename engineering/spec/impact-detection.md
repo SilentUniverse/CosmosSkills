@@ -51,8 +51,8 @@ Two kinds of impact, very different confidence:
 | **Affected tests** (key for coupling) | `vitest related <file>` / `jest --findRelatedTests <file>` | reliable — answers "which existing tests need their expectations changed" |
 | Structural fallback | `ast-grep -p 'refund($$$)' --lang ts` | type-blind (can't tell same-named methods apart) |
 
-`tsc --noEmit` + `vitest related` cover ~90%. The subagent only needs to add the behavioural-
-assumption layer that neither compile nor grep can see. **TS report = high confidence.**
+`tsc --noEmit` plus related-test selection constrain typed reachability. Inspect semantic coupling
+that neither can establish; report the actual coverage limits, not an assumed percentage.
 
 For browser/Electron work, static reachability is not runtime integrity. Inspect the current CSP
 and the main/preload/renderer ownership of network and file resources before fixing the design.
@@ -106,12 +106,15 @@ missed — scan manually."** Never imply the list is complete.
 
 ## Where the commands live
 
+Use already installed project tools; the tables list options, not a tool-install checklist.
+A module suite is a valid fallback when no related-test selector exists.
+
 These commands are **stack-specific**, so they live as lines in the project's `CODEBASE.md`
 `## Verifier commands` zone — the single hand section; they never open a section of their own
 (its "stack adaptation" home), not in any skill. Drop a section in once:
 
 ```markdown
-## 影响面探测命令（impact detection）
+## Verifier commands
 - TS 受影响代码：baseline/candidate `tsc --noEmit` 差分；不动代码用 ts-morph findReferences
 - TS 受影响测试：`vitest related <file>`
 - Py 受影响代码：`pyright-impact.py capture/diff`（只看 new diagnostics）+ `rg '\bSYM\b'`（动态候选）
@@ -119,7 +122,7 @@ These commands are **stack-specific**, so they live as lines in the project's `C
 - import 图：TS `madge`，Py `grimp`
 ```
 
-Then any session loads it at startup and knows which commands this repo uses; no skill edit, and
+Then a session reads this zone when choosing a verifier; no skill edit, and
 skills stay stack-agnostic.
 
 ## Other languages

@@ -5,15 +5,16 @@ description: Disciplined diagnosis loop for hard bugs and performance regression
 
 # Diagnose
 
-A discipline for hard bugs. Skip phases only when explicitly justified.
+Reuse existing repros and combine phases when the cause is clear. Fix requests run through verified repair; diagnosis-only ends with findings.
 
 ## Phase 1 — Build a feedback loop
 
-**This is the skill.** Everything else is mechanical. If you have a **tight** pass/fail signal for the bug, one that goes red on _this_ bug, you will find the cause; bisection, hypothesis-testing, and instrumentation all just consume it. If you don't have one, no amount of staring at code will save you.
+Build a pass/fail signal for the user's exact symptom. Inspect relevant code, logs, configuration,
+and existing tests to locate the trigger; treat explanations as hypotheses until evidence tests them.
 
-Spend disproportionate effort here. **Be aggressive. Be creative. Refuse to give up.**
+Use the cheapest loop that distinguishes the bug from correct behavior; refine it only as needed.
 
-Construction menu (failing test / curl / CLI diff / browser script / trace replay / throwaway harness / fuzz / bisect / differential / HITL), loop tightening, non-deterministic bugs, and the cannot-build-a-loop escape: **[FEEDBACK-LOOPS.md](FEEDBACK-LOOPS.md)**.
+Loop construction, tightening, flaky bugs, and missing-environment fallback: **[FEEDBACK-LOOPS.md](FEEDBACK-LOOPS.md)**.
 
 ### Completion criterion — a tight loop that goes red
 
@@ -24,11 +25,10 @@ Phase 1 is done when the loop is **tight** and **red-capable**: you can name **o
 - [ ] **Fast** — seconds, not minutes. (Slow-but-justified: proceed, note the cost.)
 - [ ] **Agent-runnable** — you can run it unattended; a human in the loop only via the HITL template.
 
-If you catch yourself reading code to build a theory before this command exists, **stop. Jumping straight to a hypothesis is the exact failure this skill prevents.** No red-capable command, no Phase 2.
+If the loop cannot run, record the missing capability and continue source/trace analysis and local
+repro preparation. Request only the access or artifact still needed; do not claim a verified cause.
 
 ## Phase 2 — Reproduce + minimise
-
-Run the loop. Watch it go red — the bug appears.
 
 Confirm:
 
@@ -38,13 +38,16 @@ Confirm:
 
 ### Minimise
 
-Once it's red, shrink the repro to the **smallest scenario that still goes red**. Cut inputs, callers, config, data, and steps **one at a time**, re-running the loop after each cut. Done when removing any one element makes the loop go green. The minimal repro becomes the clean regression test in Phase 5.
+Once it's red, remove unrelated inputs and steps while preserving the user's failure. Stop shrinking
+when the repro isolates the cause well enough to test a fix; keep the original scenario for validation.
 
-Do not proceed until you have reproduced **and** minimised.
+Reproduced evidence is required for a verified fix; exact minimality is not a gate.
 
 ## Phase 3 — Hypothesise
 
-Generate **3–5 ranked hypotheses** before testing any of them. Single-hypothesis generation anchors; so does a same-mind set. Hard bugs: dispatch 2–3 parallel read-only subagents, each proposing hypotheses without seeing the others', then merge and dedupe. Rank by evidence coverage (how many observed facts each explains) × parsimony (fewer assumed moving parts wins).
+Start with the best evidence-backed hypothesis and a disconfirming probe; add alternatives for
+ambiguous evidence or failed probes. Rank by evidence coverage and parsimony. Bounded independent
+subagents may help hard bugs when available; otherwise compare inline.
 
 Each hypothesis must be **falsifiable**: state the prediction it makes.
 
@@ -52,7 +55,7 @@ Each hypothesis must be **falsifiable**: state the prediction it makes.
 
 If you cannot state the prediction, the hypothesis is a vibe; discard or sharpen it.
 
-**Show the ranked list to the user before testing.** They often have domain knowledge that re-ranks instantly, or know hypotheses they've already ruled out. Cheap checkpoint, big time saver. Don't block on it. Proceed with your ranking if the user is AFK.
+Briefly state the leading hypothesis and next probe, then test it without a confirmation gate.
 
 ## Phase 4 — Instrument
 
@@ -66,13 +69,13 @@ Tool preference:
 
 **Tag every debug log** with a unique prefix, e.g. `[DEBUG-a4f2]`. Cleanup at the end becomes a single `rg '\[DEBUG-a4f2\]'`. Untagged logs survive; tagged logs die.
 
-**Perf branch.** For performance regressions, logs are usually wrong. Instead: establish a baseline measurement (timing harness, profiler, query plan), then bisect. Measure first, fix second.
+**Perf branch.** Establish a measured baseline with a timing harness, profiler, or query plan; bisect only when history helps isolate the regression. Measure first, fix second.
 
 ## Phase 5 — Fix + regression test
 
 Write the regression test **before the fix**, but only if there is a **correct seam** for it: one where the test exercises the **real bug pattern** as it occurs at the call site. A too-shallow seam (single-caller test when the bug needs multiple callers, a unit test that can't replicate the triggering chain) gives false confidence.
 
-**If no correct seam exists, that itself is the finding.** The architecture is preventing the bug from being locked down. Note it; flag it for the next phase.
+**If no correct test seam exists**, keep the executable repro as evidence, apply the confirmed fix, and report the regression-test gap. Do not stop the repair merely to redesign the architecture.
 
 If a correct seam exists:
 
@@ -86,11 +89,12 @@ If a correct seam exists:
 
 Required before declaring done:
 
-- [ ] Original repro no longer reproduces (re-run the Phase 1 loop)
+- [ ] Original repro passes after the fix; reuse the Phase 5 run if code/environment are unchanged
 - [ ] Regression test passes (or absence of seam is documented)
-- [ ] Existing tests of the touched module(s) still green; full suite if the fix crossed modules (commands cached in `CODEBASE.md`'s `## Verifier commands` zone)
+- [ ] Relevant module and integration checks pass; broaden for affected contracts or unresolved risk, not file count (`CODEBASE.md`'s `## Verifier commands` caches commands)
 - [ ] All `[DEBUG-...]` instrumentation removed (`rg` the prefix)
-- [ ] Throwaway prototypes / repro scripts deleted from `.scratch/tmp/`
-- [ ] The hypothesis that turned out correct is stated in the commit / PR message so that the next debugger learns
+- [ ] Remove temporary artifacts created by this task once their regression evidence is retained
+- [ ] State the cause, fix, and verification in the result; include them in a commit/PR only if submission is requested
 
-**Then ask: what would have prevented this bug?** If the answer involves architectural change (no good test seam, tangled callers, hidden coupling) hand off to the `/improve-arch` skill with the specifics. If the root cause was an `rg`-invisible invariant (hidden constraint, surprising coupling), persist it to the area's `CODEBASE.md` block, applying the two-axis test per `/map`, and report; no `CODEBASE.md` yet → note it in the wrap-up instead. Make the recommendation **after** the fix is in, not before. You have more information now than when you started.
+Pursue prevention only within scope. Record an `rg`-invisible invariant in an existing `CODEBASE.md`
+block using `/map`'s two-axis test; otherwise mention it in the result. Continue authorized work.

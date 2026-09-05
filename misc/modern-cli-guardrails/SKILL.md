@@ -6,14 +6,16 @@ disable-model-invocation: true
 
 # Setup Modern CLI Guardrails
 
-> **Prefer `shell-guardrails`** (one self-contained Python script, three prioritized tiers — this hook plus the git hook plus the path-world guard, with the `# force-legacy` escape scoped to the legacy-CLI tier only; same file on Windows `python` and Unix `python3`). This skill's legacy `.ps1`/`.sh` carriers remain for standalone installs and machines not yet rewired.
+Use [shell-guardrails](../shell-guardrails/SKILL.md) when its combined policy is requested or
+already installed. Use the standalone carrier when only this skill's protections are wanted;
+adding the combined engine also adds destructive-git restrictions.
 
 Turns CLAUDE.md §7 (Modern CLI Tooling) from a soft guideline into a hard rule: a
 PreToolUse hook intercepts every `Bash` tool call and blocks it before execution
 if a **host-side segment** of the command invokes a legacy tool (`grep`, `find`,
 `sed`). `ls` is deliberately not blocked; it is too frequent to replace.
 
-> Not yet on `shell-guardrails`? Windows uses the bundled `.ps1` via `pwsh` (5.1-compatible); Unix/WSL uses the `.sh`. Both are superseded carriers — new installs should take the combined hook.
+Standalone installs use `.ps1` through `pwsh` or `powershell` on Windows and `.sh` on Unix/WSL.
 
 ## What Gets Blocked
 
@@ -47,40 +49,42 @@ When blocked, Claude sees the message on stderr and retries with the modern tool
 - Name lookups, not executions: `which grep`, `type grep`, `command -v grep`.
 - Look-alikes (`ripgrep`, `fdfind`, `pcre2grep`, `lsd`, `git grep`) and modern tools (`rg`, `fd`, `bat`, `sd`).
 - **Escape hatch** for the legacy tier only: prefix the command with a `# force-legacy` comment line, or set `ALLOW_LEGACY_CLI=1` in the shell that launches Claude Code. An inline `ALLOW_LEGACY_CLI=1 cmd` prefix is invisible to the hook, which runs in its own process.
-- Dynamic forms static analysis cannot judge (`x=git; $x push`, `eval "$cmd"`) pass — documented gaps, see `../../shell-guardrails/README.md`.
+- Dynamic forms static analysis cannot judge (`x=git; $x push`, `eval "$cmd"`) pass; see
+  [known gaps](../shell-guardrails/README.md).
 
 The hook is failure-safe: malformed input, a missing dependency, or any internal error exits 0 (allow).
 
 ## Steps
 
-### 1. Ask scope
+### 1. Resolve scope
 
-Ask the user: install for **this project only** (`.claude/settings.json`) or **all projects** (`~/.claude/settings.json`)?
+Reuse the requested scope or existing target. A request scoped to this repository uses
+`.claude/settings.json`; all-project scope uses `~/.claude/settings.json`. Ask only if the
+intended scope remains unclear after inspecting the request and existing configuration.
 
 ### 2. Copy the hook script
 
-New installs take the combined engine — one file, both platforms:
+Copy the carrier whose policy matches the request:
 
-- **Preferred:** [../shell-guardrails/scripts/guard-shell.py](../shell-guardrails/scripts/guard-shell.py) (deploy + wire per that skill's WIRING)
+- **Combined:** [../shell-guardrails/scripts/guard-shell.py](../shell-guardrails/scripts/guard-shell.py) (deploy + wire per that skill's WIRING)
 - **Legacy carriers, standalone installs only:** [scripts/block-legacy-cli.ps1](scripts/block-legacy-cli.ps1) (Windows) / [scripts/block-legacy-cli.sh](scripts/block-legacy-cli.sh) (Unix; needs `jq` on PATH, fails open without)
 
 Target locations by scope: `.claude/hooks/` (project) or `~/.claude/hooks/` (global).
 
-> In this repo, `install.ps1` distributes guard-shell.py and the legacy `.ps1` pair to `~/.claude/hooks/`; re-run it after editing anything under `scripts/`. The legacy `.sh` is synced manually. The manual copy is for other machines.
+Copy only to the selected target. A source edit does not itself request global installation.
 
 ### 3. Add hook to settings
 
 Wire the hook into the settings file per scope and platform: [WIRING.md](WIRING.md). If the
 settings file already exists, merge the hook into the existing `hooks.PreToolUse` array; don't
-overwrite other settings. With the combined engine you wire ONE entry — it
-already includes the git tier, so do not also wire `git-guardrails-claude-code`.
+overwrite other settings. Remove duplicate checks only when the combined engine covers their
+required policy; it does not cover the standalone git carrier's push block.
 
-### 4. Ask about customization
+### 4. Apply requested customization
 
-Ask if the user wants to add or remove tools from the blocked map. Edit the
-legacy tier's tuple in `guard-shell.py` (`legacy_cli_hit`; the `$map` in the
-legacy `.ps1` mirrors it), then re-run the corpus.
+Keep the default tool map unless customization was requested. Edit the selected carrier's map
+when needed, preserving the other tiers, then verify that policy.
 
 ### 5. Verify
 
-Run the shared corpus (expect every case to pass): [WIRING.md](WIRING.md) §Verify.
+Verify the selected carrier and deployed wiring: [WIRING.md](WIRING.md) §Verify.

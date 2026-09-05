@@ -57,4 +57,5 @@ The skill infers which structure applies:
 - If only a root `CONTEXT.md` exists, single context
 - If neither exists, create a root `CONTEXT.md` lazily when the first term is resolved
 
-When multiple contexts exist, infer which one the current topic relates to. If unclear, ask.
+When multiple contexts exist, inspect ownership and call sites to select the relevant context.
+Ask only if unresolved ownership would change the model; keep that term draft and resolve others.

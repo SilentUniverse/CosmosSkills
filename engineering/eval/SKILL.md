@@ -1,15 +1,14 @@
 ---
 name: eval
-description: Run opt-in behavior evaluation of agent skills or workflow revisions with isolated paired trials, evidence grading, and regression/Pareto reports. Use only when the user explicitly asks to evaluate, benchmark, compare, or validate the workflow.
+description: Run opt-in behavior evaluation of agent skills or workflow revisions with isolated paired trials, evidence grading, and regression/Pareto reports. Use only for explicit model-run evaluation or benchmarking; ordinary audits and deterministic validation do not enable paid trials.
 disable-model-invocation: true
 argument-hint: "smoke|full [scope], export <campaign>, status/report <path>"
 ---
 
 # Workflow Eval
 
-This is the manual circuit breaker for expensive workflow evaluation. Never invoke it from normal
-`/spec`, `/tdd`, review, install, or commit flows. No session means eval is off. The normal artifact
-gate and task-local SPEC preflight are not eval; they stay cheap and protect the current task.
+Explicit evaluation requests enable model trials; ordinary development, review, installation, and
+commits do not. Deterministic artifact gates and task-local preflights remain ordinary validation.
 Run it from the CosmosSkills source checkout (resolve this installed skill's symlink when needed),
 because the case corpus and fixtures are source assets, not copied into ordinary product repos.
 
@@ -33,7 +32,8 @@ duration and cost read [`../../evals/adapters/zcode.md`](../../evals/adapters/zc
 ## Open a session
 
 Resolve scope from changed skill(s), the real failure reproducer, or an explicit case. Show selected
-case IDs and expected cost before launching agents. Create a local ignored session:
+case IDs and expected cost before launching agents. Reuse the approved mode/budget; ask only for
+unsettled material cost or scope. Create a local ignored session:
 
 ```bash
 python3 scripts/eval.py start-session .eval-runs/<name> --cases evals/cases \
@@ -55,8 +55,9 @@ gates grade first. AI judges are independent, blind, versioned, and calibrated; 
 only irreducible properties. A model's own success message is never a grader.
 
 Use `session-status` between batches. Do not change controls or cases inside an open session; start a
-new one instead. Stop on budget exhaustion, unsafe external mutation, or a missing fixture and mark
-the slot incomplete rather than inventing a score.
+new one instead. Stop runs on budget exhaustion or unsafe external mutation. A missing fixture or
+executor blocks only its slots; continue independent slots within budget and deterministic reporting.
+Never substitute inline self-grading for a blind executor/judge or score an unrun slot.
 
 ## Decide
 
@@ -68,15 +69,14 @@ python3 scripts/eval.py session-report .eval-runs/<name> --require-improvement \
   --output .eval-runs/<name>/report.md
 ```
 
-`regression` rejects the candidate. `trade-off` needs the user's explicit choice. `tied` means no
-verified improvement. Same-harness session reports expose quality and paired efficiency; only
+`regression` rejects the candidate. Resolve `trade-off` against explicit user priorities; ask if
+unsettled. `tied` means no verified improvement. Same-harness reports expose quality and paired efficiency; only
 `pareto-improved` from a claimable full session supports an unqualified “better/faster and better”
 claim. A whole-system campaign uses controlled wall time for `speed-improved` or
 `quality-and-speed-improved`; provider-specific Token/tool counters stay diagnostic and cannot
 support a cheaper/more-efficient claim. Put the retained report summary/evidence link in the
-upstream change; raw sessions remain local and ignored by default. After merge/update, turn every
-real failure into a permanent regression case. Eval closes simply by leaving this skill:
-there is no global hook or active flag to slow later development.
+upstream change; raw sessions remain local and ignored by default. Retain real failures as permanent
+regression cases. Leaving this skill closes eval; it creates no global hook or active flag.
 
 ## Cross-project campaign
 

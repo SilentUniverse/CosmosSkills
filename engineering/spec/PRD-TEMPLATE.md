@@ -30,9 +30,8 @@ Lead with invariants — what must always be true; the design derives from them.
 doors — public ABI, schema, wire protocol — separately; they get the hardest review.
 
 The modules built/modified, their interfaces, architectural decisions, schema changes, API
-contracts, specific interactions. No file paths or code snippets. Exception: a
-prototype-produced snippet (state machine, reducer, schema, type shape) that encodes a decision
-more precisely than prose; note that it came from a prototype.
+contracts, specific interactions. Name paths or a compact schema/type shape when they remove
+contract ambiguity; keep implementation detail in the code or owning issue.
 
 ## 测试决策（Testing Decisions）
 

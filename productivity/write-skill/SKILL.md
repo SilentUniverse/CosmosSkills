@@ -1,6 +1,6 @@
 ---
 name: write-skill
-description: "Create and rework agent skills: structure, progressive disclosure, splitting, and the acceptance pass after edits. Use when writing a new skill, splitting one past 100 lines, or verifying skill changes."
+description: "Create and rework agent skills: structure, progressive disclosure, and acceptance after edits. Use when writing a new skill, organizing its references, or verifying skill changes."
 disable-model-invocation: true
 ---
 
@@ -43,18 +43,18 @@ Invocation trade-off: a model-invoked skill pays an always-loaded description fo
 
 Split into separate files when:
 
-- SKILL.md exceeds 100 lines
-- Content has distinct domains (finance vs sales schemas)
+- Content has distinct branches or domains (finance vs sales schemas)
 - Advanced features are rarely needed
 
 Disclosure test: inline what every branch needs; push behind a pointer what only some branches reach.
+Around 100 lines, check for avoidable loading; length alone does not require a split or a new file.
 
 ## Length Discipline
 
 Never treat length alone as a defect. Keep every load-bearing rule as one to three lines plus a
 link to its rationale; cut stories, duplicates, status notes, and the path used to derive the rule.
-Shorten high-frequency enum values and command names aggressively (`ready-for-agent` → `ready`); leave low-frequency internal names alone; churn costs more than the tokens save.
-`CLAUDE.md` (every-session): if/unless/then only; why on a line that starts with `→` and a path. Mid-line `A → B` is mapping, not a pointer. Skills: markdown links. ≤1,300 words: delete, don't append.
+Keep established names unless a rename materially improves clarity; account for affected consumers.
+Use markdown links for skill references. Resident policy follows its own repository format and budget.
 
 Hunt no-ops: does the rule change behaviour versus the model's default? No → delete the whole
 sentence. Prompt the positive: a prohibition drags the banned behaviour into context; state the
@@ -66,33 +66,34 @@ functional (enumeration/gating parens, mapping arrows) stays.
 
 ## Skill Candidates
 
-A phrase the user repeats across sessions ("对抗式审查", "第一性原理再想想") is a skill candidate:
-it names a protocol they want on demand. Two recurrences → propose the skill.
+Repeated requests for the same protocol can justify a reusable skill when the user wants reuse.
 
 ## Review Checklist
 
 After drafting, verify:
 
 - [ ] Description includes triggers ("Use when...")
-- [ ] SKILL.md under 100 lines
-- [ ] No time-sensitive info
+- [ ] Loading cost and file boundaries fit the skill's branches
+- [ ] Unstable facts are verified or routed to live lookup
 - [ ] Consistent terminology
-- [ ] Concrete examples included
-- [ ] References one level deep
+- [ ] Examples disambiguate rules where needed
+- [ ] References are reachable; common paths avoid unnecessary hops
 - [ ] Rationalization rows, if any, trace to a reproduced failure and do not duplicate process rules
 
-After **editing an existing skill**, always run deterministic L0 checks. Behavior eval stays off
-unless the user explicitly invokes `/eval`; when open, use [EVALS.md](EVALS.md). Before claiming a
-behavior improvement or sending that claim upstream, recommend `/eval full`. Then run the structural
-acceptance pass; the checklist above checks structure, these attack content and vantage:
+After edits, run relevant deterministic L0 checks once on the final affected scope. Behavior eval
+stays off unless the user explicitly requests it; existing eval authorization persists. When open,
+use [EVALS.md](EVALS.md). Without measurements, report the instruction changes and leave behavior or
+performance improvement unverified. Apply these structural checks in one acceptance pass:
 
 - `/atk <skill file>` — 承重与链路（its Method, both directions）
 - `/lint <skill file>` — 视角（its one test）
-- `wc -l` — re-check the 100-line budget after any split
+- `wc -l` — inspect loading cost; a line threshold is not an acceptance gate
 
 ## Corpus audit
 
 Auditing a set of skills, not just editing one: enumerate the full set with a tool first. Every
 skill in scope gets the five surfaces (atk's Method) plus description and invocation fit; every
-subfile in scope is read once, and the lint batteries run over the whole corpus. Unchanged skills
-are verdicted, not skipped. Report scope exactly as executed; a check not run is never claimed.
+instruction subfile in scope is read once, and the lint batteries run over the corpus. The pass
+may be done inline without a separate invocation or agent per skill. Verdict unchanged skills too;
+report scope and checks exactly. Repeat a check only for a subsequent relevant edit or unresolved finding.
+Inspect implementation scripts only to substantiate a finding or select a relevant check.

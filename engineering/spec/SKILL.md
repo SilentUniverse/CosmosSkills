@@ -1,26 +1,28 @@
 ---
 name: spec
-description: "The single planning entry: align a need, prove its verifier environment ready, and turn it into dispatchable issues, with a versioned PRD when warranted. Never implements product behavior. Use for any new or changed requirement; /tdd executes what this plans."
+description: "Plan a requirement, resolve consequential decisions, and prepare verifiable execution slices. Use for explicit planning requests or work needing multiple slices, durable handoff, or unresolved product boundaries. Small settled changes can proceed inline; /tdd owns test-first implementation."
 argument-hint: "The need — anything from one line to a full design"
 disable-model-invocation: true
 ---
 
 # Spec
 
-Plans and proves execution readiness; never implements product behavior or invokes `/tdd`. It may
-run repository-declared environment setup and representative verifier preflights before writing
-PRDs/issues. Frontmatter:
+Owns the planning phase and execution readiness. An explicit `/spec` or plan-only request ends
+with its plan. When called inside an implementation request, return the settled contract to the
+caller, which continues implementation without another user command. This phase may run declared
+setup and representative verifier preflights; it does not write product behavior. Frontmatter:
 [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md) issue/PRD anchors (not the whole file).
 `done` issues are immutable.
 
 Intent has two paths:
 
-- **Settled intake.** The request itself is alignment when it fixes observable outcome, scope,
-  constraints, acceptance evidence, and the work is local, reversible, and has a deterministic
-  verifier. Do not restate or pause. Prove readiness, then persist the normalized execution contract.
-- **Decision intake.** Material ambiguity, product preference, permission, public contract,
-  one-way door, high cost, or a claim without an objective verifier loads
-  [DESIGN-RECEIPT.md](DESIGN-RECEIPT.md). Ask all material decisions once and wait for alignment.
+- **Settled intake.** The request itself is alignment when its outcome and constraints are clear
+  from the request, prior decisions, and repository evidence. Choose routine implementation details
+  and a suitable deterministic verifier autonomously; report material reversible assumptions.
+- **Decision intake.** Only an unresolved material ambiguity about outcome, scope, public contract,
+  irreversible effects, significant cost, or authority loads [DESIGN-RECEIPT.md](DESIGN-RECEIPT.md).
+  Ask the remaining decisions together and hold only their dependent work. Missing implementation
+  detail, card boundaries, or a previously authorized change does not reopen alignment.
 
 The receipt is conversation state, not a third issue state. Confidence never closes a decision
 frontier. A settled request does because the user already supplied the decision. A graphical UI may
@@ -35,12 +37,14 @@ PRD/issue contract so a fresh executor does not need the conversation.
 Named `<feat>` → `rg` that feature only; else 3–5 keywords over `.scratch/**/PRD*.md` and
 `.scratch/**/issues/*.md`.
 
-- No hit → new work. PRD first if the ask spans multiple modules/features or is likely ≥5
-  slices → [PRD-TEMPLATE.md](PRD-TEMPLATE.md). Then [CARD-TEST.md](CARD-TEST.md).
+- No hit → new work. Use [PRD-TEMPLATE.md](PRD-TEMPLATE.md) when shared scenarios/decisions need
+  a durable owner across slices. Multi-module reach or card count alone does not require a PRD.
+  Use [CARD-TEST.md](CARD-TEST.md) for a queue or handoff; a small settled plan can stay inline.
 - Hit in the target feature: read the live PRD's 实现决策 (if any) and the hit issue's AC/`status`.
   - Nothing recorded goes false → [ADDITIVE.md](ADDITIVE.md).
   - A recorded AC or decision goes false → [SUPERSEDE.md](SUPERSEDE.md).
-- Hit elsewhere, or unsure → one question: 加一块还是改方向？ Never auto-supersede a cross-feature hit.
+- Hit elsewhere → inspect ownership and the requested outcome. Ask only if competing interpretations
+  would change behavior or scope; a keyword match alone never supersedes another feature.
 
 ## 2. Impact (touches existing code)
 
@@ -49,8 +53,8 @@ known invariant): write `touches:`, continue. Coupled (many refs, multiple modul
 invariant area): [impact-detection.md](impact-detection.md). Persist a new invariant to the
 area's `CODEBASE.md` block (two-axis); don't pause to offer.
 
-Both paths end in [WRITE-LOOP.md](WRITE-LOOP.md). A genuine design trade-off →
-`/prototype` before slicing. Wide refactors (mechanical change, blast radius spans the
+Issue-producing paths end in [WRITE-LOOP.md](WRITE-LOOP.md). Use `/prototype` only when a
+concrete unresolved design question is cheaper to answer with a runnable experiment. Wide refactors (mechanical change, blast radius spans the
 codebase): expand → contract. Expand adds the new form beside the old; migrate batches move
 call sites (each staying green); contract deletes the old form.
 

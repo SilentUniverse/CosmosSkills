@@ -11,9 +11,9 @@ A short, truthful UI demonstration as a local GIF; nothing publishes anywhere.
 
 ## Capture rules
 
-1. **Provenance first**: record the exact commit (`git rev-parse HEAD`) and state it next to the
-   artifact. Fresh client state (clear that origin's cookies/site storage) unless the user asked
-   to reuse theirs. State the exception.
+1. **Provenance first**: record the served commit plus relevant uncommitted changes, or source
+   identity when no git repo exists. Use an isolated fresh browser context; preserve the user's
+   cookies/storage. Reuse their session only when the task calls for it and state that provenance.
 2. **3–6 states that tell one story** (typed → running → settled → detail). Semantic state
    changes, not continuous capture; omit loading churn.
 3. **One viewport and crop for every frame**; lexical names: `00-initial.png`, `01-typed.png`.
@@ -32,8 +32,10 @@ user-provided frames).
 
 ## Encode
 
-Requires `python3` + `ffmpeg` + `ffprobe`. Report a missing dependency; never install software
-without asking. On Windows, `python3` can be a Store alias that fails to run; use `python`.
+Requires `python3` + `ffmpeg` + `ffprobe`. Check installed/bundled tools first. Use a reversible
+local setup within existing authority; ask only for uncovered system changes or material cost.
+If encoding remains unavailable, retain frames and report the exact missing tool, not a completed GIF.
+On Windows, use a working `python` if `python3` is a failing Store alias.
 
 ```sh
 export GIF_SKILL_DIR=<this skill's absolute dir>   # own line — an inline assignment expands $GIF_SKILL_DIR too late

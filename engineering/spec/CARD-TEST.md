@@ -19,14 +19,16 @@ Classify each unit:
   with a recommended answer. When a live PRD exists, bake it as an Implementation Decision instead.
   ADR-worthy — all three in [ADR-FORMAT.md](../domain-modeling/ADR-FORMAT.md) — after this
   turn's writes, next: `/grill`. Do not hold writes the ADR cannot falsify.
-- Question cannot be stated precisely now → **fog**. PRD 尚未明确; no PRD → list at stop.
-  File nothing. Ask nothing.
+- Question cannot be stated precisely now → **fog**. Investigate the nearest concrete scenario.
+  Park optional future work in 尚未明确; if it blocks the requested outcome, surface what is missing
+  and a useful question. Finish independent units; parked in-scope work is not completion.
 - Check the agent cannot run (irreducible taste, inaccessible external account, permission) → not an AC. Park: PRD
   端到端验证; no PRD → `### 完成` 手动验证 on the issue that has the agent-runnable AC.
   A unit that is only that check is not an issue.
 
-Write-failures: "depends on X" → `blocked_by`, do not grow the unit. "and also…" → split.
-Two units always done together in the same files → one issue.
+Split when units have independent outcomes, verification, or scheduling needs. A dependency is
+`blocked_by`; wording such as “and also” is not a split criterion. Keep one coherent behavior and
+its error paths together. Each extra card must repay its handoff and verification overhead.
 
 Parallel-bound slices declare their write set: `touches:` (dirs) + `test_paths:` (test files,
 from the AC). `--log` slices declare no `test_paths`; their acceptance is a log predicate. `-p` wave
@@ -45,9 +47,7 @@ No abstraction for a future the PRD doesn't name.
 
 ## Slice review
 
-The Design Receipt replaces the size-gated grain quiz: every batch exposes its slice DAG before
-write, because alignment risk is not proportional to card count. Report per slice: AC count,
-`blocked_by`, seam, requirement IDs, P# coverage, and reasoning radius — how many modules one must read to trust
-the change. Parallel-draft 2–3 alternatives only when the first cut fails evidence completeness,
-dependency depth, or vertical completeness; otherwise review one cut. Approval covers that exact
-DAG; changing a boundary or blocker returns to alignment.
+For each slice check outcome, evidence, dependencies, and reasoning radius: how many modules must
+be read to trust the change. Start with one vertical cut; compare alternatives only if it cannot be
+verified independently or creates avoidable coupling. Write a receipt only for decision intake.
+Internal regrouping is autonomous when it preserves settled scope, public interfaces, and proof.

@@ -13,23 +13,25 @@ Layout: **[CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md)**. Create files lazily, only 
 
 ## First pass (draft mode)
 
-**When:** `CONTEXT.md` is absent or empty, onboarding a fresh repo. Don't interrogate term-by-term on the first pass; most terms have an obvious recommended name. Switch to draft mode: it trades per-term interrogation for a single review gate.
+**When:** `CONTEXT.md` is absent or empty. Inspect code and settled user decisions first; draft only
+the domain concepts relevant to the task. Clear existing vocabulary needs no new naming approval.
 
 **Steps:**
 
-1. Explore the code to identify the domain concepts worth capturing. Big repo: one `Explore` subagent per area; draft from their reports.
-2. Draft the **entire** glossary in one shot, applying your recommended term for every concept. Follow [CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md). Pick canonical terms, list synonyms under `_Avoid_`.
-3. Write it to `CONTEXT.md` (or the relevant per-context file), with each term tagged `(draft)`.
-4. Present the **whole draft at once**: one review gate, not N interruptions, and never zero review; boundaries / naming are what automation gets wrong. Order the review by confidence: low-confidence terms form a focused question block presented first; no term is auto-passed. Drop the `(draft)` tags once the user confirms.
-5. **Only** loop back to ask term-by-term where the code contradicts itself or you genuinely couldn't decide. List those few explicitly rather than walking the entire glossary.
+1. Explore the relevant code inline. Use bounded read-only subagents only for separable large areas when available.
+2. Draft the scoped glossary together, following [CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md). Reuse canonical terms and list true synonyms under `_Avoid_`.
+3. Write resolved terms to `CONTEXT.md` or the relevant per-context file. Tag only uncertain meanings `(draft)`; a proposal-only request keeps the draft in the response.
+4. Present unresolved naming or ownership choices together with examples of how the answers change behavior. Ask only where code and prior decisions cannot settle them; continue documenting clear terms.
+5. Remove `(draft)` only when the meaning is resolved. Do not restart glossary review after a local clarification.
 
-Once a baseline exists, later runs use the relentless per-term challenges below (driven by the `/grilling` loop when stress-testing a plan).
+Later runs examine only terms affected by the current question or conflicting evidence.
 
 ## During the session
 
 ### Challenge against the glossary
 
-When the user uses a term that conflicts with the existing language in `CONTEXT.md`, call it out immediately. "Your glossary defines 'cancellation' as X, but you seem to mean Y — which is it?"
+Check apparent conflicts against context and code before asking. Clarify only when different meanings
+change the model; a harmless synonym does not require interrupting the task.
 
 ### Sharpen fuzzy language
 
@@ -41,14 +43,18 @@ When domain relationships are being discussed, stress-test them with specific sc
 
 ### Cross-reference with code
 
-When the user states how something works, check whether the code agrees. If you find a contradiction, surface it: "Your code cancels entire Orders, but you just said partial cancellation is possible — which is right?"
+Check claimed current behavior against code. An explicit requested change may intentionally differ;
+ask only if current behavior versus desired behavior remains consequentially unclear.
 
 ### Update CONTEXT.md inline
 
-When a term is resolved, update `CONTEXT.md` right there. Don't batch these up; capture them as they happen. Use the format in [CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md).
+Capture resolved terms promptly; batch adjacent edits when useful. Use
+[CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md) and resume the parent task after updating the model.
 
 `CONTEXT.md` is a glossary and nothing else: no implementation details, no spec, no scratch pad.
 
-### Offer ADRs sparingly
+### Record ADRs sparingly
 
-All three conditions in **[ADR-FORMAT.md](./ADR-FORMAT.md)** hold → offer to write the ADR; any condition missing → skip. The gate is the filter; no gate, no ADR.
+Record a settled decision only when all three conditions in **[ADR-FORMAT.md](./ADR-FORMAT.md)**
+hold and domain-document updates are in scope. No second permission to document is needed. A
+consequential decision still unresolved needs clarification; an ADR must not invent its acceptance.

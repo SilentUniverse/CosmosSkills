@@ -18,9 +18,9 @@ conversation summary. Preserve decisions and exact replay strings; discard explo
 
 ## Input budget
 
-Read current `git status --short`, the named active issue/plan, and only artifacts required by the
-next action. Do not reread completed issues, whole diffs, logs, or conversation history. Reference
-their paths instead.
+Use session context to preserve the objective, authorization, and unresolved work. Read current
+`git status --short`, the active issue/plan, and artifacts required by the next action. Reopen
+earlier context only to recover a missing decision; reference supporting logs and diffs by path.
 
 Run `python <handoff-skill-dir>/scripts/handoff-state.py snapshot <repo-root>` once
 (`python3` only when `python` is absent). Copy its
@@ -51,10 +51,10 @@ date: YYYY-MM-DD
 3. CONFIRM `<observable predicate>`; THEN `<next edit/decision>`
 
 ## State
-<one line: current node + pointers to authoritative artifacts/evidence>
+<objective still owed + current node + pointers to authoritative artifacts/evidence>
 
 ## Decisions
-- <decision or invariant> — <why a future agent cannot safely re-derive it>
+- <decision, authorization, or invariant> — <scope and constraint a future agent must preserve>
 
 ## Avoid
 - <failed or rejected path> — <evidence>; omit this section when empty
@@ -63,13 +63,16 @@ date: YYYY-MM-DD
 `Continue` is machine-facing execution input: terse, ordered, exact. `State` and `Decisions` are the
 human review surface: plain language, only facts that affect the next choice. Never duplicate PRDs,
 issues, ADRs, completion records, receipts, logs, commits, or diffs.
+`CONFIRM` means observe the predicate, not request user approval. The chain is an entry to the
+remaining objective; finishing its first action does not complete that objective.
 
 `capsule` sets what resume does first:
 
 - `active-work` (default) — mid red-green or a dirty worktree; `Continue` is the entry.
 - `awaiting-alignment` — blocked on a human decision; `Decisions` carries the open question and,
   when no PRD exists yet, the latest Design Receipt (the sole body-copy exception); `Continue`
-  starts by asking that question.
+  starts by checking whether that question is still unresolved, then asks only if needed. Name
+  independent work that can continue while the answer is pending.
 - `external-pending` — waiting on an external task or result; `State` names it and its recovery
   condition.
 

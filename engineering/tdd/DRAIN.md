@@ -1,286 +1,212 @@
 # Drain mode
 
-Reached from bare `/tdd`, `/tdd <feat>`, or `/tdd -p [<feat>]`. Runs a whole
-batch of `ready` issues to completion in dependency order. Two paths — serial
-(default, legible) and parallel (fast). Pick by the flag; the enumeration and the batch
-close are shared.
+Bare `/tdd` drains all active features serially; `<feat>` scopes one feature; `-p` enables
+independent subagent waves, at most four issues per wave. `--log` always runs one issue per wave.
+The caller owns the entire requested batch through implementation, integration, and remaining fixes.
 
-## Driver
+## Driver and inputs
 
-Each round starts with the driver, not this whole file:
+Start each scheduling round with:
 
 ```text
 python3 <tdd-skill-dir>/scripts/drain-wave.py step <repo-root> [<feat>]
 ```
 
-`step` prints the next action (`dispatch <slugs>`, finish-or-revert then `collect`,
-`close`, or blocked-with-`next` pointer) plus the exact command to run and its exit code
-carries the state (0 dispatchable, 3 zombies, 4 nothing-ready, 6 conflicts). Read the
-sections below only for the state `step` names; they are the invariants and the full
-algorithm, not a per-round checklist.
+Follow its next action and exact command. `next` calculates eligible waves; `dispatch` records
+intent before work; `collect` closes assignments; `audit` checks test ownership before batch close.
+Exit meanings: 0 dispatchable; 3 uncollected work; 4 no dispatchable work; 5 missing shared preflight
+receipt; 6 unresolved contract conflict. Exit 4 alone does not prove all requested work shipped.
 
-## Shared: enumerate the batch
+Read only sections needed by the returned action. Enumerate `.scratch/*/issues/*.md`, never
+`archive/`, or the named feature's top-level issues. Use status, `blocked_by`, `touches`, and
+`test_paths`; the driver parses frontmatter and orders dependencies. Inspect relevant contracts
+when a declaration disagrees with the tree. Missing declarations serialize; they do not justify
+inventing a write set or asking the user to schedule routine work.
 
-1. Enumerate candidates: bare / `-p` scans `.scratch/*/issues/*.md` (top level, never
-   `archive/`); a `<feat>` argument scans only `.scratch/<feat>/issues/*.md`. Read each one's
-   `status:`, `blocked_by:`, `touches:`, and `test_paths:` in one
-   `rg '^(status|blocked_by|touches|test_paths):' -A3 <files>` pass;
-   `yq --front-matter=extract` only as fallback for lists longer than `-A3`.
-2. Keep only `status: ready`. Topologically sort on `blocked_by` so every issue runs
-   after its blockers. Skip (don't fail) any issue still blocked by an unfinished issue; report
-   it as deferred at the end.
+Use cards as durable inputs and compact results as retained context. Serial work continues in the
+current session. Rotate only at a real host/context boundary with a resumable packet, or when an
+external runner owns continuation. Card count, slow commands, and output size are not rotation or
+delegation triggers. If subagents are unavailable, run serially and disclose the concurrency limit.
 
-## Shared: context budget
+## Preflight receipts
 
-The conversation is not the context carrier — the issue cards are. A serial drain that runs every
-issue inside one ever-growing session pays for the whole accumulated history on every later
-request; measured on a 7-issue Electron batch this reached ~550k tokens per request at the tail.
-Default for batches: each issue executes in a bounded context — a fresh subagent or session per
-issue (`-p` waves, `overnight.py` rotation, or an explicit compact at issue boundaries). Staying
-in one live session is for single-issue runs or debugging a blocked card, not for batches.
+A batch cache is useful only when two or more ready cards in one feature share the exact
+`(cwd, P# action, environment fingerprint)` tuple. `dispatch` already checks this; inspect duplicates
+separately only when needed:
 
-## Shared: blocked 纪律
+```text
+python3 <tdd-skill-dir>/scripts/preflight-receipt.py plan <repo-root> [<feat>]
+```
 
-Issues have no `blocked` state; blocked is a **report classification**. A report may call an
-issue blocked only when all three hold:
+No duplicates means no shared cache; continue normal execution. For each cache miss, the
+orchestrator runs the action through `test-supervisor.py --scope preflight`, then records it:
 
-1. **Specific condition** — the exact command, the exact error, what exactly is missing
-   (environment, dependency, access).
-2. **Survived one approach switch** — the same condition persisted after a *different* angle was
-   tried (CLAUDE.md §5 anti-thrash), not after one identical retry.
-3. **Everything outside the blocked path is green** — hard, slow, or partly unclear is red with a
-   note, not blocked.
+```text
+python3 <tdd-skill-dir>/scripts/preflight-receipt.py record <receipt> --cwd <cwd> --action <action> --fingerprint <value> --execution-receipt <execution.json>
+```
 
-## Shared: batch preflight receipt
+Rerun `plan` or dispatch after recording. A cache entry requires actual passing execution evidence.
+Only the orchestrator writes the cache. Dispatch persists assignments and emits
+`receipt-hit:<key>` for each applicable issue; copy it verbatim into the brief.
 
-This optimization is dormant unless two or more ready cards in the same feature reference the exact
-same `(cwd, P# action, environment fingerprint)` tuple. `drain-wave.py dispatch` already scans the
-ready cards in-process and gates on the result, so the manual
-`python3 <tdd-skill-dir>/scripts/preflight-receipt.py plan <repo-root> [<feat>]` run is optional —
-use it in CI or when reviewing duplicates without dispatching. An empty `duplicates` list means
-stop here: create no receipt and preserve the ordinary per-card path.
+Before the first issue edit, recompute its fingerprint. Exact tuple, matching fingerprint, and
+supplied key permit reuse; unique checks replay normally. Drift or failed replay leaves the card
+`ready` with expected/observed evidence. The caller repairs declared setup outside the active
+behavior wave, refreshes readiness, and resumes. New consequential dependency or authority choices
+follow `/spec`; never substitute weaker proof. Subagents return repair to the caller. This cache
+covers readiness only; RED/GREEN and final behavior evidence are not cached.
 
-For each reported `miss`, the orchestrator—not a subagent—runs the action once through
-`test-supervisor.py --scope preflight`, then records its passing execution receipt with
-`python3 <tdd-skill-dir>/scripts/preflight-receipt.py record <receipt> --cwd <cwd> --action <action> --fingerprint <value> --execution-receipt <execution.json>`.
-Rerun `plan`; every duplicate must now be `hit` before fan-out. The orchestrator is the only writer,
-so parallel subagents cannot race the receipt. `drain-wave.py dispatch` enforces the hit, persists
-the assignment for serialized later waves, and emits `brief: <slug> receipt-hit:<key>`; copy each
-token verbatim into that issue's brief. It exits 5 before writing a wave when a relevant hit is
-missing.
+## Execute serially or dispatch a wave
 
-Before an issue's first edit, recompute its fingerprint:
+Serial mode runs one issue at a time through [SKILL.md](SKILL.md)'s autonomous loop. Use the same
+per-issue evidence and recovery rules as parallel work; no subagent or worktree is required.
 
-- Exact tuple + fingerprint + supplied receipt key → reuse it and name the key in `预检重放`.
-- No supplied key (unique tuple) → replay that card's P# normally.
-- Fingerprint drift or a failed replay → leave the card `ready` and report the mismatch. A subagent
-  never refreshes the receipt and never installs or repairs the environment.
+For `-p`, use the driver's computed collision-free wave. Overlapping `touches` or `test_paths`
+serialize, and missing declarations run alone. Declare shared root/config paths explicitly;
+serialize runtime-resource conflicts even if paths are disjoint. Do not run competing suites
+against the same device, database, build output, or constrained runner.
 
-Standalone single-issue `/tdd` has no batch receipt and replays its referenced P# normally. The
-receipt caches readiness only; RED/GREEN behavior tests and final verification are never cached.
+Before execution record:
 
-## Serial path (default: bare `/tdd`, `/tdd <feat>`)
+```text
+python3 <tdd-skill-dir>/scripts/drain-wave.py dispatch <repo-root> <slug>...
+```
 
-Run each issue, **one at a time**, through the autonomous-mode loop (SKILL.md §Workflow), in the
-current session so you can watch each one — and honor the shared context budget above: past two
-or three issues, rotate the session (or compact at issue boundaries) instead of letting one
-conversation carry the whole batch. No worktrees, no parallel subagents. This is deliberately
-the dumb-but-legible path.
+Dispatch writes `.scratch/<feat>/wave-ledger.json` with the wave baseline and issue assignments.
+Its dependency, collision, four-issue cap, and preflight refusals are gates to resolve, not bypass.
+For a serial batch dispatch only the chosen issue. Save its baseline diff as needed to distinguish
+pre-existing or concurrent edits; status alone cannot establish ownership.
 
-Per-issue gate: mark `status: done` only if build + the touched module's **scoped** tests pass
-(not the whole suite). Before each issue, record its baseline (`git status --porcelain` output).
-On failure, restore to that baseline: tracked files clean at baseline and modified now →
-`git checkout -- <file>`; files added since → delete; files already dirty at baseline →
-untouched. Never revert `.scratch/**`. Leave the issue `ready`, note why in `## Comments`, and
-**continue** to the next. Dependents were already deferred at enumeration.
+Disjoint subagents may edit the shared tree. Overlap serializes by default. Use worktrees when
+requested or necessary for authorized isolation, while honoring the driver's collision rules;
+follow host branch naming (Codex: `codex/`). Merge in dependency order, resolve conflicts through
+`/merge-conflicts`, and verify on the integrated tree. Worktrees cannot write shared stash/tmp state.
 
-A receipt conflict is batch-level red, not an ordinary issue failure. Restore the current issue's
-production edits, append the exact conflict evidence, leave it `ready`, stop the drain, and route
-to `/spec`; do not start another issue.
+Each worker receives a self-contained brief:
 
-## Parallel path (`/tdd -p [<feat>]`)
+- Run `/tdd <issue-path>` with inherited `--log`, not drain mode. No nested agents.
+- Supply objective/constraints from the card, scoped-test/build commands, and any exact receipt key.
+  Reuse settled decisions; only new consequential choices return to the caller.
+- Supply prior waves' `test_paths` as the tests-so-far manifest. Reuse existing coverage.
+- Copy `## 相关面` pointers; read those first and expand only for a discovered dependency.
+- Require actual commands/actions, observed results, evidence paths, and changed-file ownership.
 
-`-p` farms the ready issues out to **subagents** instead of running them inline. The point is
-context isolation: each issue's verbose red-green output stays in its own window and never floods
-the main session, and independent slices finish in parallel. The workspace is the memory. Cards,
-manifests, and wave baselines live under `.scratch/`; the orchestrator session is disposable.
-Same DAG, same per-issue gate. `-p` only adds per-issue judgements: **hand this issue to a
-subagent, and does it need its own worktree?**
+Per-issue GREEN requires all AC plus the touched module's scoped tests and applicable build.
+Write the [completion record](COMPLETION-RECORD.md), sync `test_paths`, then close to `done`.
+Only the batch close runs the whole suite unless an issue explicitly requires it.
 
-Loop until the ready set is empty:
+Return one outcome; red/blocked summaries should stay under 400 words:
 
-1. **Compute the wave — by script, never by hand.** Run this skill's
-   `scripts/drain-wave.py next <repo-root> [<feat>]`. The script reads only the frontmatter
-   declarations (status / blocked_by / touches / test_paths) and prints the wave
-   (parallel, collision-free), the serialized remainder, `solo:` issues (missing a declaration;
-   one per wave), and `deferred:` lines (feed the close report's
-   Frontier). Exit 3 = zombies — a dispatched issue that neither closed nor flipped done
-   ([EDGE-CASES.md](EDGE-CASES.md)); resolve by adopt-or-revert and `collect` before any new
-   wave. Exit 4 = nothing ready, batch complete. Exit 6 = an unchanged receipt-conflict contract;
-   stop and route to `/spec`. Shared surfaces (workspace manifest,
-   any repo-root file a slice edits) are declared in `touches:` verbatim. The
-   script serializes on any overlap. A lockfile (pnpm-lock.yaml and the like) is part of the
-   SPEC environment fingerprint and must not drift during a behavior wave. More than half the batch undeclared →
-   suggest the serial path instead: `-p` on undeclared cards is serial-with-extra-steps.
-2. **Fan out — one subagent per issue, at most 4 in flight.** Record the dispatch intent
-   first: `drain-wave.py dispatch <repo-root> <slug>...` writes the wave number, the issue
-   list, and the wave baseline (`git status --porcelain`) to
-   `.scratch/<feat>/wave-ledger.json` **before any subagent starts**. A crashed run
-   resumes from the ledger, not from reverse-engineering the tree. The dispatch call
-   enforces the barrier (blockers all done), the ≤4 cap, collision serialization, and duplicate-P#
-   receipt hits. It writes the per-issue hit keys into the ledger; exit 5 returns the exact tuples
-   that must be replayed/recorded before retrying dispatch.
-   A refusal is a scheduling error to fix, not a suggestion to override. A wave over 4
-   issues dispatches in batches of ≤4; collect each batch, then dispatch the rest.
-   Concurrent test suites thrash one machine into flaky reds. Each `general-purpose`
-   subagent
-   runs the full autonomous red-green loop for its issue. `--log` drain: one issue per wave.
-   Coupling came from the declarations in step 1:
-   - **Disjoint → edit in place.** Subagents edit the shared tree directly.
-   - **Overlapping → serialize into successive waves.** Worktree (`tdd/<NN>-<slug>`) only on
-     the user's explicit request, to parallelize an overlapping pair; merge back in dependency order
-     (`/merge-conflicts` for any conflict). Inside a worktree, nothing writes shared state
-     (no stash, no shared tmp paths).
+| Result | Evidence and state |
+|---|---|
+| `green` | P# and fingerprint result; final commands, exits/tallies, retained evidence, changed files and test coverage; completion record on disk and `done` |
+| `red` | Failing cases, trimmed error, attempted remedy, confirmed facts, next action; retain `ready` |
+| `blocked` | Exact unavailable condition or needed decision, attempted safe alternatives where useful, completed independent work; retain `ready` |
+| `conflict` | Failing command/output and the precise contract clause it invalidates; append evidence, retain `ready`, return to `/spec` |
 
-   The brief must be self-contained (it can't see this conversation):
-   - **Invoke `/tdd <issue-path>`** (add `--log` when the drain was started with `--log`).
-     This loads the full workflow (status guard, existing-test scan, red-green-refactor
-     discipline, Murphy check, completion record). The issue is `ready` → autonomous mode:
-     skip all "confirm with user" prompts. Run this slice yourself. No spawning further
-     subagents; no entering drain mode.
-   - The issue is self-contained; no PRD attach. Paste the scoped-test and build command
-     lines from `CODEBASE.md`'s `## Verifier commands` zone into the brief; the brief's lines
-     stand in for the existing-test scan's lookup there. Include any orchestrator-supplied `receipt-hit:<key>`:
-     an exact hit replaces only that matching P# replay; unique P# still replay normally. Never
-     write the receipt, install, upgrade, or start an undeclared dependency; a missing dependency
-     means the card was not ready, so report red with the preflight mismatch.
-   - The **tests-so-far manifest** (earlier waves' `test_paths:`): don't write tests it already
-     covers; report duplicates instead.
-   - Copy the card's `## 相关面` pointer block verbatim into the brief; a fresh executor reads
-     exactly those invariant blocks and ADRs, never the whole map.
-   - Report back **only** by outcome, in this fixed shape. A free-form reply is not a result;
-     red/blocked reports stay under 400 words:
-     - **`result: green`** → P# replay + fingerprint match, exact final command/action + observed
-       exit/tally + retained evidence paths, which tests it added (files + case counts), and files
-       changed (production and tests).
-       The
-       subagent writes the completion record (syncing `test_paths:` per its template) and sets
-       `status: done` itself.
-     - **`result: red` / `result: blocked`** → failing case names + a trimmed traceback (error
-       head + last frames + omitted-line count; never file contents) + what it tried + what it
-       had already confirmed + one suggested next action.
-       Revert **this issue's** edits first (not the whole wave). Leave `status: ready`.
-     - **`result: conflict`** → exact command/output and the receipt/AC clause it invalidates.
-       Revert this issue's production edits, append that evidence, leave `status: ready`, and
-       recommend `/spec`; never edit the contract or start a reviewer inside the drain.
+A slow or difficult issue is not blocked. Confirmed missing access/authority needs no ceremonial
+retry. For other failures, try a materially different evidence-backed approach when one can help.
+Diagnose or repair before redispatching an unchanged failure; never loop identical retries.
 
-   The verbose test output stays in the subagent; it does not flow back into the main context.
-3. **Collect the wave.** Close the ledger first: `drain-wave.py collect <repo-root>
-   <slug>=<result>[,...]` (green|red|blocked|conflict|aborted). A done-on-disk issue reported
-   non-green refuses until reconciled, and a green report for an issue not yet `done` on
-   disk refuses too; flip the completion record + frontmatter first. Each green subagent
-   has already written its completion
-   record and set
-   `status: done`. An imperfectly shaped report trusts the disk over the note: check the issue's
-   `### 完成` record and rerun that module's scoped tests. Record valid + green → accept with the
-   deviation noted; record broken → treat as red (revert this issue, leave `ready`). Verify
-   **once per wave, after all subagents land**: run the
-   union of the touched modules' scoped tests in one pass, narrowed by the Verifier commands
-   impact-probe test command when one exists, and reconcile the write set: compare
-   `git status --porcelain` against the wave baseline (exclude `.scratch/**`), attributing each
-   changed file via the wave's reported files. Any lockfile drift is wave-fatal and maps back to the
-   issue that changed dependency state; do not repair it with an install during execution. Two issues
-   reporting the same file, or a changed
-   file nobody reported → wave-fatal (recovery below). An issue's undeclared test file with green
-   tests → sync its `test_paths:` (the sanctioned frontmatter edit); an undeclared production
-   file → note it in its `### 完成` 备注. Files no declaration covers (repo root, config) can
-   still collide; the closing suite is the net. For the worktree exception, verify
-   after its branch lands and passes on the merged tree. **Wave-fatal ≠ per-issue red**: a defect
-   in the wave itself stops the whole wave and surfaces immediately. Wave-fatal defects: the
-   brief named a nonexistent issue, the tests-so-far manifest contradicts the tree, the base
-   build is broken. Wave-fatal
-   recovery against the step-2 baseline: code files clean in the baseline and modified now →
-   `git checkout -- <file>`; files the wave added → delete; files already modified in the
-   baseline → report, don't restore. Never touch `.scratch/**`; completion records and revert
-   notes live there. Map the defect to its issues via each issue's
-   `test_paths:`, set those issues back to `ready`, append the note, report the mapping. A red issue
-   stays `ready`. Anything `blocked_by` it never enters a later wave; report it
-   deferred. Merge each green issue's `test_paths:` into the **tests-so-far manifest** and carry it
-   into every later wave's brief.
-   If any issue reports `conflict`, interrupt unfinished siblings, revert and collect them as
-   `aborted`, then stop after collecting the wave. Already completed green siblings remain
-   recorded; no new wave starts. The ledger blocks both `next` and `dispatch` until `/spec`
-   changes the conflicted issue's aligned contract, which invalidates the recorded contract digest.
-4. **Recompute** the ready set only when the wave has no conflict (newly-`done` issues may unblock
-   the next wave) and repeat.
-   After collecting a wave, persist its state: update `.scratch/<feat>/handoff.md` in rolling
-   mode with the wave number and the tests-so-far manifest. The wave baseline lives in the
-   ledger, so the handoff points at it instead of duplicating it. A crashed
-   overnight run resumes from the handoff instead of reverse-engineering a mixed tree (a
-   cross-feature drain rolls `.scratch/handoff.md` instead). In a
-   runner-driven drain (the skills repo's `scripts/overnight.py`) the runner owns wave
-   scheduling: it runs `next` and `dispatch`es the wave itself **before launching the
-   session**. Every dispatch timestamp provably precedes the session's work, so the ledger
-   can never be written after the fact. The session receives the dispatched wave, runs the
-   subagents, `collect`s, writes `Continue` as read handoff → resume next wave, and stops; a zombie report
-   (next exit 3) gets a session that only adopt-or-reverts and `collect`s; the close-out
-   runs as its own fresh session. No wave is ever scheduled from a rotting context.
-   Interactive `-p` sessions never rotate and call `next`/`dispatch` themselves. If dispatch exits
-   5, the overnight runner launches one preparation-only session that may replay and record only
-   the listed shared P# tuples—no product edit, dependency install, or dispatch—then retries the
-   gate. A successful dispatch injects every emitted receipt token into the corresponding brief.
+## Collect and recover
 
-## Shared: close the batch
+Resolve abandoned dispatched work first using [EDGE-CASES.md](EDGE-CASES.md): adopt useful code
+by finishing/verifying it, or revert only attributable edits that cannot safely be retained. Keep
+user/concurrent work and `.scratch/**` history. An ambiguous baseline is a reason to preserve work.
 
-After the last issue takes the active set to empty, run
-`drain-wave.py audit <repo-root> [<feat>]`. Every test-pattern file under
-`touches:` must be claimed by some issue's `test_paths:`; the pattern list is the script's,
-and vendored/build trees are skipped. Assign each unowned file (sanctioned append) or
-open a cleanup issue before the review, so no unreviewed test rides the batch. Then run
-the **full suite + build once** as the batch's closing check
-(**[FULL-SUITE.md](FULL-SUITE.md)**), through the test supervisor, reporting green (one-line tally)
-vs red (failing names + trimmed traceback). `--log` drain: rerun each shipped issue's log
-command (from its `### 完成` 验证命令 line); do not run FULL-SUITE.md. **If the closing suite is red**: map each
-failing case to its issue via that issue's `test_paths:`; revert matched issues to
-`ready` with a note; `done` does not survive a red close. Report unmapped failures as
-unowned regressions. Closing assertions: every dispatched issue accounted for (shipped / failed /
-deferred); no worktree left unmerged; no subagent still running. For each drained feature, run
-its PRD's 端到端验证 unless absent or `（无）`; on failure, report it against that feature's
-batch result.
+Collect each result:
 
-Batches of ≥2 issues run the two base review axes in parallel with the closing suite, same turn
-(briefs, single source: [../code-review/SUBAGENT-BRIEFS.md](../code-review/SUBAGENT-BRIEFS.md)):
+```text
+python3 <tdd-skill-dir>/scripts/drain-wave.py collect <repo-root> <slug>=<result>[,...]
+```
 
-- **Spec axis** — one read-only subagent: `git diff HEAD` + the shipped issue paths, brief §Spec
-  (caller-ran-Spec mode), reports per issue under-build / over-build / wrong-implementation.
-  Under-build findings auto-revert: map the missing AC to its issue, set it back to `ready` with
-  a note (the red-close mechanism), let the drain pick it up.
-- **Standards axis** — read-only, brief §Standards, same file.
-- Over-build and wrong-implementation findings → the user for adjudication, never auto-fixed.
+Supported results: `green|red|blocked|conflict|aborted`. Disk and report must agree: green requires
+a `done` card with valid completion evidence; a non-green result cannot leave an accepted `done`
+card. For an oddly formatted report, inspect disk evidence and the relevant scoped check before
+rejecting otherwise valid work. Completion records are evidence, not an agent confidence statement.
 
-Regardless of batch size, validate every opted-in UI issue's structured evidence through the
-artifact gate. When any shipped issue has `experience_review: graded`, additionally run one
-**Experience axis** independent read-only judge with only the canonical experience contract and
-anonymous operated-state artifacts, using brief §Experience. A runtime-integrity failure or rubric
-threshold miss maps the owning issue back to `ready` like an under-build. `inconclusive` goes to
-待裁决 and cannot be reported as experience-verified. Runtime-only UI and every non-graphical batch
-do not launch this axis.
+After all wave edits land, run the union of touched modules' scoped tests once and reconcile
+changed paths against the baseline and reported owners, excluding `.scratch/**`. Reuse current
+per-issue evidence only when no integration change can invalidate it. Append undeclared test
+ownership to `test_paths`; record an unexpected production path in the issue's completion note.
+Two workers claiming one path, unowned changes, dependency/lock drift, a nonexistent assigned
+issue, a contradictory test manifest, or broken base build is wave-level failure.
 
-**Close report — one screen, five blocks:**
+On wave failure, pause scheduling, determine ownership, and repair or restore only attributable
+wave changes. Reopen affected active-batch cards to `ready` with evidence and preserve prior
+records. Existing shipped history is not rewritten. Resolve the failure, then resume the task;
+finish other independent work when isolation permits. Defer dependents of failed cards.
 
-1. 结果: shipped / failed / deferred counts + suite verdict + exact closing command and observed
-   tally (machine evidence, not an agent confidence statement).
-2. Frontier: one line per non-shipped issue — `NN <slug> — blocked by <NN> | deferred | failed: <cause>`.
-3. 待裁决: over-build / wrong-implementation findings, each quoted to its hunk.
-4. 等你验证: every hands-on check (sources: each feature's PRD 端到端验证, plus 手动验证 lines
-   in PRD-less issues' `### 完成`), each with its exact runnable command inline when one exists,
-   copy-paste ready; subjective checks marked 人工. Left pending for the user, never as issue state.
-5. 详文: per-issue `### 完成` records; anything the one screen can't hold goes into the final
-   rolling handoff as pointers, consumed and deleted by the morning `/resume`.
+A possible receipt conflict is a dispatch barrier. Workers start no nested reviewer. Collect the
+conflicted card, safely interrupt/revert unfinished siblings and collect them as `aborted`; keep
+already verified green siblings. The ledger rejects new dispatch while the recorded contract
+digest is unchanged. The caller resolves it through `/spec` within this task, asking only the new
+consequential decision. Update the actual affected contract and readiness before resuming; cosmetic
+changes made solely to release the digest guard are invalid.
 
-The final rolling `/handoff` refresh at close is the morning briefing. Its `Continue` chain points
-at the close report's 等你验证 / 待裁决 items; the morning `/resume` consumes it and deletes the
-file. A fully green close with nothing pending for the human deletes the rolling handoff instead.
+If `/spec` disproves a recorded conflict, preserve the unchanged contract. Retain its neutral
+review under `.scratch/<feat>/receipts/<slug>-conflict-review.json`, with `feature`, `slug`, `wave`,
+`contract_sha256` from the recorded conflict, `classification: noise|artifact_defect`, `reason`,
+and `evidence` containing the observed command/result or source. Then run:
 
-After every wave is closed, `workflow-state.py gc <repo-root> <feat>` may remove only the closed
-ledger and shared preflight cache. It never moves issue or test files and never runs another suite.
+```text
+python3 <tdd-skill-dir>/scripts/drain-wave.py dismiss-conflict <repo-root> <feat> <slug> <review.json>
+```
+
+The command requires a closed wave, a ready issue, a matching recorded/current contract, and
+feature-local evidence. It retains the correction and evidence hash, changes only that result to
+`red`, and leaves the issue ready for execution. It rejects `contract_change`, missing evidence,
+and inconclusive classifications. The caller verifies the review's substantive evidence; the
+script validates its identity and shape, not the truth of a model's claim. Other conflicts remain.
+
+After a clean collection, add green issues' test paths to the manifest and recompute eligibility.
+Use a rolling handoff only for unattended continuation or a real session boundary, with pointers
+to the ledger and remaining work; do not rewrite a handoff after every interactive wave.
+
+## External runner
+
+With `scripts/overnight.py`, the runner owns scheduling and dispatches before launching the
+session. Execute only its assigned wave, collect, and write a resumable Continue chain. The session
+then returns to the runner, which continues the batch; this is not completion of the user's task.
+A zombie recovery session only adopts/reverts and collects. A separate session performs close-out.
+Exit 5 permits a preparation-only session to replay/record the named P# tuples, with no product
+edit, dependency install, or dispatch; the runner then retries with the emitted receipt keys.
+Interactive sessions schedule their own waves and do not require external session rotation.
+
+## Close the batch
+
+When no dispatchable work remains, account for failed/deferred issues before claiming success.
+Run `drain-wave.py audit <repo-root> [<feat>]`: test files under `touches` must have issue ownership.
+Assign proven ownership or resolve the gap; do not attribute unrelated tests just to pass the gate.
+
+Run the full suite plus applicable build once via [FULL-SUITE.md](FULL-SUITE.md). For `--log`,
+replay each shipped issue's recorded log command instead. Run each feature PRD's executable
+端到端验证 when present; registered human-only checks remain explicitly pending.
+
+Map closing failures to owning issues through `test_paths`, reopen affected active-batch cards with
+notes, and report unmapped failures. Fix in-scope regressions, return to the drain loop, and rerun
+affected and closing checks after repair. A red close or a parked requirement is not completion.
+
+Review coupled behavior, new public contracts, cross-module risks, or any explicitly required axes
+using [SUBAGENT-BRIEFS.md](../code-review/SUBAGENT-BRIEFS.md). Independent Standards and Spec
+reviewers may run alongside the closing suite; small local batches can review inline. If required
+independence is unavailable, return useful findings and report that gate unmet. Fix confirmed
+in-scope contract violations; only unresolved consequential choices go to the user.
+
+Every opted-in UI issue passes the artifact evidence gate. `experience_review: graded` also needs
+an independent Experience judge with the canonical contract and anonymous operated-state artifacts.
+Runtime failure or rubric miss reopens its owning issue; an inconclusive/unavailable judge stays
+unverified. Runtime-only and non-graphical work do not launch this axis.
+
+Report one screen, omitting empty blocks:
+
+1. 结果: shipped/failed/deferred counts, exact closing commands and observed verdicts/tallies.
+2. Frontier: each unfinished issue, its cause and next action.
+3. 待裁决: consequential unresolved choices with quoted evidence and recommendations.
+4. 等你验证: pending human checks with runnable steps; do not claim the whole outcome verified.
+5. 详文: completion/evidence paths. Handoff only when a later session must continue.
+
+Account for every dispatched issue, integrate every task worktree, and collect every worker.
+Delete a rolling handoff only when its remaining objective is complete. After all waves close and
+the batch ships, `workflow-state.py gc <repo-root> <feat>` may remove closed ledger/preflight caches;
+it never moves issues/tests, deletes durable receipts, or launches another suite.

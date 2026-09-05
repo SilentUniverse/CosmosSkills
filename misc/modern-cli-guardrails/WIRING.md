@@ -3,13 +3,12 @@
 Loaded on demand by [SKILL.md](SKILL.md) steps 3 and 5. The blocked-tool map
 and segment-matching rules live in SKILL.md and `~/.claude/references/cli-tools.md`.
 
-## Preferred: the combined engine
+## Combined engine (when its policy fits)
 
-New installs wire ONE entry — `shell-guardrails/scripts/guard-shell.py` covers
-this skill's legacy-CLI tier, the path-world tier, AND the destructive-git
-tier in one process. Deploy and wire it per
-[../shell-guardrails/WIRING.md](../shell-guardrails/WIRING.md); do not also
-wire `git-guardrails-claude-code`.
+When the combined policy matches the request, `shell-guardrails/scripts/guard-shell.py` covers
+legacy CLI, path, and destructive-git checks in one process. Deploy and wire it per
+[../shell-guardrails/WIRING.md](../shell-guardrails/WIRING.md). Remove duplicate checks only
+after preserving required policy, including any standalone git push block.
 
 ## Legacy carriers (machines not yet rewired)
 
@@ -49,12 +48,11 @@ ZCode runs the same Claude-style command hooks with two differences: config-file
 
 ## Verify
 
-**Shared semantic corpus** (primary; expect every case to pass — it is the
-contract for the combined engine; the legacy carriers keep their bundled
-suites):
+For a combined engine, follow its [verification instructions](../shell-guardrails/WIRING.md).
+Run from `misc/modern-cli-guardrails/` if invoking its corpus here:
 
 ```bash
-python3 ../../shell-guardrails/run_corpus.py ../../shell-guardrails/scripts/guard-shell.py --bench
+python3 ../shell-guardrails/run_corpus.py ../shell-guardrails/scripts/guard-shell.py
 ```
 
 **Windows / PowerShell** — the bundled suite for the legacy `.ps1` carrier
@@ -72,3 +70,5 @@ echo $?   # expect 2
 ```
 
 A blocked command exits 2 and prints a BLOCKED message to stderr; an allowed command exits 0 with no output.
+For wiring-only changes, probe the deployed carrier with blocked and allowed payloads and check
+settings. Engine changes also run the selected carrier's suite; avoid duplicate corpus runs.

@@ -53,10 +53,10 @@ card:
    fixtures/data, permission or account reachability, and network mode. Record secret *names* and
    access state, never values.
 3. Prepare a durable project environment using repository-declared setup/bootstrap commands. Do
-   not use a temporary environment that disappears before execution. If setup would add a product
-   dependency, change tracked files, mutate an external system, or needs new authority, show that
-   exact setup decision and obtain approval first. Then complete only the approved environment/
-   dependency preparation, record its diff/result, and rerun preflight; do not implement behavior.
+   not use a temporary environment that disappears before execution. Routine local setup already implied by the task needs no additional approval, including
+   declared installs and generated configuration. Ask only for a new consequential dependency
+   choice, cost, external mutation, or authority not already granted. Prepare the reviewable change
+   first when possible, record the executed diff/result, and rerun preflight; do not implement behavior.
    The behavior card is not `ready` while any preparation remains outstanding.
 4. Actually run a cheap representative preflight through every harness. This is not the future RED
    test: use collection, an existing smoke test, tool/version probe, browser launch, service health,
@@ -67,8 +67,9 @@ card:
    that an environment can never change.
 
 At TDD dispatch, replay the recorded P# checks before editing. That replay is a drift guard, not a
-second setup phase. If it fails, leave the card `ready` and report the mismatch; do not install,
-upgrade, start an undeclared dependency, or substitute a different verifier.
+second setup phase. If it fails, leave the card `ready` and report the mismatch. The caller restores declared setup
+or refreshes stale readiness outside the behavior wave, then resumes. New consequential choices
+follow the decision rule; never substitute weaker proof just to pass.
 
 One P# may support several ACs. A textual command that SPEC did not run, a version probe without a
 representative harness action, or a preflight whose evidence cannot be replayed is not readiness.
@@ -87,9 +88,9 @@ resources. Static green alone does not prove runtime behavior.
 **Python.** Pyright/mypy cover typed boundaries only. For a mutation-based impact probe, compare a
 baseline with the candidate and classify only new diagnostics as typed impact candidates;
 pre-existing diagnostics and line-only movement are not attributed to the mutation. This does not
-relax an independent repository typecheck gate. Pair static results with pytest at the public seam
-and a runtime selector/coverage signal (`pytest --testmon` or coverage contexts) because dynamic
-dispatch, fixtures, registries, and `**kwargs` evade static analysis. Property tests are useful for
+relax an independent repository typecheck gate. Pair static results with pytest at the public seam. Use an installed runtime selector/coverage
+signal when dynamic coupling makes selection uncertain; otherwise run the affected module tests.
+Dynamic dispatch, fixtures, registries, and `**kwargs` limit static completeness. Property tests are useful for
 broad input spaces when the project already supports them. Report the remaining dynamic-dispatch
 gap.
 

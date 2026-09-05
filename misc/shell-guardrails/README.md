@@ -51,9 +51,8 @@ quoted device commands and `MSYS_NO_PATHCONV=1` prefixes stay allowed.
 
 ## Performance notes
 
-Prefilters short-circuit commands with no trigger substring before any
-parsing; the scan is single-pass, so a 10 KB command costs the same as a
-short one. Measured: ~35 ms per call on Windows Python 3.12, ~32 ms on macOS
+Prefilters short-circuit commands with no trigger substring before parsing. Recorded samples
+are measurements, not a constant-time bound on input size. Measured: ~35 ms per call on Windows Python 3.12, ~32 ms on macOS
 CLT Python 3.9 (interpreter start dominates); the legacy `.ps1` pair behind
 a pwsh spawn costs ≈470 ms per call, and the legacy `.sh` pair ≈1.2 s on a
 single 10 KB command.

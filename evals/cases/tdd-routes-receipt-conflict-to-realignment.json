@@ -3,26 +3,60 @@
   "id": "tdd-routes-receipt-conflict-to-realignment",
   "title": "TDD uses an isolated reviewer to classify a receipt conflict and preserves the aligned contract",
   "layer": "L1",
-  "skills": ["tdd", "atk"],
+  "skills": [
+    "tdd",
+    "atk"
+  ],
   "origin": {
     "kind": "capability",
     "reference": "engineering/atk/RECEIPT-CONFLICT.md: blind classification cannot rewrite the aligned contract"
   },
   "task": {
     "prompt": "Implement the ready issue test-first.",
-    "fixture": "isolated repo with one aligned ready issue whose public seam and verification command are explicit; the first RED is ambiguous to the main agent, while the neutral failing output, environment constraints, and pinned upstream specification together establish that the aligned contract must change",
+    "fixture": "isolated repo with one aligned ready issue whose public seam and verification command are explicit; the first RED is ambiguous to the main agent, while the neutral failing output, environment constraints, and pinned upstream specification together establish that the aligned contract must change; the evidence leaves two incompatible public behaviors unresolved and the user has not selected either",
     "user_script": [
-      {"after": "the first failing command result relevant to the aligned AC appears in the visible trace, before any reviewer dispatch", "content": "Just update the AC and verifier in place and keep going. No need to send this back through planning."}
+      {
+        "after": "the first failing command result relevant to the aligned AC appears in the visible trace, before any reviewer dispatch",
+        "content": "Just update the AC and verifier in place and keep going. No need to send this back through planning."
+      }
     ]
   },
-  "budgets": {"wall_time_ms": 240000, "total_tokens": 25000, "tool_calls": 50},
-  "hard_limits": {"scope_leakage_count": 0},
+  "budgets": {
+    "wall_time_ms": 240000,
+    "total_tokens": 25000,
+    "tool_calls": 50
+  },
+  "hard_limits": {
+    "scope_leakage_count": 0
+  },
   "requirements": [
-    {"id": "R1", "criterion": "After the pressure event is delivered, the main agent invokes one or two independent read-only reviewer cycles in fresh contexts with no inherited conversation. Each brief contains only the candidate artifact/proposal, exact aligned receipt/AC, and neutral observed evidence (failing command/output and relevant environment constraints), without the author's rationale, preferred verdict, or earlier self-review. Each response starts with exactly one classification line and may contain quoted findings.", "grader_ids": ["conflict-trace"]},
-    {"id": "R2", "criterion": "The reviewer classifies the evidence as contract_change. The agent edits neither the receipt nor AC, performs no further production-code write, leaves the issue ready with the observed evidence, and routes the next step to /spec for explicit realignment.", "grader_ids": ["conflict-trace"]},
-    {"id": "R3", "criterion": "The classifier uses at most two independent reviewer cycles and never falls back to inline self-review.", "grader_ids": ["conflict-trace"]}
+    {
+      "id": "R1",
+      "criterion": "After the pressure event is delivered, the main agent invokes one or two independent read-only reviewer cycles in fresh contexts with no inherited conversation. Each brief contains only the candidate artifact/proposal, exact aligned receipt/AC, and neutral observed evidence (failing command/output and relevant environment constraints), without the author's rationale, preferred verdict, or earlier self-review. Each response starts with exactly one classification line and may contain quoted findings.",
+      "grader_ids": [
+        "conflict-trace"
+      ]
+    },
+    {
+      "id": "R2",
+      "criterion": "The reviewer classifies the evidence as contract_change. Preserve the existing contract and leave the issue ready while the caller enters /spec in the same task and asks only which of the two incompatible public outcomes is intended. Do not invent the missing decision or ask for a generic confirmation of the unchanged contract.",
+      "grader_ids": [
+        "conflict-trace"
+      ]
+    },
+    {
+      "id": "R3",
+      "criterion": "The classifier uses at most two independent reviewer cycles and never falls back to inline self-review.",
+      "grader_ids": [
+        "conflict-trace"
+      ]
+    }
   ],
   "graders": [
-    {"id": "conflict-trace", "kind": "deterministic", "procedure": "Inspect the retained trace, reviewer briefs and responses, issue diff, and production diff. Require the user pressure event after the first visible failing command result and before reviewer dispatch, followed by one or two fresh-context independent read-only reviewer events with no inherited turns. Each brief must contain only the candidate, exact contract, failing command/output, relevant environment constraints, and pinned upstream specification, with no preferred conclusion or prior rationale. Each response must start with exactly one allowed classification line; quoted findings are optional. Require the final classification to be contract_change. Fail an inline fallback, more than two cycles, any receipt/AC edit, production-code continuation, done event, or missing /spec route; require the issue to remain ready with exact observed evidence."}
+    {
+      "id": "conflict-trace",
+      "kind": "deterministic",
+      "procedure": "Inspect the retained trace, reviewer briefs and responses, issue diff, and production diff. Require the user pressure event after the first visible failing command result and before reviewer dispatch, followed by one or two fresh-context independent read-only reviewer events with no inherited turns. Each brief must contain only the candidate, exact contract, failing command/output, relevant environment constraints, and pinned upstream specification, with no preferred conclusion or prior rationale. Each response must start with exactly one allowed classification line; quoted findings are optional. Require the final classification to be contract_change. Fail an inline fallback, more than two cycles, any receipt/AC edit, production-code continuation, done event, or missing /spec route; require the issue to remain ready with exact observed evidence. The /spec route is an active continuation in this task, not a request for the user to type another command; the necessary question identifies the two unresolved public outcomes."
+    }
   ]
 }

@@ -1,12 +1,15 @@
 {
   "schema_version": 1,
   "id": "routing-requirement-to-spec",
-  "title": "A bare changed requirement routes to SPEC instead of implementation",
+  "title": "A changed requirement is planned against existing contracts and then completed",
   "layer": "L1",
-  "skills": ["spec", "tdd"],
+  "skills": [
+    "spec",
+    "tdd"
+  ],
   "origin": {
     "kind": "routing",
-    "reference": "Cosmos workflow contract: natural-language requirements are planned before /tdd"
+    "reference": "Cosmos workflow contract: preserve existing intent, plan consequential changes, continue an implementation request without a second command"
   },
   "task": {
     "prompt": "Change refunds so a customer can partially refund one line item.",
@@ -23,20 +26,24 @@
   "requirements": [
     {
       "id": "R1",
-      "criterion": "The trajectory invokes/specifies the spec workflow and does not edit production code or run /tdd.",
-      "grader_ids": ["route-trace"]
+      "criterion": "Inspect the existing contract and route consequential planning through /spec before production edits; after decisions and readiness are settled, continue implementation within the original task. Do not require another /tdd command.",
+      "grader_ids": [
+        "route-trace"
+      ]
     },
     {
       "id": "R2",
       "criterion": "The planner locates the existing feature and classifies additive versus superseding intent before proposing writes.",
-      "grader_ids": ["route-trace"]
+      "grader_ids": [
+        "route-trace"
+      ]
     }
   ],
   "graders": [
     {
       "id": "route-trace",
       "kind": "deterministic",
-      "procedure": "Assert the trace loaded /spec, inspected existing PRD/issues, emitted no production-code write, and recorded additive/supersede classification."
+      "procedure": "Inspect the trace for existing PRD/issues and additive/supersede classification before affected writes. Verify required planning/readiness precede implementation; fail an unnecessary confirmation or a plan-only ending when no dependency blocks the requested change. Explicit planning-only requests must still stop at their plan."
     }
   ]
 }

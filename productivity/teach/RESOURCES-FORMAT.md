@@ -1,6 +1,7 @@
 # RESOURCES.md Format
 
-`RESOURCES.md` is the curated set of trusted sources for this topic. Knowledge for explainers should be drawn from here, not from parametric guesses. Wisdom comes from the communities listed here.
+`RESOURCES.md` records reusable trusted sources for this topic and communities useful for practice
+or feedback. Add verified sources as lessons need them; it need not be complete before teaching starts.
 
 ## Structure
 

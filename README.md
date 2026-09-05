@@ -20,13 +20,13 @@ A complete engineering methodology for your coding agent — nine laws, an artif
 
 ## 这是什么
 
-CosmosSkills 是一套给单人开发者的 AI 编程工程方法论：31 个 Claude Code 技能、九条设计定律、一道工件门和一套按需行为 eval。它假设 AI 每次进场都从零开始，不信任 AI 的自我汇报——定律给方向，机器与可重放证据给结论。
+CosmosSkills 是一套给单人开发者的 AI 编程工程方法论：31 个跨宿主技能、九条设计定律、一道工件门和一套按需行为 eval。它假设 AI 每次进场都从零开始，不信任 AI 的自我汇报——定律给方向，机器与可重放证据给结论。
 
 - **九条定律**：从 Hoare、Dijkstra、Parnas、Ousterhout 等软件工程经典提炼的九个问题。不给规范，让 AI 自己推导出好代码
 - **机器门**：`verify-artifacts.py` 校验每份工件——完成记录点名的测试文件必须真实存在于磁盘，误删当场红灯；依赖图有环、PRD 版本链多头或缺头、需求记录源哈希漂移都会红灯
 - **闭环工作流**：`/spec` 只在真实决策未定时问人，准备验证环境并产出可执行契约 → `/tdd` 实现和举证 → 双轴审查 + 一屏报告；`/tidy` 只清安全缓存
 - **按需行为 eval**：默认关闭；项目内保留 previous / candidate / no-skill 配对实验，跨项目则导出同一份独立公开考卷，比较 Verified Success、速度、同口径成本与交接摩擦
-- **单人本地优先**：本地 markdown 队列（ready | done 两态），零外部服务；中文对话、英文思考与代码；面向人的输出固定四件套、一句一行
+- **单人本地优先**：本地 markdown 队列（ready | done 两态），零外部服务；中文沟通、沿用代码术语；面向人的输出以结果、证据和待决定事项为主
 
 完整背景故事与设计出处见 [中文版](docs/introduction.zh.md) · [English](docs/introduction.en.md)
 
@@ -64,11 +64,15 @@ cd CosmosSkills
 bash scripts/install.sh
 ```
 
-装完新开会话，敲 `/` 能看到 31 个技能就成功了。只想试试全局规则，不装技能，拉一份 CLAUDE.md 也行。
+装完新开会话，敲 `/` 可检查技能发现情况。只想试试全局规则，不装技能，拉一份 CLAUDE.md 也行。
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/SilentUniverse/CosmosSkills/main/claude/CLAUDE.md -o ~/.claude/CLAUDE.md
 ```
+
+Codex 在本仓库通过根 [AGENTS.md](AGENTS.md) 读取共享策略 [CLAUDE.md](claude/CLAUDE.md)，避免维护两份正文。
+安装器分发 Claude Code/ZCode 配置及已有 `~/.agents/skills`；不会修改全局 `~/.codex/AGENTS.md`。
+在其他 Codex 项目使用这套常驻策略时，将共享文件的实际路径加入相应 AGENTS.md，并保留原有项目规则。
 
 新项目直接用 `/spec` 起步即可。`.scratch/` 本地 issue、两态词汇和 `CODEBASE.md`
 验证命令区懒出生都是默认约定，无需 setup。`/cosmos-setup` 只处理偏离：非默认
@@ -96,69 +100,39 @@ flowchart LR
 | `/tidy` | 查询派生状态，清理已关闭批次的显式缓存；不搬 issue / test |
 | `/eval` | 手动打开项目内 A/B 或跨项目 portable campaign；平时关闭 |
 
-**/spec**
+详细执行规则以各技能为准，入口不重复维护第二套流程：
 
-- 先按每类验证器实际运行 P# 预检：工作目录、runtime/tool、service、fixture、权限、网络和环境指纹都就绪；缺项不产 `ready`，`/tdd` 不负责临时安装
-- 结果、范围、约束、证明已固定，且改动局部、可逆、有确定验证器时，请求本身就是对齐，直接推进；不复述、不索要仪式性确认
-- 只有会改变结果的歧义、产品偏好、权限、公共契约、单向门、高成本或无客观验证器时，才给**设计回执**并集中问一轮
-- 小而清晰：跳过 PRD 直拆（`## 上级` 自带上下文）
-- 会改卡的决定才问；ADR 级 → `/grill`；外部事实由 agent 查证。只有大量多源研究且主线程有独立工作时才委派；未溯源结论带 `UNVERIFIED:`，进不了 AC 证据
-- 已有功能：没推翻已记录的 AC/决策 → detail / 改 `ready`；推翻了 → `PRD-v2` + 对账；跨特性先问一句
-- 已有代码：影响面探测
-- 写不出自足卡（`## 做什么` + AC + 每条 AC→证据→已通过 P#）就不是独立 issue；AC 从不变量推导，穿过点名的接缝跑
-- 切卡同产 `## 相关面` 指针块（不变量块/ADR/邻接模块）——执行者只读这些，不通读全图；多卡特性写 feature 级 `verifier.json`，v3 精简卡只带偏差，完成块引用 `receipts/` 回执
-- 并行批次同时声明写集（`touches` + `test_paths`，`-p` 波次的唯一撞车信号；`--log` 卡不声明）；UI 卡先拆三层：逻辑与结构进 AC，纯视觉进端到端验证
-- agent 能跑的浏览器/模拟器/CLI/trace 由 agent 自己执行并保留命令+观测+证据；只有品味、权限、不可访问账号等真·人验进 PRD 端到端验证
-- 有真设计权衡 → 先 `/prototype`
-- 实现决策先写不变量；单向门（ABI / schema / 协议）单独标出吃最重审查
-- 收尾冷读每张卡；写了 PRD 或 ≥5 张卡 → 自动 `/atk` 审查，发现进待决
-- PRD 是意图快照，推翻已记录的 AC/决策才写新版本；防漏靠设计回执的需求→证据→切片映射和 AC，不靠持续膨胀 PRD
+- [spec](engineering/spec/SKILL.md)：明确结果、依赖和证据。多切片或跨会话工作才写可独立执行的卡；共享决策需要长期维护时才写 PRD。
+- [tdd](engineering/tdd/SKILL.md)：按行为红绿验证；小而明确的需求可直接执行。复杂需求先在同一任务中规划，随后继续实现。
+- [atk](engineering/atk/SKILL.md)：检查承重规则与失败方式；无发现也可通过，不为凑报告制造问题。
+- [tidy](engineering/tidy/SKILL.md)：查询交付状态，清理已关闭批次的显式缓存。
 
-**/atk**
+技能是阶段工具。要求“实现并验证”时，规划、审查结束后继续工作；明确只要规划或审阅时，完成该范围即可。已授权提交则验证后进入 `/commit`，无需再发一次命令。
 
-- spec 收尾自动调（写了 PRD 或 ≥5 张卡）——审查态，只产发现：能推翻卡片的进待决，其余当场修
-- 手动 `/atk` ——审查 + 逐条讲解，一条改动两行（改了什么 / 为什么）；默认讲上一轮增量，`--all` 讲全部未提交
-- 攻法正反两向：正向以使用者身份走每条入口→指针→链路；反向对前身逐条对账：前身中的每条规则必须是“仍在 / 已迁移且可达 / 有理由删除”三态之一
-- 盲审分类（仅 `/tdd` 边界不清时）：始终交不继承当前会话的独立只读 reviewer，只传候选工件、已对齐契约与中性运行证据；输出只能是工件缺陷、契约变化、上下文不足或噪声，不能改契约
+澄清只针对证据仍无法解决、会改变结果的决定。已提供的选择跨阶段保留；一个决定得到回答后，不追加“请回复对齐”。外部发布等行动若仍缺授权，先完成已有授权的准备，再展示可审阅结果。等待期间继续独立工作。
 
-**/tdd**
+| 情形 | 执行方式 |
+|---|---|
+| 清晰的文案、配置或局部修复 | 直接修改，用相关现有检查验证；不强制 PRD、卡片、新测试 |
+| 多个可独立交付的行为 | 按结果、证据和依赖拆卡；共享验证配置才提取 profile |
+| 用户已指定公共接口变化 | 检查兼容性并实施；仅新出现的实质选择需要询问 |
+| 真实权限、成本或产品选择缺失 | 提出具体问题，保留已决定部分，继续不受影响的工作 |
+| 活跃批次的集成检查失败 | 保留证据，将相关卡退回 ready 修复；已交付历史行为变化另建 redo |
+| 工具、子代理或会话轮换不可用 | 使用能力等价的可用路径；无法替代的验证明确报告，不能伪报通过 |
 
-- 一条 / 裸跑排空 / `<feat>` 串行；`-p` 并行（声明撞车的卡自动串行；worktree 仅用户显式要求）；每轮先跑 `drain-wave.py step` 拿下一步动作，不必通读 DRAIN 长文
-- `--log`：车机 / 设备，验收是命令的 log 文件
-- targeted / module / full / build / preflight 统一经 supervisor 计时分类；输出进日志，收据进上下文；超时收据携带日志尾部（最后活跃测试），单次诊断重跑后仍超时即转 `/diagnose`
-- 实现证据若推翻回执/验证设计，卡保持 `ready` 并回 `/spec` 重新对齐；只有边界不清时主会话才走独立 `/atk` 盲审分类（最多两轮 reviewer）；drain 把冲突当作关批屏障并停止派发
-- 人验在 PRD 端到端验证；批末全量 suite + build + 双轴审查 + 一屏五块报告；done 攒够 → `/tidy`
-
-**/tidy**
-
-- `workflow-state.py inspect` 按需投影当前交付状态，不生成 `SUMMARY.md`
-- `workflow-state.py packet / close` 生成单卡最小执行包 / 机械关闭（带 `### 完成` 守卫与 GC 预览）
-- `workflow-state.py gc` 只删除已关闭批次的 `preflight-receipt.json` / `wave-ledger.json`
-- issue、测试归属和 redo 语义由各自契约处理；tidy 不做高风险语义清理
-
-需求又变 → 再 `/spec`。只加一块 → detail。重大方向反转先 `/grill` 写新 ADR，旧的标 `Status: superseded`。`done` 不动，要改就 `NN-redo-X.md`。
-
-全长链不是必经管道，见下面怎么喊。
-
----
-
-**四个防漂移机制**（贯穿全流程）：
-- **条件式设计回执** — 已明确请求直接成为契约；只有真实决策前沿才让 agent 回放目标、反例、验证和切片，由人裁决
-- **冷读** — spec 收尾把每张卡当一无所知的执行者重读；AC 跑不动、依赖没写清，当场打回
-- **对账** — 需求推翻不是悄悄改文件：`PRD-v2` + 逐条对账报告（✓ 仍有效 / ⚠ 返工 / ✏ 改写 / 🗑 删除 / ➕ 新增）
-- **闭环** — handoff 一份生产一次消费，`/resume` 完成即删；当前交付状态按需投影，不维护第二份 SUMMARY；说不清的问题停在待决，不假装精确
+`ready` 仍要求真实的验证器预检。测试仍证明可观察行为；需要的集成检查、公共契约和已启用的 UI 证据门不会因模型更强而取消。
 
 ---
 
 ## 设计哲学
 
-**上下文是最贵的资源。** 每个技能头 <100 行，细则按需加载；每张卡计算**推理半径**，半径就是后续每次执行的 token 成本。会话边界只比较 Continue → `/clear` → `/handoff` → `/compact`；subagent 是正交的并行/独立判断工具，不是清上下文工具。
+**上下文按需加载。** 技能头以 100 行为目标，分文件按使用场景而非机械行数。先读任务点名文件、卡片或地图入口，发现依赖再展开；保留精简证据。只在真实会话边界交接，不按卡片数量强制换会话。
 
 **深模块：接口留给品味，实现交给 AI。** 大量行为收进一个小接口，测试锁死接口行为——实现随便 AI 怎么写，红灯会说话。接口在文件置顶（类型先行，实现后看）；目录结构就是模块地图，地图和目录对不上，本身就是架构问题。
 
 **人是裁决者，不是流水线工人。** AI 自己解决可查事实和有确定验证器的局部决策；只有结果会分叉时才问人。人读的是一屏决策面：目标、反例、公共边界、证据与待裁决；AI 读的是卡、路径、命令、摘要和机器收据。给人的文本优先可判断性，给 AI 的文本优先精确、短、低 token。默认不写解释型代码注释，只保留代码无法表达的契约、why 和外部约束。
 
-**全集必清零。** 任何"全部 / 所有 / 逐个"任务，先用工具枚举全集（grep / ls / git diff），绝不凭记忆；每项要么完成、要么写明不动的原因；收尾重跑枚举命令验证残留为零，报告以 N/N 结束。每个结论带 file:line 或命令输出作证据。
+**全集必清零。** 任何"全部 / 所有 / 逐个"任务，先用工具枚举全集（rg / rg --files / git diff），绝不凭记忆；每项要么完成、要么写明不动的原因；收尾重跑枚举命令检查未处理项，报告覆盖 N/N 及未解决项。每个结论带 file:line 或命令输出作证据。
 
 **只并行真正独立的工作。** 默认 inline。`/tdd -p` 只并行写集和运行资源不冲突的卡；独立盲审保留独立上下文；大量多源研究必须有窄输出且主线程仍有可做工作。单文件、单次搜索、慢命令、大输出、顺序依赖和上下文清理都不是委派理由。全量 suite 由当前会话启动 supervisor；Standards / Spec 独立审查仍可并行。
 
@@ -169,7 +143,7 @@ flowchart LR
 | 面向谁 | 必读 | 必写 | 禁止默认生成 |
 |---|---|---|---|
 | 人 | 真实决策前沿、公共契约、证据摘要、待裁决项 | 一次集中选择或授权 | 已确定需求的复述、实现流水账、机器分类号 |
-| AI | resident `CLAUDE.md`、当前卡、点名路径、验证命令；续跑再读 handoff `Continue` | source of truth、最小 issue/PRD、执行收据、必要不变量 | 全仓扫描、重复 SUMMARY、长日志入上下文 |
+| AI | resident `AGENTS.md` / `CLAUDE.md`、当前任务或卡、点名路径、验证命令；续跑再读 handoff `Continue` | 源文件、必要时的 issue/PRD、执行证据、必要不变量 | 全仓扫描、重复 SUMMARY、长日志入上下文 |
 | 代码维护者 | 接口、测试、代码无法表达的 why/约束 | 语义必要注释 | 翻译代码、改动叙述、教程、装饰分隔注释 |
 
 派生状态统一走 `workflow-state.py inspect`；测试输出统一走 supervisor；跨 session 状态统一走带 worktree digest 的 handoff（capsule 三型：active-work / awaiting-alignment / external-pending，resume 按型路由）。三者都让上下文只接收摘要，同时保留可回放原始证据。
@@ -247,7 +221,7 @@ rg '^status: ready' -g '**/issues/*.md' .scratch
 
 **接收已有项目** — 导航噪声真实存在时才建地图。
 
-1. 大型/遗留仓库：先 `/domain-modeling` 出术语表，再 `/map` 出结构地图，各一次起草、一次审；中小仓库跳过 map。不变量由 `/spec`、`/tdd` 在发现时事件驱动落盘。临时看懂某一块：`/show <path>`，一屏即弃
+1. 术语或导航已经造成障碍时，用 `/domain-modeling` / `/map` 补足相关区域；不为新会话例行建图。不变量由 `/spec`、`/tdd` 在发现时事件驱动落盘。临时看懂某一块：`/show <path>`，一屏即弃
 2. `/cosmos-setup` 只处理偏离：旧状态机、非默认路径、旧 `Status:` 行、旧 `docs/agents/domain.md` 折叠；对既有 `AGENTS.md` 只增不删
 3. 护栏同上
 
@@ -362,7 +336,7 @@ git_base: 7af387c
 | 改完 CLAUDE.md / references / hooks | Windows 再双击 `install.cmd` |
 | 全局规则源 | 只改 [`claude/CLAUDE.md`](claude/CLAUDE.md)；安装器复制到 Claude / ZCode 目标 |
 | 改 skill | 改仓库即可（junction）；平时跑 L0，想验证或上游前手动 `/eval`，再做 previous RED → candidate GREEN → 全回归 |
-| 加 / 改 / 退役流程规则 | 先登记 [RULE-LEDGER.md](engineering/RULE-LEDGER.md)（防什么失败 · 出处 · 探针）；换模型代际 → 对探针子集跑一次 `/eval full` 基线 |
+| 加 / 改 / 退役流程规则 | 先登记 [RULE-LEDGER.md](engineering/RULE-LEDGER.md)（防什么失败 · 出处 · 探针）；需要测量模型代际差异时，显式 `/eval full` 跑对应探针；普通规则修复先做确定性检查 |
 | SKILL.md | <100 行；超了按 [write-skill](productivity/write-skill/SKILL.md) 拆；`/atk` + `/lint` + `wc -l` 常跑，行为 eval 仅显式开启 |
 | 改 hook | 先跑 `test-block-legacy-cli.ps1` / `test-block-dangerous-git.ps1` |
 | 改 verify-artifacts | 跨平台先跑 `python3 -m unittest discover -s tests -v`；Windows 再跑 `test-verify-codebase.ps1` 全集 |

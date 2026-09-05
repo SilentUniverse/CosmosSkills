@@ -183,7 +183,7 @@ def main(argv):
             prompt = (
                 "drain-wave.py next 报 exit 3——已派发未闭环的僵尸：\n%s\n"
                 "按 EDGE-CASES.md 逐个处置：采纳（补 ### 完成、置 done）则 collect green；"
-                "回退（按账本基线恢复该 issue 的文件、留 ready）则 collect aborted；歧义默认回退。"
+                "回退仅处理有归属证据的本 issue 改动、留 ready，再 collect aborted；归属有歧义时保留现场并说明。"
                 "collect 落账：python \"%s\" collect \"%s\" <slug>=green|aborted。"
                 "全部闭环后按滚动模式刷新 handoff，然后结束会话；不要派发新波，不要调 next/dispatch。"
                 % (out, wave_script, root)
@@ -242,7 +242,7 @@ def main(argv):
                 "逐个 issue 派 general-purpose 子代理跑完整红绿闭环；收波时落账："
                 "python \"%s\" collect \"%s\" <slug>=green|red|blocked|conflict|aborted。"
                 "任一子代理返回 conflict 时，按 DRAIN.md 中断未完成兄弟并以 aborted 归账，"
-                "handoff 指向 /spec 重对齐；只有无 conflict 才在 §5 写明续跑。"
+                "handoff 指向 /spec 核实冲突；误报按 DRAIN.md 保留证据后 dismiss-conflict，真实分歧才重对齐。"
                 "收波后按滚动模式刷新 handoff（波号、tests-so-far），然后结束会话。"
                 % (scope, handoff, ", ".join(slugs), receipt_brief, wave_script, root)
             )
