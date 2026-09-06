@@ -23,7 +23,8 @@ directory. The Unix carrier requires `jq` and fails open when it is missing.
 
 Merge a Claude Code `hooks.PreToolUse` entry with matcher `Bash`. On Windows, invoke the deployed
 script through `pwsh -NoProfile -File`; use `powershell` when PowerShell 7 is unavailable. On Unix,
-invoke the `.sh` carrier directly. For ZCode, place the same entry under `hooks.events.PreToolUse`
+invoke `bash "<deployed-hook-path>/block-dangerous-git.sh"`; copied files need no executable bit.
+For ZCode, place the same entry under `hooks.events.PreToolUse`
 and set `hooks.enabled` to true.
 
 Use the JSON shape in [WIRING.md](../WIRING.md), replacing the combined-engine command with the
@@ -40,5 +41,5 @@ Run the bundled PowerShell suite when available:
 pwsh -NoProfile -File tooling\shell-guardrails\scripts\test-block-dangerous-git.ps1
 ```
 
-Otherwise feed quoted JSON payloads directly to the deployed carrier. Confirm `git push origin main`
+Otherwise feed quoted JSON payloads to the same deployed invocation. Confirm `git push origin main`
 exits 2 and `git status` exits 0; the payload is parsed but never executed.

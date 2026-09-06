@@ -10,7 +10,7 @@ time (spec, prototype, grill sessions) or when a decision needs the reasoning be
 | First Principles | Reason from fundamentals, not analogy | 为什么？ | every design turn (CLAUDE.md §2) |
 | Invariant | What must always be true; the design derives from it | 什么绝不能错？ | PRD 实现决策 leads with it; AC derive from it |
 | Parsimony | Minimize concepts, states, special cases — not LOC | 什么可以不要？ | §3 ladder; PRD adversarial self-review |
-| Locality | Understanding, change, and failure stay local | 影响能否限制在这里？ | spec impact detection; grain-quiz reasoning radius; §4 |
+| Locality | Understanding, change, and failure stay local | 影响能否限制在这里？ | spec impact detection; CARD-TEST reasoning radius; §4 |
 | Provability | Prefer the design with the shorter correctness argument | 为什么确信它对？ | equivalent-design tie-break (PRD self-review) |
 | Adversarial Review | Attack your own work before declaring done | 怎么把它打爆？ | PRD 对抗自审; tdd 审查; `/atk` |
 | Empiricism | Observation beats model; claims carry measurements | 现实怎么说？ | diagnose red loop; review test quality; perf claims |

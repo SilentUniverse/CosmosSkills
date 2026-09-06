@@ -15,6 +15,7 @@ NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 FIELD_RE = re.compile(r"^([A-Za-z][A-Za-z0-9-]*):(?:[ \t]+(.*))?$")
 LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
 INLINE_SLASH_RE = re.compile(r"`/([a-z][a-z0-9-]*)\b[^`\n]*`")
+DOUBLE_HYPHEN_FLAG_RE = re.compile(r"(?<![\w-])--[a-z][a-z0-9-]*")
 KNOWN_FIELDS = {
     "name",
     "description",
@@ -42,7 +43,7 @@ CURSOR_COLORS = {
     "brand",
 }
 DEFAULT_ROOTS = ("workflow", "tooling")
-MARKDOWN_EXCLUDED_PARTS = {".eval-campaigns", ".git", ".scratch", ".venv", "node_modules"}
+MARKDOWN_EXCLUDED_PARTS = {".eval-campaigns", ".eval-runs", ".git", ".scratch", ".venv", "node_modules"}
 RETIRED_SKILL_NAMES = {
     "caveman": "brief",
     "git-guardrails-claude-code": "shell-guardrails",
@@ -205,6 +206,8 @@ def validate_skill(skill_file: Path) -> list[str]:
     hint = values.get("argument-hint")
     if hint is not None and not isinstance(hint, str):
         errors.append(f"{skill_file}: argument-hint must be a string")
+    elif isinstance(hint, str) and DOUBLE_HYPHEN_FLAG_RE.search(hint):
+        errors.append(f"{skill_file}: skill flags in argument-hint must use a single hyphen")
     paths = values.get("paths")
     if paths is not None and not isinstance(paths, (str, list)):
         errors.append(f"{skill_file}: paths must be a comma-separated string or a list")
@@ -282,7 +285,13 @@ def validate_skill_calls(markdown_file: Path, skill_names: set[str]) -> list[str
             target = match.group(1)
             if line[match.end(1) : match.end(1) + 1] == "/":
                 continue
-            if target in skill_names or target in NON_SKILL_SLASH_TOKENS:
+            if target in skill_names:
+                if DOUBLE_HYPHEN_FLAG_RE.search(match.group()):
+                    errors.append(
+                        f"{markdown_file}:{line_number}: skill flags for /{target} must use a single hyphen"
+                    )
+                continue
+            if target in NON_SKILL_SLASH_TOKENS:
                 continue
             errors.append(
                 f"{markdown_file}:{line_number}: slash reference {target!r} is not an installed skill"
@@ -347,11 +356,13 @@ def run(inputs: Iterable[str], cwd: Path) -> tuple[list[str], int, int]:
             if isinstance(catalog_name, str):
                 known_names.add(catalog_name)
 
-    if not requested:
+    for scope in [cwd / item for item in requested] if requested else [cwd]:
+        if not scope.is_dir():
+            continue
         markdown_files.update(
-            path
-            for path in cwd.rglob("*.md")
-            if not MARKDOWN_EXCLUDED_PARTS.intersection(path.relative_to(cwd).parts)
+            path.resolve()
+            for path in scope.rglob("*.md")
+            if not MARKDOWN_EXCLUDED_PARTS.intersection(path.relative_to(scope).parts)
         )
 
     for markdown_file in sorted(markdown_files):

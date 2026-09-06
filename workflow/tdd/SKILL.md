@@ -2,30 +2,34 @@
 name: tdd
 description: >-
   Use when implementing a named issue or feature test-first, running red-green-refactor, draining ready issues, or recording TDD evidence. Owns implementation and validation; substantial unresolved requirements route through spec, while unknown failures route through diagnose.
-argument-hint: "Issue path, feature slug, -p, --full, --log, or nothing to drain all ready issues"
+argument-hint: "Issue path, feature slug, -p, -all, -log, or nothing to drain all ready issues"
 ---
 
 # Test-Driven Development
 
 ## Invocation
 
-- `/tdd <issue-path>` — run that one issue. Read its frontmatter `status:` first (per [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd)) and obey the guard. One slice, fully visible. Prefer `python <skills-root>/workflow-state.py packet <repo-root> <feat> <slug>` (`python3` only when `python` is absent); a wave uses `packets <repo-root> <feat> <slug>...` once per feature. Its compact JSON contains the execution contract/mode, parent, objective, AC, verification, `blocked_by`, context pointers, declared paths/resources, status-independent contract digest, and resolved v3 verifier, while omitting Comments/history.
-- A caller-supplied packet is the issue input after the frontmatter status guard; a wave packet also
-  carries the verified dispatch wave/baseline binding and, when present, only the newest compact
-  retry attempt from Comments. Do not generate it
-  again. If its source/status/hash is observed stale, pause writes and return one attention event.
-- `/tdd` (bare) — **drain (serial)**: every `ready` issue across `.scratch/`, one at a time, dependency order, to completion. The dumb-but-legible batch path: no worktrees; watch each one in this session.
+- `/tdd <issue-path>` — run only that issue. Read frontmatter `status:` and obey the guard below.
+  Use a caller-supplied packet directly. Otherwise obtain the compact contract with
+  `python <skills-root>/workflow-state.py packet <repo-root> <feat> <slug>`; use `python3` when
+  `python` is absent. It includes required inputs and the newest retry, omitting prior Comments.
+  If source/status/hash is observed stale, pause writes and return one attention event.
+- Explicit bare `/tdd` — **drain (serial)**: every `ready` issue across `.scratch/`, one at a time,
+  in dependency order. A caller or natural-language implementation request inherits only its named
+  task; absence of an issue path does not authorize a repository-wide drain.
 - `/tdd <feat>` — drain scoped to one feature's `issues/` directory.
 - `/tdd -p [<feat>]` — **drain (parallel)**: up to four concurrent issues including the main agent's. The main agent normally owns the highest-priority issue, delegates the rest, and supervises the wave. Delegated output stays isolated while the critical slice remains visible. Declared collisions serialize; undeclared issues run alone. Worktree only on explicit request, and runner-driven session rotation: [DRAIN.md](DRAIN.md).
-- `/tdd --full` — run build + the whole suite now (§5); combines with any form above.
-- `/tdd --log` — the verdict is a command's log file, not test runs: [LOG.md](LOG.md). Same mode when the user says this run drives a device and the result lands in a log file. Combines with any form above.
-- No issue path: for one settled local behavior, keep outcome, constraints, and evidence inline
+- `/tdd -all` — run build + the whole suite now (§5); combines with any form above.
+- `/tdd -log` — the verdict is a command's log file, not test runs: [LOG.md](LOG.md). Same mode when the user says this run drives a device and the result lands in a log file. Combines with any form above.
+- Task-scoped entry without an issue: for one settled local behavior, keep outcome, constraints, and evidence inline
   and execute this loop without issue artifacts. Multi-slice or unresolved product work uses `/spec`
   first, then resumes here within the original request. Unknown failures use `/diagnose`.
 
 ### Drain mode
 
-Enumerate `ready` issues, topologically sort on `blocked_by`, run the batch through the autonomous loop (§Workflow), close with one full suite + build. Two paths: **serial** (default: one issue returned by each driver step) and **parallel** (`-p`: worker waves). Issue packets and receipts carry execution context; a boundary-only rolling handoff points to durable cards/ledger without copying their contents. Keep conversation summaries out of subsequent issue briefs. Full algorithm, worker brief, edit-in-place-vs-worktree call: **[DRAIN.md](DRAIN.md)**.
+Load [DRAIN.md](DRAIN.md) only for an explicit batch. Its driver owns enumeration, dependency order,
+wave packets, receipts, recovery, and batch close. Serial is the default; `-p` enables independent
+worker waves. Keep conversation summaries out of subsequent issue briefs.
 
 ### Status guard (issue-driven invocation)
 
@@ -82,7 +86,10 @@ For each remaining behavior: RED (write next test, watch it fail) → GREEN (min
 - Only enough code to pass the current test; don't anticipate future tests
 - Keep tests focused on observable behavior
 
-**What to run each cycle.** RED/GREEN runs execute only the test just written (`pytest path/test_x.py::test_y`). The touched module's tests run once per slice, at GREEN completion before refactor. The full suite stays batch-level (§5). Cache scoped-test / module-test / build commands in `CODEBASE.md`'s `## Verifier commands` zone, created lazily per the ARTIFACT-FORMAT stub when absent.
+**What to run each cycle.** RED/GREEN runs execute only the test just written (`pytest path/test_x.py::test_y`).
+Run the touched module's tests at slice completion; relevant refactors invalidate that evidence.
+The full suite stays batch-level (§5). Reuse project commands. Cache only reusable adapters that
+cannot be cheaply recovered from project configuration in `CODEBASE.md`'s `## Verifier commands`.
 
 **Receipt conflict.** TDD never weakens aligned behavior or required proof to make a failure pass. Clear contract
 invalidation appends the exact evidence, keeps the card `ready`, stops production-code writes, and
@@ -96,4 +103,4 @@ After all tests pass: [refactoring.md](refactoring.md). Unexpected red exposing 
 
 ### 5. Full-suite check
 
-Scoped per-cycle tests (§3) can't see cross-module regressions. The full suite + build runs **automatically once per batch** (drain's last issue to `done`) and **manually** (`/tdd --full`). Run each command inline through the timeout/log supervisor; load only its compact result into context. Full procedure: **[FULL-SUITE.md](FULL-SUITE.md)**.
+Scoped per-cycle tests (§3) can't see cross-module regressions. The full suite + build runs **automatically once per batch** (drain's last issue to `done`) and **manually** (`/tdd -all`). Run each command inline through the timeout/log supervisor; load only its compact result into context. Full procedure: **[FULL-SUITE.md](FULL-SUITE.md)**.

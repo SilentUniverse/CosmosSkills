@@ -2,7 +2,7 @@
 name: commit
 description: >-
   Use when the user asks to commit, submit, push, merge, or land the current change, including a local-only commit. Creates one scoped Git commit, preserves unrelated work, and either stops locally or lands through a pull request or verified native merge.
-argument-hint: "[-local|--local]"
+argument-hint: "[-local]"
 ---
 
 # Commit
@@ -42,7 +42,7 @@ SSH, non-GitHub, and unauthenticated environments retain native Git authenticati
   title. Stage explicit paths with
   `git add -- <paths>` and commit them with `git commit --only -- <paths>` so unrelated staged work
   remains staged but outside this commit. Push and land the branch.
-- `-local` or `--local`: use the same scoped staging and commit, then stop without pushing or merging.
+- `-local`: use the same scoped staging and commit, then stop without pushing or merging.
 
 Never stage with `git add -A` or `git add .`. A broad “everything” request still applies to the
 validated task scope; unrelated work needs its own validation and commit. Ignored files stay
@@ -61,20 +61,27 @@ upstream, or stop if the intended remote cannot be resolved without changing rep
 When authenticated `gh` is usable for a GitHub repository, look up the branch's pull request first.
 When none exists, create it with `gh pr create --base <default> --head <current>` so repository
 configuration cannot silently redirect either side. Before reusing or merging one, inspect `gh pr view --json
-baseRefName,headRefName,state,url`; its head must be the current branch and its base must be the
-resolved default branch. A different base or head blocks landing until the user selects the intended
-target. Run `gh pr merge --squash --delete-branch`; add `--auto` only while required checks are
-pending. Return the worktree to the default branch after the merge.
+baseRefName,headRefName,headRefOid,state,url`; its head must be the current branch at the verified
+commit and its base must be the resolved default branch. A different target needs resolution before
+landing. Run `gh pr merge <url> --squash --match-head-commit <verified-head>`; add `--auto` only
+while required checks are pending. Enabling auto-merge or entering a merge queue is pending work.
+Use the host's wait/monitor mechanism and verify `state: MERGED`, `mergedAt`, and `mergeCommit`
+before reporting a landed change or cleaning branches. A changed head requires revalidation.
 
 Without `gh`, switch to the default branch and attempt `git merge --ff-only <branch>`. If histories
-diverged, use `git merge --squash <branch>` and commit with the same message. Push the landed default
-branch with `git push <remote> HEAD:refs/heads/<default>`. Delete the local and remote topic branch
-only after verifying the landed tree matches it. If policy blocks forced local branch cleanup after
-a squash merge, leave the verified branch and report the remaining cleanup.
+diverged, use `git merge --squash <branch>` and commit with the same message. Run relevant integration
+checks on the merged result before publishing the default branch with
+`git push <remote> HEAD:refs/heads/<default>`. Verify the published result contains the
+scoped change and preserves changes already on the default branch; an advanced target need not
+have the topic branch's identical tree.
 
 Never switch branches or create a native squash commit through an index or worktree containing
 unrelated changes. Use an isolated clean worktree for native landing, or stop with the scoped commit
 intact when isolation is unavailable.
+
+After verified landing, return to the default branch only when the worktree permits it. Clean up
+the exact local/remote topic refs only if they still identify the landed work; preserve any new
+commits. If policy blocks cleanup after a squash merge, leave the branch and report it.
 
 Never force-push, pull, rebase, amend, bypass hooks or checks, use administrator overrides, or push
 the default branch except to publish the authorized landing. A hook failure returns to in-scope

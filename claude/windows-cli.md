@@ -30,7 +30,7 @@ Corruption before the write:
 - **BOM-less `.ps1` + `-File`** — PS5.1 parses the script as ANSI; Chinese literals inside it are re-decoded wrong at parse time. Chinese-bearing scripts need a BOM (or stay ASCII).
 - **Chinese match-strings in a BOM-less `.ps1`** — construct at runtime from code points (`[string][char]0x5206 + [string][char]0x533A`), never as literals.
 - **`\uXXXX` in Edit/Write parameters is decoded to the character by the tool layer** — old_string and new_string come out identical. Use code-point construction.
-- **Pipe into PS** — stdin is decoded GBK unless `[Console]::InputEncoding = UTF8` is set before reading (included in the §7 wrapper).
+- **Pipe into PS** — set `[Console]::InputEncoding` to UTF-8 before reading stdin.
 
 ## cmd.exe from git-bash
 
@@ -41,7 +41,8 @@ Corruption before the write:
 
 ## Observed behavior
 
-- Raw `pwsh` / `powershell.exe` from bash with Chinese output: PS7 raw garbles, PS5.1 raw sometimes clean — never rely on either unwrapped; the §7 wrapper command is the safe form.
+- When invoking PowerShell from bash, set encoding in that process before producing output:
+  `[Console]::InputEncoding = [Console]::OutputEncoding = $OutputEncoding = [Text.UTF8Encoding]::new($false)`.
 - `fd` / Glob / Grep (rg) hide gitignored + hidden + dot files by default; a non-empty directory can read as "empty" until a truth command runs.
 - **git-bash rewrites leading-`/` paths in unquoted args to native Windows executables**: `adb shell ls /sdcard` arrives on-device as `ls C:/Program Files/Git/sdcard`. Quote the device command (`adb shell "ls /sdcard"`), or prefix `MSYS_NO_PATHCONV=1` for mixed commands.
 - **Two path worlds** — git-bash's `/tmp` is an MSYS virtual mount; a native process (`python`, `pwsh`, `cmd`, `node`, winget tools) resolves `/tmp` as `<cwd-drive>:\tmp` or fails outright. Hand native processes Windows absolute paths; temp files go to `$env:TEMP` (`cygpath -w "$TEMP"` converts from bash). The shell-guardrails path tier blocks POSIX path tokens on native-exe segments.

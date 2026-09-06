@@ -1,6 +1,6 @@
 # tdd — Full-suite check (§5 detail)
 
-Load only for the automatic batch close or `/tdd --full`. Scoped RED/GREEN cycles do not read it.
+Load only for the automatic batch close or `/tdd -all`. Scoped RED/GREEN cycles do not read it.
 
 ## Execution contract
 
@@ -46,5 +46,5 @@ evidence; agent prose is not.
 ## When to run
 
 - Once after the last issue in a drain batch reaches `done`: full suite plus build.
-- Immediately for `/tdd --full` or an explicit whole-suite request.
+- Immediately for `/tdd -all` or an explicit whole-suite request.
 - Never per issue unless that issue's verifier contract requires it.

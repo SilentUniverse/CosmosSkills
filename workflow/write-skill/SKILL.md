@@ -39,6 +39,8 @@ the same change.
   location. Reserve `icon` and `color` for Custom Modes, and `metadata` for an actual consumer.
 - Add the host extension `argument-hint` only when an argument changes the workflow. Agent Skills
   core validators may report host extensions even when the target host supports them.
+- Skill options use one leading hyphen, such as `-all`, `-log`, `-html`, or `-local`. Commands
+  invoked by a skill keep their own CLI syntax, including double-hyphen options.
 
 ## Progressive disclosure
 
@@ -69,8 +71,9 @@ fact in a skill merely to avoid one relevant tool call.
 
 After the final edit:
 
-1. Run `python3 scripts/validate-skills.py` on the affected skills, then the repository checks relevant
-   to changed scripts or contracts.
+1. Resolve this skill's source checkout when installed through a link. From that checkout, run
+   `python3 scripts/validate-skills.py <affected-skill-paths>`; external skills use absolute paths.
+   Then run the target repository's checks relevant to changed scripts or contracts.
 2. Run `/atk <scope>` for necessity, semantic consistency, runtime paths, and cost.
    For a large corpus, add one independent read-only review when an agent slot is available.
 3. Run `/lint <scope>` and inspect `wc -l`; line count alone never fails acceptance.

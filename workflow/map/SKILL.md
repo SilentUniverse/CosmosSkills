@@ -2,7 +2,7 @@
 name: map
 description: >-
   Use when repository navigation is noisy, CODEBASE.md is missing or stale, or a change moved a seam or invariant. Generates or refreshes the structural map, routing table, roster, and evidence-filtered invariant blocks while preserving verifier commands.
-argument-hint: "Area path to refresh (optional; no args or --all = whole repo)"
+argument-hint: "Area path to refresh (optional; no args or -all = whole repo)"
 disable-model-invocation: true
 ---
 
@@ -11,14 +11,14 @@ disable-model-invocation: true
 Draw or refresh this repo's structural map into `CODEBASE.md`. Read `CONTEXT.md` when present so the
 names line up. One-time understanding without an artifact → `/show <path>`.
 
-Scope: `/map <path>` refreshes that area; no args or `--all` maps the whole repo. The request
+Scope: `/map <path>` refreshes that area; no args or `-all` maps the whole repo. The request
 authorizes writing the map unless preview-only. Missing maps are not prerequisites for other work.
 
 ## First pass (draft mode) — mapping a whole repo
 
 **When:** `CODEBASE.md` is absent or empty, or holds only the hand-maintained `## Verifier
 commands` zone, or is a legacy monolith (per-area sections, no roster), and the user wants a map
-of the *whole* project, not one area (`/map` with no path, or `/map --all`). A hand zone already
+of the *whole* project, not one area (`/map` with no path, or `/map -all`). A hand zone already
 present is preserved verbatim; the generated skeleton is assembled around it.
 
 **Steps:**

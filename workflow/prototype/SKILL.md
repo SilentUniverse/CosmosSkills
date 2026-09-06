@@ -13,7 +13,8 @@ A prototype is **throwaway code that answers a question**. The question decides 
 Infer the question from the user's prompt, prior decisions, and relevant code:
 
 - **"Does this logic / state model feel right?"** → [LOGIC.md](LOGIC.md). Build a tiny interactive terminal app that pushes the state machine through cases that are hard to reason about on paper.
-- **"What should this look like?"** → [UI.md](UI.md). Generate several radically different UI variations on a single route, switchable via a URL search param and a floating bottom bar.
+- **"What should this look like?"** → [UI.md](UI.md). A single mockup uses one design; a comparison
+  uses distinct variations on one route with a URL parameter and switcher.
 
 Use the branch supported by that evidence and state reversible assumptions. Ask only if the
 unresolved choice would materially change the result; prepare independent fixtures or setup meanwhile.

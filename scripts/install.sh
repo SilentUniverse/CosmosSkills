@@ -4,18 +4,19 @@
 # Usage: bash install.sh [--dry-run] [--force] [--target DIR] [--claude-root DIR]
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT="$(cd "$(dirname "$0")/.." && pwd -P)"
 TARGET="${HOME}/.claude/skills"
 CLAUDE_ROOT="${HOME}/.claude"
 DRY_RUN=0
 FORCE=0
+SHARED_INSTALL=1
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --dry-run) DRY_RUN=1; shift ;;
     --force) FORCE=1; shift ;;
-    --target) TARGET="$2"; shift 2 ;;
-    --claude-root) CLAUDE_ROOT="$2"; shift 2 ;;
+    --target) TARGET="$2"; SHARED_INSTALL=0; shift 2 ;;
+    --claude-root) CLAUDE_ROOT="$2"; SHARED_INSTALL=0; shift 2 ;;
     *) echo "Unknown flag: $1" >&2; exit 2 ;;
   esac
 done
@@ -33,6 +34,25 @@ skill_name() {
     }
     p >= 2 { exit }
   ' "$1"
+}
+
+# Resolve an existing ancestor so renamed/deleted targets still have an owner.
+# Ambiguous broken aliases and parent traversal stay untouched.
+link_points_into_repo() {
+  local candidate parent
+  candidate="$(readlink "$1")" || return 1
+  case "$candidate" in
+    /*) ;;
+    *) candidate="$(dirname "$1")/$candidate" ;;
+  esac
+  while [[ ! -d "$candidate" ]]; do
+    [[ -L "$candidate" || "$(basename "$candidate")" == ".." ]] && return 1
+    parent="$(dirname "$candidate")"
+    [[ "$parent" != "$candidate" ]] || return 1
+    candidate="$parent"
+  done
+  candidate="$(cd "$candidate" && pwd -P)" || return 1
+  [[ "$candidate" == "$ROOT" || "$candidate" == "$ROOT/"* ]]
 }
 
 SKILL_ROOTS=("$ROOT/workflow" "$ROOT/tooling")
@@ -133,11 +153,7 @@ done
 for entry in "$TARGET"/*; do
   [[ -e "$entry" || -L "$entry" ]] || continue
   [[ -L "$entry" ]] || continue
-  dest="$(readlink "$entry")"
-  case "$dest" in
-    "$ROOT"/*) ;;
-    *) continue ;;
-  esac
+  link_points_into_repo "$entry" || continue
   base="$(basename "$entry")"
   keep=0
   for n in "${NAMES[@]}"; do
@@ -170,8 +186,9 @@ copy_file "$ROOT/workflow/ARTIFACT-FORMAT.md" "$TARGET/ARTIFACT-FORMAT.md" "Cont
 for gate in verify-artifacts.py workflow-state.py workflow_contract.py; do
   copy_file "$ROOT/workflow/$gate" "$TARGET/$gate" "Gate: $gate"
 done
-copy_file "$ROOT/scripts/eval.py" "$TARGET/eval.py" "Eval: eval.py"
-copy_file "$ROOT/scripts/eval_campaign.py" "$TARGET/eval_campaign.py" "Eval: eval_campaign.py"
+for helper in eval.py eval_campaign.py eval_metrics.py; do
+  copy_file "$ROOT/scripts/$helper" "$TARGET/$helper" "Eval: $helper"
+done
 
 # Prune pre-Python gate corpses (the gate was once .ps1/.sh; stale copies read as "old").
 for stale in verify-artifacts.ps1 verify-artifacts.sh; do
@@ -246,12 +263,12 @@ fi
 #     serves every host. Real entries there belong to other tools and are
 #     never touched: only links resolving into this repo are recreated. ---
 agents_deployed=0
-if [[ -d "${HOME}/.zcode" ]]; then
+if [[ "$SHARED_INSTALL" -eq 1 && -d "${HOME}/.zcode" ]]; then
   copy_file "$ROOT/claude/CLAUDE.md" "${HOME}/.zcode/AGENTS.md" "Guidelines: AGENTS.md (ZCode)"
 fi
 
 agents_skills="${HOME}/.agents/skills"
-if [[ -d "$agents_skills" || -d "${HOME}/.zcode" ]]; then
+if [[ "$SHARED_INSTALL" -eq 1 && ( -d "$agents_skills" || -d "${HOME}/.zcode" ) ]]; then
   [[ "$DRY_RUN" -eq 1 ]] || mkdir -p "$agents_skills"
 
   # Contract files land first: linked skills resolve ../ARTIFACT-FORMAT.md
@@ -268,11 +285,10 @@ if [[ -d "$agents_skills" || -d "${HOME}/.zcode" ]]; then
 
     if [[ -e "$link" || -L "$link" ]]; then
       if [[ -L "$link" ]]; then
-        dest="$(readlink "$link")"
-        case "$dest" in
-          "$ROOT"/*) ;;
-          *) printf 'Agents root keeps foreign link %s, skipping\n' "$name"; continue ;;
-        esac
+        if ! link_points_into_repo "$link"; then
+          printf 'Agents root keeps foreign link %s, skipping\n' "$name"
+          continue
+        fi
         if [[ "$DRY_RUN" -eq 1 ]]; then
           echo "[DryRun] Recreate agents link $name"
         else
@@ -298,11 +314,7 @@ if [[ -d "$agents_skills" || -d "${HOME}/.zcode" ]]; then
   for entry in "$agents_skills"/*; do
     [[ -e "$entry" || -L "$entry" ]] || continue
     [[ -L "$entry" ]] || continue
-    dest="$(readlink "$entry")"
-    case "$dest" in
-      "$ROOT"/*) ;;
-      *) continue ;;
-    esac
+    link_points_into_repo "$entry" || continue
     base="$(basename "$entry")"
     keep=0
     for n in "${NAMES[@]}"; do

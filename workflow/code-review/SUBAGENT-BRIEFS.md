@@ -4,7 +4,8 @@ Single source for independent axis briefs — used by `/code-review` step 4 and 
 one axis themselves (drain close: caller-ran-Spec mode). All reviewers are read-only during the
 review pass. Inline fallback uses the same criteria without claiming independent judgment.
 
-Passed with the brief: the diff command, the commit list, and the axis's sources (Standards:
+Passed with the brief: the pinned diff command, commit list, in-scope untracked paths/contents for
+working-tree review, and the axis's sources (Standards:
 standards-source files + [SMELL-BASELINE.md](SMELL-BASELINE.md); Spec: issue `## AC` block
 and/or PRD contents; Experience: aligned experience contract + anonymous operated-state artifacts).
 

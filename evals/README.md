@@ -185,13 +185,12 @@ python3 scripts/eval.py from-claude artifacts/planner.jsonl artifacts/executor.j
 当前仓库只提交 case、rubric、validator 和单元测试，不提交虚构的“跑分”。真实 runner 结果
 按日期/revision 另存并接受 code review；没有实际执行就不声称行为已改善。
 
-建议节奏是：平时直接开发 workflow → 想校验时 `/eval smoke` → 准备向上游提交时
-`/eval full` → 只有通过的候选才提交 → 合并/同步后把这轮暴露的真实失败固化成 regression
-case。评测结果服务于一次决策，不常驻生产开发链。
+普通修订通过相关确定性检查即可提交。需要比较行为时显式选择 `/eval smoke`；需要主张质量、
+速度或成本改善时，显式选择 `/eval full`，保留配对证据。评测不因提交或模型代际变化自动启动。
 
-换模型代际是另一条固定触发：对 [RULE-LEDGER](../workflow/RULE-LEDGER.md) 标注了探针的
-case 子集重跑一次 `full` 三臂基线，把逐条规则的保护差距（candidate vs no-skill）回填账本。
-流程规则的降级 / 退役只认这份数据或机器门兜底；没有它，规则只增不减。
+经授权的模型代际比较可从 [RULE-LEDGER](../workflow/RULE-LEDGER.md) 选择相关探针，回填
+candidate 与 no-skill 的保护差距。削弱仍有作用的保护需要行为证据或等价机器门；删除重复、
+冲突、失效路径和不可执行的过程要求可依据静态证据，不启动额外模型实验。
 
 ## Failure → regression
 

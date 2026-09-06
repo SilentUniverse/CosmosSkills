@@ -293,6 +293,28 @@ class WorkflowStateTests(unittest.TestCase):
             self.assertNotIn("dependencies", packet)
             self.assertEqual(".scratch/demo/issues/01-base.md", packet["source"])
 
+    def test_packet_preserves_optional_manual_checks_without_a_prd(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_issue(root, "01-manual", status="ready")
+            path = root / ".scratch/demo/issues/01-manual.md"
+            original = path.read_text(encoding="utf-8")
+            packet = workflow_state.issue_packet(root, "demo", "01-manual")
+            self.assertNotIn("manual_verification", packet)
+            path.write_text(
+                original.replace(
+                    "## Comments",
+                    "## 手动验证\n\n- [ ] Owner checks the inaccessible device.\n\n## Comments",
+                ),
+                encoding="utf-8",
+            )
+            updated = workflow_state.issue_packet(root, "demo", "01-manual")
+            self.assertEqual([], updated["parent"])
+            self.assertEqual(
+                ["- [ ] Owner checks the inaccessible device."], updated["manual_verification"]
+            )
+            self.assertNotEqual(packet["contract_sha256"], updated["contract_sha256"])
+
     def test_packets_projects_a_wave_in_one_read_only_call(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

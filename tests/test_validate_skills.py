@@ -198,6 +198,53 @@ class ValidateSkillsTests(unittest.TestCase):
         )
         self.assertTrue({"merge-conflicts", "caveman", "grilling"}.isdisjoint(names))
 
+    def test_directory_scope_includes_shared_markdown_but_not_other_roots(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_skill(root / "workflow", "fixture-skill")
+            (root / "workflow" / "ARTIFACT-FORMAT.md").write_text(
+                "# Contract\n\n[Missing schema](missing-schema.md)\n", encoding="utf-8"
+            )
+            (root / "unrelated.md").write_text("[Outside](outside.md)\n", encoding="utf-8")
+            errors, skill_count, markdown_count = validate_skills.run(["workflow"], root)
+            self.assertEqual(1, skill_count)
+            self.assertEqual(3, markdown_count)
+            self.assertEqual(1, len(errors))
+            self.assertIn("missing-schema.md", errors[0])
+
+    def test_generated_evaluation_artifacts_do_not_pollute_source_validation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_skill(root / "workflow", "fixture-skill")
+            (root / "tooling").mkdir()
+            for directory in (".eval-runs", ".eval-campaigns"):
+                report = root / directory / "session" / "report.md"
+                report.parent.mkdir(parents=True)
+                report.write_text("[Runtime evidence](absent-here.log)\n", encoding="utf-8")
+            errors, skill_count, markdown_count = validate_skills.run([], root)
+            self.assertEqual([], errors)
+            self.assertEqual(1, skill_count)
+            self.assertEqual(2, markdown_count)
+
+    def test_skill_flags_use_single_hyphens_without_restricting_tool_flags(self):
+        cases = [
+            ('argument-hint: "[-all]"\n', "`/fixture-skill -all`", True),
+            ('argument-hint: "[--all]"\n', "", False),
+            ("", "`/fixture-skill --log`", False),
+            ("", "`python runner.py --log output.log`", True),
+        ]
+        for hint, body, valid in cases:
+            with self.subTest(hint=hint, body=body), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                skill = self.write_skill(root, "fixture-skill")
+                original = skill.read_text(encoding="utf-8")
+                skill.write_text(original.replace("---\n\n", hint + "---\n\n", 1) + body, encoding="utf-8")
+                errors, _, _ = validate_skills.run(["fixture-skill"], root)
+                if valid:
+                    self.assertEqual([], errors)
+                else:
+                    self.assertTrue(any("single hyphen" in error for error in errors))
+
 
 if __name__ == "__main__":
     unittest.main()

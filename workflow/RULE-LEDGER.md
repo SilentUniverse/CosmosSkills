@@ -32,10 +32,10 @@
 
 ## 收录范围
 
-入表（40 行）：① 性质为过程 / 过程·经济的规则（退役候选本体）；② 层级为流程且无机器红灯兜底的
+入表：① 性质为过程 / 过程·经济的规则（退役候选本体）；② 层级为流程且无机器红灯兜底的
 产物 / 权威规则（保留真实授权边界）。不入表的自证方式：机器红灯行由 tests/ 与
 verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交）由人的可判断性自证；
-九定律常驻词汇（§2a/§2e/§2f/§3/§4d/§5b/§5f）由 design-principles 立法——按设计 capability-elastic，
+九定律常驻词汇由 design-principles 定义，
 不退役。仅覆盖常驻层与主链（spec / tdd / DRAIN / commit）；opt-in 技能与参考细则不入表，
 某技能出现降级候选时其参考文件再入表（Evolution）。
 
@@ -43,7 +43,6 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 
 | 定位 | 要旨 | 性质 | 层级 | 防什么失败 · 出处 / 探针 |
 |---|---|---|---|---|
-| §1·d | 发送前十秒自检：一遍答三问，清自造代号 | 过程 | 自审 | dev-skills 对标借入（lowband/readout 自检协议）；未溯源 |
 | §1·e | 用户没跟上 → 补上下文，不复述同句 | 过程 | 自审 | 未溯源 |
 | §2·b | 可查事实不问人 | 过程 | 自审 | 未溯源（近邻探针：research-marks-unverified-and-ignores-injection） |
 | §2·c | 结果与约束已定即可推进；实现和验证细节由 agent 补足 | 过程·经济 | 流程 | 仪式性确认税；7be5338 压缩摄入、51a7d4a fast path / spec-alignment-before-write |
@@ -68,7 +67,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | 定位 | 要旨 | 性质 | 层级 | 防什么失败 · 出处 / 探针 |
 |---|---|---|---|---|
 | 头部 | 规划阶段不写产品码；端到端请求由 caller 接续实现 | 产物 | 流程 | 工作流闭环立法（README）/ routing-requirement-to-spec |
-| 头部 | settled intake 不复述、不停顿 | 过程·经济 | 流程 | 51a7d4a（settled-intake fast path）/ spec-alignment-before-write |
+| Prepare and write | settled intake 直接推进；卡片自足，共享决策才建 PRD | 过程·经济 | 流程 | spec intake 与 ISSUE-TEMPLATE 的无 PRD 分支；spec-alignment-before-write |
 | 头部 | 仅未解决的实质选择用回执，独立工作继续 | 权威 | 流程 | 7be5338（compressed intake）/ spec-holds-alignment-under-pressure |
 | 回执·决策点 | 问实际决定并给建议；回答即对齐，不追问口令 | 权威 | 流程 | 应答成本税与越权代答；dev-skills 对标借入（lowband）；未溯源 |
 | §1 | 定位：点名即 rg 单特性；否则 3–5 关键词 | 过程·经济 | 流程 | 未溯源（token 经济） |
@@ -92,7 +91,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 
 | 定位 | 要旨 | 性质 | 层级 | 防什么失败 · 出处 / 探针 |
 |---|---|---|---|---|
-| Shared·枚举 | rg 单趟读四字段，不逐文件解析 | 过程·经济 | 流程 | 全集必清零立法（README） |
+| Driver and inputs | driver 统一派生待执行项与依赖；worker 复用已派发 packet | 过程·经济 | 机器+流程 | drain-wave step + workflow-state packets |
 | Shared·预算 | 精简证据；仅真实宿主/上下文边界轮换 | 过程·经济 | 流程 | 实测 7 卡批尾部 ~550k token/请求（DRAIN.md） |
 | Shared·blocked | 具体缺失条件和证据；独立完成，已知无权限不空重试 | 产物 | 流程 | b369e40（blocked gate） |
 | Serial | 基线加 diff 确定归属；只恢复自身改动，保留并发工作 | 产物 | 流程 | f7cc4db（baseline reverts） |
@@ -108,8 +107,8 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | 定位 | 要旨 | 性质 | 层级 | 防什么失败 · 出处 / 探针 |
 |---|---|---|---|---|
 | Context | 暂存前必读四样 + 点名未跟踪 | 产物 | 流程 | 未溯源（审慎）/ commit-holds-scope-under-pressure |
-| Task | 仅提交已验证的任务归属路径；禁 add 全量；`-local` / `--local` 不推送 | 权威 | 流程 | 8472cfc（opt-in push）、b46a888（branch-PR 落地）、commit-holds-scope-under-pressure |
-| Task | 变更命令限 add/commit/switch/push/merge/branch 删除与 gh pr create/merge；禁 force 系与 bypass（--admin/--no-verify） | 权威 | 机器+流程 | git-guardrails hook（4a7763e）装则机器、未装则流程；b46a888 / commit-holds-scope-under-pressure |
+| Commit modes | 仅提交已验证的任务归属路径；禁 add 全量；`-local` 不推送 | 权威 | 流程 | 8472cfc、b46a888、commit-holds-scope-under-pressure |
+| Land | 固定 PR head；确认 MERGED 才算落地，排队不算完成；禁 force-push 与 bypass | 权威 | 流程 | gh merge 的排队语义、--match-head-commit；commit-holds-scope-under-pressure |
 
 ## 已知攻法与兜底
 

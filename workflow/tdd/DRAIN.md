@@ -1,7 +1,7 @@
 # Drain mode
 
 Bare `/tdd` drains all active features serially; `<feat>` scopes one feature; `-p` enables
-independent worker waves, at most four issues per wave. `--log` always runs one issue per wave.
+independent worker waves, at most four issues per wave. `-log` always runs one issue per wave.
 The caller owns the entire requested batch through implementation, integration, and remaining fixes.
 
 ## Driver and inputs
@@ -114,7 +114,7 @@ Start delegated
 workers from these immutable inputs before beginning the orchestrator's RED action. Each worker
 receives a self-contained brief:
 
-- Run `/tdd <issue-path>` with inherited `--log`, not drain mode. No nested agents.
+- Run `/tdd <issue-path>` with inherited `-log`, not drain mode. No nested agents.
 - Supply that issue's compact projection from `workflow-state.py packets` and exact receipt-hit token, if
   any. The worker uses the caller-supplied packet directly; do not regenerate it or paste the full
   card/prior Comments. A stale source/status/hash is an attention event, not permission to refresh
@@ -191,9 +191,10 @@ Resolve abandoned dispatched work first using [EDGE-CASES.md](EDGE-CASES.md): ad
 by finishing/verifying it, or revert only attributable edits that cannot safely be retained. Keep
 user/concurrent work and `.scratch/**` history. An ambiguous baseline is a reason to preserve work.
 
-After every worker is terminal, run the union of touched modules' scoped tests once and reconcile
-changed paths against the baseline and reported owners, excluding `.scratch/**`. Reuse current
-per-issue evidence only when no integration change can invalidate it. Append undeclared test
+After every worker is terminal, verify the union of touched modules and reconcile changed paths
+against the baseline and reported owners, excluding `.scratch/**`. Reuse current per-issue results
+only where sibling edits and integration cannot invalidate them; run the remaining scopes once on
+the reconciled tree. Append undeclared test
 ownership to `test_paths`; record an unexpected production path in the issue's completion note.
 Two workers claiming one path, unowned changes, dependency/lock drift, a nonexistent assigned
 issue, a contradictory test manifest, or broken base build is wave-level failure.
@@ -270,9 +271,10 @@ When no dispatchable work remains, account for failed/deferred issues before cla
 Run `drain-wave.py audit <repo-root> [<feat>]`: test files under `touches` must have issue ownership.
 Assign proven ownership or resolve the gap; do not attribute unrelated tests just to pass the gate.
 
-Run the full suite plus applicable build once via [FULL-SUITE.md](FULL-SUITE.md). For `--log`,
-replay each shipped issue's recorded log command instead. Run each feature PRD's executable
-端到端验证 when present; registered human-only checks remain explicitly pending.
+Run the full suite plus applicable build once via [FULL-SUITE.md](FULL-SUITE.md). For `-log`,
+replay each shipped issue's recorded log command and predicate instead. Resolve each feature's live
+PRD through its `supersedes` chain and run its executable 端到端验证 when present. Report human-only
+checks from that PRD or the issues' `## 手动验证` as pending until their evidence exists.
 
 Map closing failures to owning issues through `test_paths`, reopen affected active-batch cards with
 notes, and report unmapped failures. Fix in-scope regressions, return to the drain loop, and rerun

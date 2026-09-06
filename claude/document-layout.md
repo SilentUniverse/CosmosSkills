@@ -2,7 +2,9 @@
 
 ## Artifact format
 
-The full frontmatter schema, naming/location conventions, and generated-file formats live **once** in `workflow/ARTIFACT-FORMAT.md` (distributed to `~/.claude/skills/`). Read that before producing an artifact.
+Frontmatter schemas, locations, and generated-file formats live once in `workflow/ARTIFACT-FORMAT.md`
+(distributed beside the installed skills). Read the section for the artifact being produced;
+reuse it across the task until the contract changes.
 
 Don't restate what the environment answers (package.json scripts, config values, directory trees, `--help` output) — a copy is a cache that goes stale; query it or link it.
 

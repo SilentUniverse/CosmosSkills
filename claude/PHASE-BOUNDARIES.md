@@ -5,7 +5,9 @@ implementation, or diagnosis slice; mid-phase, continue.
 
 The first applicable option wins:
 
-1. **Continue** — the next action needs current decisions or the active slice is not complete.
+1. **Continue** — the host and remaining context safely permit finishing the active slice or its
+   immediate dependent action before a boundary. An unavoidable boundary takes the next applicable
+   option even while the slice is unfinished.
 2. **`/clear`** — no unfinished state must cross the boundary.
 3. **`/handoff`** — unfinished state must cross to another session, machine, or unattended batch.
    Write the compact READ/RUN/CONFIRM bridge, then clear.

@@ -44,6 +44,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path $PSScriptRoot -Parent
+$sharedInstall = -not ($PSBoundParameters.ContainsKey("Target") -or $PSBoundParameters.ContainsKey("ClaudeRoot"))
 
 function New-JunctionCompat {
     param(
@@ -263,27 +264,16 @@ foreach ($gate in @("verify-artifacts.py", "workflow-state.py", "workflow_contra
     }
 }
 
-$evalSource = Join-Path $root "scripts/eval.py"
-if (Test-Path -LiteralPath $evalSource) {
-    $evalTarget = Join-Path $Target "eval.py"
+foreach ($helper in @("eval.py", "eval_campaign.py", "eval_metrics.py")) {
+    $evalSource = Join-Path $root "scripts/$helper"
+    if (-not (Test-Path -LiteralPath $evalSource)) { continue }
+    $evalTarget = Join-Path $Target $helper
     if ($DryRun) {
-        Write-Host ("[DryRun] Copy eval.py -> {0}" -f $evalTarget) -ForegroundColor Yellow
+        Write-Host ("[DryRun] Copy {0} -> {1}" -f $helper, $evalTarget) -ForegroundColor Yellow
     }
     else {
         Copy-Item -LiteralPath $evalSource -Destination $evalTarget -Force
-        Write-Host ("Eval: copied eval.py -> {0}" -f $evalTarget) -ForegroundColor Green
-    }
-}
-
-$campaignSource = Join-Path $root "scripts/eval_campaign.py"
-if (Test-Path -LiteralPath $campaignSource) {
-    $campaignTarget = Join-Path $Target "eval_campaign.py"
-    if ($DryRun) {
-        Write-Host ("[DryRun] Copy eval_campaign.py -> {0}" -f $campaignTarget) -ForegroundColor Yellow
-    }
-    else {
-        Copy-Item -LiteralPath $campaignSource -Destination $campaignTarget -Force
-        Write-Host ("Eval: copied eval_campaign.py -> {0}" -f $campaignTarget) -ForegroundColor Green
+        Write-Host ("Eval: copied {0} -> {1}" -f $helper, $evalTarget) -ForegroundColor Green
     }
 }
 
@@ -351,7 +341,7 @@ $copiedHooks = 0
 foreach ($rel in $hookScripts) {
     $src = Join-Path $root $rel
     if (-not (Test-Path -LiteralPath $src)) {
-        Write-Error "Listed hook script not found: $src — fix the list or restore the file."
+        Write-Error "Listed hook script not found: $src - fix the list or restore the file."
         exit 1
     }
     if ($DryRun) {
@@ -370,7 +360,7 @@ if (-not $DryRun -and $copiedHooks -gt 0) {
 # --- Distribute user instructions to ZCode: claude/CLAUDE.md -> ~/.zcode/AGENTS.md.
 #     ZCode auto-loads ~/.zcode/AGENTS.md the way Claude Code loads ~/.claude/CLAUDE.md;
 #     without this step the two hosts drift apart. ---
-if ($cmMain -and (Test-Path -LiteralPath (Join-Path $HOME ".zcode"))) {
+if ($sharedInstall -and $cmMain -and (Test-Path -LiteralPath (Join-Path $HOME ".zcode"))) {
     $zcodeAgents = Join-Path $HOME ".zcode/AGENTS.md"
     if ($DryRun) { Write-Host ("[DryRun] Copy CLAUDE.md -> {0}" -f $zcodeAgents) -ForegroundColor Yellow }
     else {
@@ -387,7 +377,7 @@ if ($cmMain -and (Test-Path -LiteralPath (Join-Path $HOME ".zcode"))) {
 #     same way they do in $Target. ---
 $agentsSkills = Join-Path $HOME ".agents/skills"
 $agentsLinked = 0
-if ((Test-Path -LiteralPath $agentsSkills) -or (Test-Path -LiteralPath (Join-Path $HOME ".zcode"))) {
+if ($sharedInstall -and ((Test-Path -LiteralPath $agentsSkills) -or (Test-Path -LiteralPath (Join-Path $HOME ".zcode")))) {
     if (-not (Test-Path -LiteralPath $agentsSkills)) {
         if ($DryRun) { Write-Host "[DryRun] Create folder: $agentsSkills" }
         else { New-Item -ItemType Directory -Path $agentsSkills -Force | Out-Null }
