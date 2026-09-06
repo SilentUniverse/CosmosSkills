@@ -767,6 +767,13 @@ def parser():
 
 
 def main(argv=None):
+    # Stock Windows consoles default to the ANSI code page; never let an
+    # un-encodable character kill a survey mid-run.
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
     args = parser().parse_args((argv or sys.argv)[1:])
     try:
         if args.command == "inspect":

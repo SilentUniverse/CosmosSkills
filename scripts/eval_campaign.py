@@ -184,6 +184,8 @@ def _tree_records(root: Path, *, exclude: Sequence[str] = ()) -> Mapping[str, Ma
             raise CampaignError(f"symlinks are not portable campaign assets: {path}")
         if not path.is_file():
             continue
+        if "__pycache__" in path.parts or path.suffix == ".pyc":
+            continue
         relative = path.relative_to(root).as_posix()
         if relative not in excluded:
             records[relative] = _file_record(path)

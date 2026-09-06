@@ -107,8 +107,8 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | 定位 | 要旨 | 性质 | 层级 | 防什么失败 · 出处 / 探针 |
 |---|---|---|---|---|
 | Context | 暂存前必读四样 + 点名未跟踪 | 产物 | 流程 | 未溯源（审慎）/ commit-holds-scope-under-pressure |
-| Task | 按用户当前 default-push / --local 模式解析目标与范围 | 权威 | 流程 | 8472cfc（opt-in push） |
-| Task | 只 add/commit/push；禁 force 系命令 | 权威 | 机器+流程 | git-guardrails hook（4a7763e）装则机器、未装则流程；03996bd / commit-holds-scope-under-pressure |
+| Task | 按用户当前 branch-PR 落地 / `-local` 模式解析目标与范围 | 权威 | 流程 | 8472cfc（opt-in push）、b46a888（branch-PR 落地） |
+| Task | 变更命令限 add/commit/switch/push/merge/branch 删除与 gh pr create/merge；禁 force 系与 bypass（--admin/--no-verify） | 权威 | 机器+流程 | git-guardrails hook（4a7763e）装则机器、未装则流程；b46a888 / commit-holds-scope-under-pressure |
 
 ## 已知攻法与兜底
 

@@ -36,7 +36,7 @@ supervisor = load_module(
 
 
 def issue_body(touches, action=None, blocked_by=""):
-    action = action or shlex.join([sys.executable, "-m", "unittest", "-q"])
+    action = action or shlex.join([sys.executable, "-c", "print('ok')"])
     return f"""---
 status: ready
 blocked_by: [{blocked_by}]
@@ -376,6 +376,41 @@ class DrainWaveReceiptTests(unittest.TestCase):
                 wave.cmd_collect, str(root), ["01-one=red", "02-two=blocked"]
             )
             self.assertEqual(0, code, output)
+
+    def test_collect_replays_after_interrupted_multi_feature_close(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for feature, slug, action in (
+                ("one", "01-one", "python -m unittest one"),
+                ("two", "02-two", "python -m unittest two"),
+            ):
+                issues = root / ".scratch" / feature / "issues"
+                issues.mkdir(parents=True)
+                (issues / f"{slug}.md").write_text(
+                    issue_body(f"pkg/{feature}", action=action), encoding="utf-8"
+                )
+            self.assertEqual(
+                0,
+                self.call(wave.cmd_dispatch, str(root), ["01-one", "02-two"])[0],
+            )
+            # A prior collect run died after closing feature "one" only.
+            ledger = wave.load_ledger(str(root), "one")
+            ledger["waves"][-1]["closed"] = {"01-one": "red"}
+            ledger["waves"][-1]["closed_at"] = "2026-09-07T00:00:00+00:00"
+            wave.save_ledger(str(root), "one", ledger)
+
+            code, output = self.call(
+                wave.cmd_collect, str(root), ["01-one=red", "02-two=blocked"]
+            )
+            self.assertEqual(0, code, output)
+            self.assertEqual(
+                {"02-two": "blocked"},
+                wave.load_ledger(str(root), "two")["waves"][-1]["closed"],
+            )
+
+            code, output = self.call(wave.cmd_collect, str(root), ["01-one=red"])
+            self.assertEqual(0, code, output)
+            self.assertIn("nothing to do", output)
 
     def test_shared_preflight_is_required_once_and_reaches_serialized_briefs(self):
         with tempfile.TemporaryDirectory() as directory:
