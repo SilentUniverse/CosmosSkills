@@ -95,7 +95,7 @@ flowchart LR
 | | 做什么 |
 |---|---|
 | `/spec` | 固定意图与证据，准备验证环境，落档拆 issue。不写产品代码 |
-| `/atk` | 对抗审查。新 public seam、单向门、耦合切片或证据不稳时由 spec 调用；手动敲另有逐条讲解 |
+| `/atk` | 对抗审查。新 public seam、单向门、耦合切片或证据不稳时由 spec 调用；手动敲默认有逐条讲解，`-r` 只报发现且不改文件 |
 | `/tdd` | 红绿，写代码 |
 | `/tidy` | 查询派生状态，清理已关闭批次的显式缓存；不搬 issue / test |
 | `/eval` | 手动打开项目内 A/B 或跨项目 portable campaign；平时关闭 |
@@ -162,7 +162,8 @@ flowchart LR
 | 过夜无人值守跑批 | 双击仓库根的 [overnight.cmd](overnight.cmd)（会问项目路径；给它建个桌面快捷方式最省事，也可把项目文件夹拖上去）；终端 `overnight.cmd [repo] [feat]`；macOS / Linux：`python scripts/overnight.py` |
 | 上一 session 留了 handoff | `/resume` |
 | 做到哪了 | `python3 <skills-root>/workflow-state.py survey . --format human`（默认只看 ready/blocked/zombie；`--history` 才列已交付历史） |
-| 想听 AI 逐条讲它改了什么 | `/atk`（默认讲上一轮增量；`--all` 讲全部未提交） |
+| 想听 AI 逐条讲它改了什么 | `/atk`（默认讲上一轮增量；`-all` 讲全部未提交） |
+| 只要对抗审查，不允许改文件 | `/atk -r <目标>`（可省略目标，或用 `-all`） |
 | 快速检查 workflow 改动 | `/eval smoke <skill>`（筛回归，不能声称更好） |
 | 上游前证明 workflow 改进 | `/eval full <skill>`（3–5 次配对，默认平时不跑） |
 | 与原生方案或其他 harness 比较 | `/eval export <campaign>`（各边独立跑同一公开包，私有盲判后 N 路报告） |
@@ -302,7 +303,7 @@ git_base: 7af387c
 | [prototype](workflow/prototype/SKILL.md) | `/spec` 前造一次性原型 |
 | [spec](workflow/spec/SKILL.md) | 规划并跑通验证环境预检，再写 PRD / issue |
 | [eval](workflow/eval/SKILL.md) | 手动打开评测；保留项目内 previous/candidate A/B，也可导出独立包与任意外部 workflow 比较；默认关闭 |
-| [atk](workflow/atk/SKILL.md) | 对抗审查自己的产出；工作流只调审查方向，讲解仅手动触发 |
+| [atk](workflow/atk/SKILL.md) | 对抗审查自己的产出；工作流只调审查方向，手动默认讲解，`-r` 纯审查且不改文件 |
 | [tdd](workflow/tdd/SKILL.md) | 写代码；`--log` 读设备 log。[DRAIN.md](workflow/tdd/DRAIN.md) |
 | [commit](workflow/commit/SKILL.md) | 只提交本任务已验证路径并落地；`-local` / `--local` 仅建本地提交 |
 | [tidy](workflow/tidy/SKILL.md) | 派生状态查询 + 已关闭批次安全缓存 GC；不搬 issue / test |

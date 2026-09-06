@@ -33,10 +33,19 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertIn("slow command", policy)
         self.assertNotIn("Default to subagents", policy)
 
+    def test_atk_read_only_flag_reports_without_writing_files(self):
+        atk = " ".join(text("workflow/atk/SKILL.md").split())
+        self.assertIn("`/atk -r`", atk)
+        self.assertIn("`/atk -r -all`", atk)
+        self.assertNotIn("--all", atk)
+        self.assertIn("pure read-only review", atk)
+        self.assertIn("do not edit, create, delete, rename, stage, or commit files", atk)
+        self.assertIn("checks that may mutate the filesystem", atk)
+        self.assertIn("user-typed `-r` → findings only, read-only", atk)
+        self.assertIn("never performs the change", atk)
+
     def test_intent_fast_path_and_human_gate_are_both_explicit(self):
-        spec = " ".join(
-            (text("workflow/spec/SKILL.md") + text("workflow/spec/WRITE-LOOP.md")).lower().split()
-        )
+        spec = " ".join(text("workflow/spec/SKILL.md").lower().split())
         self.assertIn("request itself is alignment", spec)
         self.assertIn("material ambiguity", spec)
         self.assertIn("public contract", spec)
@@ -94,7 +103,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertNotIn("drafting next-wave inputs", drain)
 
     def test_spec_hoists_shared_verifier_state_before_writing_cards(self):
-        write_loop = " ".join(text("workflow/spec/WRITE-LOOP.md").split())
+        write_loop = " ".join(text("workflow/spec/SKILL.md").split())
         verification = " ".join(text("workflow/spec/VERIFICATION-DESIGN.md").split())
         issue = " ".join(text("workflow/spec/ISSUE-TEMPLATE.md").split())
         artifact = " ".join(text("workflow/ARTIFACT-FORMAT.md").split())
