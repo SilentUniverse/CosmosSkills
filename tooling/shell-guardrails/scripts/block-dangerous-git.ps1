@@ -105,9 +105,6 @@ try {
                     $f = $rest | Where-Object { $_.Length -gt 1 -and $_.StartsWith('-') -and $_.TrimStart('-') -match 'f' }
                     if ($f) { "git clean ($f)" }
                 }
-                'branch'   {
-                    if ($rest -ccontains '-D' -or (($rest -ccontains '--delete') -and ($rest -ccontains '--force'))) { 'git branch -D' }
-                }
                 'checkout' { if ($rest -contains '.') { 'git checkout .' } }
                 'restore'  { if ($rest -contains '.') { 'git restore .' } }
             }

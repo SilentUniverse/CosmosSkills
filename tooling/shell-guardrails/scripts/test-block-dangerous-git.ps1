@@ -39,8 +39,6 @@ Test-Case 'clean-f'           'git clean -f'                 2
 Test-Case 'clean-fd'          'git clean -fd'                2
 Test-Case 'clean-xdf'         'git clean -xdf'               2   # was missed by substring matching
 Test-Case 'clean-long-force'  'git clean --force'            2
-Test-Case 'branch-D'          'git branch -D feat'           2
-Test-Case 'branch-del-force'  'git branch --delete --force feat' 2
 Test-Case 'checkout-dot'      'git checkout .'               2
 Test-Case 'checkout-dd-dot'   'git checkout -- .'            2   # was missed by substring matching
 Test-Case 'restore-dot'       'git restore .'                2
@@ -54,6 +52,8 @@ Test-Case 'commit'            'git commit -m "wip"'          0
 Test-Case 'reset-soft'        'git reset --soft HEAD~1'      0
 Test-Case 'clean-dry'         'git clean -n'                 0
 Test-Case 'branch-d'          'git branch -d merged'         0
+Test-Case 'branch-D'          'git branch -D feat'           0   # ref drop is reflog-recoverable
+Test-Case 'branch-del-force'  'git branch --delete --force feat' 0
 Test-Case 'checkout-file'     'git checkout src/app.ts'      0
 Test-Case 'checkout-branch'   'git checkout -b feat/x'       0
 Test-Case 'restore-file'      'git restore src/app.ts'       0

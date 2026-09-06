@@ -90,8 +90,8 @@
 {"id": "git-clean-fd", "command": "git clean -fd", "expect": "block", "tier": "git"}
 {"id": "git-clean-xdf", "command": "git clean -xdf", "expect": "block", "tier": "git"}
 {"id": "git-clean-long-force", "command": "git clean --force", "expect": "block", "tier": "git"}
-{"id": "git-branch-D", "command": "git branch -D feat", "expect": "block", "tier": "git"}
-{"id": "git-branch-del-force", "command": "git branch --delete --force feat", "expect": "block", "tier": "git"}
+{"id": "git-branch-D", "command": "git branch -D feat", "expect": "allow", "tier": "git"}
+{"id": "git-branch-del-force", "command": "git branch --delete --force feat", "expect": "allow", "tier": "git"}
 {"id": "git-checkout-dot", "command": "git checkout .", "expect": "block", "tier": "git"}
 {"id": "git-checkout-dd-dot", "command": "git checkout -- .", "expect": "block", "tier": "git"}
 {"id": "git-restore-dot", "command": "git restore .", "expect": "block", "tier": "git"}

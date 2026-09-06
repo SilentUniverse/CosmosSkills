@@ -111,14 +111,6 @@ for t in "${SEGMENTS[@]}"; do
           tok="${REST[$j]}"
           [[ "$tok" == -* && "${#tok}" -gt 1 && "${tok//-/}" == *f* ]] && why="git clean ($tok)"
         done ;;
-      branch)
-        has_del=0; has_force=0
-        for ((j = 0; j < m; j++)); do
-          [ "${REST[$j]}" = "-D" ] && why="git branch -D"
-          [ "${REST[$j]}" = "--delete" ] && has_del=1
-          [ "${REST[$j]}" = "--force" ] && has_force=1
-        done
-        [ "$has_del" = "1" ] && [ "$has_force" = "1" ] && why="git branch -D" ;;
       checkout)
         for ((j = 0; j < m; j++)); do [ "${REST[$j]}" = "." ] && why="git checkout ."; done ;;
       restore)

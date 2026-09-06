@@ -9,8 +9,10 @@ The standalone carrier blocks host-side forms of:
 - every `git push`, including forced variants;
 - `git reset --hard`;
 - `git clean` with a force flag;
-- `git branch -D` or `--delete --force`;
 - `git checkout .` and `git restore .`, including `-- .`.
+
+Branch deletion stays allowed: dropping a landed topic ref after a squash merge is routine
+cleanup, and a dropped ref remains recoverable through the reflog.
 
 Quoted command text is data. The carrier approximates shell syntax and fails open on ambiguity.
 `# force-legacy` never bypasses Git policy.
