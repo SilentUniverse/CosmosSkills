@@ -4,13 +4,18 @@
 The test supervisor executes the action and writes evidence. This script accepts only a passing,
 integrity-checked receipt for the exact cwd/resolved-action/fingerprint/readiness/profile tuple.
 
-Exit codes: 0 hit/recorded, 1 invalid receipt or input, 2 usage, 3 cache miss.
+`run` executes and records every duplicate-plan cache miss serially through the supervisor;
+only passing executions become cache entries, and failures are reported per tuple.
+
+Exit codes: 0 hit/recorded (run: every miss recorded), 1 invalid receipt or input (run: at
+least one tuple failed), 2 usage, 3 cache miss.
 """
 
 from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -467,6 +472,95 @@ def duplicate_plan(
     return {"schema_version": SCHEMA_VERSION, "duplicates": duplicates}
 
 
+def _supervisor_run_command():
+    """Import test-supervisor lazily; only `run` pays for the sibling lookup."""
+    spec = importlib.util.spec_from_file_location(
+        "test_supervisor_module", Path(__file__).resolve().parent / "test-supervisor.py"
+    )
+    if spec is None or spec.loader is None:
+        raise ValueError("cannot load test-supervisor.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.run_command
+
+
+def run_planned(
+    repo_root: Path,
+    feature: Optional[str] = None,
+    *,
+    timeout: float = 600.0,
+    grace: float = 5.0,
+) -> Mapping[str, Any]:
+    """Execute every duplicate-plan cache miss serially and record passing runs.
+
+    Each miss runs through test-supervisor with scope=preflight. Only a passing
+    execution becomes a cache entry; a failing, timing-out, or crashing tuple is
+    reported in the verdicts and never recorded. Independent tuples still run,
+    and one failure never upgrades another tuple's evidence.
+    """
+    root = repo_root.resolve()
+    supervisor_run = _supervisor_run_command()
+    verdicts: List[Dict[str, Any]] = []
+    for miss in duplicate_plan(root, feature)["duplicates"]:
+        if miss["status"] != "miss":
+            verdicts.append(
+                {
+                    "feature": miss["feature"],
+                    "key": miss["key"],
+                    "action": miss["action"],
+                    "issues": miss["issues"],
+                    "status": "hit",
+                }
+            )
+            continue
+        cwd = Path(miss["cwd"])
+        if not cwd.is_absolute():
+            cwd = root / cwd
+        receipt = (
+            root / ".scratch" / miss["feature"] / "receipts"
+            / ("preflight-%s.json" % miss["key"][:16])
+        )
+        log = root / ".scratch" / "tmp" / ("preflight-%s.log" % miss["key"][:16])
+        result, _ = supervisor_run(
+            command_argv(miss["action"], "windows" if os.name == "nt" else "posix"),
+            cwd=cwd,
+            receipt=receipt,
+            log=log,
+            timeout=timeout,
+            grace=grace,
+            scope="preflight",
+        )
+        verdict: Dict[str, Any] = {
+            "feature": miss["feature"],
+            "key": miss["key"],
+            "action": miss["action"],
+            "issues": miss["issues"],
+            "status": "recorded" if result["outcome"] == "pass" else "failed",
+            "outcome": result["outcome"],
+            "exit_code": result["exit_code"],
+            "log": result["log"],
+            "execution_receipt": str(receipt),
+        }
+        if result["outcome"] == "pass":
+            record(
+                root / miss["receipt"],
+                cwd=miss["cwd"],
+                action=miss["action"],
+                fingerprint=miss["fingerprint"],
+                execution_receipt=receipt,
+                verifier_digest=miss.get("verifier_digest", ""),
+                readiness_digest=miss.get("readiness_digest", ""),
+            )
+        verdicts.append(verdict)
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "verdicts": verdicts,
+        "recorded": sum(1 for item in verdicts if item["status"] == "recorded"),
+        "failed": sum(1 for item in verdicts if item["status"] == "failed"),
+        "hit": sum(1 for item in verdicts if item["status"] == "hit"),
+    }
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -483,6 +577,13 @@ def build_parser() -> argparse.ArgumentParser:
     plan = commands.add_parser("plan", help="list only duplicate ready-card preflight tuples")
     plan.add_argument("repo_root", type=Path)
     plan.add_argument("feature", nargs="?")
+    run = commands.add_parser(
+        "run", help="execute and record every duplicate-plan cache miss serially"
+    )
+    run.add_argument("repo_root", type=Path)
+    run.add_argument("feature", nargs="?")
+    run.add_argument("--timeout", type=float, default=600.0)
+    run.add_argument("--grace", type=float, default=5.0)
     return parser
 
 
@@ -492,6 +593,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         if args.command == "plan":
             print(json.dumps(duplicate_plan(args.repo_root, args.feature), ensure_ascii=False, indent=2))
             return 0
+        if args.command == "run":
+            report = run_planned(
+                args.repo_root, args.feature, timeout=args.timeout, grace=args.grace
+            )
+            print(json.dumps(report, ensure_ascii=False, indent=2))
+            return 0 if report["failed"] == 0 else 1
         if args.command == "record":
             key = record(
                 args.receipt,

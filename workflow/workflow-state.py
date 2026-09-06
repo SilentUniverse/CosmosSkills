@@ -449,6 +449,70 @@ def issue_packets(root, feature, slugs):
     }
 
 
+def worker_briefs(root, feature, slugs=()):
+    """Render the mechanical half of each open-wave worker brief.
+
+    One brief per outstanding slug: the packet projection, the receipt-hit
+    tokens the feature wave ledger recorded for that slug, and the tests-so-far
+    manifest (live done cards' declared `test_paths`, derived, never persisted).
+    The brief contract itself stays single-sourced in the tdd skill's DRAIN.md;
+    this projection removes hand-assembly without adding policy."""
+    root = Path(root).resolve()
+    ledger = root / ".scratch" / feature / "wave-ledger.json"
+    try:
+        payload = json.loads(ledger.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise ValueError("briefs require one current open dispatch") from exc
+    open_waves = [
+        wave
+        for wave in payload.get("waves", [])
+        if set(wave.get("dispatched", [])) - set(wave.get("closed", {}))
+    ]
+    if len(open_waves) != 1:
+        raise ValueError("briefs require one current open dispatch")
+    wave = open_waves[0]
+    outstanding = sorted(
+        set(wave.get("dispatched", [])) - set(wave.get("closed", {}))
+    )
+    selected = sorted(slugs) if slugs else outstanding
+    unknown = [slug for slug in selected if slug not in outstanding]
+    if unknown:
+        raise ValueError(
+            "slug(s) not in the current open dispatch: %s" % ", ".join(unknown)
+        )
+    consumers = payload.get("preflight_consumers")
+    if not isinstance(consumers, dict):
+        consumers = {}
+    tests_so_far = []
+    for path in issue_paths(root, feature):
+        _, data = issue_state(root, feature, path)
+        if data.get("status") != "done":
+            continue
+        for item in data.get("test_paths", []) or []:
+            if item not in tests_so_far:
+                tests_so_far.append(item)
+    projected = issue_packets(root, feature, outstanding)
+    by_slug = {item["slug"]: item for item in projected["packets"]}
+    return {
+        "schema_version": 1,
+        "dispatch": projected["dispatch"],
+        "brief_rules": "tdd/DRAIN.md — worker brief contract",
+        "briefs": [
+            {
+                "slug": slug,
+                "packet": by_slug[slug],
+                "receipt_hits": sorted(
+                    "receipt-hit:%s" % key
+                    for key, assigned in consumers.items()
+                    if isinstance(assigned, list) and slug in assigned
+                ),
+                "tests_so_far": tests_so_far,
+            }
+            for slug in selected
+        ],
+    }
+
+
 def close_issue(root, feature, slug):
     root = Path(root).resolve()
     path = find_issue(root, feature, slug)
@@ -760,6 +824,10 @@ def parser():
     packets.add_argument("root")
     packets.add_argument("feature")
     packets.add_argument("slugs", nargs="+")
+    briefs = sub.add_parser("briefs")
+    briefs.add_argument("root")
+    briefs.add_argument("feature")
+    briefs.add_argument("slugs", nargs="*")
     close = sub.add_parser("close")
     close.add_argument("root")
     close.add_argument("feature")
@@ -806,6 +874,12 @@ def main(argv=None):
                 issue_packets(args.root, args.feature, args.slugs),
                 ensure_ascii=False,
                 separators=(",", ":"),
+            )
+        elif args.command == "briefs":
+            output = json.dumps(
+                worker_briefs(args.root, args.feature, args.slugs),
+                ensure_ascii=False,
+                indent=2,
             )
         elif args.command == "close":
             output = json.dumps(

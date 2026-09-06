@@ -58,22 +58,23 @@ valid topic upstream. Never use an unqualified `git push` in this workflow. Publ
 refspec `git push <remote> HEAD:refs/heads/<current>`; add `-u` only when creating that same-name
 upstream, or stop if the intended remote cannot be resolved without changing repository configuration.
 
-When authenticated `gh` is usable for a GitHub repository, look up the branch's pull request first.
-When none exists, create it with `gh pr create --base <default> --head <current>` so repository
-configuration cannot silently redirect either side. Before reusing or merging one, inspect `gh pr view --json
-baseRefName,headRefName,headRefOid,state,url`; its head must be the current branch at the verified
-commit and its base must be the resolved default branch. A different target needs resolution before
-landing. Run `gh pr merge <url> --squash --match-head-commit <verified-head>`; add `--auto` only
-while required checks are pending. Enabling auto-merge or entering a merge queue is pending work.
-Use the host's wait/monitor mechanism and verify `state: MERGED`, `mergedAt`, and `mergeCommit`
-before reporting a landed change or cleaning branches. A changed head requires revalidation.
+Landing mechanics run through `python <commit-skill-dir>/scripts/land.py <repo-root>` once the
+scoped commit exists on the topic branch. The script selects its engine: authenticated `gh` on a
+GitHub remote lands through a pull request (`--squash --match-head-commit <verified-head>` when
+the installed gh supports it); any other remote lands natively in an isolated clean worktree —
+`git merge --ff-only <branch>`, squash fallback with the same message — then publishes the
+default branch after an optional `--verify-command`. It pins the verified head on both engines
+(PR head/base identity; ancestry plus per-path content checks), verifies `state: MERGED` or the
+published result before reporting landed, is idempotent on a re-run after a mid-sequence
+failure, never stages or scopes (the validated commit is its only input), and leaves the
+caller's checked-out branch untouched; `--mode/--remote/--base/--verify-command` override its
+resolutions. Pass integration checks as `--verify-command` on the native engine and run them
+before landing on the gh engine.
 
-Without `gh`, switch to the default branch and attempt `git merge --ff-only <branch>`. If histories
-diverged, use `git merge --squash <branch>` and commit with the same message. Run relevant integration
-checks on the merged result before publishing the default branch with
-`git push <remote> HEAD:refs/heads/<default>`. Verify the published result contains the
-scoped change and preserves changes already on the default branch; an advanced target need not
-have the topic branch's identical tree.
+A moved head, a wrong PR target, pending required checks, an unavailable engine, or a failed
+verify command returns to this skill's recovery: resolve the target, revalidate the changed
+head, or stop with the scoped commit intact. Enabling auto-merge or entering a merge queue is
+pending work, not landing. An advanced target need not have the topic branch's identical tree.
 
 Never switch branches or create a native squash commit through an index or worktree containing
 unrelated changes. Use an isolated clean worktree for native landing, or stop with the scoped commit

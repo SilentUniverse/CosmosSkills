@@ -99,6 +99,78 @@ class ValidateSkillsTests(unittest.TestCase):
             errors, _, _ = validate_skills.run(["fixture-skill"], root)
             self.assertEqual([], errors)
 
+    def _with_link(
+        self,
+        root: Path,
+        link: str,
+        reference: str = "# Reference\n",
+        extra_files: dict[str, str] | None = None,
+    ) -> list[str]:
+        skill = self.write_skill(root, "fixture-skill")
+        (root / "fixture-skill" / "reference.md").write_text(reference, encoding="utf-8")
+        for name, content in (extra_files or {}).items():
+            (root / "fixture-skill" / name).write_text(content, encoding="utf-8")
+        skill.write_text(
+            skill.read_text(encoding="utf-8") + "\nSee [target](%s).\n" % link,
+            encoding="utf-8",
+        )
+        errors, _, _ = validate_skills.run(["fixture-skill"], root)
+        return errors
+
+    def test_accepts_anchor_matching_heading_and_cjk(self):
+        headings = "## 3. Prepare and write\n\n## 手动验证\n\n## Issue files — `.scratch/x.md`\n"
+        for anchor in (
+            "reference.md#3-prepare-and-write",
+            "reference.md#手动验证",
+            "reference.md#issue-files--scratchxmd",
+        ):
+            with tempfile.TemporaryDirectory() as tmp:
+                errors = self._with_link(Path(tmp), anchor, headings)
+                self.assertEqual([], errors, anchor)
+
+    def test_rejects_anchor_matching_no_heading(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            errors = self._with_link(Path(tmp), "reference.md#missing-heading")
+            self.assertTrue(
+                any("link anchor matches no heading" in error for error in errors)
+            )
+
+    def test_accepts_duplicate_heading_suffixed_anchor_and_rejects_overflow(self):
+        headings = "## Steps\n\n## Steps\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            errors = self._with_link(Path(tmp), "reference.md#steps-1", headings)
+            self.assertEqual([], errors)
+        with tempfile.TemporaryDirectory() as tmp:
+            errors = self._with_link(Path(tmp), "reference.md#steps-2", headings)
+            self.assertTrue(
+                any("link anchor matches no heading" in error for error in errors)
+            )
+
+    def test_fenced_headings_do_not_count_as_anchors(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            errors = self._with_link(
+                Path(tmp), "reference.md#ghost", "```markdown\n## Ghost\n```\n"
+            )
+            self.assertTrue(
+                any("link anchor matches no heading" in error for error in errors)
+            )
+
+    def test_ignores_anchor_on_non_markdown_target(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            errors = self._with_link(
+                Path(tmp),
+                "helper.py#run",
+                extra_files={"helper.py": "def run():\n    pass\n"},
+            )
+            self.assertEqual([], errors)
+
+    def test_rejects_intra_file_anchor_matching_no_heading(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            errors = self._with_link(Path(tmp), "#nowhere")
+            self.assertTrue(
+                any("local anchor does not match any heading" in error for error in errors)
+            )
+
     def test_accepts_cursor_paths_and_metadata(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

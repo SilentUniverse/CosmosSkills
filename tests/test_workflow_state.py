@@ -360,6 +360,82 @@ class WorkflowStateTests(unittest.TestCase):
             )
             self.assertEqual(["01-one", "02-two"], [row["slug"] for row in result["packets"]])
 
+    def test_briefs_render_mechanical_worker_inputs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "demo" / "issues"
+            issues.mkdir(parents=True)
+            (issues / "00-done.md").write_text(
+                "---\ntype: issue\nfeature: demo\nstatus: done\n"
+                "test_paths: [tests/done_a.py, tests/done_b.py]\n---\n"
+                "## 做什么\n\nShipped slice.\n",
+                encoding="utf-8",
+            )
+            for slug in ("01-one", "02-two"):
+                (issues / f"{slug}.md").write_text(
+                    "---\ntype: issue\nfeature: demo\nstatus: ready\n"
+                    "test_paths: [tests/next.py]\n---\n"
+                    f"## 做什么\n\nBuild {slug}.\n",
+                    encoding="utf-8",
+                )
+            contracts = {
+                slug: workflow_contract.issue_contract_digest(
+                    (issues / f"{slug}.md").read_text(encoding="utf-8")
+                )
+                for slug in ("01-one", "02-two")
+            }
+            baseline = plant_wave_baseline(root)
+            (root / ".scratch" / "demo" / "wave-ledger.json").write_text(
+                json.dumps(
+                    {
+                        "preflight_consumers": {
+                            "abc123": ["01-one", "02-two"],
+                            "solo456": ["02-two"],
+                        },
+                        "waves": [
+                            {
+                                "wave": 7,
+                                "dispatched": ["01-one", "02-two"],
+                                "closed": {},
+                                "baseline_sha256": baseline,
+                                "contracts": contracts,
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = workflow_state.worker_briefs(root, "demo")
+
+            self.assertEqual(["01-one", "02-two"], [b["slug"] for b in result["briefs"]])
+            by_slug = {b["slug"]: b for b in result["briefs"]}
+            self.assertEqual(["receipt-hit:abc123"], by_slug["01-one"]["receipt_hits"])
+            self.assertEqual(
+                ["receipt-hit:abc123", "receipt-hit:solo456"],
+                by_slug["02-two"]["receipt_hits"],
+            )
+            self.assertEqual(
+                ["tests/done_a.py", "tests/done_b.py"], by_slug["01-one"]["tests_so_far"]
+            )
+            self.assertEqual("01-one", by_slug["01-one"]["packet"]["slug"])
+            self.assertEqual(
+                {"wave": 7, "baseline_sha256": baseline}, result["dispatch"]
+            )
+            self.assertIn("DRAIN.md", result["brief_rules"])
+
+            selected = workflow_state.worker_briefs(root, "demo", ["02-two"])
+            self.assertEqual(["02-two"], [b["slug"] for b in selected["briefs"]])
+            with self.assertRaises(ValueError):
+                workflow_state.worker_briefs(root, "demo", ["00-done"])
+
+    def test_briefs_require_an_open_dispatch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / ".scratch" / "demo" / "issues").mkdir(parents=True)
+            with self.assertRaises(ValueError):
+                workflow_state.worker_briefs(root, "demo")
+
     def test_packets_reads_one_shared_v3_profile_once(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

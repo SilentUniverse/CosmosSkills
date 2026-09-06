@@ -35,10 +35,13 @@ git log  <fixed-point>..HEAD --oneline   # the commit list
 Resolve the ref (`git rev-parse <fixed-point>`) and inspect the diff before dispatch. Report an
 empty diff as no changes in that scope. A bad supplied ref needs correction; gather sources meanwhile.
 
-Working-tree mode: capture `git status --short`, `git diff HEAD`, and the contents of in-scope
-untracked files. Git diff omits those files, so an empty tracked diff does not prove an empty review.
-Pass their paths with the diff to every applicable axis; report excluded paths. Pin committed refs
-to resolved SHAs and restart affected review only if the reviewed tree changes.
+Working-tree mode: pin the review inputs with
+`python <code-review-skill-dir>/scripts/review-input.py <repo-root> [--paths <scope>]`. The bundle
+resolves HEAD, captures `git status --short` and `git diff HEAD`, and embeds in-scope untracked file
+contents with a per-file size cap; oversized or out-of-scope paths are listed as excluded. Git diff
+omits untracked files, so an empty tracked diff does not prove an empty review; the bundle's excluded
+list is part of the report. Pass the same bundle to every applicable axis. Pin committed refs to
+resolved SHAs and restart affected review only if the reviewed tree changes.
 
 ### 2. Identify the spec source
 

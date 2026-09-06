@@ -16,6 +16,11 @@ FIELD_RE = re.compile(r"^([A-Za-z][A-Za-z0-9-]*):(?:[ \t]+(.*))?$")
 LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
 INLINE_SLASH_RE = re.compile(r"`/([a-z][a-z0-9-]*)\b[^`\n]*`")
 DOUBLE_HYPHEN_FLAG_RE = re.compile(r"(?<![\w-])--[a-z][a-z0-9-]*")
+HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
+# GitHub slugs: drop punctuation, keep word characters (incl. CJK), hyphenate each
+# whitespace character without collapsing runs. Setext headings are not generated,
+# so a setext-only target stays unflagged (prefer missing a break over a false one).
+ANCHOR_PUNCTUATION_RE = re.compile(r"[^\w\s-]", re.UNICODE)
 KNOWN_FIELDS = {
     "name",
     "description",
@@ -229,8 +234,45 @@ def validate_skill(skill_file: Path) -> list[str]:
     return errors
 
 
-def validate_links(markdown_file: Path) -> list[str]:
+def github_slug(heading: str) -> str:
+    text = ANCHOR_PUNCTUATION_RE.sub("", heading.strip())
+    return re.sub(r"\s", "-", text.lower())
+
+
+def heading_slugs(markdown_path: Path) -> set[str]:
+    """Anchors GitHub would generate for a file's out-of-fence ATX headings.
+
+    Duplicate headings get the -1, -2, ... suffixes GitHub appends."""
+    slugs: set[str] = set()
+    counts: dict[str, int] = {}
+    in_fence = False
+    for line in markdown_path.read_text(encoding="utf-8").splitlines():
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        match = HEADING_RE.match(line)
+        if not match:
+            continue
+        slug = github_slug(match.group(2))
+        if not slug:
+            continue
+        index = counts.get(slug, 0)
+        counts[slug] = index + 1
+        slugs.add(slug if index == 0 else "%s-%d" % (slug, index))
+    return slugs
+
+
+def validate_links(markdown_file: Path, slug_cache: dict | None = None) -> list[str]:
     errors: list[str] = []
+    cache = slug_cache if slug_cache is not None else {}
+
+    def slugs_of(path: Path) -> set[str]:
+        if path not in cache:
+            cache[path] = heading_slugs(path)
+        return cache[path]
+
     text = markdown_file.read_text(encoding="utf-8")
     in_fence = False
     for line_number, line in enumerate(text.splitlines(), 1):
@@ -246,7 +288,13 @@ def validate_links(markdown_file: Path) -> list[str]:
                 destination = destination[1:-1]
             destination = destination.split(maxsplit=1)[0]
             path_text = destination.split("#", 1)[0]
+            anchor = destination.split("#", 1)[1] if "#" in destination else ""
             if not path_text or re.match(r"^[A-Za-z][A-Za-z0-9+.-]*:", path_text):
+                if anchor and not path_text and "/" not in anchor:
+                    if anchor not in slugs_of(markdown_file):
+                        errors.append(
+                            f"{markdown_file}:{line_number}: local anchor does not match any heading: {destination}"
+                        )
                 continue
             if any(token in path_text for token in ("<", ">", "{", "}")):
                 continue
@@ -254,6 +302,15 @@ def validate_links(markdown_file: Path) -> list[str]:
             if not target.exists():
                 errors.append(
                     f"{markdown_file}:{line_number}: local link target does not exist: {destination}"
+                )
+            elif (
+                anchor
+                and target.suffix == ".md"
+                and "/" not in anchor
+                and anchor not in slugs_of(target)
+            ):
+                errors.append(
+                    f"{markdown_file}:{line_number}: link anchor matches no heading in {path_text}: {destination}"
                 )
     return errors
 
@@ -365,9 +422,10 @@ def run(inputs: Iterable[str], cwd: Path) -> tuple[list[str], int, int]:
             if not MARKDOWN_EXCLUDED_PARTS.intersection(path.relative_to(scope).parts)
         )
 
+    slug_cache: dict[Path, set[str]] = {}
     for markdown_file in sorted(markdown_files):
         try:
-            errors.extend(validate_links(markdown_file))
+            errors.extend(validate_links(markdown_file, slug_cache))
             if markdown_file in catalog_markdown_files:
                 errors.extend(validate_retired_references(markdown_file))
             errors.extend(validate_skill_calls(markdown_file, known_names))
