@@ -66,8 +66,9 @@ may integrate this result into its own report instead of repeating a full skill 
 
 **发现** — manual and spec audit modes. Findings include location, exact quote, consequence, and disposition. 处置 is
 three-valued: 修复—改成什么 / 否决—为什么不改 / 保留—何时再动. No quote, no finding. One finding, one block:
-位置 / 原句 / 问题 / 处置 each on its own line, blank line between findings; never fold the fields into one
-paragraph, however short.
+each finding renders as a fenced text block with 位置 / 原句 / 问题 / 处置 one field per line, like the
+calibration blocks below. Bare newline-separated fields collapse into one rendered Markdown paragraph; a
+fence keeps them apart.
 
 Calibration — only the second entry is a finding; the first survives any outcome:
 
