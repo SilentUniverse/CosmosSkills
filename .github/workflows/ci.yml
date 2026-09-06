@@ -1,0 +1,30 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+      - name: Unit tests
+        run: python -m unittest discover -s tests
+      - name: Skill catalog validation (links, frontmatter, resident budget)
+        run: python scripts/validate-skills.py
+
+  windows-gate:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+      - name: CODEBASE.md regression harness
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File workflow/test-verify-codebase.ps1

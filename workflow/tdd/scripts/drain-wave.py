@@ -16,6 +16,51 @@
 #   drain-wave.py selftest                       gate the gate: parse substrate +
 #                                               refusal branches (tempdir fixtures)
 #
+# --- structure map (order locked by tests/test_workflow_contracts.py) ---
+# now_iso — UTC timestamp for ledger rows
+# PreflightHelperMissing — exit-5 signal: shared preflight helper absent
+# preflight_api — bridge into preflight-receipt.py without a subprocess
+# read_lines — splitlines access
+# get_frontmatter — card YAML frontmatter (flat keys)
+# as_list — "[a, b]" scalar to list
+# norm_path — platform-normalized path key
+# path_overlap — touches/test_paths collision test
+# has_done_record — ### 完成 presence
+# feature_dirs — active feature directories
+# load_issues — live cards of a feature
+# load_archived_done — archived done history (tests-so-far inputs)
+# ledger_path — .scratch/<feat>/wave-ledger.json location
+# load_ledger — read-or-create the wave ledger
+# save_ledger — atomic ledger rewrite
+# contract_sha256 — card identity digest (non-comment body)
+# dispatch_contract_sha256 — dispatch-time contract digest
+# load_conflict_evidence — validate and read a conflict receipt
+# recorded_conflict_digest — conflict-time digest from the ledger
+# active_conflicts — unresolved conflict barriers
+# report_conflicts — render barriers for the driver
+# cmd_dismiss_conflict — reviewed-noise dismissal with identity checks
+# file_sha256 — content digest for baselines
+# filesystem_baseline — git-tracked dirty-path manifest
+# workspace_baseline — serialized undeclared-card fallback manifest
+# store_baseline — persist one shared baseline for the wave
+# issues_touch — declared write paths of a slug
+# issues_tests — declared test ownership of a slug
+# issues_resources — declared exclusive resources of a slug
+# declared — whether a card declares its write set
+# collides — pairwise write/test/resource overlap
+# open_waves — waves with unclosed assignments
+# find_zombies — dispatched issues without ledger closure
+# chain_depths — downstream ready-chain length per slug
+# plan_waves — deterministic eligibility + ranking
+# cmd_next — propose the collision-free wave (read-only)
+# cmd_step — next action + exact command for the driver
+# dispatch_receipt_hits — shared preflight tuples to receipt keys
+# cmd_dispatch — record intent, baseline, receipts before any worker starts
+# cmd_collect — close a fully terminal wave atomically
+# cmd_audit — every test file under touches has an owning issue
+# cmd_selftest — gate-the-gate fixtures over parse + refusals
+# main — argv routing and exit codes
+# --- end structure map ---
 # Exit: 0 ok, 1 violation, 2 usage, 3 zombies (recovery first), 4 nothing ready,
 # 5 shared preflight receipt must be prepared before dispatch, 6 receipt conflict
 # requires /spec realignment.

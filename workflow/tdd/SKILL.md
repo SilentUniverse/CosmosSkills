@@ -18,7 +18,7 @@ argument-hint: "Issue path, feature slug, -p, -all, -log, or nothing to drain al
   in dependency order. A caller or natural-language implementation request inherits only its named
   task; absence of an issue path does not authorize a repository-wide drain.
 - `/tdd <feat>` — drain scoped to one feature's `issues/` directory.
-- `/tdd -p [<feat>]` — **drain (parallel)**: up to four concurrent issues including the main agent's. The main agent normally owns the highest-priority issue, delegates the rest, and supervises the wave. Delegated output stays isolated while the critical slice remains visible. Declared collisions serialize; undeclared issues run alone. Worktree only on explicit request, and runner-driven session rotation: [DRAIN.md](DRAIN.md).
+- `/tdd -p [<feat>]` — **drain (parallel)**: up to four concurrent issues including the main agent's. The main agent normally owns the highest-priority issue, delegates the rest, and supervises the wave. Delegated output stays isolated while the critical slice remains visible. Declared collisions serialize; undeclared issues run alone. Worktree only on explicit request, and runner-driven session rotation: [DRAIN.md](DRAIN.md) plus [DRAIN-PARALLEL.md](DRAIN-PARALLEL.md).
 - `/tdd -all` — run build + the whole suite now (§5); combines with any form above.
 - `/tdd -log` — the verdict is a command's log file, not test runs: [LOG.md](LOG.md). Same mode when the user says this run drives a device and the result lands in a log file. Combines with any form above.
 - Task-scoped entry without an issue: for one settled local behavior, keep outcome, constraints, and evidence inline
@@ -27,7 +27,8 @@ argument-hint: "Issue path, feature slug, -p, -all, -log, or nothing to drain al
 
 ### Drain mode
 
-Load [DRAIN.md](DRAIN.md) only for an explicit batch. Its driver owns enumeration, dependency order,
+Load [DRAIN.md](DRAIN.md) only for an explicit batch; `-p` additionally loads
+[DRAIN-PARALLEL.md](DRAIN-PARALLEL.md). Its driver owns enumeration, dependency order,
 wave packets, receipts, recovery, and batch close. Serial is the default; `-p` enables independent
 worker waves. Keep conversation summaries out of subsequent issue briefs.
 

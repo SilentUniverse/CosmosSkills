@@ -339,7 +339,7 @@ def main(argv):
                 )
             prompt = (
                 "%s。已派发：[%s]；以列表/ledger 为准，禁止调用 next/dispatch。"
-                "遵守 DRAIN.md 的 brief/监督/reconcile/collect。"
+                "遵守 DRAIN.md 与 DRAIN-PARALLEL.md 的 brief/监督/reconcile/collect。"
                 "若 %s 存在，只读 card/ledger 无法推导的决定和测试指针。"
                 "%s"
                 "每个 feature 用 workflow-state.py packets 一次取本波输入；先同时派出其余 issue，"

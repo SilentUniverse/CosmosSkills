@@ -55,7 +55,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | §5·e | 同因两次修复失败 → 换路或 /diagnose | 过程 | 流程 | 97a7998（anti-thrash）/ diagnose-holds-repro-under-pressure（近邻） |
 | §5·f | 纠正改变现有契约才更新，不为一轮对话建工件 | 过程 | 流程 | 未溯源 |
 | §5·h | 对齐后执行不复述，逐项报完成/受阻 | 过程·经济 | 自审 | 51a7d4a（精简宪法） |
-| §6 | 点名输入起步，发现依赖再展开，保留已决定上下文 | 过程·经济 | 流程 | df197cc（session prefix 稳定）；DRAIN 实测批尾部 ~550k token/请求 |
+| §6 | 点名输入起步，发现依赖再展开，保留已决定上下文 | 过程·经济 | 流程 | df197cc（session prefix 稳定）；批尾实测 ~550k token/请求（7be5338） |
 | §7·a | 优先可用工具，遵守实际 hook，不为偏好安装 | 过程 | 机器+流程 | 5ef04aa（modern-cli hook）+ 77baaf7/35adb23（corpus 加固） |
 | §7·b | 破坏性目录操作前枚举隐藏/忽略项 | 权威 | 流程 | 未溯源（安全守则） |
 | §7·c | PS 设 UTF-8；PS/cmd 不写文本文件 | 过程 | 流程 | 38b2c6a（UTF-8 note）、94aea23（PS5.1/cmd 规则） |
@@ -87,12 +87,12 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | §4 | RED 期禁止重构；意外红 → 固化不变量 | 过程 | 流程 | refactoring.md、6b411d8 |
 | §5 | 全量批末一次，经 supervisor | 过程·经济 | 机器+流程 | c4e34f2、51a7d4a（test-supervisor） |
 
-## D. DRAIN — workflow/tdd/DRAIN.md（每批付费）
+## D. DRAIN — workflow/tdd/DRAIN.md（每批付费；`-p` 另载 DRAIN-PARALLEL.md）
 
 | 定位 | 要旨 | 性质 | 层级 | 防什么失败 · 出处 / 探针 |
 |---|---|---|---|---|
 | Driver and inputs | driver 统一派生待执行项与依赖；worker 复用已派发 packet | 过程·经济 | 机器+流程 | drain-wave step + workflow-state packets |
-| Shared·预算 | 精简证据；仅真实宿主/上下文边界轮换 | 过程·经济 | 流程 | 实测 7 卡批尾部 ~550k token/请求（DRAIN.md） |
+| Shared·预算 | 精简证据；仅真实宿主/上下文边界轮换 | 过程·经济 | 流程 | 7 卡批尾实测 ~550k token/请求（7be5338） |
 | Shared·blocked | 具体缺失条件和证据；独立完成，已知无权限不空重试 | 产物 | 流程 | b369e40（blocked gate） |
 | Serial | 基线加 diff 确定归属；只恢复自身改动，保留并发工作 | 产物 | 流程 | f7cc4db（baseline reverts） |
 | Parallel·brief | 自足：调 /tdd、单卡 packet（含相关面）、相关 tests-so-far 与缺失约束；不重抄卡片/回执 | 产物 | 流程 | 18b1add（drain 子代理全工作流）、7940ef7（packet 投影）/ cold-executor-handoff |
@@ -113,7 +113,8 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 ## 已知攻法与兜底
 
 - 腐烂（行与现实脱节）→ 最坏损失是一次白跑的探针；探针测现实不测账本，eval 周期天然审计行。
-- 双源漂移（要旨与原文分叉）→ 账本不存原文，只有锚点与意图，无可漂移物。
+- 双源漂移（要旨与原文分叉）→ 账本不存原文，只有锚点与意图；出处用不可变 commit 路径，
+  指向可变文件会悬空。
 - 误裁承重规则（凭直觉删）→ 降级先行 + eval 门 + 退役记录可追溯。
 - 变成新仪式（账本被塞进热路径）→ 运行时零引用契约 + `rg -l RULE-LEDGER` 验证。
 - 放弃条件（Empiricism 对账本自身生效）：第一次完整代际周期后，若零降级、且未拦下任何无出处

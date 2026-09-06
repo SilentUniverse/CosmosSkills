@@ -1,7 +1,7 @@
 ---
 name: code-review
 description: >-
-  Use when reviewing a branch, pull request, worktree, work in progress, or diff from a fixed reference. Checks standards and specification compliance, with an opt-in evidence-backed experience axis for graphical UI work.
+  Use when reviewing a branch, pull request, worktree, work in progress, or diff from a fixed reference. Checks standards and specification compliance, with an opt-in evidence-backed experience axis for graphical UI work. Use atk to stress-test a design or decision instead.
 argument-hint: "Fixed point (commit/branch/tag); optional spec path (issue/PRD)"
 ---
 

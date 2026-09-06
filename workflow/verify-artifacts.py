@@ -4,6 +4,32 @@
 # Invoke: python verify-artifacts.py [<repo-root>] [--feature <feat>]
 # If the `python` interpreter is missing, python3 verify-artifacts.py [<repo-root>]
 # Do not retry python3 after a non-zero gate exit (that is a contract violation).
+#
+# --- structure map (order locked by tests/test_workflow_contracts.py) ---
+# read_text — utf-8 tolerant whole-file read
+# read_lines — splitlines access
+# get_frontmatter — issue/PRD YAML frontmatter, strict flat keys
+# as_list — "[a, b]" frontmatter scalar to list
+# done_record — locate the ### 完成 section of an issue
+# h2_section — slice one ## section's lines
+# bullet_value — extract a "- key: value" bullet
+# canonical_environment_key — normalized (workdir, fingerprint, prerequisites, prepare)
+# inline_value — extract "key: value" inside a single line
+# comma_values — comma-separated scalar to list
+# is_number — numeric scalar test
+# has_zero_runtime_counters — all-zero experience runtime counters test
+# load_json_object — read a JSON file or report a violation
+# repo_artifact_path — resolve and scope a repo-relative artifact path
+# validate_requirements_source — PRD 需求记录源 presence + source hash drift
+# is_retained_screenshot — retained-evidence screenshot rule
+# under_scratch_dir — path containment under .scratch
+# validate_experience_contract — opted-in UI experience contract shape
+# validate_experience_evidence — operated-state evidence + runtime failure keys
+# ref_suggest — did-you-mean for unknown refs/slugs
+# nested_claude_files — discover nested CLAUDE.md map leaves
+# cyclic_slugs — blocked_by cycle detection
+# main — argv to repo/feature scope, then every check in one pass
+# --- end structure map ---
 import hashlib
 import json
 import os

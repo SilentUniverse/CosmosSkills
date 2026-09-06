@@ -57,6 +57,10 @@ RETIRED_SKILL_NAMES = {
     "modern-cli-guardrails": "shell-guardrails",
 }
 NON_SKILL_SLASH_TOKENS = {"backticks", "c", "clear", "compact", "pattern", "settings", "tmp"}
+# Coarse ceilings for always-resident surfaces (every turn pays them); growth beyond
+# current headroom is a visible metric first, a red line only at these outer bounds.
+DESCRIPTION_BUDGET_BYTES = 12_000
+RESIDENT_POLICY_BUDGET_BYTES = 8_000
 
 
 class SkillError(ValueError):
@@ -232,6 +236,45 @@ def validate_skill(skill_file: Path) -> list[str]:
     elif isinstance(metadata, dict) and any(not isinstance(value, str) for value in metadata.values()):
         errors.append(f"{skill_file}: metadata values must be strings")
     return errors
+
+
+def resident_budget(skill_files: Iterable[Path], cwd: Path) -> tuple[list[str], str]:
+    """Measure the per-turn resident surfaces: parsed descriptions plus the shared policy.
+
+    Descriptions ride the system prompt on every turn, so the aggregate is the token
+    budget worth watching; invalid frontmatter is skipped here because validate_skill
+    already reports it."""
+    errors: list[str] = []
+    total = 0
+    count = 0
+    for skill_file in skill_files:
+        try:
+            values, _ = parse_frontmatter(skill_file)
+        except (OSError, UnicodeError, SkillError):
+            continue
+        description = values.get("description")
+        if isinstance(description, str):
+            total += len(description.encode("utf-8"))
+            count += 1
+    if total > DESCRIPTION_BUDGET_BYTES:
+        errors.append(
+            f"resident budget: {count} descriptions total {total}B exceeds {DESCRIPTION_BUDGET_BYTES}B"
+        )
+    policy = cwd / "claude" / "CLAUDE.md"
+    try:
+        policy_bytes = policy.stat().st_size
+    except OSError:
+        policy_bytes = None
+    if policy_bytes is not None and policy_bytes > RESIDENT_POLICY_BUDGET_BYTES:
+        errors.append(
+            f"resident budget: claude/CLAUDE.md {policy_bytes}B exceeds {RESIDENT_POLICY_BUDGET_BYTES}B"
+        )
+    policy_text = f"{policy_bytes}B" if policy_bytes is not None else "absent"
+    summary = (
+        f"resident: {count} descriptions {total}B/{DESCRIPTION_BUDGET_BYTES}B, "
+        f"claude/CLAUDE.md {policy_text}/{RESIDENT_POLICY_BUDGET_BYTES}B"
+    )
+    return errors, summary
 
 
 def github_slug(heading: str) -> str:
@@ -440,15 +483,17 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         errors, skill_count, markdown_count = run(args.paths, Path.cwd())
+        budget_errors, budget_summary = resident_budget(collect_skills(args.paths, Path.cwd()), Path.cwd())
     except SkillError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
+    errors.extend(budget_errors)
     if errors:
         for error in errors:
             print(f"ERROR: {error}", file=sys.stderr)
         print(f"FAILED: {len(errors)} error(s)", file=sys.stderr)
         return 1
-    print(f"OK: {skill_count} skills, {markdown_count} Markdown files")
+    print(f"OK: {skill_count} skills, {markdown_count} Markdown files; {budget_summary}")
     return 0
 
 

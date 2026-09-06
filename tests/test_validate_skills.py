@@ -318,5 +318,53 @@ class ValidateSkillsTests(unittest.TestCase):
                     self.assertTrue(any("single hyphen" in error for error in errors))
 
 
+    def test_resident_budget_reports_metric_and_passes_under_limit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            skill_file = self.write_skill(root, "fixture-skill")
+            (root / "claude").mkdir()
+            (root / "claude" / "CLAUDE.md").write_text("# Policy\n", encoding="utf-8")
+            errors, summary = validate_skills.resident_budget([skill_file], root)
+            self.assertEqual([], errors)
+            self.assertIn("1 descriptions", summary)
+            self.assertIn("claude/CLAUDE.md 9B/", summary)
+
+    def test_resident_budget_flags_description_total_over_limit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            skill_file = self.write_skill(root, "fixture-skill")
+            original = validate_skills.DESCRIPTION_BUDGET_BYTES
+            validate_skills.DESCRIPTION_BUDGET_BYTES = 1
+            try:
+                errors, summary = validate_skills.resident_budget([skill_file], root)
+            finally:
+                validate_skills.DESCRIPTION_BUDGET_BYTES = original
+            self.assertEqual(1, len(errors))
+            self.assertIn("exceeds 1B", errors[0])
+            self.assertIn("B/1B", summary)
+
+    def test_resident_budget_flags_policy_file_over_limit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "claude").mkdir()
+            (root / "claude" / "CLAUDE.md").write_text("# Policy\n", encoding="utf-8")
+            original = validate_skills.RESIDENT_POLICY_BUDGET_BYTES
+            validate_skills.RESIDENT_POLICY_BUDGET_BYTES = 1
+            try:
+                errors, summary = validate_skills.resident_budget([], root)
+            finally:
+                validate_skills.RESIDENT_POLICY_BUDGET_BYTES = original
+            self.assertEqual(1, len(errors))
+            self.assertIn("claude/CLAUDE.md 9B exceeds 1B", errors[0])
+            self.assertIn("9B/1B", summary)
+
+    def test_repository_resident_budget_within_limits(self):
+        errors, summary = validate_skills.resident_budget(
+            validate_skills.collect_skills([], ROOT), ROOT
+        )
+        self.assertEqual([], errors)
+        self.assertIn("claude/CLAUDE.md", summary)
+
+
 if __name__ == "__main__":
     unittest.main()
