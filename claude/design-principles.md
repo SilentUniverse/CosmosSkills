@@ -1,7 +1,7 @@
 # Design Principles — Nine-Word Vocabulary
 
 On-demand reference for the design rules compressed into `CLAUDE.md` §2–§5. Read at design
-time (spec, prototype, grilling sessions) or when a decision needs the reasoning behind a word.
+time (spec, prototype, grill sessions) or when a decision needs the reasoning behind a word.
 
 ## The nine words
 

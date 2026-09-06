@@ -23,15 +23,15 @@ def load_module(name, path):
 
 wave = load_module(
     "drain_wave",
-    ROOT / "engineering" / "tdd" / "scripts" / "drain-wave.py",
+    ROOT / "workflow" / "tdd" / "scripts" / "drain-wave.py",
 )
 preflight = load_module(
     "preflight_receipt_for_wave",
-    ROOT / "engineering" / "tdd" / "scripts" / "preflight-receipt.py",
+    ROOT / "workflow" / "tdd" / "scripts" / "preflight-receipt.py",
 )
 supervisor = load_module(
     "test_supervisor_for_wave",
-    ROOT / "engineering" / "tdd" / "scripts" / "test-supervisor.py",
+    ROOT / "workflow" / "tdd" / "scripts" / "test-supervisor.py",
 )
 
 

@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location(
     "handoff_state",
-    ROOT / "productivity" / "handoff" / "scripts" / "handoff-state.py",
+    ROOT / "workflow" / "handoff" / "scripts" / "handoff-state.py",
 )
 assert SPEC and SPEC.loader
 handoff_state = importlib.util.module_from_spec(SPEC)

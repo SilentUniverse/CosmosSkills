@@ -3,7 +3,7 @@
     Install skills from this repo into Claude Code skills folder using junctions.
 
 .DESCRIPTION
-    The script scans every <category>/<skill>/SKILL.md under repo root, reads
+    The script scans workflow/ and tooling/ for <skill>/SKILL.md, reads
     frontmatter field `name`, and creates a directory junction in target folder:
     <target>/<name> -> <repo>/<category>/<skill>
 
@@ -55,19 +55,55 @@ function New-JunctionCompat {
     New-Item -ItemType Junction -Path $LinkPath -Target $TargetPath | Out-Null
 }
 
+function Get-PathEntry {
+    param([string]$Path)
+
+    $parent = Split-Path -Parent $Path
+    if (-not $parent -or -not (Test-Path -LiteralPath $parent)) { return $null }
+    $leaf = Split-Path -Leaf $Path
+    return Get-ChildItem -LiteralPath $parent -Force |
+        Where-Object { $_.Name -eq $leaf } |
+        Select-Object -First 1
+}
+
 function Get-JunctionTarget {
     param([string]$Path)
 
     # LinkTarget exists only on PS 7+; PS 5.1 parses `dir /aL` output for the [target] bracket.
     # The bracket shows the raw NT path — strip the `\??\` prefix so it compares like LinkTarget.
-    $item = Get-Item -LiteralPath $Path -Force
-    if ($item.LinkTarget) { return $item.LinkTarget }
+    $item = Get-PathEntry $Path
+    if ($null -eq $item) { return $null }
+    if ($item.LinkTarget) {
+        $target = $item.LinkTarget
+        if (-not [IO.Path]::IsPathRooted($target)) {
+            $target = Join-Path (Split-Path -Parent $Path) $target
+        }
+        return [IO.Path]::GetFullPath($target)
+    }
     $name = [regex]::Escape((Split-Path -Leaf $Path))
     $parent = Split-Path -Parent $Path
     foreach ($line in (cmd /c dir /aL "$parent")) {
         if ($line -match "\s$name\s+\[(.+)\]\s*$") { return ($Matches[1] -replace '^\\\?\?\\', '') }
     }
     return $null
+}
+
+function Test-PathUnderRoot {
+    param(
+        [string]$Candidate,
+        [string]$Root
+    )
+
+    if (-not $Candidate) { return $false }
+    try {
+        $trim = [char[]]@('\', '/')
+        $rootPrefix = [IO.Path]::GetFullPath($Root).TrimEnd($trim) + [IO.Path]::DirectorySeparatorChar
+        $candidatePath = [IO.Path]::GetFullPath($Candidate)
+        return $candidatePath.StartsWith($rootPrefix, [StringComparison]::OrdinalIgnoreCase)
+    }
+    catch {
+        return $false
+    }
 }
 
 function Get-SkillName {
@@ -85,9 +121,20 @@ function Get-SkillName {
     return $null
 }
 
-$skillMds = Get-ChildItem -LiteralPath $root -Recurse -Filter "SKILL.md" -File
+$skillRoots = @(
+    (Join-Path $root "workflow"),
+    (Join-Path $root "tooling")
+)
+$missingSkillRoots = @($skillRoots | Where-Object { -not (Test-Path -LiteralPath $_ -PathType Container) })
+if ($missingSkillRoots.Count -gt 0) {
+    Write-Error ("Missing skill source root(s): {0}" -f ($missingSkillRoots -join ", "))
+    exit 1
+}
+$skillMds = @($skillRoots | ForEach-Object {
+    Get-ChildItem -LiteralPath $_ -Recurse -Filter "SKILL.md" -File
+})
 if (-not $skillMds) {
-    Write-Error "No SKILL.md found under $root. Put install.ps1 at repository root."
+    Write-Error "No SKILL.md found under workflow/ or tooling/."
     exit 1
 }
 
@@ -129,9 +176,9 @@ $backedUp = 0
 
 foreach ($s in $skills) {
     $linkPath = Join-Path $Target $s.Name
+    $item = Get-PathEntry $linkPath
 
-    if (Test-Path -LiteralPath $linkPath) {
-        $item = Get-Item -LiteralPath $linkPath -Force
+    if ($null -ne $item) {
         $isLink = ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0
 
         if ($isLink) {
@@ -169,26 +216,28 @@ foreach ($s in $skills) {
 # --- Clean orphan links: reparse points in $Target that resolve into this repo but match no current skill
 #     (the source skill was renamed/removed). Safe to delete — they're junctions, not real data. ---
 $linkedNames = $skills | ForEach-Object { $_.Name }
-Get-ChildItem -LiteralPath $Target -Directory -Force | Where-Object {
-    ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -and
-    ((Get-JunctionTarget $_.FullName) -like "$root*") -and
-    $linkedNames -notcontains $_.Name
-} | ForEach-Object {
-    if ($DryRun) {
-        Write-Host ("[DryRun] Remove orphan link: {0}" -f $_.FullName) -ForegroundColor Yellow
-    }
-    else {
-        [System.IO.Directory]::Delete($_.FullName)
-        Write-Host ("Removed orphan link: {0}" -f $_.FullName) -ForegroundColor Yellow
+if (Test-Path -LiteralPath $Target) {
+    Get-ChildItem -LiteralPath $Target -Force | Where-Object {
+        ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -and
+        (Test-PathUnderRoot (Get-JunctionTarget $_.FullName) $root) -and
+        $linkedNames -notcontains $_.Name
+    } | ForEach-Object {
+        if ($DryRun) {
+            Write-Host ("[DryRun] Remove orphan link: {0}" -f $_.FullName) -ForegroundColor Yellow
+        }
+        else {
+            [System.IO.Directory]::Delete($_.FullName)
+            Write-Host ("Removed orphan link: {0}" -f $_.FullName) -ForegroundColor Yellow
+        }
     }
 }
 
 Write-Host ""
 
-# --- Distribute ARTIFACT-FORMAT.md to the skills root so engineering skills' `../ARTIFACT-FORMAT.md`
+# --- Distribute ARTIFACT-FORMAT.md to the skills root so workflow skills' `../ARTIFACT-FORMAT.md`
 #     links resolve. On Windows `..` is normalized textually (it does not traverse the junction),
 #     so `<skills>/tdd/../ARTIFACT-FORMAT.md` -> `<skills>/ARTIFACT-FORMAT.md`. Put the file there. ---
-$afSource = Join-Path $root "engineering/ARTIFACT-FORMAT.md"
+$afSource = Join-Path $root "workflow/ARTIFACT-FORMAT.md"
 if (Test-Path -LiteralPath $afSource) {
     $afTarget = Join-Path $Target "ARTIFACT-FORMAT.md"
     if ($DryRun) {
@@ -202,7 +251,7 @@ if (Test-Path -LiteralPath $afSource) {
 
 # --- Ship the artifact gate scripts next to ARTIFACT-FORMAT.md (same distribution reason). ---
 foreach ($gate in @("verify-artifacts.py", "workflow-state.py", "workflow_contract.py")) {
-    $gSrc = Join-Path $root "engineering/$gate"
+    $gSrc = Join-Path $root "workflow/$gate"
     if (-not (Test-Path -LiteralPath $gSrc)) { continue }
     $gTarget = Join-Path $Target $gate
     if ($DryRun) {
@@ -291,12 +340,11 @@ if (Test-Path -LiteralPath $cmSource) {
 # --- Distribute hook scripts -> ~/.claude/hooks/. Explicit list, not a glob:
 #     scripts/ also holds non-hook helpers (diagnose templates) that must not
 #     land in hooks/. Keeps repo and deployed hooks from drifting apart.
-#     shell-guardrails is the combined single-process hook (three tiers) —
-#     one self-contained Python script. ---
+#     shell-guardrails owns the combined engine and both narrow policy carriers. ---
 $hookScripts = @(
-    "misc/shell-guardrails/scripts/guard-shell.py",
-    "misc/modern-cli-guardrails/scripts/block-legacy-cli.ps1",
-    "misc/git-guardrails-claude-code/scripts/block-dangerous-git.ps1"
+    "tooling/shell-guardrails/scripts/guard-shell.py",
+    "tooling/shell-guardrails/scripts/block-legacy-cli.ps1",
+    "tooling/shell-guardrails/scripts/block-dangerous-git.ps1"
 )
 $hooksTarget = Join-Path $claudeRoot "hooks"
 $copiedHooks = 0
@@ -345,7 +393,7 @@ if ((Test-Path -LiteralPath $agentsSkills) -or (Test-Path -LiteralPath (Join-Pat
         else { New-Item -ItemType Directory -Path $agentsSkills -Force | Out-Null }
     }
     foreach ($shared in @("ARTIFACT-FORMAT.md", "verify-artifacts.py", "workflow-state.py", "workflow_contract.py")) {
-        $sharedSrc = Join-Path $root "engineering/$shared"
+        $sharedSrc = Join-Path $root "workflow/$shared"
         if (-not (Test-Path -LiteralPath $sharedSrc)) { continue }
         $sharedDst = Join-Path $agentsSkills $shared
         if ($DryRun) { Write-Host ("[DryRun] Copy {0} -> {1}" -f $shared, $sharedDst) -ForegroundColor Yellow }
@@ -358,11 +406,11 @@ if ((Test-Path -LiteralPath $agentsSkills) -or (Test-Path -LiteralPath (Join-Pat
     $agentsLinked = 0
     foreach ($s in $skills) {
         $linkPath = Join-Path $agentsSkills $s.Name
-        if (Test-Path -LiteralPath $linkPath) {
-            $item = Get-Item -LiteralPath $linkPath -Force
+        $item = Get-PathEntry $linkPath
+        if ($null -ne $item) {
             $isLink = ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0
             if ($isLink) {
-                if ((Get-JunctionTarget $linkPath) -notlike "$root\*") {
+                if (-not (Test-PathUnderRoot (Get-JunctionTarget $linkPath) $root)) {
                     Write-Host ("Agents root keeps foreign link {0}, skipping" -f $s.Name)
                     continue
                 }
@@ -384,17 +432,19 @@ if ((Test-Path -LiteralPath $agentsSkills) -or (Test-Path -LiteralPath (Join-Pat
         }
     }
 
-    Get-ChildItem -LiteralPath $agentsSkills -Directory -Force | Where-Object {
-        ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -and
-        ((Get-JunctionTarget $_.FullName) -like "$root\*") -and
-        $linkedNames -notcontains $_.Name
-    } | ForEach-Object {
-        if ($DryRun) {
-            Write-Host ("[DryRun] Remove orphan agents link: {0}" -f $_.FullName) -ForegroundColor Yellow
-        }
-        else {
-            [System.IO.Directory]::Delete($_.FullName)
-            Write-Host ("Removed orphan agents link: {0}" -f $_.FullName) -ForegroundColor Yellow
+    if (Test-Path -LiteralPath $agentsSkills) {
+        Get-ChildItem -LiteralPath $agentsSkills -Force | Where-Object {
+            ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -and
+            (Test-PathUnderRoot (Get-JunctionTarget $_.FullName) $root) -and
+            $linkedNames -notcontains $_.Name
+        } | ForEach-Object {
+            if ($DryRun) {
+                Write-Host ("[DryRun] Remove orphan agents link: {0}" -f $_.FullName) -ForegroundColor Yellow
+            }
+            else {
+                [System.IO.Directory]::Delete($_.FullName)
+                Write-Host ("Removed orphan agents link: {0}" -f $_.FullName) -ForegroundColor Yellow
+            }
         }
     }
 }

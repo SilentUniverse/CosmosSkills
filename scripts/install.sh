@@ -35,12 +35,20 @@ skill_name() {
   ' "$1"
 }
 
+SKILL_ROOTS=("$ROOT/workflow" "$ROOT/tooling")
+for skill_root in "${SKILL_ROOTS[@]}"; do
+  if [[ ! -d "$skill_root" ]]; then
+    echo "Missing skill source root: $skill_root" >&2
+    exit 1
+  fi
+done
+
 SKILL_MDS=()
 while IFS= read -r md; do
   SKILL_MDS+=("$md")
-done < <(find "$ROOT" -name SKILL.md -type f | LC_ALL=C sort)
+done < <(find "${SKILL_ROOTS[@]}" -name SKILL.md -type f | LC_ALL=C sort)
 if [[ ${#SKILL_MDS[@]} -eq 0 ]]; then
-  echo "No SKILL.md found under $ROOT. Put install.sh at repository root." >&2
+  echo "No SKILL.md found under workflow/ or tooling/." >&2
   exit 1
 fi
 
@@ -158,9 +166,9 @@ copy_file() {
 }
 
 echo
-copy_file "$ROOT/engineering/ARTIFACT-FORMAT.md" "$TARGET/ARTIFACT-FORMAT.md" "Contract: ARTIFACT-FORMAT.md"
+copy_file "$ROOT/workflow/ARTIFACT-FORMAT.md" "$TARGET/ARTIFACT-FORMAT.md" "Contract: ARTIFACT-FORMAT.md"
 for gate in verify-artifacts.py workflow-state.py workflow_contract.py; do
-  copy_file "$ROOT/engineering/$gate" "$TARGET/$gate" "Gate: $gate"
+  copy_file "$ROOT/workflow/$gate" "$TARGET/$gate" "Gate: $gate"
 done
 copy_file "$ROOT/scripts/eval.py" "$TARGET/eval.py" "Eval: eval.py"
 copy_file "$ROOT/scripts/eval_campaign.py" "$TARGET/eval_campaign.py" "Eval: eval_campaign.py"
@@ -168,8 +176,12 @@ copy_file "$ROOT/scripts/eval_campaign.py" "$TARGET/eval_campaign.py" "Eval: eva
 # Prune pre-Python gate corpses (the gate was once .ps1/.sh; stale copies read as "old").
 for stale in verify-artifacts.ps1 verify-artifacts.sh; do
   if [ -f "$TARGET/$stale" ]; then
-    rm -f "$TARGET/$stale"
-    echo "Gate: removed stale $TARGET/$stale"
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      echo "[DryRun] Remove stale gate $TARGET/$stale"
+    else
+      rm -f "$TARGET/$stale"
+      echo "Gate: removed stale $TARGET/$stale"
+    fi
   fi
 done
 
@@ -203,8 +215,9 @@ if [[ -d "$ROOT/claude" ]]; then
 fi
 
 HOOKS=(
-  "misc/modern-cli-guardrails/scripts/block-legacy-cli.sh"
-  "misc/git-guardrails-claude-code/scripts/block-dangerous-git.sh"
+  "tooling/shell-guardrails/scripts/guard-shell.py"
+  "tooling/shell-guardrails/scripts/block-legacy-cli.sh"
+  "tooling/shell-guardrails/scripts/block-dangerous-git.sh"
 )
 hooks_target="$CLAUDE_ROOT/hooks"
 copied_hooks=0
@@ -243,10 +256,10 @@ if [[ -d "$agents_skills" || -d "${HOME}/.zcode" ]]; then
 
   # Contract files land first: linked skills resolve ../ARTIFACT-FORMAT.md
   # textually inside the skills root, same as in ~/.claude/skills.
-  copy_file "$ROOT/engineering/ARTIFACT-FORMAT.md" "$agents_skills/ARTIFACT-FORMAT.md" "Contract: ARTIFACT-FORMAT.md (agents)"
-  copy_file "$ROOT/engineering/verify-artifacts.py" "$agents_skills/verify-artifacts.py" "Gate: verify-artifacts.py (agents)"
-  copy_file "$ROOT/engineering/workflow-state.py" "$agents_skills/workflow-state.py" "State: workflow-state.py (agents)"
-  copy_file "$ROOT/engineering/workflow_contract.py" "$agents_skills/workflow_contract.py" "Contract: workflow_contract.py (agents)"
+  copy_file "$ROOT/workflow/ARTIFACT-FORMAT.md" "$agents_skills/ARTIFACT-FORMAT.md" "Contract: ARTIFACT-FORMAT.md (agents)"
+  copy_file "$ROOT/workflow/verify-artifacts.py" "$agents_skills/verify-artifacts.py" "Gate: verify-artifacts.py (agents)"
+  copy_file "$ROOT/workflow/workflow-state.py" "$agents_skills/workflow-state.py" "State: workflow-state.py (agents)"
+  copy_file "$ROOT/workflow/workflow_contract.py" "$agents_skills/workflow_contract.py" "Contract: workflow_contract.py (agents)"
 
   for i in "${!NAMES[@]}"; do
     name="${NAMES[$i]}"

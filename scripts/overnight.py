@@ -199,7 +199,7 @@ def main(argv):
     wave_script = os.path.normpath(
         os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            "..", "engineering", "tdd", "scripts", "drain-wave.py",
+            "..", "workflow", "tdd", "scripts", "drain-wave.py",
         )
     )
     receipt_script = os.path.join(os.path.dirname(wave_script), "preflight-receipt.py")

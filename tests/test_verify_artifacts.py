@@ -15,7 +15,7 @@ from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location(
-    "verify_artifacts", ROOT / "engineering" / "verify-artifacts.py"
+    "verify_artifacts", ROOT / "workflow" / "verify-artifacts.py"
 )
 assert SPEC and SPEC.loader
 verify_artifacts = importlib.util.module_from_spec(SPEC)

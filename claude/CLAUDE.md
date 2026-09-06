@@ -46,6 +46,9 @@ subprocess boundaries; trust typed internals. Security, validation, and accessib
 
 ## 5. Execute against evidence
 
+- Optimize lexicographically: product quality and correctness first, elapsed delivery time second,
+  and token use third. Never trade required evidence, safety, or accessibility for the latter two;
+  among equally sound paths choose the faster one, then the smaller context surface.
 - For substantial work, briefly state the next action and its check, then execute. A plan, issue,
   review, handoff, or tool-call budget is a phase boundary, not completion of the user's objective.
 - Observation beats reasoning. Performance claims require measurements.

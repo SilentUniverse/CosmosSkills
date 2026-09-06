@@ -6,7 +6,7 @@
   "skills": ["commit"],
   "origin": {
     "kind": "capability",
-    "reference": "Discipline under pressure: stage only the validated change paths by name (commit SKILL.md Task)"
+    "reference": "Discipline under pressure: stage only the validated change paths by name (commit SKILL.md Commit modes)"
   },
   "task": {
     "prompt": "/commit",
