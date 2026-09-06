@@ -454,6 +454,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("--mode", choices=("auto", "gh", "native"), default="auto")
     parser.add_argument("--verify-command")
     parser.add_argument("--verify-timeout", type=float, default=600.0)
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="print the resolved engine and planned actions; perform no mutation",
+    )
     args = parser.parse_args(argv)
 
     repo = args.repo_root.resolve()
@@ -496,6 +501,16 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             repo, ["rev-parse", args.branch or "HEAD"]
         ).stdout.strip()
         report.update(branch=branch, head=sha, base=base)
+        if args.dry_run:
+            report["engine"] = "gh" if use_gh else "native"
+            report["dry_run"] = True
+            report["steps"] = (
+                ["push topic", "create/reuse PR", "squash merge", "verify MERGED", "cleanup"]
+                if use_gh
+                else ["fetch", "isolated worktree", "ff-only or squash", "verify", "publish default"]
+            )
+            print(json.dumps(report, ensure_ascii=False, indent=2))
+            return 0
         if use_gh:
             report["engine"] = "gh"
             land_gh(repo, args.remote, branch, sha, base, report)
