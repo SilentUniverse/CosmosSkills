@@ -38,8 +38,8 @@ The engine evaluates the first matching tier:
 | Path correctness | POSIX paths passed to native Windows executables and unquoted Android device paths affected by MSYS conversion | none |
 | Modern CLI | host-side `grep`, `find`, or `sed` command words | `# force-legacy` or launcher-level `ALLOW_LEGACY_CLI=1` |
 
-Branch deletion is deliberate allow: squash-merged topic branches need `branch -D` for cleanup, and
-a dropped ref stays reflog-recoverable. Quoted remote commands are data; host pipelines and command
+Branch deletion is deliberately allowed: squash-merged topic branches need `branch -D` for cleanup,
+and a dropped ref stays reflog-recoverable. Quoted remote commands are data; host pipelines and command
 substitutions are executable host code.
 The parser recognizes shell control flow, wrappers, assignments, subshells, static `-c` or `eval`
 payloads, comments, heredocs, arrays, tests, case patterns, and redirects. Dynamic command words and
