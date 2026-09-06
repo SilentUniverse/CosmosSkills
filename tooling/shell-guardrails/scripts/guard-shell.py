@@ -422,9 +422,6 @@ def dangerous_git_hit(segments):
                  if len(t) > 1 and t.startswith('-') and 'f' in t.lstrip('-')]
             if f:
                 return 'git clean (%s)' % f[0]
-        if sub == 'branch' and ('-D' in after or
-                                ('--delete' in after and '--force' in after)):
-            return 'git branch -D'
         if sub == 'checkout' and '.' in after:
             return 'git checkout .'
         if sub == 'restore' and '.' in after:
