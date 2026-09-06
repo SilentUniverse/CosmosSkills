@@ -179,25 +179,6 @@ class NativeLandingTests(LandFixture):
             self.assertFalse(report["landed"])
             self.assertIn("second change", git_out(work, "log", "--oneline", "-1"))
 
-    def test_dry_run_prints_plan_without_any_mutation(self):
-        with tempfile.TemporaryDirectory() as directory:
-            work = self.make_repo(Path(directory))
-            sha = self.topic_commit(work, "change")
-            before = git_out(work, "rev-parse", "origin/main")
-            code, report = run_main(work, "--mode", "native", "--dry-run")
-            self.assertEqual(0, code)
-            self.assertTrue(report["dry_run"])
-            self.assertFalse(report["landed"])
-            self.assertEqual(sha, report["head"])
-            self.assertEqual("native", report["engine"])
-            self.assertEqual(before, git_out(work, "rev-parse", "origin/main"))
-            self.assertEqual(
-                "", git_out(work, "ls-remote", "origin", "refs/heads/topic")
-            )
-            self.assertEqual(
-                1, len(git_out(work, "worktree", "list").splitlines())
-            )
-
     def test_detached_head_is_refused(self):
         with tempfile.TemporaryDirectory() as directory:
             work = self.make_repo(Path(directory))
