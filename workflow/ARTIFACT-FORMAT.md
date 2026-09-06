@@ -186,8 +186,8 @@ Field rules:
 - **status** — the two canonical states only. A shipped `done` contract is immutable. During its
   active batch, a failed closing check/review may reopen it to `ready` with exact evidence while
   retaining prior completion records. Later behavior changes create redo/fix issues.
-  Hands-on checks no agent can run live in the PRD's 端到端验证; never as a third state or as
-  issue AC.
+  Hands-on checks no agent can run live in the PRD's 端到端验证 or, without a parent PRD, the
+  issue's `## 手动验证`; never as a third state or as issue AC.
 - **category** —
   - `enhancement` — a normal vertical slice from the PRD.
   - `detail` — a small sub-behavior added later that does NOT warrant a PRD revision. MUST carry
