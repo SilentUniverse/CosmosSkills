@@ -78,6 +78,50 @@ class WorkflowContractTests(unittest.TestCase):
         completion = text("engineering/tdd/COMPLETION-RECORD.md")
         self.assertIn("do not repeat a “新增测试” inventory", completion)
         self.assertIn("duration class/time", completion)
+        self.assertNotIn("- 审查：pass", completion)
+        self.assertIn("only when review found", completion)
+
+    def test_parallel_briefs_and_waiting_work_do_not_materialize_duplicate_inputs(self):
+        drain = text("engineering/tdd/DRAIN.md")
+        tdd = text("engineering/tdd/SKILL.md")
+        compact = " ".join(drain.split())
+        self.assertIn("packet's `context`", drain)
+        self.assertIn("workflow-state.py packets", drain)
+        self.assertIn("do not regenerate it", drain)
+        self.assertIn("caller-supplied packet", tdd)
+        self.assertIn("Do not materialize next-wave packets", compact)
+        self.assertNotIn("Copy `## 相关面` pointers", drain)
+        self.assertNotIn("drafting next-wave inputs", drain)
+
+    def test_spec_hoists_shared_verifier_state_before_writing_cards(self):
+        write_loop = " ".join(text("engineering/spec/WRITE-LOOP.md").split())
+        verification = " ".join(text("engineering/spec/VERIFICATION-DESIGN.md").split())
+        issue = " ".join(text("engineering/spec/ISSUE-TEMPLATE.md").split())
+        artifact = " ".join(text("engineering/ARTIFACT-FORMAT.md").split())
+        contract = " ".join((write_loop, verification, issue, artifact)).lower()
+        self.assertIn("before writing any issue", contract)
+        self.assertIn("two or more non-graphical cards", contract)
+        self.assertIn("write `verifier.json` first", contract)
+        self.assertIn("largest sharing group", contract)
+        self.assertIn("only `profile: verifier.json`", contract)
+
+    def test_prd_does_not_duplicate_issue_or_profile_readiness(self):
+        prd = " ".join(text("engineering/spec/PRD-TEMPLATE.md").split())
+        self.assertIn("does not own exact commands, P# runs, or environment fingerprints", prd)
+        self.assertIn("issue or `verifier.json`", prd)
+        self.assertNotIn("Preserve the readiness register", prd)
+        self.assertNotIn("| P# | cwd | prerequisites", prd)
+
+    def test_dependency_has_one_owner_and_supervision_is_rate_limited(self):
+        issue = text("engineering/spec/ISSUE-TEMPLATE.md")
+        drain = " ".join(text("engineering/tdd/DRAIN.md").split())
+        self.assertIn("`blocked_by` is the single dependency source", issue)
+        self.assertNotIn("## 前置依赖（Blocked by）", issue)
+        self.assertIn("after at least about 30 seconds", drain)
+        self.assertIn("check by about one minute", drain)
+        self.assertIn("Only after clean reconciliation", drain)
+        self.assertIn("one `collect` invocation", drain)
+        self.assertNotIn("Before each orchestrator action", drain)
 
 
 if __name__ == "__main__":

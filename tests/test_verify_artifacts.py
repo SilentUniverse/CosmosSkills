@@ -1,4 +1,5 @@
 import base64
+import builtins
 import hashlib
 import importlib.util
 import io
@@ -9,6 +10,7 @@ import tempfile
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -241,9 +243,72 @@ class VerifyArtifactsV2Tests(unittest.TestCase):
                 result = verify_artifacts.main(["verify-artifacts.py", str(root)])
             return result, output.getvalue()
 
+    def test_feature_gate_rejects_ready_card_body_dependency_copy(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issue_dir = root / ".scratch" / "search" / "issues"
+            issue_dir.mkdir(parents=True)
+            (issue_dir / "01-search.md").write_text(issue_body(), encoding="utf-8")
+            output = io.StringIO()
+            with redirect_stdout(output):
+                result = verify_artifacts.main(
+                    ["verify-artifacts.py", str(root), "--feature", "search"]
+                )
+
+            self.assertEqual(1, result)
+            self.assertIn("duplicates blocked_by in a body dependency section", output.getvalue())
+
     def test_v2_issue_with_all_evidence_maps_passes(self):
         result, output = self.run_gate(issue_body())
         self.assertEqual(0, result, output)
+
+    def test_feature_gate_requires_shared_ready_v2_environment_to_use_profile(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "search" / "issues"
+            issues.mkdir(parents=True)
+            v2_body = issue_body().replace(
+                "\n## 前置依赖（Blocked by）\n\n- 无\n", "\n"
+            )
+            first = v2_body.replace("tests/test_search.py", "tests/test_one.py")
+            second = (
+                v2_body
+                .replace("tests/test_search.py", "tests/test_two.py")
+                .replace("- 工作目录：`.`", "- 工作目录：`./`")
+                .replace(
+                    "git=abc123; lock=none; runtime=python-3.13; tools=pytest-8; services=none",
+                    "services=none ; tools=pytest-8; runtime=python-3.13; lock=none ; git=abc123",
+                )
+                .replace(
+                    "fixtures=ready; services=none; permissions=local; network=off",
+                    "network=off; permissions=local ; services=none; fixtures=ready",
+                )
+                .replace("`无（已就绪）`", "`  无（已就绪）  `")
+            )
+            (issues / "01-search.md").write_text(first, encoding="utf-8")
+            (issues / "02-more.md").write_text(second, encoding="utf-8")
+            tests = root / "tests"
+            tests.mkdir()
+            (tests / "test_one.py").write_text("# fixture\n", encoding="utf-8")
+            (tests / "test_two.py").write_text("# fixture\n", encoding="utf-8")
+            output = io.StringIO()
+            with redirect_stdout(output):
+                result = verify_artifacts.main(
+                    ["verify-artifacts.py", str(root), "--feature", "search"]
+                )
+
+            self.assertEqual(1, result)
+            self.assertIn("duplicate verifier environment", output.getvalue())
+            self.assertIn("write verifier.json first", output.getvalue())
+
+            (root / ".scratch" / "search" / "verifier.json").write_text("{}\n", encoding="utf-8")
+            output = io.StringIO()
+            with redirect_stdout(output):
+                result = verify_artifacts.main(
+                    ["verify-artifacts.py", str(root), "--feature", "search"]
+                )
+            self.assertEqual(1, result)
+            self.assertIn("duplicate verifier environment", output.getvalue())
 
     def test_v2_issue_without_verification_section_fails(self):
         result, output = self.run_gate(issue_body(verification=False))
@@ -696,15 +761,13 @@ def plant_v3_receipt(root, outcome="pass", *, ac=None, bound=True):
 
 def v3_issue_body(
     done=True,
-    review=True,
     receipt_ref=".scratch/search/receipts/01-search-targeted.json",
 ):
-    review_line = "- 审查：pass\n" if review else ""
     completion = ""
     if done:
         completion = (
             "\n### 完成 — 2026-09-03\n\n"
-            f"- receipt: {receipt_ref}\n{review_line}"
+            f"- receipt: {receipt_ref}\n"
         )
     return f"""---
 contract_version: 3
@@ -742,10 +805,6 @@ Search history.
 ## 相关面（Read contract）
 
 - invariants: CODEBASE.md 的 search 不变量块
-
-## 前置依赖（Blocked by）
-
-- 无
 
 ## Comments
 {completion}
@@ -789,6 +848,124 @@ class VerifyArtifactsV3Tests(unittest.TestCase):
         self.assertEqual(1, result)
         self.assertIn("receipt missing", output)
 
+    def test_feature_gate_reads_one_shared_profile_once(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "search" / "issues"
+            issues.mkdir(parents=True)
+            body = v3_issue_body(done=False)
+            (issues / "01-search.md").write_text(body, encoding="utf-8")
+            (issues / "02-more.md").write_text(body, encoding="utf-8")
+            plant_v3_profile(root)
+            tests = root / "tests"
+            tests.mkdir()
+            (tests / "test_search.py").write_text("# fixture\n", encoding="utf-8")
+            profile = root / ".scratch" / "search" / "verifier.json"
+            original_read_bytes = Path.read_bytes
+            profile_reads = []
+
+            def tracked_read_bytes(path):
+                if path.resolve() == profile.resolve():
+                    profile_reads.append(path)
+                return original_read_bytes(path)
+
+            output = io.StringIO()
+            with mock.patch.object(Path, "read_bytes", tracked_read_bytes):
+                with redirect_stdout(output):
+                    result = verify_artifacts.main(
+                        ["verify-artifacts.py", str(root), "--feature", "search"]
+                    )
+
+            self.assertEqual(0, result, output.getvalue())
+            self.assertEqual(1, len(profile_reads))
+
+    def test_feature_gate_reads_each_v3_issue_once(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "search" / "issues"
+            issues.mkdir(parents=True)
+            issue = issues / "01-search.md"
+            issue.write_text(v3_issue_body(done=False), encoding="utf-8")
+            plant_v3_profile(root)
+            tests = root / "tests"
+            tests.mkdir()
+            (tests / "test_search.py").write_text("# fixture\n", encoding="utf-8")
+            original_open = builtins.open
+            issue_reads = []
+
+            def tracked_open(file, *args, **kwargs):
+                if Path(file).resolve() == issue.resolve() and "r" in (args[:1] or ("r",))[0]:
+                    issue_reads.append(file)
+                return original_open(file, *args, **kwargs)
+
+            output = io.StringIO()
+            with mock.patch("builtins.open", tracked_open):
+                with redirect_stdout(output):
+                    result = verify_artifacts.main(
+                        ["verify-artifacts.py", str(root), "--feature", "search"]
+                    )
+
+            self.assertEqual(0, result, output.getvalue())
+            self.assertEqual(1, len(issue_reads))
+
+    def test_feature_gate_rejects_v2_copy_of_active_profile_environment(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "search" / "issues"
+            issues.mkdir(parents=True)
+            (issues / "01-lean.md").write_text(
+                v3_issue_body(done=False), encoding="utf-8"
+            )
+            v2 = issue_body().replace(
+                "\n## 前置依赖（Blocked by）\n\n- 无\n", "\n"
+            )
+            (issues / "02-copy.md").write_text(v2, encoding="utf-8")
+            plant_v3_profile(root)
+            tests = root / "tests"
+            tests.mkdir()
+            (tests / "test_search.py").write_text("# fixture\n", encoding="utf-8")
+            output = io.StringIO()
+            with redirect_stdout(output):
+                result = verify_artifacts.main(
+                    ["verify-artifacts.py", str(root), "--feature", "search"]
+                )
+
+            self.assertEqual(1, result)
+            self.assertIn("ready v2 card repeats active verifier profile", output.getvalue())
+
+    def test_feature_gate_rejects_unreferenced_verifier_profile(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "search" / "issues"
+            issues.mkdir(parents=True)
+            v2 = issue_body().replace(
+                "\n## 前置依赖（Blocked by）\n\n- 无\n", "\n"
+            )
+            (issues / "01-only.md").write_text(v2, encoding="utf-8")
+            plant_v3_profile(root)
+            output = io.StringIO()
+            with redirect_stdout(output):
+                result = verify_artifacts.main(
+                    ["verify-artifacts.py", str(root), "--feature", "search"]
+                )
+
+            self.assertEqual(1, result)
+            self.assertIn("verifier.json has no v3 card", output.getvalue())
+
+    def test_feature_gate_rejects_profile_without_issue_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / ".scratch" / "search").mkdir(parents=True)
+            plant_v3_profile(root)
+            output = io.StringIO()
+            with redirect_stdout(output):
+                result = verify_artifacts.main(
+                    ["verify-artifacts.py", str(root), "--feature", "search"]
+                )
+
+            self.assertEqual(1, result)
+            self.assertIn("verifier.json has no v3 card", output.getvalue())
+
     def test_v3_receipt_outcome_not_pass_fails(self):
         def flip_outcome(root):
             plant_v3_receipt(root, outcome="fail")
@@ -815,10 +992,9 @@ class VerifyArtifactsV3Tests(unittest.TestCase):
         self.assertEqual(1, result)
         self.assertIn("profile file unreadable", output)
 
-    def test_v3_done_without_review_line_fails(self):
-        result, output = self.run_gate(v3_issue_body(review=False))
-        self.assertEqual(1, result)
-        self.assertIn("done record missing 审查", output)
+    def test_v3_done_without_review_line_passes(self):
+        result, output = self.run_gate(v3_issue_body())
+        self.assertEqual(0, result, output)
 
     def test_v3_receipt_without_full_ac_coverage_fails(self):
         result, output = self.run_gate(
@@ -951,16 +1127,16 @@ class VerifyArtifactsV3Tests(unittest.TestCase):
         self.assertEqual(1, result)
         self.assertIn("is not mapped by AC", output)
 
-    def test_v3_receipt_binding_cwd_must_match_profile(self):
-        def wrong_cwd_binding(root):
+    def test_v3_receipt_top_level_cwd_must_match_profile(self):
+        def wrong_cwd(root):
             receipt = root / ".scratch" / "search" / "receipts" / "01-search-targeted.json"
             payload = json.loads(receipt.read_text(encoding="utf-8"))
-            payload["issue"]["cwd"] = "tests"
+            payload["cwd"] = "tests"
             receipt.write_text(json.dumps(payload), encoding="utf-8")
 
-        result, output = self.run_gate(v3_issue_body(), mutate=wrong_cwd_binding)
+        result, output = self.run_gate(v3_issue_body(), mutate=wrong_cwd)
         self.assertEqual(1, result)
-        self.assertIn("receipt binding cwd 'tests' != '.'", output)
+        self.assertIn("receipt cwd does not match verifier profile", output)
 
     def test_v3_boolean_profile_or_receipt_schema_is_rejected(self):
         def boolean_profile(root):

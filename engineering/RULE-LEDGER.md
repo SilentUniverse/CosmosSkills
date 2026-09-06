@@ -95,8 +95,11 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | Shared·预算 | 精简证据；仅真实宿主/上下文边界轮换 | 过程·经济 | 流程 | 实测 7 卡批尾部 ~550k token/请求（DRAIN.md） |
 | Shared·blocked | 具体缺失条件和证据；独立完成，已知无权限不空重试 | 产物 | 流程 | b369e40（blocked gate） |
 | Serial | 基线加 diff 确定归属；只恢复自身改动，保留并发工作 | 产物 | 流程 | f7cc4db（baseline reverts） |
-| Parallel·brief | 自足：调 /tdd、贴验证命令、tests-so-far、相关面逐字 | 产物 | 流程 | 18b1add（drain 子代理全工作流）/ cold-executor-handoff |
-| Parallel·报告 | 固定形状四值；红/阻 ≤400 词 ◆ | 接口+过程 | 机器+流程 | collect 解析 slug=result（机器部分）；字数帽未溯源 |
+| Parallel·brief | 自足：调 /tdd、单卡 packet（含相关面）、相关 tests-so-far 与缺失约束；不重抄卡片/回执 | 产物 | 流程 | 18b1add（drain 子代理全工作流）、7940ef7（packet 投影）/ cold-executor-handoff |
+| SPEC·验证所有权 | 多卡共享 cwd/指纹/前置/准备时先写 verifier profile；PRD 不重抄 readiness，卡片只留引用/偏差与切片证据 | 产物 | 机器+流程 | ARTIFACT-FORMAT verifier profile + verify-artifacts shared-v2 gate |
+| Issue·依赖 | `blocked_by` 是唯一依赖源；正文不维护同义列表，packet 直接投影 frontmatter | 产物 | 机器+流程 | ARTIFACT-FORMAT blocked_by + workflow-state.py packet |
+| Parallel·报告 | 固定四值；长度与证据形状由 DRAIN 单点定义，不重抄卡片/回执 | 接口+过程 | 机器+流程 | DRAIN worker result + drain-wave.py collect |
+| Parallel·收波 | 全 worker 终态 → 联合 scoped 验证/归属核对 → 一次 collect 全部 outstanding；partial 拒绝 | 过程·质量·经济 | 机器+流程 | ARTIFACT-FORMAT wave ledger + drain-wave.py collect |
 | Parallel→overnight | 过夜 runner 拥有调度，会话轮换 | 过程·经济 | 机器 | e926a87（overnight driver）、f7cc4db（persisted state）/ resume-cold-start |
 
 ## E. commit — engineering/commit/SKILL.md（每次提交付费）

@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -61,7 +62,35 @@ class PreflightReceiptTests(unittest.TestCase):
                 fingerprint="git=abc; lock=123; runtime=node-24; tools=playwright-1; services=none",
             )
             self.assertIsNotNone(hit)
-            self.assertEqual("exit 0", hit["observed"])
+            stored = next(iter(json.loads(path.read_text(encoding="utf-8"))["entries"].values()))
+            self.assertEqual(
+                {"evidence", "evidence_sha256"},
+                set(stored),
+            )
+
+    def test_hit_revalidates_the_execution_receipt_and_log(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "receipt.json"
+            action = shlex.join([sys.executable, "-c", "print('ok')"])
+            execution = passing_execution(root, action)
+            fingerprint = "git=abc; lock=none; runtime=python; tools=unittest; services=none"
+            preflight.record(
+                path,
+                cwd=str(root),
+                action=action,
+                fingerprint=fingerprint,
+                execution_receipt=execution,
+            )
+            self.assertIsNotNone(
+                preflight.check(path, cwd=str(root), action=action, fingerprint=fingerprint)
+            )
+
+            execution.write_text("{}\n", encoding="utf-8")
+
+            self.assertIsNone(
+                preflight.check(path, cwd=str(root), action=action, fingerprint=fingerprint)
+            )
 
     def test_profile_action_resolves_via_verifier_json(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -104,14 +133,16 @@ class PreflightReceiptTests(unittest.TestCase):
             root = Path(directory)
             issues = root / ".scratch" / "demo" / "issues"
             issues.mkdir(parents=True)
-            (issues / "01-lean.md").write_text(
+            body = (
                 "---\ncontract_version: 3\nverifier_schema: 2\ntype: issue\nfeature: demo\nstatus: ready\n"
                 "---\n\n## 验证设计（Verification Design）\n\n"
                 "- profile: verifier.json\n"
-                "- P1 预检：`profile:scoped` → passed；observed=exit 0；evidence=inline；checked=2026-09-03\n",
-                encoding="utf-8",
+                "- P1 预检：`profile:scoped` → passed；observed=exit 0；evidence=inline；checked=2026-09-03\n"
             )
-            (root / ".scratch" / "demo" / "verifier.json").write_text(
+            (issues / "01-lean.md").write_text(body, encoding="utf-8")
+            (issues / "02-lean.md").write_text(body, encoding="utf-8")
+            profile = root / ".scratch" / "demo" / "verifier.json"
+            profile.write_text(
                 json.dumps(
                     {
                         "schema_version": 2,
@@ -125,10 +156,19 @@ class PreflightReceiptTests(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
+            original_read_bytes = Path.read_bytes
+            profile_reads = []
 
-            rows = preflight.issue_preflight_rows(root)
+            def tracked_read_bytes(path):
+                if path.resolve() == profile.resolve():
+                    profile_reads.append(path)
+                return original_read_bytes(path)
 
-            self.assertEqual(1, len(rows))
+            with mock.patch.object(Path, "read_bytes", tracked_read_bytes):
+                rows = preflight.issue_preflight_rows(root)
+
+            self.assertEqual(2, len(rows))
+            self.assertEqual(1, len(profile_reads))
             self.assertEqual("pytest -q", rows[0]["action"])
             self.assertEqual("profile:scoped", rows[0]["declared_action"])
             self.assertEqual(64, len(rows[0]["verifier_digest"]))
@@ -136,6 +176,9 @@ class PreflightReceiptTests(unittest.TestCase):
                 "git=abc; lock=none; runtime=py-3.9; tools=pytest; services=none",
                 rows[0]["fingerprint"],
             )
+            duplicate = preflight.duplicate_plan(root, rows=rows)["duplicates"][0]
+            self.assertEqual("profile:scoped", duplicate["declared_action"])
+            self.assertEqual(rows[0]["verifier_digest"], duplicate["verifier_digest"])
 
     def test_profile_or_card_deviation_changes_preflight_key(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -156,8 +199,8 @@ class PreflightReceiptTests(unittest.TestCase):
                 "fingerprint": "git=abc; lock=none; runtime=py; tools=pytest; services=none",
                 "prerequisites": "fixtures=ready; services=none; permissions=local; network=off",
                 "prepare": "无（已就绪）",
-                "commands": {"scoped": "pytest -q"},
-                "completion_commands": ["scoped"],
+                "commands": {"scoped": "pytest -q", "full": "pytest tests -q"},
+                "completion_commands": ["scoped", "full"],
             }
             profile_path = feature / "verifier.json"
             profile_path.write_text(json.dumps(profile), encoding="utf-8")
@@ -166,6 +209,21 @@ class PreflightReceiptTests(unittest.TestCase):
             profile_path.write_text(json.dumps(profile, indent=4), encoding="utf-8")
             reformatted = preflight.issue_preflight_rows(root)[0]
             self.assertEqual(original["key"], reformatted["key"])
+
+            profile["fingerprint"] = (
+                "services=none; tools=pytest; runtime=py; lock=none; git=abc"
+            )
+            profile["prerequisites"] = (
+                "network=off; permissions=local; services=none; fixtures=ready"
+            )
+            profile_path.write_text(json.dumps(profile), encoding="utf-8")
+            reordered = preflight.issue_preflight_rows(root)[0]
+            self.assertEqual(original["key"], reordered["key"])
+
+            profile["completion_commands"].reverse()
+            profile_path.write_text(json.dumps(profile), encoding="utf-8")
+            reordered_completions = preflight.issue_preflight_rows(root)[0]
+            self.assertEqual(original["key"], reordered_completions["key"])
 
             profile["commands"]["scoped"] = "pytest tests/unit -q"
             profile_path.write_text(json.dumps(profile), encoding="utf-8")
@@ -209,6 +267,14 @@ class PreflightReceiptTests(unittest.TestCase):
                 fingerprint="git=abc; lock=none",
                 execution_receipt=passing_execution(root, action),
             )
+            self.assertIsNotNone(
+                preflight.check(
+                    path,
+                    cwd=str(root),
+                    action=action,
+                    fingerprint=" lock=none ; git=abc ",
+                )
+            )
             self.assertIsNone(
                 preflight.check(
                     path,
@@ -239,7 +305,7 @@ class PreflightReceiptTests(unittest.TestCase):
             issues = root / ".scratch" / "demo" / "issues"
             issues.mkdir(parents=True)
 
-            def body(status, action):
+            def body(status, action, fixtures="ready"):
                 return f"""---
 contract_version: 2
 type: issue
@@ -254,19 +320,31 @@ created: 2026-08-30
 
 - 工作目录：`.`
 - 环境指纹：`git=abc; lock=none; runtime=python-3; tools=unittest; services=none`
+- 前置条件：`fixtures={fixtures}; services=none; permissions=local; network=off`
+- 准备动作：`无（已就绪）`
 - P1 预检：`{action}` → passed；observed=exit 0；evidence=inline；checked=2026-08-30
 """
 
             unittest_action = shlex.join([sys.executable, "-m", "unittest", "-q"])
             (issues / "01-one.md").write_text(body("ready", unittest_action), encoding="utf-8")
             (issues / "02-two.md").write_text(body("ready", unittest_action), encoding="utf-8")
-            (issues / "03-unique.md").write_text(body("ready", "python -m compileall ."), encoding="utf-8")
-            (issues / "04-done.md").write_text(body("done", unittest_action), encoding="utf-8")
+            (issues / "03-different-readiness.md").write_text(
+                body("ready", unittest_action, fixtures="empty"), encoding="utf-8"
+            )
+            (issues / "04-unique.md").write_text(
+                body("ready", "python -m compileall ."), encoding="utf-8"
+            )
+            (issues / "05-done.md").write_text(
+                body("done", unittest_action), encoding="utf-8"
+            )
 
             plan = preflight.duplicate_plan(root)
             self.assertEqual(1, len(plan["duplicates"]))
             duplicate = plan["duplicates"][0]
             self.assertEqual("miss", duplicate["status"])
+            self.assertNotIn("declared_action", duplicate)
+            self.assertNotIn("verifier_digest", duplicate)
+            self.assertRegex(duplicate["readiness_digest"], r"^[0-9a-f]{64}$")
             self.assertEqual(
                 [".scratch/demo/issues/01-one.md", ".scratch/demo/issues/02-two.md"],
                 duplicate["issues"],
@@ -279,6 +357,7 @@ created: 2026-08-30
                 cwd=duplicate["cwd"],
                 action=duplicate["action"],
                 fingerprint=duplicate["fingerprint"],
+                readiness_digest=duplicate["readiness_digest"],
                 execution_receipt=execution,
             )
             self.assertEqual("hit", preflight.duplicate_plan(root)["duplicates"][0]["status"])

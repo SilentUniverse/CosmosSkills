@@ -8,10 +8,14 @@ argument-hint: "Issue path, feature slug, -p, --full, --log, or nothing to drain
 
 ## Invocation
 
-- `/tdd <issue-path>` — run that one issue. Read its frontmatter `status:` first (per [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd)) and obey the guard. One slice, fully visible. Prefer `python <skills-root>/workflow-state.py packet <repo-root> <feat> <slug>` (`python3` only when `python` is absent): its compact JSON contains the parent, objective, AC, verification, dependencies, context pointers, declared paths, contract digest, and resolved v3 verifier, while omitting Comments/history.
+- `/tdd <issue-path>` — run that one issue. Read its frontmatter `status:` first (per [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd)) and obey the guard. One slice, fully visible. Prefer `python <skills-root>/workflow-state.py packet <repo-root> <feat> <slug>` (`python3` only when `python` is absent); a wave uses `packets <repo-root> <feat> <slug>...` once per feature. Its compact JSON contains the execution contract/mode, parent, objective, AC, verification, `blocked_by`, context pointers, declared paths/resources, status-independent contract digest, and resolved v3 verifier, while omitting Comments/history.
+- A caller-supplied packet is the issue input after the frontmatter status guard; a wave packet also
+  carries the verified dispatch wave/baseline binding and, when present, only the newest compact
+  retry attempt from Comments. Do not generate it
+  again. If its source/status/hash is observed stale, pause writes and return one attention event.
 - `/tdd` (bare) — **drain (serial)**: every `ready` issue across `.scratch/`, one at a time, dependency order, to completion. The dumb-but-legible batch path: no worktrees; watch each one in this session.
 - `/tdd <feat>` — drain scoped to one feature's `issues/` directory.
-- `/tdd -p [<feat>]` — **drain (parallel)**: ready issues fan out to subagents (one per issue, ≤4 in flight); each issue's verbose output stays isolated, independent slices finish in parallel. Wave rules: declared collisions serialize, undeclared issues run alone. Worktree only on explicit request, and runner-driven session rotation: [DRAIN.md](DRAIN.md).
+- `/tdd -p [<feat>]` — **drain (parallel)**: up to four concurrent issues including the main agent's. The main agent normally owns the highest-priority issue, delegates the rest, and supervises the wave. Delegated output stays isolated while the critical slice remains visible. Declared collisions serialize; undeclared issues run alone. Worktree only on explicit request, and runner-driven session rotation: [DRAIN.md](DRAIN.md).
 - `/tdd --full` — run build + the whole suite now (§5); combines with any form above.
 - `/tdd --log` — the verdict is a command's log file, not test runs: [LOG.md](LOG.md). Same mode when the user says this run drives a device and the result lands in a log file. Combines with any form above.
 - No issue path: for one settled local behavior, keep outcome, constraints, and evidence inline
@@ -20,7 +24,7 @@ argument-hint: "Issue path, feature slug, -p, --full, --log, or nothing to drain
 
 ### Drain mode
 
-Enumerate `ready` issues, topologically sort on `blocked_by`, run the batch through the autonomous loop (§Workflow), close with one full suite + build. Two paths: **serial** (default: one issue returned by each driver step) and **parallel** (`-p`: subagent waves). The issue packet, code, receipts, and rolling handoff carry durable context; keep conversation summaries out of subsequent issue briefs. Full algorithm, subagent brief, edit-in-place-vs-worktree call: **[DRAIN.md](DRAIN.md)**.
+Enumerate `ready` issues, topologically sort on `blocked_by`, run the batch through the autonomous loop (§Workflow), close with one full suite + build. Two paths: **serial** (default: one issue returned by each driver step) and **parallel** (`-p`: worker waves). Issue packets and receipts carry execution context; a boundary-only rolling handoff points to durable cards/ledger without copying their contents. Keep conversation summaries out of subsequent issue briefs. Full algorithm, worker brief, edit-in-place-vs-worktree call: **[DRAIN.md](DRAIN.md)**.
 
 ### Status guard (issue-driven invocation)
 

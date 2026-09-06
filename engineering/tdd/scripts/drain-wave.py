@@ -2,16 +2,15 @@
 # Wave arithmetic + dispatch ledger for /tdd -p drain (DRAIN.md step 1-3).
 # Stdlib only. The model orchestrates; this script owns the wave-state mutation
 # line: compute the wave, record the dispatch intent (with wave baseline) before
-# any subagent starts, close dispatched issues on collect, and audit test-file
+# any worker starts, commit a fully reconciled wave on collect, and audit test-file
 # ownership at close. Durability rule: an issue is schedulable only through this
-# script; a dispatched issue with no ledger closure and no done status is a
-# zombie (exit 3) — resolve by adopt-or-revert before scheduling anything.
+# script; any live dispatched issue without ledger closure is a zombie (exit 3),
+# even when done on disk. Reconcile it before scheduling anything.
 #
-#   drain-wave.py next <repo-root> [<feat>]     propose the next wave (read-only
-#                                               except zombie auto-close of done slugs)
+#   drain-wave.py next <repo-root> [<feat>]     propose the next wave (read-only)
 #   drain-wave.py dispatch <repo-root> <slug>...                record intent + baseline
 #   drain-wave.py collect <repo-root> <slug>=<result>[,<slug>=<result>...]
-#                                               result: green|red|blocked|conflict|aborted
+#                         result: green|red|blocked|aborted|conflict@evidence.json
 #   drain-wave.py audit <repo-root> [<feat>]    test files no issue claims
 #   drain-wave.py dismiss-conflict <repo-root> <feat> <slug> <evidence.json>
 #   drain-wave.py selftest                       gate the gate: parse substrate +
@@ -36,7 +35,7 @@ from pathlib import Path
 ENGINEERING_ROOT = Path(__file__).resolve().parents[2]
 if str(ENGINEERING_ROOT) not in sys.path:
     sys.path.insert(0, str(ENGINEERING_ROOT))
-from workflow_contract import validate_v3_completion
+from workflow_contract import issue_contract_digest, validate_v3_completion
 
 RESULTS = ("green", "red", "blocked", "conflict", "aborted")
 MAX_IN_FLIGHT = 4
@@ -261,7 +260,9 @@ def load_ledger(root, feat):
         print("drain-wave: %s unreadable - fix or delete it before continuing" % p, file=sys.stderr)
         sys.exit(1)
     data.setdefault("waves", [])
-    baselines = data.setdefault("baselines", {})
+    baselines = data.get("baselines", {})
+    if not isinstance(baselines, dict):
+        baselines = {}
     for wave in data["waves"]:
         if "baseline" not in wave:
             continue
@@ -269,6 +270,10 @@ def load_ledger(root, feat):
         digest = hashlib.sha256(snapshot.encode("utf-8")).hexdigest()
         baselines.setdefault(digest, snapshot)
         wave["baseline_sha256"] = digest
+    if baselines:
+        data["baselines"] = baselines
+    else:
+        data.pop("baselines", None)
     return data
 
 
@@ -291,21 +296,119 @@ def contract_sha256(path):
     return hashlib.sha256(contract.encode("utf-8")).hexdigest()
 
 
-def active_conflicts(root, issues):
+def dispatch_contract_sha256(path):
+    with open(path, "r", encoding="utf-8-sig") as stream:
+        return issue_contract_digest(stream.read())
+
+
+def load_conflict_evidence(root, feat, slug, issue_path, reference):
+    """Validate one durable conflict report and return its ledger pointer."""
+    if not reference:
+        raise ValueError("conflict requires conflict evidence: <slug>=conflict@<receipt.json>")
+    base = Path(root).resolve()
+    path = (base / reference).resolve()
+    receipts = (base / ".scratch" / feat / "receipts").resolve()
+    try:
+        path.relative_to(receipts)
+    except ValueError as exc:
+        raise ValueError("conflict evidence must stay under .scratch/%s/receipts" % feat) from exc
+    raw = path.read_bytes()
+    try:
+        payload = json.loads(raw.decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError("conflict evidence is not valid JSON: %s" % exc) from exc
+    if (
+        not isinstance(payload, dict)
+        or type(payload.get("schema_version")) is not int
+        or payload.get("schema_version") != 1
+    ):
+        raise ValueError("conflict evidence needs schema_version 1")
+    expected = {
+        "feature": feat,
+        "slug": slug,
+        "contract_sha256": contract_sha256(issue_path),
+    }
+    for key, value in expected.items():
+        if payload.get(key) != value:
+            raise ValueError("conflict evidence %s does not match %s" % (key, value))
+    for key in ("command", "observed", "contract_clause", "evidence"):
+        if not isinstance(payload.get(key), str) or not payload[key].strip():
+            raise ValueError("conflict evidence requires non-empty %s" % key)
+    return {
+        "path": path.relative_to(base).as_posix(),
+        "sha256": hashlib.sha256(raw).hexdigest(),
+    }
+
+
+def recorded_conflict_digest(root, feat, slug, wave):
+    """Read the contract digest from its evidence owner; accept old expanded ledgers."""
+    reference = wave.get("conflict_evidence", {}).get(slug)
+    if reference is None:
+        return wave.get("conflict_contract_sha256", {}).get(slug)
+    if not isinstance(reference, dict):
+        return None
+    try:
+        base = Path(root).resolve()
+        path = (base / str(reference.get("path", ""))).resolve()
+        path.relative_to((base / ".scratch" / feat / "receipts").resolve())
+        raw = path.read_bytes()
+        if reference.get("sha256") != hashlib.sha256(raw).hexdigest():
+            return None
+        payload = json.loads(raw.decode("utf-8"))
+    except (OSError, UnicodeError, ValueError, json.JSONDecodeError):
+        return None
+    if (
+        not isinstance(payload, dict)
+        or type(payload.get("schema_version")) is not int
+        or payload.get("schema_version") != 1
+        or payload.get("feature") != feat
+        or payload.get("slug") != slug
+    ):
+        return None
+    digest = payload.get("contract_sha256")
+    if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+        return None
+    legacy = wave.get("conflict_contract_sha256", {}).get(slug)
+    return digest if legacy in (None, digest) else None
+
+
+def active_conflicts(root):
     """Closed conflict results whose issue has not changed since collection."""
     active = {}
-    for feat in sorted({value[0] for value in issues.values()}):
+    scratch = os.path.join(root, ".scratch")
+    features = []
+    if os.path.isdir(scratch):
+        features = [
+            name for name in sorted(os.listdir(scratch))
+            if os.path.isfile(os.path.join(scratch, name, "wave-ledger.json"))
+        ]
+    for feat in features:
         data = load_ledger(root, feat)
-        for wave in data["waves"]:
-            digests = wave.get("conflict_contract_sha256", {})
+        for index, wave in enumerate(data["waves"]):
             for slug, result in wave.get("closed", {}).items():
-                if result != "conflict" or slug not in issues:
+                if result != "conflict":
                     continue
-                issue_feat, path, fm = issues[slug]
-                if issue_feat != feat or fm.get("status") != "ready":
+                recorded = recorded_conflict_digest(root, feat, slug, wave)
+                realigned_retry = recorded and any(
+                    slug in later.get("dispatched", [])
+                    and isinstance(later.get("contracts"), dict)
+                    and isinstance(later["contracts"].get(slug), str)
+                    and later["contracts"][slug] != recorded
+                    for later in data["waves"][index + 1:]
+                )
+                if realigned_retry:
                     continue
-                recorded = digests.get(slug)
-                if not recorded or contract_sha256(path) == recorded:
+                path = os.path.join(root, ".scratch", feat, "issues", slug + ".md")
+                if not os.path.isfile(path):
+                    active[(feat, slug)] = wave.get("wave", "?")
+                    continue
+                fm = get_frontmatter(path)
+                if (
+                    fm is None
+                    or fm.get("status") != "ready"
+                    or not recorded
+                    or contract_sha256(path) == recorded
+                ):
                     active[(feat, slug)] = wave.get("wave", "?")
     return [(feat, wave, slug) for (feat, slug), wave in sorted(active.items())]
 
@@ -348,10 +451,12 @@ def cmd_dismiss_conflict(root, feat, slug, evidence):
         data = load_ledger(root, feat)
         if open_waves(data):
             raise ValueError("collect unfinished waves before dismissing a conflict")
-        matches = [w for w in data["waves"]
-                   if w.get("wave") == review["wave"]
-                   and w.get("closed", {}).get(slug) == "conflict"
-                   and w.get("conflict_contract_sha256", {}).get(slug) == digest]
+        matches = [
+            w for w in data["waves"]
+            if w.get("wave") == review["wave"]
+            and w.get("closed", {}).get(slug) == "conflict"
+            and recorded_conflict_digest(root, feat, slug, w) == digest
+        ]
         if len(matches) != 1:
             raise ValueError("review must match one recorded unchanged conflict")
     except (OSError, ValueError) as exc:
@@ -359,9 +464,8 @@ def cmd_dismiss_conflict(root, feat, slug, evidence):
         return 1
     target = matches[0]
     target.setdefault("conflict_dismissals", {})[slug] = {
-        **review,
-        "evidence_path": evidence_path.relative_to(base).as_posix(),
-        "evidence_sha256": hashlib.sha256(raw).hexdigest(),
+        "path": evidence_path.relative_to(base).as_posix(),
+        "sha256": hashlib.sha256(raw).hexdigest(),
         "dismissed_at": now_iso(),
     }
     target["closed"][slug] = "red"
@@ -370,17 +474,160 @@ def cmd_dismiss_conflict(root, feat, slug, evidence):
     return 0
 
 
-def git_baseline(root):
-    try:
-        out = subprocess.run(
-            ["git", "status", "--porcelain"],
-            cwd=root, capture_output=True, text=True, encoding="utf-8", errors="replace",
+def file_sha256(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as stream:
+        for block in iter(lambda: stream.read(65536), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def filesystem_baseline(root, issues, slugs):
+    """Content identity for declared paths when Git is unavailable or not configured."""
+    base = Path(root).resolve()
+    declared_paths = sorted(
+        {
+            str(value).replace("\\", "/")
+            for slug in slugs
+            for value in issues_touch(issues, slug) + issues_tests(issues, slug)
+            if str(value).strip()
+        }
+    )
+    if not declared_paths:
+        # An undeclared card is serialized, but still needs a useful crash/ownership baseline.
+        declared_paths = ["."]
+    files = {}
+    missing = []
+    for declared_path in declared_paths:
+        candidate = (base / declared_path).resolve()
+        try:
+            candidate.relative_to(base)
+        except ValueError as exc:
+            raise ValueError("declared baseline path escapes repo: %s" % declared_path) from exc
+        if candidate.is_file():
+            files[candidate.relative_to(base).as_posix()] = file_sha256(candidate)
+        elif candidate.is_dir():
+            for parent, dirs, names in os.walk(candidate):
+                dirs[:] = sorted(name for name in dirs if name not in SKIP_DIRS)
+                for name in sorted(names):
+                    path = Path(parent) / name
+                    if path.is_file():
+                        files[path.relative_to(base).as_posix()] = file_sha256(path)
+        else:
+            missing.append(declared_path)
+    return {
+        "schema_version": 2,
+        "kind": "filesystem",
+        "files": files,
+        "missing": missing,
+    }
+
+
+def workspace_baseline(root, issues, slugs):
+    """Capture compact content identity for the dispatch workspace."""
+
+    def run_git(arguments):
+        return subprocess.run(
+            ["git"] + arguments,
+            cwd=root,
+            capture_output=True,
         )
-        if out.returncode != 0:
-            return "(git status failed: %s)" % out.stderr.strip()[:200]
-        return out.stdout.rstrip("\n")
-    except OSError as e:
-        return "(git unavailable: %s)" % e
+
+    try:
+        inside = run_git(["rev-parse", "--is-inside-work-tree"])
+    except OSError:
+        return filesystem_baseline(root, issues, slugs)
+    if inside.returncode != 0 or inside.stdout.strip() != b"true":
+        return filesystem_baseline(root, issues, slugs)
+    head = run_git(["rev-parse", "--verify", "HEAD"])
+    head_value = head.stdout.decode("ascii", errors="replace").strip() if head.returncode == 0 else "unborn"
+    pathspec = [".", ":(exclude).scratch", ":(exclude).scratch/**"]
+    index_args = ["diff", "--cached", "--binary", "--no-ext-diff"]
+    if head_value != "unborn":
+        index_args.append("HEAD")
+    index_args.extend(["--"] + pathspec)
+    index_diff = run_git(index_args)
+    worktree_diff = run_git(
+        ["diff", "--binary", "--no-ext-diff", "--"] + pathspec
+    )
+    status = run_git(
+        ["status", "--porcelain=v1", "-z", "--untracked-files=all", "--"] + pathspec
+    )
+    failed = [
+        (name, result)
+        for name, result in (
+            ("index diff", index_diff),
+            ("worktree diff", worktree_diff),
+            ("status", status),
+        )
+        if result.returncode != 0
+    ]
+    if failed:
+        name, result = failed[0]
+        message = result.stderr.decode("utf-8", errors="replace").strip()[:200]
+        raise ValueError("git %s failed: %s" % (name, message))
+    dirty_names = set()
+    records = status.stdout.split(b"\0")
+    index = 0
+    while index < len(records) and records[index]:
+        record = records[index]
+        if len(record) < 4 or record[2:3] != b" ":
+            raise ValueError("git status returned an invalid porcelain record")
+        state = record[:2]
+        dirty_names.add(record[3:])
+        if b"R" in state or b"C" in state:
+            index += 1
+            if index >= len(records) or not records[index]:
+                raise ValueError("git status returned an incomplete rename/copy record")
+            dirty_names.add(records[index])
+        index += 1
+
+    dirty_paths = {}
+    base = Path(root).resolve()
+    for encoded in sorted(dirty_names):
+        value = os.fsdecode(encoded)
+        relative_path = Path(value)
+        if relative_path.is_absolute() or ".." in relative_path.parts:
+            raise ValueError("git reported a dirty path outside repo: %s" % value)
+        relative = relative_path.as_posix()
+        path = base / relative_path
+        if path.is_symlink():
+            target = os.readlink(path)
+            dirty_paths[relative] = "symlink:" + hashlib.sha256(
+                os.fsencode(target)
+            ).hexdigest()
+        elif path.is_file():
+            dirty_paths[relative] = file_sha256(path)
+        elif path.exists():
+            dirty_paths[relative] = "directory"
+        else:
+            dirty_paths[relative] = "missing"
+    return {
+        "schema_version": 2,
+        "kind": "git",
+        "head": head_value,
+        "index_diff_sha256": hashlib.sha256(index_diff.stdout).hexdigest(),
+        "worktree_diff_sha256": hashlib.sha256(worktree_diff.stdout).hexdigest(),
+        "dirty_paths": dirty_paths,
+    }
+
+
+def store_baseline(root, baseline):
+    raw = (
+        json.dumps(baseline, ensure_ascii=True, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
+    digest = hashlib.sha256(raw).hexdigest()
+    directory = Path(root) / ".scratch" / "wave-baselines"
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / (digest + ".json")
+    if path.is_file():
+        if path.read_bytes() != raw:
+            raise ValueError("baseline digest collision at %s" % path)
+        return digest
+    temporary = path.with_name(path.name + ".tmp.%d" % os.getpid())
+    temporary.write_bytes(raw)
+    os.replace(temporary, path)
+    return digest
 
 
 def issues_touch(issues, slug):
@@ -389,6 +636,10 @@ def issues_touch(issues, slug):
 
 def issues_tests(issues, slug):
     return as_list(issues[slug][2].get("test_paths"))
+
+
+def issues_resources(issues, slug):
+    return as_list(issues[slug][2].get("exclusive_resources"))
 
 
 def declared(fm):
@@ -400,19 +651,23 @@ def collides(issues, a, b):
         for y in issues_touch(issues, b):
             if path_overlap(x, y):
                 return True
-    return bool(set(norm_path(p) for p in issues_tests(issues, a))
-                & set(norm_path(p) for p in issues_tests(issues, b)))
+    for x in issues_tests(issues, a):
+        for y in issues_tests(issues, b):
+            if path_overlap(x, y):
+                return True
+    return bool(
+        {str(value).strip().casefold() for value in issues_resources(issues, a) if str(value).strip()}
+        & {str(value).strip().casefold() for value in issues_resources(issues, b) if str(value).strip()}
+    )
 
 
 def open_waves(data):
     return [w for w in data["waves"] if set(w["dispatched"]) - set(w.get("closed", {}))]
 
 
-def settle_zombies(root, issues, archived_done=None):
-    archived_done = archived_done or set()
-    """Auto-close dispatched slugs that are done on disk (trust disk); report the rest."""
+def find_zombies(root):
+    """Return every dispatched assignment still awaiting the explicit wave commit."""
     zombies = []
-    auto = []
     scratch = os.path.join(root, ".scratch")
     feats = []
     if os.path.isdir(scratch):
@@ -422,29 +677,36 @@ def settle_zombies(root, issues, archived_done=None):
         ]
     for feat in feats:
         data = load_ledger(root, feat)
-        changed = False
         for w in open_waves(data):
             for slug in set(w["dispatched"]) - set(w.get("closed", {})):
-                live_done = slug in issues and issues[slug][2].get("status") == "done"
-                valid_done = live_done
-                if live_done and str(issues[slug][2].get("contract_version", "")) == "3":
-                    try:
-                        validate_v3_completion(Path(root), Path(issues[slug][1]))
-                    except (OSError, UnicodeError, ValueError):
-                        valid_done = False
-                if slug in archived_done or valid_done:
-                    w.setdefault("closed", {})[slug] = "green"
-                    changed = True
-                    auto.append("%s (auto-closed: done on disk)" % slug)
-                elif slug not in issues:
-                    w.setdefault("closed", {})[slug] = "aborted"
-                    changed = True
-                    auto.append("%s (auto-closed: issue file gone)" % slug)
-                else:
-                    zombies.append((feat, w["wave"], slug))
-        if changed:
-            save_ledger(root, feat, data)
-    return zombies, auto
+                zombies.append((feat, w["wave"], slug))
+    return zombies
+
+
+def chain_depths(issues):
+    """Slug -> longest chain of ready issues transitively blocked by it."""
+    ready = {s for s, (_, _, fm) in issues.items() if fm.get("status") == "ready"}
+    dependents = {s: [] for s in ready}
+    blockers = {s: [] for s in ready}
+    for dependent in ready:
+        for blocker in set(as_list(issues[dependent][2].get("blocked_by"))):
+            if blocker in ready:
+                dependents[blocker].append(dependent)
+                blockers[dependent].append(blocker)
+
+    # Reverse topological DP avoids Python's recursion limit. A cyclic region is
+    # not propagated upstream; verify-artifacts reports the cycle itself.
+    remaining = {s: len(dependents[s]) for s in ready}
+    depth = {s: 1 for s in ready}
+    leaves = [s for s in ready if remaining[s] == 0]
+    while leaves:
+        dependent = leaves.pop()
+        for blocker in blockers[dependent]:
+            depth[blocker] = max(depth[blocker], 1 + depth[dependent])
+            remaining[blocker] -= 1
+            if remaining[blocker] == 0:
+                leaves.append(blocker)
+    return depth
 
 
 def plan_waves(issues, archived_done):
@@ -461,6 +723,10 @@ def plan_waves(issues, archived_done):
             blocked.append((s, missing))
         else:
             eligible.append(s)
+    # With no duration estimates, prefer the issue unblocking the longest ready
+    # dependency chain so capacity and collision deferrals unlock work early.
+    depth = chain_depths(issues)
+    eligible.sort(key=lambda s: (-depth.get(s, 1), s))
     undeclared = [s for s in eligible if not declared(issues[s][2])]
     packable = [s for s in eligible if s not in undeclared]
     wave = []
@@ -473,7 +739,7 @@ def plan_waves(issues, archived_done):
     solo_now = None
     if not wave and undeclared:
         # no packable wave available - schedule one undeclared card alone (one per wave)
-        solo_now = sorted(undeclared)[0]
+        solo_now = undeclared[0]
         undeclared = [s for s in undeclared if s != solo_now]
     return {
         "done": done,
@@ -493,18 +759,16 @@ def cmd_next(root, feat):
     archived_done = load_archived_done(root, feat)
     if archived_done is None:
         return 1
-    zombies, auto = settle_zombies(root, issues, archived_done)
-    for line in auto:
-        print("ledger: %s" % line)
+    zombies = find_zombies(root)
     if zombies:
-        print("drain-wave: %d zombie(s) - dispatched but neither done nor closed:" % len(zombies))
+        print("drain-wave: %d zombie(s) - dispatched but not collected:" % len(zombies))
         for f, w, slug in zombies:
             print("  %s (wave %d, ledger .scratch/%s/wave-ledger.json)" % (slug, w, f))
-        print("recovery: adopt the on-disk code and finish the slice, or revert this issue's")
-        print("edits to the wave baseline and leave it ready - then `collect` it. No new wave")
+        print("recovery: reconcile valid done evidence, finish the slice, or revert this issue's")
+        print("edits to the wave baseline and leave it ready - then collect the whole wave. No new wave")
         print("until every zombie is closed (EDGE-CASES.md).")
         return 3
-    conflicts = active_conflicts(root, issues)
+    conflicts = active_conflicts(root)
     if conflicts:
         report_conflicts(conflicts)
         return 6
@@ -540,19 +804,18 @@ def cmd_step(root, feat, parallel=False):
     archived_done = load_archived_done(root, feat)
     if archived_done is None:
         return 1
-    zombies, auto = settle_zombies(root, issues, archived_done)
-    for line in auto:
-        print("ledger: %s" % line)
+    zombies = find_zombies(root)
     if zombies:
-        print("action: finish-or-revert, then collect")
+        print("action: finish-or-revert, reconcile, then collect the whole wave")
         for f, w, slug in zombies:
             print("zombie: %s (wave %d, ledger .scratch/%s/wave-ledger.json)" % (slug, w, f))
         print(
-            "run: drain-wave.py collect <repo-root> <slug>=<green|red|blocked|conflict|aborted>[,...]"
-            " - no new wave until every zombie closes (EDGE-CASES.md)"
+            "run: drain-wave.py collect <repo-root> "
+            "<slug>=<green|red|blocked|aborted|conflict@evidence.json>[,...]"
+            " - include every outstanding slug; no new wave until reconciliation (EDGE-CASES.md)"
         )
         return 3
-    conflicts = active_conflicts(root, issues)
+    conflicts = active_conflicts(root)
     if conflicts:
         report_conflicts(conflicts)
         return 6
@@ -578,64 +841,115 @@ def cmd_step(root, feat, parallel=False):
         return 0
     print("action: blocked - every ready issue is blocked or deferred")
     print("run: drain-wave.py next <repo-root> %s" % (feat or ""))
-    return 4
+    return 1
 
 
 def dispatch_receipt_hits(root, issues, slugs, ledgers):
-    """Gate duplicate P# tuples and persist exact issue-to-key assignments."""
+    """Gate duplicate P# tuples and persist each key once with its issue consumers."""
     api = preflight_api()
     root_path = Path(root)
-    current_keys = {}
-    rows = api.issue_preflight_rows(root_path)
+    current_rows = {}
+    rows = []
+    for feature in sorted({issues[slug][0] for slug in slugs}):
+        rows.extend(api.issue_preflight_rows(root_path, feature))
     for row in rows:
-        current_keys.setdefault(row["slug"], set()).add(row["key"])
+        current_rows.setdefault(row["slug"], {})[row["key"]] = row
     hits = {slug: [] for slug in slugs}
+
+    grouped_rows = {}
+    for row in rows:
+        grouped_rows.setdefault((row["feature"], row["key"]), []).append(row)
+    relevant_keys = {
+        identity
+        for identity, group in grouped_rows.items()
+        if len({row["issue"] for row in group}) >= 2
+        and any(row["slug"] in slugs for row in group)
+    }
+    plan = api.duplicate_plan(
+        root_path,
+        rows=[
+            row for row in rows
+            if (row["feature"], row["key"]) in relevant_keys
+        ],
+    )
+    planned = {
+        (duplicate["feature"], duplicate["key"]): duplicate
+        for duplicate in plan["duplicates"]
+    }
+
+    # Tuple fields belong to the card/profile and preflight cache. Normalize both
+    # legacy issue->expanded/key maps and current key->consumers maps from live cards.
+    for data in ledgers.values():
+        consumers = {}
+        stored_consumers = data.pop("preflight_consumers", {})
+        if not isinstance(stored_consumers, dict):
+            stored_consumers = {}
+        for key, assigned_slugs in stored_consumers.items():
+            if not isinstance(assigned_slugs, list):
+                continue
+            for slug in assigned_slugs:
+                if isinstance(slug, str) and key in current_rows.get(slug, {}):
+                    consumers.setdefault(key, set()).add(slug)
+        legacy_assignments = data.pop("preflight_assignments", {})
+        if not isinstance(legacy_assignments, dict):
+            legacy_assignments = {}
+        for slug, assignments in legacy_assignments.items():
+            if not isinstance(assignments, list):
+                continue
+            for assignment in assignments:
+                key = (
+                    assignment
+                    if isinstance(assignment, str)
+                    else assignment.get("key") if isinstance(assignment, dict) else None
+                )
+                if key in current_rows.get(slug, {}):
+                    consumers.setdefault(key, set()).add(slug)
+        if consumers:
+            data["preflight_consumers"] = {
+                key: sorted(assigned_slugs)
+                for key, assigned_slugs in sorted(consumers.items())
+            }
 
     # A previous wave can assign the same hit to an issue serialized into a later wave.
     # Accept it only while the issue still names that exact tuple and the receipt checks.
     for slug in slugs:
         feat = issues[slug][0]
-        assignments = ledgers[feat].get("preflight_assignments", {}).get(slug, [])
-        for assignment in assignments:
-            if assignment.get("key") not in current_keys.get(slug, set()):
+        consumers = ledgers[feat].get("preflight_consumers", {})
+        for key, assigned_slugs in consumers.items():
+            if slug not in assigned_slugs:
                 continue
-            entry = api.check(
-                root_path / assignment.get("receipt", ""),
-                cwd=assignment.get("cwd", ""),
-                action=assignment.get("action", ""),
-                fingerprint=assignment.get("fingerprint", ""),
-                verifier_digest=assignment.get("verifier_digest", ""),
-            )
-            if entry is not None:
-                hits[slug].append(assignment["key"])
+            row = current_rows.get(slug, {}).get(key)
+            if row is None:
+                continue
+            duplicate = planned.get((feat, key))
+            valid = duplicate is not None and duplicate["status"] == "hit"
+            if duplicate is None:
+                valid = api.check(
+                    root_path / row["receipt"],
+                    cwd=row["cwd"],
+                    action=row["action"],
+                    fingerprint=row["fingerprint"],
+                    verifier_digest=row.get("verifier_digest", ""),
+                    readiness_digest=row.get("readiness_digest", ""),
+                ) is not None
+            if valid:
+                hits[slug].append(key)
 
-    plan = api.duplicate_plan(root_path, rows=rows)
-    relevant = [
-        duplicate
-        for duplicate in plan["duplicates"]
-        if any(Path(issue_path).stem in slugs for issue_path in duplicate["issues"])
-    ]
+    relevant = plan["duplicates"]
     misses = [duplicate for duplicate in relevant if duplicate["status"] != "hit"]
     if misses:
         return None, misses
 
     for duplicate in relevant:
-        assignment = {
-            key: duplicate[key]
-            for key in (
-                "key", "cwd", "action", "declared_action", "fingerprint",
-                "verifier_digest", "receipt",
-            )
-        }
         feat = duplicate["feature"]
-        by_issue = ledgers[feat].setdefault("preflight_assignments", {})
+        consumers = ledgers[feat].setdefault("preflight_consumers", {})
+        assigned_slugs = set(consumers.get(duplicate["key"], []))
         for issue_path in duplicate["issues"]:
             slug = Path(issue_path).stem
-            saved = by_issue.setdefault(slug, [])
-            saved[:] = [item for item in saved if item.get("key") != duplicate["key"]]
-            saved.append(dict(assignment))
+            assigned_slugs.add(slug)
             if slug in hits:
                 hits[slug].append(duplicate["key"])
+        consumers[duplicate["key"]] = sorted(assigned_slugs)
     return {slug: sorted(set(keys)) for slug, keys in hits.items() if keys}, []
 
 
@@ -649,6 +963,13 @@ def cmd_dispatch(root, slugs):
     if not slugs:
         print("drain-wave: dispatch needs at least one slug", file=sys.stderr)
         return 2
+    duplicates = sorted({slug for slug in slugs if slugs.count(slug) > 1})
+    if duplicates:
+        print(
+            "drain-wave: duplicate dispatch slug(s): %s" % ", ".join(duplicates),
+            file=sys.stderr,
+        )
+        return 1
     if len(slugs) > MAX_IN_FLIGHT:
         print(
             "drain-wave: %d issues > cap %d - dispatch in batches of <=%d, each landing first"
@@ -675,24 +996,32 @@ def cmd_dispatch(root, slugs):
                 file=sys.stderr,
             )
             return 1
+    undeclared = [s for s in slugs if not declared(issues[s][2])]
+    if len(slugs) > 1 and undeclared:
+        print(
+            "drain-wave: explicit multi-card dispatch requires touches and test_paths; "
+            "run undeclared card(s) alone: %s" % ", ".join(sorted(undeclared)),
+            file=sys.stderr,
+        )
+        return 1
     for i, a in enumerate(slugs):
         for b in slugs[i + 1:]:
             if collides(issues, a, b):
                 print(
-                    "drain-wave: %s and %s declare overlapping touches/test_paths -"
+                    "drain-wave: %s and %s declare overlapping touches/test_paths/exclusive_resources -"
                     " serialize into successive waves" % (a, b),
                     file=sys.stderr,
                 )
                 return 1
-    zombies, auto = settle_zombies(root, issues, archived_done)
+    zombies = find_zombies(root)
     if zombies:
         print(
-            "drain-wave: open wave with unresolved issue(s) - collect them first;"
+            "drain-wave: open wave with unresolved issue(s) - reconcile and collect it first;"
             " if the run crashed, `next` prints the recovery contract",
             file=sys.stderr,
         )
         return 3
-    conflicts = active_conflicts(root, issues)
+    conflicts = active_conflicts(root)
     if conflicts:
         report_conflicts(conflicts)
         return 6
@@ -703,7 +1032,7 @@ def cmd_dispatch(root, slugs):
             if os.path.isfile(os.path.join(scratch, n, "wave-ledger.json")):
                 if open_waves(load_ledger(root, n)):
                     print(
-                        "drain-wave: feature '%s' still has an open wave - collect it first" % n,
+                        "drain-wave: feature '%s' still has an open wave - reconcile and collect it first" % n,
                         file=sys.stderr,
                     )
                     return 1
@@ -729,7 +1058,12 @@ def cmd_dispatch(root, slugs):
         )
         print(
             "preflight-required: %s"
-            % json.dumps({"duplicates": misses}, ensure_ascii=False, sort_keys=True),
+            % json.dumps(
+                {"duplicates": misses},
+                ensure_ascii=False,
+                separators=(",", ":"),
+                sort_keys=True,
+            ),
             file=sys.stderr,
         )
         print(
@@ -738,32 +1072,38 @@ def cmd_dispatch(root, slugs):
             file=sys.stderr,
         )
         return 5
-    baseline = git_baseline(root)
-    baseline_sha256 = hashlib.sha256(baseline.encode("utf-8")).hexdigest()
+    try:
+        baseline_sha256 = store_baseline(root, workspace_baseline(root, issues, slugs))
+    except (OSError, ValueError) as exc:
+        print("drain-wave: cannot capture reliable wave baseline: %s" % exc, file=sys.stderr)
+        return 1
     for feat, group in sorted(by_feat.items()):
         data = ledgers[feat]
-        data.setdefault("baselines", {}).setdefault(baseline_sha256, baseline)
         num = max((w["wave"] for w in data["waves"]), default=0) + 1
-        group_hits = {
-            slug: receipt_hits[slug]
-            for slug in sorted(group)
-            if slug in receipt_hits
-        }
         data["waves"].append(
             {
                 "wave": num,
                 "at": now_iso(),
                 "dispatched": sorted(group),
                 "baseline_sha256": baseline_sha256,
-                "receipt_hits": group_hits,
+                "contracts": {
+                    slug: dispatch_contract_sha256(issues[slug][1])
+                    for slug in sorted(group)
+                },
                 "closed": {},
             }
         )
         save_ledger(root, feat, data)
         print("drain-wave: wave %d dispatched (%s) -> .scratch/%s/wave-ledger.json" % (num, ", ".join(sorted(group)), feat))
-        for slug in sorted(group_hits):
-            for key in group_hits[slug]:
-                print("brief: %s receipt-hit:%s" % (slug, key))
+    if receipt_hits:
+        briefs = {}
+        for slug, keys in sorted(receipt_hits.items()):
+            for key in keys:
+                briefs.setdefault("receipt-hit:%s" % key, []).append(slug)
+        print(
+            "briefs: %s"
+            % json.dumps(briefs, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+        )
     print("baseline recorded; execution may start")
     return 0
 
@@ -772,12 +1112,23 @@ def cmd_collect(root, pairs):
     issues = load_issues(root, None)
     if issues is None:
         return 1
-    plan = []  # (feat, slug, result); validation first, then one write pass
+    plan = []  # (feat, slug, result, conflict evidence); validate, then one write pass
+    seen = set()
     for pair in pairs:
         if "=" not in pair:
             print("drain-wave: bad pair '%s' (want slug=result)" % pair, file=sys.stderr)
             return 2
-        slug, result = pair.split("=", 1)
+        slug, reported = pair.split("=", 1)
+        if slug in seen:
+            print("drain-wave: duplicate collect slug '%s'" % slug, file=sys.stderr)
+            return 1
+        seen.add(slug)
+        conflict_reference = ""
+        if reported.startswith("conflict@"):
+            result = "conflict"
+            conflict_reference = reported[len("conflict@"):]
+        else:
+            result = reported
         if result not in RESULTS:
             print("drain-wave: result '%s' not in %s" % (result, "|".join(RESULTS)), file=sys.stderr)
             return 2
@@ -808,10 +1159,23 @@ def cmd_collect(root, pairs):
                     file=sys.stderr,
                 )
                 return 1
-        plan.append((issues[slug][0], slug, result))
+        conflict_evidence = None
+        if result == "conflict":
+            try:
+                conflict_evidence = load_conflict_evidence(
+                    root,
+                    issues[slug][0],
+                    slug,
+                    issues[slug][1],
+                    conflict_reference,
+                )
+            except (OSError, ValueError) as exc:
+                print("drain-wave: %s" % exc, file=sys.stderr)
+                return 1
+        plan.append((issues[slug][0], slug, result, conflict_evidence))
     ledgers = {}
     hits = {}
-    for feat, slug, result in plan:
+    for feat, slug, result, _ in plan:
         data = ledgers.setdefault(feat, load_ledger(root, feat))
         hit = None
         for w in reversed(open_waves(data)):
@@ -824,22 +1188,42 @@ def cmd_collect(root, pairs):
                 file=sys.stderr,
             )
             return 1
+        if slug in hit.get("closed", {}):
+            print("drain-wave: %s was already collected in its open wave" % slug, file=sys.stderr)
+            return 1
         hits[slug] = hit
+    outstanding = set()
+    scratch = os.path.join(root, ".scratch")
+    if os.path.isdir(scratch):
+        for feature in sorted(os.listdir(scratch)):
+            if not os.path.isfile(os.path.join(scratch, feature, "wave-ledger.json")):
+                continue
+            data = ledgers.get(feature) or load_ledger(root, feature)
+            for open_wave in open_waves(data):
+                outstanding.update(
+                    set(open_wave["dispatched"]) - set(open_wave.get("closed", {}))
+                )
+    missing = sorted(outstanding - set(hits))
+    if missing:
+        print(
+            "drain-wave: collect the remaining wave results together; missing: %s"
+            % ", ".join(missing),
+            file=sys.stderr,
+        )
+        return 1
     for feat, data in sorted(ledgers.items()):
         touched = set()
-        for f, slug, result in plan:
+        for f, slug, result, conflict_evidence in plan:
             if f == feat:
                 hits[slug].setdefault("closed", {})[slug] = result
                 if result == "conflict":
-                    hits[slug].setdefault("conflict_contract_sha256", {})[slug] = contract_sha256(
-                        issues[slug][1]
-                    )
+                    hits[slug].setdefault("conflict_evidence", {})[slug] = conflict_evidence
                 touched.add(id(hits[slug]))
         for w in data["waves"]:
             if id(w) in touched and not (set(w["dispatched"]) - set(w.get("closed", {}))):
                 w["closed_at"] = now_iso()
         save_ledger(root, feat, data)
-        names = ", ".join(slug for f, slug, _ in plan if f == feat)
+        names = ", ".join(slug for f, slug, _, _ in plan if f == feat)
         print("drain-wave: collected %s -> .scratch/%s/wave-ledger.json" % (names, feat))
     return 0
 
@@ -955,35 +1339,107 @@ def cmd_selftest():
             raw = f.read()
         with open(done, "w", encoding="utf-8", newline="\n") as f:
             f.write(raw.replace("status: ready", "status: done"))
-        check("collect: green accepted once done", run_silent(cmd_collect, root, [slugs[0] + "=green"]) == 0)
+        check("collect: partial wave refused", run_silent(cmd_collect, root, [slugs[0] + "=green"]) == 1)
         check("collect: red refused once done", run_silent(cmd_collect, root, [slugs[0] + "=red"]) == 1)
         check("collect: bad result refused", run_silent(cmd_collect, root, [slugs[1] + "=pink"]) == 2)
-        led = load_ledger(root, "sf")["waves"][-1]
-        check("collect: ledger records green", led.get("closed", {}).get(slugs[0]) == "green")
         done2 = os.path.join(i_dir, slugs[1] + ".md")
         with open(done2, "r", encoding="utf-8") as f:
             raw2 = f.read()
         with open(done2, "w", encoding="utf-8", newline="\n") as f:
             f.write(raw2.replace("status: ready", "status: done"))
         check(
-            "zombie: done-on-disk auto-closes",
+            "zombie: done-on-disk still needs reconciliation",
             run_silent(cmd_next, root, "sf") == 3
-            and load_ledger(root, "sf")["waves"][-1]["closed"].get(slugs[1]) == "green",
+            and load_ledger(root, "sf")["waves"][-1]["closed"] == {},
+        )
+        conflict_path = Path(root) / ".scratch" / "sf" / "receipts" / "conflict.json"
+        conflict_path.parent.mkdir(parents=True)
+        conflict_issue = Path(i_dir) / (slugs[2] + ".md")
+        conflict_path.write_text(
+            json.dumps({
+                "schema_version": 1,
+                "feature": "sf",
+                "slug": slugs[2],
+                "contract_sha256": contract_sha256(conflict_issue),
+                "command": "selftest",
+                "observed": "exit 1",
+                "contract_clause": "AC #1",
+                "evidence": "selftest fixture",
+            }),
+            encoding="utf-8",
         )
         check(
-            "collect: conflict and ordinary red close the wave",
+            "collect: one reconciled batch closes the wave",
             run_silent(
                 cmd_collect,
                 root,
-                [slugs[2] + "=conflict", slugs[3] + "=red"],
+                [
+                    slugs[0] + "=green",
+                    slugs[1] + "=green",
+                    slugs[2] + "=conflict@" + conflict_path.relative_to(root).as_posix(),
+                    slugs[3] + "=red",
+                ],
             ) == 0,
         )
+        led = load_ledger(root, "sf")["waves"][-1]
+        check("collect: ledger records green", led.get("closed", {}).get(slugs[0]) == "green")
         check("next: unchanged conflict blocks the batch", run_silent(cmd_next, root, "sf") == 6)
         check("dispatch: unchanged conflict blocks bypass", run_silent(cmd_dispatch, root, ["05-p5"]) == 6)
         conflict_path = os.path.join(i_dir, slugs[2] + ".md")
         with open(conflict_path, "a", encoding="utf-8", newline="\n") as f:
             f.write("# realigned\n")
         check("next: changed issue releases conflict barrier", run_silent(cmd_next, root, "sf") == 0)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = os.path.abspath(tmp)
+        i_dir = os.path.join(root, ".scratch", "cp", "issues")
+        os.makedirs(i_dir)
+
+        def card(name, touches, test, blocked=""):
+            body = ["---", "status: ready"]
+            if blocked:
+                body.append("blocked_by: [%s]" % blocked)
+            body += ["touches: [%s]" % touches, "test_paths: [%s]" % test, "---", "# x"]
+            with open(os.path.join(i_dir, name), "w", encoding="utf-8", newline="\n") as f:
+                f.write("\n".join(body) + "\n")
+
+        # 01 collides with 02 on alpha/; 02 unblocks the 03 -> 04 chain.
+        card("01-solo.md", "alpha", "alpha/t1.spec.ts")
+        card("02-head.md", "alpha", "alpha/t2.spec.ts")
+        card("03-mid.md", "beta", "beta/t3.spec.ts", blocked="02-head")
+        card("04-leaf.md", "gamma", "gamma/t4.spec.ts", blocked="03-mid")
+        imap = load_issues(root, "cp")
+        depth = chain_depths(imap)
+        check(
+            "chain: depth counts ready dependents",
+            depth.get("02-head") == 3 and depth.get("01-solo") == 1,
+        )
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            code = cmd_next(root, "cp")
+        wave_lines = [l for l in buf.getvalue().splitlines() if l.startswith("wave: ")]
+        check(
+            "next: collision serializes longest dependency chain first",
+            code == 0 and bool(wave_lines)
+            and "02-head" in wave_lines[0] and "01-solo" not in wave_lines[0],
+        )
+        out = io.StringIO()
+        with redirect_stdout(out):
+            code = cmd_step(root, "cp", parallel=False)
+        check(
+            "step: serial mode also takes the chain head",
+            code == 0 and "dispatch 02-head" in out.getvalue(),
+        )
+        undeclared = {
+            "01-leaf": ("cp", "", {"status": "ready"}),
+            "02-head": ("cp", "", {"status": "ready"}),
+            "03-mid": ("cp", "", {"status": "ready", "blocked_by": ["02-head"]}),
+            "04-tail": ("cp", "", {"status": "ready", "blocked_by": ["03-mid"]}),
+        }
+        check(
+            "chain: undeclared solo uses dependency priority",
+            plan_waves(undeclared, set())["solo_now"] == "02-head",
+        )
 
     if bad:
         print("drain-wave: selftest FAILED (%d check(s))" % len(bad))
@@ -1001,7 +1457,7 @@ def main(argv):
     usage = (
         "usage: drain-wave.py step <repo-root> [<feat>] [-p|--parallel] | next <repo-root> [<feat>] | "
         "dispatch <repo-root> <slug>... | "
-        "collect <repo-root> <slug>=<result>[,...] | audit <repo-root> [<feat>] | "
+        "collect <repo-root> <slug>=<result|conflict@evidence.json>[,...] | audit <repo-root> [<feat>] | "
         "dismiss-conflict <repo-root> <feat> <slug> <evidence.json> | selftest"
     )
     cmd = argv[1] if len(argv) >= 2 else None

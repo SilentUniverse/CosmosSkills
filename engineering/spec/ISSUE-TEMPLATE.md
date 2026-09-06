@@ -3,13 +3,13 @@
 Loaded on demand by [`/spec`](SKILL.md) when writing
 `.scratch/<feat>/issues/<NN>-<slug>.md`. Frontmatter follows [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd); the body uses the template below.
 
-Write issues in dependency order (blockers first) so you can reference real filenames in both the
-`blocked_by` frontmatter field and the `前置依赖` section.
+Write issues in dependency order (blockers first) so `blocked_by` can reference real filenames.
+`blocked_by` is the single dependency source; do not repeat it in a body section.
 
 <issue-template>
 
 ---
-# frontmatter per ARTIFACT-FORMAT.md — contract_version / verifier_schema (v3 schema 2 only) / type / feature / status / category / blocked_by / refines / touches / test_paths / created; add experience_review only for graphical UI
+# frontmatter per ARTIFACT-FORMAT.md — contract_version / verifier_schema (v3 schema 2 only) / type / feature / status / category / blocked_by / refines / touches / test_paths / exclusive_resources / created; add experience_review only for graphical UI
 # a fresh slice defaults to status: ready, category: enhancement
 ---
 
@@ -56,11 +56,13 @@ masquerade as proof. AI judgment is allowed only under
 
 ### contract_version: 3（精简形态）
 
-Multi-slice features with a schema-2 `verifier.json` use the lean form: `contract_version: 3` plus
+Two or more non-graphical cards sharing a schema-2 `verifier.json` use the lean form:
+`contract_version: 3` plus
 frontmatter `verifier_schema: 2`, and the
 per-card boilerplate moves into `.scratch/<feat>/verifier.json` (cwd、fingerprint、prerequisites、
-prepare、named commands — schema in [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md)). The card keeps
-seam, per-AC mapping, preflight evidence, and deviations only:
+prepare、named commands — schema in [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md)). Write the profile
+before its cards. Each card keeps only `profile: verifier.json`, seam, per-AC mapping, preflight
+evidence, and true deviations:
 
 ```markdown
 ## 验证设计（Verification Design）
@@ -90,11 +92,7 @@ does not cross it.
 
 - invariants: `CODEBASE.md` 的 `<area>` 不变量块（多块用顿号分隔）
 - adr: `<NNNN-slug>`（本区无 ADR 治理则省略本行）
-- neighbors: `<邻接模块/文件>`（无邻接则省略本行）
-
-## 前置依赖（Blocked by）
-
-- A reference to the blocking issue file (e.g. `01-init-schema.md`), or "无". Keep this in sync with the `blocked_by` frontmatter list.
+- neighbors: `<touches/test_paths 之外、确实需要读取的邻接模块/文件>`（无则省略；不重抄写集）
 
 ## Comments
 
@@ -102,7 +100,24 @@ does not cross it.
 
 </issue-template>
 
-**Frontmatter** — fill every ordinary field per the schema in [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd). New issues default to `contract_version: 2`; a card in a feature with a schema-2 `verifier.json` profile and without `experience_review` uses `3`, adds `verifier_schema: 2`, and records changed profile fingerprint keys or commands as 偏差 lines instead of falling back to v2 boilerplate. An additive edit upgrades a `ready` legacy issue after adding its fully executed 验证设计, while `done` stays immutable. The fields that drive this skill's output are `category`, `blocked_by`, and `refines`. Graphical UI alone adds `experience_review: runtime|graded`; every non-graphical issue omits it. `category` defaults to `enhancement`; `detail`/`redo`/`fix` mark later sub-behaviour / re-work and MUST also set `refines:`. `blocked_by` holds sibling slugs that must reach `done` first; `/tdd`'s drain mode topologically sorts on it. `refines` is the parent slug, set for non-top-level slices. Parallel-bound slices also declare `touches:` + `test_paths:` from the AC. `/tdd -p` reads them as its only collision signal and skips the drain-time guess. A slice that edits a repo-root shared surface (workspace manifest or root config) declares that file verbatim in `touches:` so the drain serializes on it. Dependency/lock preparation belongs to SPEC readiness; a behavior issue does not discover or install it.
+**Frontmatter** — fill every ordinary field per the schema in [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd).
+
+- Decide shared verifier ownership before creating cards. The largest group of two or more
+  non-graphical cards with the same verifier base uses the already-written schema-2 profile,
+  `contract_version: 3`, and `verifier_schema: 2`. Other groups use v2 because a feature has one
+  profile path. A v3 card records only real fingerprint/command deviations.
+- An additive edit upgrades a `ready` legacy issue only after executing its complete 验证设计.
+  `done` is immutable.
+- `category` defaults to `enhancement`. `detail`, `redo`, and `fix` require `refines:`; top-level
+  enhancements omit it.
+- `blocked_by` holds sibling slugs that must reach `done`; `/tdd` topologically sorts it. Do not
+  duplicate it in the body.
+- Graphical UI adds `experience_review: runtime|graded`; every non-graphical issue omits it.
+- Parallel-bound slices declare `touches:`, `test_paths:`, and any exclusive device, database,
+  build output, or runner as `exclusive_resources:`. `/tdd -p` serializes every shared path or
+  resource ID. Declare a repo-root manifest/config file verbatim in `touches:`.
+- Dependency/lock preparation belongs to SPEC readiness. A behavior issue does not discover or
+  install it.
 
 Never edit a `done` issue or the parent PRD. A `ready` issue may be edited in place by an
 additive re-run or a reconciliation.

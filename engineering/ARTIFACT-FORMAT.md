@@ -154,6 +154,9 @@ status: ready       # ready | done
 category: enhancement         # enhancement | detail | redo | fix
 blocked_by: [01-init-schema]  # list of sibling issue slugs; [] if none
 refines: 03-balance-api       # parent slice this elaborates; omit for top-level slices
+touches: [src/balance]
+test_paths: [tests/balance/test_api.py]
+exclusive_resources: [device:pixel-9] # omit when no exclusive runtime resource
 created: 2026-06-18           # ISO date
 ---
 
@@ -166,8 +169,9 @@ created: 2026-06-18           # ISO date
 
 Field rules:
 
-- **contract_version** — new issues use `2`, or `3` when the feature has a `verifier.json` profile
-  and the card carries no `experience_review`; changed profile fingerprint keys or commands go on
+- **contract_version** — before writing cards, `/spec` selects `3` when two or more non-graphical
+  cards share the feature's `verifier.json` base; standalone, non-sharing, and graphical cards use
+  `2`. Changed profile fingerprint keys or commands go on
   the card's 偏差 lines rather than back to v2 boilerplate. Version 2 makes `验证设计`, the
   execution-readiness fields, passed P# preflights, and every AC→evidence→P# mapping
   machine-required; a v2 `done`
@@ -199,7 +203,8 @@ Field rules:
 - **blocked_by** — list of slugs (filename without `.md`) that must reach `done` first.
   A slug may be a live sibling under `issues/` **or** a legacy `done` issue in `issues/archive/`.
   The gate validates both locations and `/tdd`'s drain mode topologically
-  sorts on this. `[]` (or omit) means no blocker.
+  sorts on this. `[]` (or omit) means no blocker. It is the only dependency field; new cards do not
+  repeat the list in a body section.
 - **refines** — slug of the parent slice this elaborates (live or legacy `issues/archive/`). Required
   for `detail`/`redo`/`fix`, omitted for top-level `enhancement` slices. Missing or ambiguous lineage
   returns to `/spec`; GC never guesses it.
@@ -217,9 +222,16 @@ Field rules:
   file is a sanctioned ownership correction on a `done` card; active-batch reopening follows `status` above. `--log`
   slices omit it: acceptance is a log predicate, not test files. The gate checks
   `### 完成` 新增测试 files against it only in legacy records that still carry that line. Optional.
+- **exclusive_resources** — exact stable IDs for runtime resources that cannot be shared safely
+  (`device:<id>`, `database:<name>`, `build-output:<path>`, or a project-specific equivalent).
+  `/tdd -p` serializes cards sharing an ID even when paths are disjoint. Omit when none; SPEC writes
+  the field from observed verifier/runtime requirements rather than guessing during dispatch.
 - **created** — ISO date, set once at creation, never changed.
 
-The body keeps the section headings from `/spec`'s issue template. `验证设计` maps every AC to an
+The body keeps the section headings from `/spec`'s issue template. Dependency state comes only from
+frontmatter `blocked_by`; legacy `前置依赖` sections remain readable but are not generated or
+projected into worker packets. The feature-scoped write gate rejects that duplicate section on new
+ready v2/v3 cards. `验证设计` maps every AC to an
 agent-runnable seam, expected evidence, and at least one passed P# preflight. It includes:
 
 ```markdown
@@ -264,41 +276,70 @@ and the rubric dimensions live in [EXPERIENCE-RUBRIC.md](code-review/EXPERIENCE-
 
 The `/tdd -p` drain's dispatch ledger, written only by the `tdd` skill's
 `scripts/drain-wave.py` (`dispatch` before execution starts, `collect` at wave close). Each
-wave entry: number, timestamp, dispatched slugs, a baseline SHA-256, per-issue `receipt_hits` when
-shared P# tuples apply, per-issue closure
-(`green|red|blocked|conflict|aborted`), conflict-time contract digest when applicable, close
-timestamp. The digest covers the issue before `## Comments`, so notes cannot release the barrier.
-The top-level `baselines` map stores each distinct `git status --porcelain` snapshot once by digest;
-waves do not duplicate the snapshot.
-An unchanged conflict digest blocks later `next` and `dispatch`; `/spec` realignment changes the
-contract and releases it. The top-level `preflight_assignments` map retains
-exact issue-to-key tuples so a collision-serialized issue receives the same hit in a later wave.
-For a disproved report, `drain-wave.py dismiss-conflict` preserves the original conflict digest
-and adds `conflict_dismissals[slug]` with the contract-bound review, evidence path/hash, and time;
+wave entry: number, timestamp, dispatched slugs, a baseline SHA-256, dispatch-time per-card contract
+hashes, and per-issue closure
+(`green|red|blocked|conflict|aborted`), and close timestamp. A conflict carries only a path/hash for
+its contract-bound evidence JSON under the feature's `receipts/`; that evidence owns the
+conflict-time contract digest. The digest covers the issue before `## Comments`, so notes cannot
+release the barrier.
+Each wave stores only a digest referring to the shared content-addressed
+`.scratch/wave-baselines/<sha256>.json`. One compact manifest serves every feature ledger in the
+same dispatch: in Git it records HEAD plus hashes of the index diff and worktree diff, and one
+content identity per pre-existing dirty path; outside Git it hashes files under the dispatched cards' declared paths (the whole
+workspace for a serialized undeclared card). It excludes
+`.scratch`, so writing workflow state cannot change the next baseline. Packet projection rehashes
+the manifest before execution. Legacy top-level `baselines` maps remain readable but are not
+written by new dispatches.
+`collect` validates the global outstanding set as one wave commit: it accepts every still-open
+assignment together only after the caller's integrated scoped checks and ownership reconciliation,
+then atomically replaces each affected feature ledger. Partial requests are rejected, so the
+dispatch barrier cannot open between worker completion and wave verification; a process failure
+between feature-ledger replacements remains recoverable as a partially collected wave.
+An unchanged conflict digest blocks later `next` and `dispatch`; status edits, archive moves, and
+deletion do not release it. `/spec` releases it only by changing the live ready card's contract;
+an evidence-backed dismissal uses the dedicated command. The top-level `preflight_consumers` map
+retains each current key once with its issue slugs, so a collision-serialized issue receives the
+same hit in a later wave without copying a 64-character key under every issue.
+Tuple fields stay owned by the card/profile and preflight cache; legacy expanded assignments are
+normalized on dispatch.
+For a disproved report, `drain-wave.py dismiss-conflict` preserves the original evidence and adds
+`conflict_dismissals[slug]` with only the review path/hash and time;
 only that closed result becomes `red`. It never changes the issue contract or marks it done.
 Review evidence is durable under the feature's `receipts/`; the caller owns its truthfulness.
-A dispatched
-slug that is neither done on disk nor closed is a zombie. The recovery contract lives in
+Every dispatched slug without ledger closure is a zombie, even when its card is `done`, archived,
+or missing; disk state cannot prove wave-level reconciliation and read-only scheduling commands do
+not infer an outcome. The recovery contract lives in
 `tdd/EDGE-CASES.md`. The ledger is append-oriented machine state; humans read it only for
-crash diagnosis. `workflow-state.py gc` may delete it once every wave is closed and the batch shipped.
+crash diagnosis. `workflow-state.py gc` may delete it once every wave is closed, no conflict barrier
+remains, and the batch shipped; it also removes that ledger's global baseline manifests once no
+other feature ledger references them.
 
 ## Batch preflight receipt — `.scratch/<feat>/preflight-receipt.json`
 
 Transient TDD drain cache generated by `tdd/scripts/preflight-receipt.py`, only when at least two
-ready cards share an exact tuple. Each passed entry is
-keyed by the exact `(cwd, resolved P# action, environment fingerprint, semantic verifier profile digest)` tuple and retains the observed result,
-evidence path, and UTC check time. The orchestrator is its only writer; subagents receive immutable
+ready cards share an exact tuple. Each passed entry is keyed by the exact
+`(cwd, resolved P# action, environment fingerprint, v2 readiness digest, semantic verifier profile digest)` tuple and
+retains only the execution-receipt path/hash. The execution receipt owns its pass result and time;
+every hit revalidates that receipt and its log. The orchestrator is its only writer; workers receive immutable
 hit keys. A changed action, fingerprint, or profile meaning is a cache miss; JSON whitespace and
-key order are not. The receipt may
+object-key/completion-command order, plus fingerprint/prerequisite pair order or spacing, are not.
+The receipt may
 reuse readiness checks across cards in one batch; it never caches RED/GREEN behavior tests or final
 verification. `workflow-state.py gc` may remove it after the batch closes.
 
 ## Verifier profile — `.scratch/<feat>/verifier.json`（contract v3）
 
-Feature-scoped defaults owned by `/spec`; use one when multiple cards reuse enough verifier
-configuration to repay a separate file. Single cards and PRDs alone do not require a profile. Cards
-with `contract_version: 3` reference it from `## 验证设计` via `- profile: verifier.json` and carry
-only machine-readable deviations. A `profile:NAME` action resolves through `commands`.
+Feature-scoped defaults owned by `/spec`. Before writing any issue, compare planned non-graphical
+cards' cwd, fingerprint, prerequisites, and prepare state. If two or more share a base, select the
+largest sharing group (dependency order breaks a size tie) and write `verifier.json` first with its
+named-command union. Single cards and other groups stay v2 because a feature has one profile path;
+PRDs do not copy this readiness data. The feature-scoped `/spec --feature` gate rejects a newly
+written all-v2 queue when such a sharing group exists, while whole-tree checks remain compatible
+with legacy queues; when a profile is active, it also rejects any ready v2 card that copies that
+profile's environment base instead of referencing it, and rejects an unreferenced profile. Cards
+with `contract_version: 3` reference it from
+`## 验证设计` via `- profile: verifier.json` and carry only machine-readable deviations. A
+`profile:NAME` action resolves through `commands`.
 
 ```json
 {
@@ -335,7 +376,8 @@ contract_version 2. Machine
 execution receipts under `.scratch/<feat>/receipts/*.json` are durable evidence — v3 `### 完成`
 records reference them. The receipt binds feature, slug, status-independent contract hash, selected
 AC, effective profile hash, named command, repo-relative cwd, platform argv style, exact argv, log
-hash, `outcome: pass`, and exit 0. The supervisor refuses bound receipt/log paths outside their
+hash, `outcome: pass`, and exit 0. Cwd lives once at receipt top level; verifier schema is covered by
+the effective-profile hash rather than copied into the issue binding. The supervisor refuses bound receipt/log paths outside their
 `.scratch` directories before execution. `close` requires the machine-local cwd and ignored
 `.scratch/tmp/` log to exist and match; after the card is `done`, gates revalidate the durable
 binding and result without requiring that transient log or the original checkout path. New bound
@@ -463,7 +505,7 @@ The mechanically checkable subset of this contract ships as a script next to thi
 issues carry a `### 完成` record whose named test files exist, `test_paths` declared ⇒ legacy
 `新增测试` entries are within it,
 V2 readiness/P# mappings, V3 verifier profiles (`verifier.json` JSON, strict deviations, non-empty
-`commands`, fingerprint keys) plus contract-bound done-record receipts and `审查`, and opted-in graphical UI contracts plus structured evidence (real files,
+`commands`, fingerprint keys) plus contract-bound done-record receipts, and opted-in graphical UI contracts plus structured evidence (real files,
 zero unexpected runtime counters, graded thresholds),
 `NN` uniqueness per directory, `blocked_by` / `refines` resolution + acyclicity, `feature` vs
 directory name, PRD `version` vs filename, `supersedes` target existence, single live PRD head,

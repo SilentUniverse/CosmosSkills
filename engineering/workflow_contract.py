@@ -126,7 +126,15 @@ def _pairs(value: str, label: str) -> Dict[str, str]:
 
 
 def _pair_text(values: Mapping[str, str]) -> str:
-    return "; ".join(f"{key}={value}" for key, value in values.items())
+    if "git" in values:
+        preferred = ("git", "lock", "runtime", "tools", "services")
+    elif "fixtures" in values:
+        preferred = ("fixtures", "services", "permissions", "network")
+    else:
+        preferred = ()
+    keys = [key for key in preferred if key in values]
+    keys.extend(sorted(key for key in values if key not in preferred))
+    return "; ".join(f"{key}={values[key]}" for key in keys)
 
 
 def _windows_command_argv(command: str) -> List[str]:
@@ -199,19 +207,34 @@ def _profile_cwd(root: Path, value: str) -> str:
     return relative.as_posix() or "."
 
 
-def effective_verifier(root: Path, feature: str, issue_raw: str) -> Mapping[str, Any]:
+_PROFILE_UNSET = object()
+
+
+def load_verifier_profile(root: Path, feature: str) -> Any:
+    """Read one feature profile for reuse across a batch of card projections."""
+    root = Path(root).resolve()
+    profile_path = root / ".scratch" / feature / "verifier.json"
+    try:
+        raw_profile = profile_path.read_bytes()
+        return json.loads(raw_profile.decode("utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"contract v3 profile file unreadable: {profile_path}: {exc}") from exc
+
+
+def effective_verifier(
+    root: Path,
+    feature: str,
+    issue_raw: str,
+    profile: Any = _PROFILE_UNSET,
+) -> Mapping[str, Any]:
     """Resolve one v3 card against its profile and strict, machine-readable deviations."""
     root = Path(root).resolve()
     verification = _section(issue_raw, "验证设计")
     profile_ref = _bullet(verification, "profile")
     if profile_ref != "verifier.json":
         raise ValueError("contract v3 profile must be `verifier.json`")
-    profile_path = root / ".scratch" / feature / "verifier.json"
-    try:
-        raw_profile = profile_path.read_bytes()
-        profile = json.loads(raw_profile.decode("utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
-        raise ValueError(f"contract v3 profile file unreadable: {profile_path}: {exc}") from exc
+    if profile is _PROFILE_UNSET:
+        profile = load_verifier_profile(root, feature)
     schema_version = profile.get("schema_version", 1) if isinstance(profile, dict) else None
     if type(schema_version) is not int or schema_version not in (1, 2):
         raise ValueError("contract v3 profile needs schema_version 1 or 2")
@@ -293,6 +316,7 @@ def effective_verifier(root: Path, feature: str, issue_raw: str) -> Mapping[str,
             raise ValueError(
                 "contract v3 profile schema 2 needs unique completion_commands resolved by commands"
             )
+        completion_commands = sorted(completion_commands)
     effective: Dict[str, Any] = {
         "schema_version": schema_version,
         "cwd": cwd,
@@ -422,14 +446,17 @@ def issue_binding(
         "slug": issue_path.stem,
         "contract_sha256": issue_contract_digest(raw),
         "ac": selected_ac,
-        "cwd": verifier["cwd"],
         "verifier": verifier_name,
-        "verifier_schema": verifier["schema_version"],
         "verifier_sha256": verifier["effective_sha256"],
     }
 
 
-def validate_v3_completion(root: Path, issue_path: Path, raw: str | None = None) -> Mapping[str, Any]:
+def validate_v3_completion(
+    root: Path,
+    issue_path: Path,
+    raw: str | None = None,
+    profile: Any = _PROFILE_UNSET,
+) -> Mapping[str, Any]:
     """Verify that bound passing receipts jointly prove this exact card."""
     root = Path(root).resolve()
     issue_path = Path(issue_path).resolve()
@@ -442,7 +469,11 @@ def validate_v3_completion(root: Path, issue_path: Path, raw: str | None = None)
     )
     if not expected_ac:
         raise ValueError(f"issue '{slug}' has no checkbox AC")
-    verifier = effective_verifier(root, feature, raw)
+    verifier = (
+        effective_verifier(root, feature, raw)
+        if profile is _PROFILE_UNSET
+        else effective_verifier(root, feature, raw, profile)
+    )
     receipt_refs = _bullet_values(_completion(raw), "receipt")
     if not receipt_refs:
         raise ValueError(f"issue '{slug}' contract v3 record has no receipt line")
@@ -516,8 +547,6 @@ def validate_v3_completion(root: Path, issue_path: Path, raw: str | None = None)
                 "feature": feature,
                 "slug": slug,
                 "contract_sha256": issue_contract_digest(raw),
-                "cwd": verifier["cwd"],
-                "verifier_schema": verifier["schema_version"],
             }
             for key, value in expected.items():
                 if binding.get(key) != value:

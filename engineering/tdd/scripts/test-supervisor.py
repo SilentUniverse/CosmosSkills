@@ -9,7 +9,6 @@ import json
 import os
 import platform
 import re
-import shlex
 import signal
 import subprocess
 import sys
@@ -299,26 +298,28 @@ def run_command(
         "scope": scope,
         "outcome": outcome,
         "argv": list(argv),
-        "command_text": shlex.join(list(argv)),
         "cwd": recorded_cwd,
         "started_at": started_at,
         "ended_at": _utc_now(),
         "duration_seconds": round(duration, 6),
         "duration_class": duration_class,
         "timeout_seconds": timeout,
-        "grace_seconds": grace,
         "exit_code": return_code,
-        "termination": termination,
-        "launch_error": launch_error,
         "log": recorded_log,
         "log_sha256": _sha256(log_path),
-        "log_tail": _log_tail(log_path) if timed_out else [],
         "runtime": {
             "python": platform.python_version(),
             "platform": platform.platform(),
         },
         "git": git,
     }
+    if termination != "none":
+        data["termination"] = termination
+        data["grace_seconds"] = grace
+    if launch_error is not None:
+        data["launch_error"] = launch_error
+    if timed_out:
+        data["log_tail"] = _log_tail(log_path)
     if binding is not None:
         data["issue"] = dict(binding)
     _atomic_json(receipt_path, data)
@@ -354,14 +355,14 @@ def main(argv: Optional[List[str]] = None) -> int:
             issue_path = args.issue.resolve()
             repo_root = issue_path.parents[3]
             feature = str(binding["feature"])
-            expected_cwd = (repo_root / str(binding["cwd"])).resolve()
+            verifier = effective_verifier(
+                repo_root, feature, issue_path.read_text(encoding="utf-8-sig")
+            )
+            expected_cwd = (repo_root / str(verifier["cwd"])).resolve()
             if args.cwd.resolve() != expected_cwd:
                 raise ValueError(
                     f"--cwd must match verifier profile cwd: {expected_cwd}"
                 )
-            verifier = effective_verifier(
-                repo_root, feature, issue_path.read_text(encoding="utf-8-sig")
-            )
             expected_argv = command_argv(verifier["commands"][args.verifier])
             if command != expected_argv:
                 raise ValueError(f"command must match profile:{args.verifier}")

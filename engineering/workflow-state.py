@@ -12,12 +12,18 @@ from pathlib import Path
 ENGINEERING_ROOT = Path(__file__).resolve().parent
 if str(ENGINEERING_ROOT) not in sys.path:
     sys.path.insert(0, str(ENGINEERING_ROOT))
-from workflow_contract import effective_verifier, issue_contract_digest, validate_v3_completion
+from workflow_contract import (
+    effective_verifier,
+    issue_contract_digest,
+    load_verifier_profile,
+    validate_v3_completion,
+)
 
 
 ISSUE_NAME = re.compile(r"^(\d+)-.+\.md$")
 PROFILE_NAME = re.compile(r"\bprofile:([A-Za-z][A-Za-z0-9_-]*)\b")
 MAPPED_ACTION = re.compile(r"^(\s*-\s*#\d+\s*(?:→|->)\s*)`([^`]+)`")
+ATTEMPT_HEAD = re.compile(r"^###\s+(?:尝试|失败|Attempt)(?:\s|—|-|$)", re.IGNORECASE)
 
 
 def scalar(value):
@@ -140,6 +146,24 @@ def section_body(raw, heading):
     return section_lines(raw, heading, limit=None)
 
 
+def latest_attempt(raw, limit=8):
+    """Project only the newest retry handoff from Comments, never the full history."""
+    latest = []
+    active = None
+    for line in raw.splitlines():
+        if line.startswith("### "):
+            active = [line.strip()] if ATTEMPT_HEAD.match(line) else None
+            if active is not None:
+                latest = active
+            continue
+        if line.startswith("## "):
+            active = None
+            continue
+        if active is not None and line.strip():
+            active.append(line.strip())
+    return latest[:limit]
+
+
 def contract_digest(raw):
     contract = raw.split("\n## Comments", 1)[0]
     return hashlib.sha256(contract.encode("utf-8")).hexdigest()
@@ -254,10 +278,10 @@ def find_issue(root, feature, slug):
     raise ValueError("issue '%s' not found in feature '%s'" % (slug, feature))
 
 
-def issue_packet(root, feature, slug):
-    root = Path(root).resolve()
-    path = find_issue(root, feature, slug)
-    raw, issue_data = issue_state(root, feature, path)
+_PROFILE_UNSET = object()
+
+
+def _issue_packet(root, feature, slug, path, raw, issue_data, profile=_PROFILE_UNSET):
     data = dict(issue_data)
     verification = section_body(raw, "验证设计")
     packet = {
@@ -270,18 +294,28 @@ def issue_packet(root, feature, slug):
         "blocked_by": data.get("blocked_by", []),
         "test_paths": data.get("test_paths", []),
         "touches": data.get("touches", []),
+        "exclusive_resources": data.get("exclusive_resources", []),
         "parent": section_body(raw, "上级"),
         "objective": section_body(raw, "做什么"),
         "acceptance": section_body(raw, "验收标准"),
         "verification": verification,
         "context": section_body(raw, "相关面"),
-        "dependencies": section_body(raw, "前置依赖"),
-        "digest": contract_digest(raw),
         "contract_sha256": issue_contract_digest(raw),
         "source": path.relative_to(root).as_posix(),
     }
+    if data.get("contract_version"):
+        packet["contract_version"] = data["contract_version"]
+    if data.get("experience_review"):
+        packet["experience_review"] = data["experience_review"]
+    attempt = latest_attempt(raw)
+    if attempt:
+        packet["latest_attempt"] = attempt
     if str(data.get("contract_version", "")) == "3":
-        verifier = dict(effective_verifier(root, feature, raw))
+        verifier = dict(
+            effective_verifier(root, feature, raw)
+            if profile is _PROFILE_UNSET
+            else effective_verifier(root, feature, raw, profile)
+        )
         verifier.pop("ac_commands", None)
         action_counts = {}
         for line in verification:
@@ -303,7 +337,9 @@ def issue_packet(root, feature, slug):
         referenced = {
             name for line in compact for name in PROFILE_NAME.findall(line)
         }
-        referenced.update(verifier.get("completion_commands", []))
+        verifier["completion_commands"] = [
+            name for name in verifier.get("completion_commands", []) if name in referenced
+        ]
         commands = {
             name: command
             for name, command in verifier["commands"].items()
@@ -315,6 +351,99 @@ def issue_packet(root, feature, slug):
         if aliases:
             packet["packet_commands"] = {alias: action for action, alias in aliases.items()}
     return packet
+
+
+def issue_packet(root, feature, slug):
+    root = Path(root).resolve()
+    path = find_issue(root, feature, slug)
+    raw, issue_data = issue_state(root, feature, path)
+    return _issue_packet(root, feature, slug, path, raw, issue_data)
+
+
+def current_dispatch(root, feature, states):
+    ledger = root / ".scratch" / feature / "wave-ledger.json"
+    try:
+        payload = json.loads(ledger.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise ValueError("packets require one current open dispatch") from exc
+    waves = [
+        wave
+        for wave in payload.get("waves", [])
+        if set(wave.get("dispatched", [])) - set(wave.get("closed", {}))
+    ]
+    if len(waves) != 1:
+        raise ValueError("packets require one current open dispatch")
+    wave = waves[0]
+    outstanding = set(wave.get("dispatched", [])) - set(wave.get("closed", {}))
+    requested = {slug for slug, _, _, _ in states}
+    if requested != outstanding:
+        raise ValueError(
+            "packets must project the complete current open dispatch; expected %s"
+            % ", ".join(sorted(outstanding))
+        )
+    baseline = wave.get("baseline_sha256")
+    contracts = wave.get("contracts")
+    if not isinstance(baseline, str) or not re.fullmatch(r"[0-9a-f]{64}", baseline):
+        raise ValueError("current open dispatch has no valid baseline binding")
+    baseline_path = root / ".scratch" / "wave-baselines" / (baseline + ".json")
+    if baseline_path.is_file():
+        try:
+            baseline_raw = baseline_path.read_bytes()
+        except OSError as exc:
+            raise ValueError("current open dispatch baseline cannot be read") from exc
+        if hashlib.sha256(baseline_raw).hexdigest() != baseline:
+            raise ValueError("current open dispatch baseline changed after dispatch")
+        try:
+            baseline_data = json.loads(baseline_raw.decode("utf-8"))
+        except (UnicodeError, ValueError) as exc:
+            raise ValueError("current open dispatch baseline is invalid") from exc
+        if (
+            not isinstance(baseline_data, dict)
+            or baseline_data.get("schema_version") != 2
+            or baseline_data.get("kind") not in ("git", "filesystem")
+        ):
+            raise ValueError("current open dispatch baseline is invalid")
+    elif not (
+        isinstance(payload.get("baselines"), dict)
+        and baseline in payload["baselines"]
+    ):
+        raise ValueError("current open dispatch baseline artifact is missing")
+    if not isinstance(contracts, dict):
+        raise ValueError("current open dispatch has no contract bindings")
+    for slug, _, raw, _ in states:
+        if contracts.get(slug) != issue_contract_digest(raw):
+            raise ValueError("issue '%s' changed after dispatch; reconcile before execution" % slug)
+    return {"wave": wave.get("wave"), "baseline_sha256": baseline}
+
+
+def issue_packets(root, feature, slugs):
+    """Project one wave without repeated process startup or persistent output."""
+    slugs = list(slugs)
+    if not slugs:
+        raise ValueError("packets requires at least one slug")
+    duplicates = sorted({slug for slug in slugs if slugs.count(slug) > 1})
+    if duplicates:
+        raise ValueError("duplicate packet slug(s): %s" % ", ".join(duplicates))
+    root = Path(root).resolve()
+    states = []
+    for slug in slugs:
+        path = find_issue(root, feature, slug)
+        raw, issue_data = issue_state(root, feature, path)
+        states.append((slug, path, raw, issue_data))
+    dispatch = current_dispatch(root, feature, states)
+    profile = (
+        load_verifier_profile(root, feature)
+        if any(str(data.get("contract_version", "")) == "3" for _, _, _, data in states)
+        else _PROFILE_UNSET
+    )
+    return {
+        "schema_version": 1,
+        "dispatch": dispatch,
+        "packets": [
+            _issue_packet(root, feature, slug, path, raw, data, profile)
+            for slug, path, raw, data in states
+        ],
+    }
 
 
 def close_issue(root, feature, slug):
@@ -353,13 +482,17 @@ def close_issue(root, feature, slug):
     with temporary.open("w", encoding="utf-8", newline="") as stream:
         stream.write("".join(updated))
     os.replace(temporary, path)
-    gc = gc_feature(root, feature, apply=False)
-    return {
+    result = {
         "feature": feature,
         "slug": slug,
         "status": "done",
-        "gc_candidates": gc["candidates"],
     }
+    ledger = root / ".scratch" / feature / "wave-ledger.json"
+    if not (ledger.is_file() and not ledger_closed(ledger)):
+        candidates = gc_feature(root, feature, apply=False)["candidates"]
+        if candidates:
+            result["gc_candidates"] = candidates
+    return result
 
 
 def percentile(values, fraction):
@@ -517,6 +650,54 @@ def ledger_closed(path):
     return True
 
 
+def ledger_has_active_conflict(path):
+    """A dismissed conflict is rewritten to red; any retained conflict is still a barrier."""
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    return any(
+        result == "conflict"
+        for wave in payload.get("waves", [])
+        for result in wave.get("closed", {}).values()
+    )
+
+
+def ledger_baseline_refs(path):
+    """Return referenced global baselines, or None when a ledger is unreadable."""
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return {
+        digest
+        for wave in payload.get("waves", [])
+        for digest in [wave.get("baseline_sha256")]
+        if isinstance(digest, str) and re.fullmatch(r"[0-9a-f]{64}", digest)
+    }
+
+
+def released_baseline_artifacts(root, removed_ledger):
+    """Baselines owned by this ledger and no other retained feature ledger."""
+    released = ledger_baseline_refs(removed_ledger)
+    if not released:
+        return []
+    retained = set()
+    for path in (root / ".scratch").glob("*/wave-ledger.json"):
+        if path == removed_ledger:
+            continue
+        references = ledger_baseline_refs(path)
+        if references is None:
+            return []
+        retained.update(references)
+    directory = root / ".scratch" / "wave-baselines"
+    return [
+        directory / (digest + ".json")
+        for digest in sorted(released - retained)
+        if (directory / (digest + ".json")).is_file()
+    ]
+
+
 def gc_feature(root, feature, apply=False):
     root = Path(root).resolve()
     feature_dir = root / ".scratch" / feature
@@ -530,11 +711,14 @@ def gc_feature(root, feature, apply=False):
             break
     ledger = feature_dir / "wave-ledger.json"
     open_wave = ledger.is_file() and not ledger_closed(ledger)
+    active_conflict = ledger.is_file() and ledger_has_active_conflict(ledger)
     candidates = []
-    if not ready and not open_wave:
+    if not ready and not open_wave and not active_conflict:
         for path in (feature_dir / "preflight-receipt.json", ledger):
             if path.is_file():
                 candidates.append(path)
+        if ledger in candidates:
+            candidates.extend(released_baseline_artifacts(root, ledger))
     removed = []
     if apply:
         for path in candidates:
@@ -544,6 +728,7 @@ def gc_feature(root, feature, apply=False):
         "feature": feature,
         "ready": ready,
         "open_wave": open_wave,
+        "active_conflict": active_conflict,
         "candidates": [path.relative_to(root).as_posix() for path in candidates],
         "removed": removed,
     }
@@ -568,6 +753,10 @@ def parser():
     packet.add_argument("root")
     packet.add_argument("feature")
     packet.add_argument("slug")
+    packets = sub.add_parser("packets")
+    packets.add_argument("root")
+    packets.add_argument("feature")
+    packets.add_argument("slugs", nargs="+")
     close = sub.add_parser("close")
     close.add_argument("root")
     close.add_argument("feature")
@@ -599,6 +788,12 @@ def main(argv=None):
         elif args.command == "packet":
             output = json.dumps(
                 issue_packet(args.root, args.feature, args.slug),
+                ensure_ascii=False,
+                separators=(",", ":"),
+            )
+        elif args.command == "packets":
+            output = json.dumps(
+                issue_packets(args.root, args.feature, args.slugs),
                 ensure_ascii=False,
                 separators=(",", ":"),
             )

@@ -11,7 +11,7 @@ record; execution receipts and tests hold machine evidence. Do not narrate the i
 3. Cover chosen failure modes: empty/boundary/error and relevant concurrency/timeout behavior.
 4. Ensure executed verifier commands exist in `CODEBASE.md` `## Verifier commands`.
 5. Challenge the most plausible failure and trace it to evidence. A review with no finding is
-   valid; do not invent a defect, new test, or extra round to satisfy this field.
+   valid; do not invent a defect, new test, or extra round to create a record line.
 
 Hands-on checks an agent cannot run belong in the PRD's 端到端验证, not an issue AC. Exact command,
 exit, observable result, and evidence path are proof; “implemented” or “tests pass” is not.
@@ -37,7 +37,8 @@ python <skills-root>/workflow-state.py close <repo-root> <feat> <slug>
 ```
 
 Use `python3` only when `python` is absent. `close` refuses a card without its `### 完成` record or
-one that is not `ready`, flips `status: done` atomically, and prints the transient-GC candidates.
+one that is not `ready`, and flips `status: done` atomically. Outside an open wave it also prints
+available transient-GC candidates; an active drain computes them once at batch close.
 
 For `contract_version: 3` cards the record is the receipt-reference form:
 
@@ -45,7 +46,6 @@ For `contract_version: 3` cards the record is the receipt-reference form:
 ### 完成 — YYYY-MM-DD
 
 - receipt: .scratch/<feat>/receipts/<slug>-<scope>.json
-- 审查：pass
 ```
 
 Run each named final command through `test-supervisor.py` with `--issue <card>`, `--verifier <name>`,
@@ -53,12 +53,13 @@ Run each named final command through `test-supervisor.py` with `--issue <card>`,
 the whole card omits `--ac`; otherwise pass its subset as `--ac 1,3-5` and add one receipt line per
 command. Every selected AC must map to that verifier in `## 验证设计`. The supervisor rejects a
 different cwd, command argv, or output path before execution, then records the card/AC/profile/cwd/
-platform-argv binding. At `close`, the gate requires receipt union to cover every AC and re-verifies
+platform-argv binding. Cwd is stored once at receipt top level, and the effective profile hash owns
+its schema. At `close`, the gate requires receipt union to cover every AC and re-verifies
 each passing exit and transient log hash. Later `done`/archive audits use the durable receipt and do
 not require the ignored log or original checkout path. Coverage comes from bindings, not editable
 completion prose.
-Expand 审查 to one line only for a finding —
-`<finding> → 已落在 <test/invariant/revert>`. `close` enforces the same receipt check before
+The failure challenge and diff-to-AC review still run before completion. Add `审查` only when review found a
+concrete fact worth retaining: `<finding> → 已落在 <test/invariant/revert>`. `close` enforces the same receipt check before
 flipping.
 
 Omit `体验验证` unless the issue opts into graphical experience review. Add `备注` only for a fact
@@ -76,6 +77,17 @@ For experience-review issues, write structured evidence first and run
 before accepting `done`. A gate failure
 restores only that issue to `ready`.
 
-If execution aborts, restore the original status and append one failure note containing exact
-command, error, missing condition, and confirmed facts. `/tdd` stops at validated changes; submission
+If execution aborts or will be retried, restore the original status and append one bounded block:
+
+```markdown
+### 尝试 — YYYY-MM-DD
+
+- 失败：<exact command/case + decisive error>
+- 已尝试：<materially different remedy + result>
+- 已确认：<facts the next worker should not rediscover>
+- 下一步：<specific next action>
+```
+
+Do not repeat facts already visible in the card, receipt, or code; the next packet projects only the
+newest attempt. `/tdd` stops at validated changes; submission
 continues through `/commit` in this task when already requested.

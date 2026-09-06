@@ -29,8 +29,9 @@ source digests. Both projections write nothing.
 
 ## GC
 
-`gc` lists only `preflight-receipt.json` and a fully closed `wave-ledger.json`. A ready issue or
-open wave makes the candidate list empty. Inspect the JSON plan; an explicit cleanup request
+`gc` lists only `preflight-receipt.json`, a fully closed `wave-ledger.json`, and baseline manifests
+released by that ledger which no other feature ledger references. A ready issue, open wave, or
+retained conflict result makes the candidate list empty. Inspect the JSON plan; an explicit cleanup request
 authorizes `--apply` for these proven disposable caches without a second confirmation. Inspect-only
 requests stop at the preview. Drain close may apply the same plan after every wave is closed.
 

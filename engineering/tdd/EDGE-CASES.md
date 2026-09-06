@@ -7,9 +7,18 @@ Loaded by [tdd](SKILL.md) for prior completion records, dispatched work, and red
 `drain-wave.py next` exits 3 when the ledger holds dispatched work without a collected result.
 Inspect its diff and baseline before any new wave; resolve each issue by evidence:
 
-- **Adopt** useful in-scope work: finish/verify it, write `### 完成`, set `done`, collect `green`.
+- **Adopt** useful in-scope work: finish/verify it, write `### 完成`, set `done`, and retain a
+  `green` outcome.
 - **Revert** only attributable edits that cannot safely be completed, leave `ready`, append the
-  reason, and collect `aborted`. Preserve user/concurrent changes and `.scratch/**` history.
+  reason, and retain an `aborted` outcome. Preserve user/concurrent changes and `.scratch/**`
+  history.
+
+After every outstanding issue has an outcome, run the combined scoped checks and reconcile changed
+paths against the wave baseline. Then pass all remaining outcomes to one `drain-wave.py collect`
+call. A `done` card is still a zombie until this wave-level reconciliation is committed.
+An assigned card moved to `archive/` or deleted also remains a zombie; restore it to its feature's
+live issue path before explicit collection. `next` and `step` never infer an outcome or mutate the
+ledger.
 
 Red or partial work is not automatically disposable. If ownership is ambiguous, preserve it and
 resolve the ambiguity; a clean restart is not worth losing someone else's work.

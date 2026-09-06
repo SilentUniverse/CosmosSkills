@@ -17,9 +17,9 @@ Use `python3` only when `python` is absent. Receipts under `.scratch/<feat>/rece
 evidence a completion record can reference; name them `<owner>-<scope>.json` (issue slug for a
 single card, feature for batch closes) so batch commands never overwrite an issue's receipt. Logs
 stay under `.scratch/tmp/`. Scopes are `preflight`, `targeted`, `module`, `full`, `build`, or
-`other`. The receipt records exact
-argv, cwd, git state, outcome, exit code, duration, budget-relative duration class, termination,
-and log digest. Use the project's known budget; when none exists, choose one explicit budget from
+`other`. The receipt records exact argv, cwd, git state, outcome, exit code, duration,
+budget-relative duration class, log digest, and timeout/termination details when applicable. Use
+the project's known budget; when none exists, choose one explicit budget from
 recent local or CI evidence and report that assumption.
 
 The supervisor redirects output before launch. It returns only outcome, scope, exit, duration, log,

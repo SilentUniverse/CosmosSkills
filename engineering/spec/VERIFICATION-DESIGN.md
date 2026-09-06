@@ -66,6 +66,16 @@ card:
    `no-vcs` explicitly when absent. The fingerprint makes later drift visible; it does not promise
    that an environment can never change.
 
+Before card materialization, compare the proposed harness records. Pair ordering and incidental
+spacing do not distinguish a fingerprint or prerequisite map. If two or more non-graphical cards
+have the same cwd, fingerprint, prerequisites, and prepare state, `/spec` selects the largest
+sharing group (dependency order breaks a size tie) and writes one schema-2 `verifier.json` before
+the cards. Its named commands are the union needed by that group; each member references it and
+records only a real fingerprint or command deviation. Other groups stay v2 because the feature has
+one profile path. Do not create a profile merely because several cards exist, and do not copy profile fields back into v3 cards.
+Per-card seams, AC mappings, and passed-preflight evidence remain on the card because they establish
+that slice's runnable proof rather than the shared environment.
+
 At TDD dispatch, replay the recorded P# checks before editing. That replay is a drift guard, not a
 second setup phase. If it fails, leave the card `ready` and report the mismatch. The caller restores declared setup
 or refreshes stale readiness outside the behavior wave, then resumes. New consequential choices

@@ -50,6 +50,11 @@ class TestSupervisorTests(unittest.TestCase):
             self.assertEqual("normal", saved["duration_class"])
             self.assertEqual(supervisor._sha256(log), saved["log_sha256"])
             self.assertEqual("green\n", log.read_text(encoding="utf-8"))
+            self.assertNotIn("command_text", saved)
+            self.assertNotIn("launch_error", saved)
+            self.assertNotIn("log_tail", saved)
+            self.assertNotIn("termination", saved)
+            self.assertNotIn("grace_seconds", saved)
             self.assertEqual([], list(root.glob("receipt.json.tmp.*")))
 
     def test_failure_preserves_test_exit_code(self):
@@ -242,6 +247,8 @@ class TestSupervisorTests(unittest.TestCase):
             )
             self.assertEqual(".", saved["cwd"])
             self.assertEqual(".scratch/tmp/run.log", saved["log"])
+            self.assertNotIn("cwd", saved["issue"])
+            self.assertNotIn("verifier_schema", saved["issue"])
 
     def test_windows_command_parser_preserves_backslashes_and_quotes(self):
         self.assertEqual(

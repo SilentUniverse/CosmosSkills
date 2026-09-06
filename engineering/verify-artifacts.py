@@ -15,7 +15,7 @@ from pathlib import Path
 ENGINEERING_ROOT = Path(__file__).resolve().parent
 if str(ENGINEERING_ROOT) not in sys.path:
     sys.path.insert(0, str(ENGINEERING_ROOT))
-from workflow_contract import effective_verifier, validate_v3_completion
+from workflow_contract import effective_verifier, load_verifier_profile, validate_v3_completion
 
 SKIP_DIRS = {
     ".git",
@@ -50,6 +50,7 @@ JIEFENG = "\u63a5\u7f1d"  # 接缝
 GONGZUO_MULU = "\u5de5\u4f5c\u76ee\u5f55"  # 工作目录
 HUANJING_ZHIWEN = "\u73af\u5883\u6307\u7eb9"  # 环境指纹
 QIANZHI_TIAOJIAN = "\u524d\u7f6e\u6761\u4ef6"  # 前置条件
+QIANZHI_YILAI = "\u524d\u7f6e\u4f9d\u8d56"  # 前置依赖
 ZHUNBEI_DONGZUO = "\u51c6\u5907\u52a8\u4f5c"  # 准备动作
 YUJIAN = "\u9884\u68c0"  # 预检
 YUJIAN_CHONGFANG = "\u9884\u68c0\u91cd\u653e"  # 预检重放
@@ -58,7 +59,6 @@ TIYAN_YANZHENG = "\u4f53\u9a8c\u9a8c\u8bc1"  # 体验验证
 XUQIU_JILU_YUAN = "\u9700\u6c42\u8bb0\u5f55\u6e90"  # 需求记录源
 PROFILE = "profile"  # profile
 RECEIPT_KEY = "receipt"  # receipt
-CHASHEN = "\u5ba1\u67e5"  # 审查
 AC_CHECKBOX = re.compile(r"^\s*-\s*\[[ xX]\]\s+\S")
 EVIDENCE_MAP = re.compile(r"^\s*-\s*#(\d+)\s*(?:\u2192|->)")
 PREFLIGHT_LINE = re.compile(r"^\s*-\s*P(\d+)\s+" + YUJIAN + r"[\uff1a:]\s*(.+)$")
@@ -84,13 +84,17 @@ TEST_PATH = re.compile(
 BAD_UTF8 = set()
 
 
-def read_lines(path):
+def read_text(path):
     with open(path, "rb") as f:
         raw = f.read()
     text = raw.decode("utf-8-sig", errors="replace")
     if "\ufffd" in text:
         BAD_UTF8.add(path)
-    return text.splitlines()
+    return text
+
+
+def read_lines(path):
+    return read_text(path).splitlines()
 
 
 def get_frontmatter(path, lines=None):
@@ -186,6 +190,31 @@ def bullet_value(lines, word):
             if stripped.startswith(prefix):
                 return stripped[len(prefix) :].strip()
     return None
+
+
+def canonical_environment_key(workdir, fingerprint, prerequisites, prepare):
+    """Compare equivalent v2 verifier environments independent of prose formatting."""
+
+    def unquote(value):
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] == "`":
+            value = value[1:-1]
+        return re.sub(r"\s+", " ", value.strip())
+
+    def pairs(value):
+        entries = []
+        for item in re.split(r"[;；]", unquote(value)):
+            item = item.strip()
+            if not item:
+                continue
+            if "=" not in item:
+                return (("", unquote(value)),)
+            key, entry = item.split("=", 1)
+            entries.append((key.strip(), re.sub(r"\s+", " ", entry.strip())))
+        return tuple(sorted(entries))
+
+    normalized_cwd = os.path.normpath(unquote(workdir).replace("\\", "/"))
+    return normalized_cwd, pairs(fingerprint), pairs(prerequisites), unquote(prepare)
 
 
 def inline_value(text, key):
@@ -627,6 +656,19 @@ def main(argv):
     def err(msg):
         errors.append(msg)
 
+    profile_cache = {}
+
+    def profile_for(feat):
+        if feat not in profile_cache:
+            try:
+                profile_cache[feat] = (load_verifier_profile(Path(root), feat), "")
+            except ValueError as exc:
+                profile_cache[feat] = (None, str(exc))
+        profile, problem = profile_cache[feat]
+        if problem:
+            raise ValueError(problem)
+        return profile
+
     def check_handoff(path, expected_feature):
         nonlocal n_handoffs
         n_handoffs += 1
@@ -858,6 +900,12 @@ def main(argv):
             check_handoff(h_path, feat)
 
         i_dir = os.path.join(fd, "issues")
+        if (
+            feature is not None
+            and os.path.isfile(os.path.join(fd, "verifier.json"))
+            and not os.path.isdir(i_dir)
+        ):
+            err("%s: verifier.json has no v3 card; remove the unreferenced profile" % fd)
         if os.path.isdir(i_dir):
             files = sorted(
                 [
@@ -882,6 +930,7 @@ def main(argv):
                     err("%s: filename not NN-slug" % f)
             resolved = dict(by_slug)
             archive_files = []
+            profile_in_use = False
             arch_dir = os.path.join(i_dir, "archive")
             if os.path.isdir(arch_dir):
                 for n in os.listdir(arch_dir):
@@ -905,8 +954,9 @@ def main(argv):
                             nn_seen[m.group(1)] = slug
             for af in sorted(archive_files):
                 n_issues += 1
-                archived_lines = read_lines(af)
-                archived_fm = get_frontmatter(af)
+                archived_raw = read_text(af)
+                archived_lines = archived_raw.splitlines()
+                archived_fm = get_frontmatter(af, archived_lines)
                 if archived_fm is None:
                     err("%s: no YAML frontmatter" % af)
                     continue
@@ -922,18 +972,22 @@ def main(argv):
                 if done_record(archived_lines) is None:
                     err("%s: archived done issue has no ### 完成 record" % af)
                 if str(archived_fm.get("contract_version", "")) == "3":
+                    profile_in_use = True
                     try:
-                        effective_verifier(
-                            Path(root), feat, Path(af).read_text(encoding="utf-8-sig")
+                        validate_v3_completion(
+                            Path(root), Path(af), archived_raw, profile_for(feat)
                         )
-                        validate_v3_completion(Path(root), Path(af))
                     except (OSError, UnicodeError, ValueError) as exc:
                         err("%s: %s" % (af, exc))
             graph = {}
+            ready_v2_environments = {}
+            effective_verifiers = {}
+            missing_effective = object()
             for f in files:
                 n_issues += 1
-                issue_lines = read_lines(f)
-                fm = get_frontmatter(f)
+                issue_raw = read_text(f)
+                issue_lines = issue_raw.splitlines()
+                fm = get_frontmatter(f, issue_lines)
                 if fm is None:
                     err("%s: no YAML frontmatter" % f)
                     continue
@@ -944,6 +998,8 @@ def main(argv):
                 if fm.get("status") not in ("ready", "done"):
                     err("%s: status '%s' not in ready|done" % (f, fm.get("status", "")))
                 contract_version = str(fm.get("contract_version", ""))
+                if contract_version == "3":
+                    profile_in_use = True
                 required_preflight_ids = set()
                 mapped_acs = set()
                 experience_review = str(fm.get("experience_review", ""))
@@ -952,6 +1008,16 @@ def main(argv):
                 experience_evidence_value = ""
                 if contract_version not in ("", "1", "2", "3"):
                     err("%s: contract_version '%s' not in 1|2|3" % (f, contract_version))
+                if (
+                    feature is not None
+                    and fm.get("status") == "ready"
+                    and contract_version in ("2", "3")
+                    and h2_section(issue_lines, QIANZHI_YILAI) is not None
+                ):
+                    err(
+                        "%s: ready card duplicates blocked_by in a body dependency section; "
+                        "keep dependency state only in frontmatter" % f
+                    )
                 if experience_review not in ("", "runtime", "graded"):
                     err(
                         "%s: experience_review '%s' not in runtime|graded or omitted"
@@ -1011,12 +1077,24 @@ def main(argv):
                                 err("%s: contract v2 验证设计 missing 准备动作" % f)
                             elif "无" not in setup and "result=" not in setup:
                                 err("%s: contract v2 准备动作 needs result= or explicit 无" % f)
+                            if (
+                                feature is not None
+                                and fm.get("status") == "ready"
+                                and not experience_review
+                                and all((workdir, fingerprint, prerequisites, setup))
+                            ):
+                                key = canonical_environment_key(
+                                    workdir, fingerprint, prerequisites, setup
+                                )
+                                ready_v2_environments.setdefault(key, []).append(f)
                         else:
                             try:
                                 effective_verifier(
-                                    Path(root), feat, Path(f).read_text(encoding="utf-8-sig")
+                                    Path(root), feat, issue_raw, profile_for(feat)
                                 )
+                                effective_verifiers[f] = issue_raw
                             except (OSError, UnicodeError, ValueError) as exc:
+                                effective_verifiers[f] = None
                                 err("%s: %s" % (f, exc))
 
                         experience = bullet_value(verification, TIYAN_YANZHENG)
@@ -1206,12 +1284,17 @@ def main(argv):
                         ):
                             err("%s: contract v2 done record missing 验证命令" % f)
                         if contract_version == "3":
-                            try:
-                                validate_v3_completion(Path(root), Path(f))
-                            except (OSError, UnicodeError, ValueError) as exc:
-                                err("%s: %s" % (f, exc))
-                            if not bullet_value(rec or [], CHASHEN):
-                                err("%s: contract v3 done record missing 审查" % f)
+                            cached = effective_verifiers.get(f, missing_effective)
+                            if cached is not None:
+                                try:
+                                    if cached is missing_effective:
+                                        validate_v3_completion(Path(root), Path(f))
+                                    else:
+                                        validate_v3_completion(
+                                            Path(root), Path(f), cached, profile_for(feat)
+                                        )
+                                except (OSError, UnicodeError, ValueError) as exc:
+                                    err("%s: %s" % (f, exc))
                         if contract_version == "2":
                             replay = bullet_value(rec or [], YUJIAN_CHONGFANG)
                             if not replay:
@@ -1294,6 +1377,54 @@ def main(argv):
                                         "add the path to test_paths or correct the record"
                                         % (f, m)
                                     )
+            if feature is not None:
+                profile_path = os.path.join(fd, "verifier.json")
+                if os.path.isfile(profile_path) and not profile_in_use:
+                    err("%s: verifier.json has no v3 card; remove the unreferenced profile" % fd)
+                if profile_in_use:
+                    try:
+                        active_profile = profile_for(feat)
+                    except ValueError:
+                        active_profile = None  # the v3 card check already reports the profile defect
+                    if (
+                        isinstance(active_profile, dict)
+                        and active_profile.get("schema_version") == 2
+                        and all(
+                            active_profile.get(key)
+                            for key in ("cwd", "fingerprint", "prerequisites", "prepare")
+                        )
+                    ):
+                        profile_key = canonical_environment_key(
+                            str(active_profile["cwd"]),
+                            str(active_profile["fingerprint"]),
+                            str(active_profile["prerequisites"]),
+                            str(active_profile["prepare"]),
+                        )
+                        copies = ready_v2_environments.get(profile_key, [])
+                        if copies:
+                            err(
+                                "%s: ready v2 card repeats active verifier profile (%s); "
+                                "use contract v3 profile references"
+                                % (fd, ", ".join(os.path.basename(path) for path in copies))
+                            )
+                else:
+                    sharing = [
+                        paths for paths in ready_v2_environments.values() if len(paths) >= 2
+                    ]
+                    if sharing:
+                        largest = sorted(
+                            sharing,
+                            key=lambda paths: (-len(paths), tuple(sorted(paths))),
+                        )[0]
+                        err(
+                            "%s: %d ready v2 cards duplicate verifier environment (%s); "
+                            "write verifier.json first and use contract v3 for the largest sharing group"
+                            % (
+                                fd,
+                                len(largest),
+                                ", ".join(os.path.basename(path) for path in largest),
+                            )
+                        )
             for c in cyclic_slugs(graph):
                 err("%s: in (or depends on) a blocked_by cycle" % by_slug[c])
 

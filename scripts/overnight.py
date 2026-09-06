@@ -3,8 +3,8 @@
 # iteration runs drain-wave.py `next` itself and `dispatch`es the proposed wave BEFORE
 # launching the session — every dispatch timestamp provably precedes the session's model
 # work, so the ledger can never be written after the fact. The fresh session then runs only
-# that wave's subagents and `collect`s; a zombie report (next exit 3) gets a session that
-# only adopt-or-reverts and `collect`s; batch completion (next exit 4) gets one final
+# that wave's workers and `collect`s after reconciliation; a zombie report (next exit 3) gets a
+# session that only adopts-or-reverts, reconciles, and `collect`s; batch completion (next exit 4) gets one final
 # close-out session (DRAIN.md close: audit + full suite, handoff dropped). Exit 6 stops before
 # dispatch for `/spec` receipt realignment. The runner
 # gates itself first: `drain-wave.py selftest` runs before the first session and a
@@ -19,12 +19,13 @@
 #   python overnight.py <feat> <repo-root>
 #
 # Same script on Windows and Unix.
+import hashlib
+import json
 import os
 import re
 import shutil
 import subprocess
 import sys
-import hashlib
 
 MAX_SESSIONS = 50
 MAX_TURNS = 40
@@ -76,12 +77,58 @@ def parse_wave(output):
 def parse_receipt_hits(output):
     """Issue -> exact receipt-hit tokens emitted by a successful dispatch."""
     result = {}
+    for line in output.splitlines():
+        if not line.startswith("briefs: "):
+            continue
+        try:
+            payload = json.loads(line[len("briefs: "):])
+        except (TypeError, ValueError):
+            continue
+        if not isinstance(payload, dict):
+            continue
+        for owner, values in payload.items():
+            if not isinstance(owner, str) or not isinstance(values, list):
+                continue
+            if re.fullmatch(r"receipt-hit:[0-9a-f]{64}", owner):
+                for slug in values:
+                    if isinstance(slug, str) and slug:
+                        result.setdefault(slug, []).append(owner)
+                continue
+            accepted = [
+                token for token in values
+                if isinstance(token, str) and re.fullmatch(r"receipt-hit:[0-9a-f]{64}", token)
+            ]
+            if accepted:
+                result[owner] = accepted
+        if result:
+            return result
     pattern = re.compile(r"^brief:\s+(\S+)\s+(receipt-hit:[0-9a-f]{64})$")
     for line in output.splitlines():
         match = pattern.match(line.strip())
         if match:
             result.setdefault(match.group(1), []).append(match.group(2))
     return result
+
+
+def parse_preflight_required(output):
+    """Return only the structured preflight payload, excluding repeated CLI guidance."""
+    for line in output.splitlines():
+        if not line.startswith("preflight-required: "):
+            continue
+        try:
+            payload = json.loads(line[len("preflight-required: "):])
+        except (TypeError, ValueError):
+            return None
+        if isinstance(payload, dict) and isinstance(payload.get("duplicates"), list):
+            return payload
+        return None
+    return None
+
+
+def reset_log(log_path):
+    """Keep one transient batch transcript instead of appending across invocations."""
+    with open(log_path, "w", encoding="utf-8", errors="replace") as log:
+        log.write("=== overnight run ===\n")
 
 
 def launch(exe, root, log_path, prompt):
@@ -156,24 +203,45 @@ def main(argv):
         )
     )
     receipt_script = os.path.join(os.path.dirname(wave_script), "preflight-receipt.py")
+    supervisor_script = os.path.join(os.path.dirname(wave_script), "test-supervisor.py")
     next_args = ["next", root] + ([feat] if feat else [])
     audit_arg = (' "%s"' % feat) if feat else ""
     close_scope = ("feature '%s'" % feat) if feat else "全部 feature"
+    handoff_path = os.path.join(root, handoff.replace("/", os.sep))
 
     scode, sout = run_tool(wave_script, ["selftest"])
     if scode != 0:
         print("overnight: drain-wave selftest failed — aborting. %s" % sout, file=sys.stderr)
         return 1
+    try:
+        if os.path.isfile(handoff_path):
+            with open(log_path, "a", encoding="utf-8", errors="replace") as log:
+                log.write("\n=== overnight resume ===\n")
+        else:
+            reset_log(log_path)
+    except OSError as exc:
+        print("overnight: cannot reset transient log %s: %s" % (log_path, exc), file=sys.stderr)
+        return 1
 
     ran = False
     complete = False
     last_conflict = None
-    prev1 = prev2 = -1
+    prev_marker1 = prev_marker2 = None
     for _ in range(MAX_SESSIONS):
         code, out = run_tool(wave_script, next_args)
         if code == 4:
             complete = True
             break
+        state_marker = hashlib.sha256(("%d\0%s" % (code, out)).encode("utf-8")).hexdigest()
+        if code in (0, 3) and state_marker == prev_marker1 == prev_marker2:
+            ready = sum(count_ready(d) for d in issues_dirs)
+            print(
+                "overnight: scheduler state unchanged across two sessions (%d ready) — "
+                "stuck-red stop before dispatch, see %s" % (ready, log_path),
+                file=sys.stderr,
+            )
+            return 3
+        prev_marker2, prev_marker1 = prev_marker1, state_marker
         if code == 6:
             marker = hashlib.sha256(out.encode("utf-8")).hexdigest()
             if marker == last_conflict:
@@ -195,10 +263,11 @@ def main(argv):
         elif code == 3:
             prompt = (
                 "drain-wave.py next 报 exit 3——已派发未闭环的僵尸：\n%s\n"
-                "按 EDGE-CASES.md 逐个处置：采纳（补 ### 完成、置 done）则 collect green；"
-                "回退仅处理有归属证据的本 issue 改动、留 ready，再 collect aborted；归属有歧义时保留现场并说明。"
-                "collect 落账：python \"%s\" collect \"%s\" <slug>=green|aborted。"
-                "全部闭环后按滚动模式刷新 handoff，然后结束会话；不要派发新波，不要调 next/dispatch。"
+                "按 EDGE-CASES.md 逐个处置：采纳则补 ### 完成并置 done，结果记 green；"
+                "回退只处理有归属证据的本 issue 改动、留 ready，结果记 aborted；归属有歧义时保留现场并说明。"
+                "所有 outstanding slug 都有终态后，先做联合验证和归属核对，再一次性落账："
+                "python \"%s\" collect \"%s\" <slug>=green|aborted [...]。"
+                "闭环后按滚动模式刷新 handoff，然后结束会话；不要派发新波，不要调 next/dispatch。"
                 % (out, wave_script, root)
             )
             detail = "zombie recovery"
@@ -213,6 +282,13 @@ def main(argv):
                 return 1
             dcode, dout = run_tool(wave_script, ["dispatch", root] + slugs)
             if dcode == 5:
+                required = parse_preflight_required(dout)
+                if required is None:
+                    print(
+                        "overnight: dispatch returned no valid preflight-required payload",
+                        file=sys.stderr,
+                    )
+                    return 1
                 print(
                     "overnight: shared preflight receipt required before dispatch; "
                     "starting one preparation-only session"
@@ -220,12 +296,20 @@ def main(argv):
                 preflight_prompt = (
                     "这是 /tdd -p 派发前的共享预检准备会话，只处理下面列出的 duplicate P#，"
                     "不得编辑产品代码、issue 状态或 wave ledger，也不得安装、升级或启动未声明依赖。\n"
-                    "对每个唯一 tuple：在 repo root 为 %s、其声明 cwd 下原样执行 action 一次；"
-                    "只有 exit 0 且观察结果符合卡片预期时，才运行 python \"%s\" record，"
-                    "把 receipt/cwd/action/fingerprint/verifier_digest 原样传入。"
+                    "对每个唯一 tuple：在 repo root 为 %s、其声明 cwd 下用 python \"%s\""
+                    " 原样监督执行 action 一次，execution receipt 放 feature receipts，log 放 .scratch/tmp。"
+                    "只有监督回执为 pass 且观察结果符合卡片预期时，才运行 python \"%s\" record，"
+                    "传 receipt/cwd/action/fingerprint、--execution-receipt 及非空 digest。"
                     "任一失败就报告失败并停止，绝不能写 passed receipt。全部记录后结束会话，"
-                    "不要调用 next/dispatch。\n%s"
-                    % (root, receipt_script, dout)
+                    "不要调用 next/dispatch。\npreflight-required: %s"
+                    % (
+                        root,
+                        supervisor_script,
+                        receipt_script,
+                        json.dumps(
+                            required, ensure_ascii=False, separators=(",", ":"), sort_keys=True
+                        ),
+                    )
                 )
                 if launch(exe, root, log_path, preflight_prompt) != 0:
                     print(
@@ -241,23 +325,32 @@ def main(argv):
             receipt_hits = parse_receipt_hits(dout)
             receipt_brief = ""
             if receipt_hits:
+                consumers = {}
+                for slug, tokens in receipt_hits.items():
+                    for token in tokens:
+                        consumers.setdefault(token, []).append(slug)
                 rows = [
-                    "%s=%s" % (slug, ",".join(tokens))
-                    for slug, tokens in sorted(receipt_hits.items())
+                    "%s=[%s]" % (token, ",".join(sorted(slugs_for_token)))
+                    for token, slugs_for_token in sorted(consumers.items())
                 ]
                 receipt_brief = (
-                    " 共享预检映射（逐项原样复制到对应子代理 brief，只替代匹配 P#）：%s。"
+                    " 共享预检映射（将 token 原样给列表内 worker，只替代匹配 P#）：%s。"
                     % "; ".join(rows)
                 )
             prompt = (
-                "%s：若 %s 存在先读它续跑。本波已由 runner 落账派发：[%s]——会话不得调用 next/dispatch。"
+                "%s。已派发：[%s]；以列表/ledger 为准，禁止调用 next/dispatch。"
+                "遵守 DRAIN.md 的 brief/监督/reconcile/collect。"
+                "若 %s 存在，只读 card/ledger 无法推导的决定和测试指针。"
                 "%s"
-                "逐个 issue 派 general-purpose 子代理跑完整红绿闭环；收波时落账："
-                "python \"%s\" collect \"%s\" <slug>=green|red|blocked|conflict|aborted。"
-                "任一子代理返回 conflict 时，按 DRAIN.md 中断未完成兄弟并以 aborted 归账，"
-                "handoff 指向 /spec 核实冲突；误报按 DRAIN.md 保留证据后 dismiss-conflict，真实分歧才重对齐。"
-                "收波后按滚动模式刷新 handoff（波号、tests-so-far），然后结束会话。"
-                % (scope, handoff, ", ".join(slugs), receipt_brief, wave_script, root)
+                "每个 feature 用 workflow-state.py packets 一次取本波输入；先同时派出其余 issue，"
+                "再开始主 agent 的首个 issue，并行 issue（含主 agent）不超过四个。"
+                "游标状态检查间隔至少约 30 秒，最迟约一分钟检查；attention/final 立即处理。"
+                "主 action 无法在该间隔内让出控制时也委派。全员终态后做联合 scoped 验证、"
+                "baseline/路径归属核对，再一次收波："
+                "python \"%s\" collect \"%s\" <slug>=green|red|blocked|aborted；"
+                "conflict 使用 <slug>=conflict@<contract-bound-evidence.json>。"
+                "收波后 handoff 只留 ledger/card 指针和不可推导决定，然后结束会话。"
+                % (scope, ", ".join(slugs), handoff, receipt_brief, wave_script, root)
             )
             detail = "wave [%s]" % ", ".join(slugs)
         else:
@@ -267,14 +360,6 @@ def main(argv):
             )
             return 1
         ready = sum(count_ready(d) for d in issues_dirs)
-        if ready == prev1 and ready == prev2:
-            print(
-                "overnight: %d ready issue(s) unchanged across two sessions — stuck-red stop, see %s"
-                % (ready, log_path),
-                file=sys.stderr,
-            )
-            return 3
-        prev2, prev1 = prev1, ready
         print("overnight: session start — %s (%d ready). Log: %s" % (detail, ready, log_path))
         ran = True
         if launch(exe, root, log_path, prompt) != 0:
@@ -291,7 +376,6 @@ def main(argv):
             file=sys.stderr,
         )
         return 3
-    handoff_path = os.path.join(root, handoff.replace("/", os.sep))
     if complete and (ran or os.path.isfile(handoff_path)):
         print("overnight: batch complete — close-out session (audit + full suite)")
         prompt = (

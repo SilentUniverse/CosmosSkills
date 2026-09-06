@@ -33,17 +33,25 @@ In order:
    readiness finishes. The answer is alignment for that choice; no confirmation echo. SUPERSEDE
    includes reconciliation of only the affected decisions.
 4. **Write.** Persist only the settled or explicitly aligned design: for opted-in graphical UI write the canonical
-   `.scratch/<feat>/experience-contract.json` first; write the PRD when warranted, then every issue
-   in dependency order with `status: ready`. Compressed intake writes the PRD as a stub that records
-   the tracked requirements-of-record path and content hash; the readiness register, issues, and
-   gates are written unchanged. Frontmatter carries `touches:` + `test_paths:` per
+   `.scratch/<feat>/experience-contract.json` first. Before writing any issue, group planned
+   non-graphical cards by identical cwd, fingerprint, prerequisites, and prepare state. When two or
+   more non-graphical cards share that base, select the largest sharing group (dependency order
+   breaks a size tie) and write `verifier.json` first with the union of its named commands; those
+   cards use contract v3 and keep only profile references plus true fingerprint/command deviations.
+   Other groups, a single card, and graphical UI stay v2 because a feature has one profile path.
+   Do not mutate a profile that already binds a done card; put a new ready card's difference on that
+   card or keep it v2. Write the PRD when warranted, then every issue in dependency order with
+   `status: ready`. Compressed intake writes the PRD as a stub that records the tracked
+   requirements-of-record path and content hash; verifier profile, issues, and gates are written
+   unchanged. Frontmatter carries `touches:` + `test_paths:` per
    [CARD-TEST.md](CARD-TEST.md). Each card's `## 相关面` block is written together with its
    reasoning radius: the CODEBASE invariant blocks, governing ADRs, and neighboring modules the
-   radius crosses — the executor starts with these, expanding only for a discovered dependency. No draft artifact or
+   radius crosses but that are not already named by `touches`/`test_paths` — the executor starts
+   with the union, expanding only for a discovered dependency. No draft artifact or
    extra status is created. SUPERSEDE writes
    once the affected decisions are settled ([SUPERSEDE.md](SUPERSEDE.md)).
 5. **Gate.** Check the feature written in this pass: `python ~/.claude/skills/verify-artifacts.py
-   <repo-root> --feature <feat>` (in this checkout: `engineering/verify-artifacts.py`). This blocks
+   <repo-root> --feature <feat>`. In this checkout, use `engineering/verify-artifacts.py`. This blocks
    new feature defects without charging the task for unrelated legacy debt. The whole-tree form
    (omit `--feature`) remains the batch-close/CI/migration gate. `python3` only if `python` is
    missing; never retry it after a non-zero gate exit.

@@ -26,8 +26,8 @@ A numbered list of concrete scenarios: `1. <角色>需要<能力>（<场景或�
 
 ## 实现决策（Implementation Decisions）
 
-Lead with invariants — what must always be true; the design derives from them. Flag one-way
-doors — public ABI, schema, wire protocol — separately; they get the hardest review.
+Lead with invariants: what must always be true; the design derives from them. Flag public ABI,
+schema, and wire protocol separately as one-way doors. They get the hardest review.
 
 The modules built/modified, their interfaces, architectural decisions, schema changes, API
 contracts, specific interactions. Name paths or a compact schema/type shape when they remove
@@ -36,11 +36,12 @@ contract ambiguity; keep implementation detail in the code or owning issue.
 ## 测试决策（Testing Decisions）
 
 Name the public seam(s), what makes a good behavioral test here, which modules get tested, and prior
-art in the codebase. Then preserve the aligned verification contract:
+art in the codebase. The PRD owns feature-level proof strategy; it does not own exact commands, P#
+runs, or environment fingerprints. Those live once in the executing issue or `verifier.json`.
 
-| ID | 场景 / 不变量 | 可观察结果 | agent 验证方法 | 已跑通的 P# | 证据形态 |
-|---|---|---|---|---|---|
-| R1 | ... | ... | exact test / command / browser or device action | P1 | case + exit/tally, log/trace/screenshot path |
+| ID | 场景 / 不变量 | 公共接缝 | 可观察结果 | 证据形态 |
+|---|---|---|---|---|
+| R1 | ... | ... | ... | case + exit/tally, log/trace/screenshot path |
 
 Every user scenario and invariant maps to a row. Deterministic evidence comes first; AI or human
 judgment follows [VERIFICATION-DESIGN.md](VERIFICATION-DESIGN.md).
@@ -60,16 +61,10 @@ Compressed intake (SKILL.md) replaces this template with a stub only when the de
 is a repo-relative tracked file available to a fresh checkout: standard frontmatter plus a
 `## 需求记录源` section whose body records its path, SHA-256 content hash, and one sentence on why it
 already fixes acceptance, verification, and constraints. Chat, URL, Downloads, mutable external,
-or untracked sources use the ordinary template; the readiness register below still applies.
+or untracked sources use the ordinary template; issue/profile readiness still applies.
 The section uses three bullets: ``- 路径：`docs/requirements/<name>.md` ``,
 ``- SHA-256：`<64 lowercase hex characters>` ``, and a one-line `- 完整性：...`. The artifact gate
 verifies that the source exists, is Git-tracked, and still matches the hash.
-
-Preserve the readiness register from the aligned receipt too:
-
-| P# | cwd | prerequisites | SPEC setup | preflight result | environment fingerprint |
-|---|---|---|---|---|---|
-| P1 | ... | tools/services/fixtures/access/network | exact command or 无 | action → passed; observed evidence + date | git/lock/runtime/tools/services |
 
 ## 端到端验证（End-to-End Verification）
 
