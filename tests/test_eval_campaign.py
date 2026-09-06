@@ -2,6 +2,7 @@ import importlib.util
 import json
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -212,7 +213,7 @@ class CampaignTests(unittest.TestCase):
             detached_manifest = campaign.verify_campaign(detached)
             self.assertEqual(manifest["public_payload_sha256"], detached_manifest["public_payload_sha256"])
             completed = subprocess.run(
-                ["python3", "campaign.py", "verify", "."],
+                [sys.executable, "campaign.py", "verify", "."],
                 cwd=detached,
                 capture_output=True,
                 text=True,

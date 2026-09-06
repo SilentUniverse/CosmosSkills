@@ -280,7 +280,7 @@ def load_ledger(root, feat):
 def save_ledger(root, feat, data):
     p = ledger_path(root, feat)
     os.makedirs(os.path.dirname(p), exist_ok=True)
-    tmp = p + ".tmp"
+    tmp = p + ".tmp.%d" % os.getpid()
     with open(tmp, "w", encoding="utf-8", newline="\n") as f:
         json.dump(data, f, ensure_ascii=False, indent=1)
         f.write("\n")
@@ -289,7 +289,7 @@ def save_ledger(root, feat, data):
 
 def contract_sha256(path):
     """Hash aligned issue content; comments/evidence do not count as realignment."""
-    with open(path, "r", encoding="utf-8") as stream:
+    with open(path, "r", encoding="utf-8-sig") as stream:
         text = stream.read()
     marker = re.search(r"(?m)^## Comments\s*$", text)
     contract = text[:marker.start()] if marker else text
@@ -1175,6 +1175,7 @@ def cmd_collect(root, pairs):
         plan.append((issues[slug][0], slug, result, conflict_evidence))
     ledgers = {}
     hits = {}
+    replayed = set()
     for feat, slug, result, _ in plan:
         data = ledgers.setdefault(feat, load_ledger(root, feat))
         hit = None
@@ -1183,6 +1184,11 @@ def cmd_collect(root, pairs):
                 hit = w
                 break
         if hit is None:
+            if any(slug in w.get("closed", {}) for w in data["waves"]):
+                # A prior collect run recorded this slug and closed its wave before
+                # dying; re-running the same reconciliation must not refuse on it.
+                replayed.add(slug)
+                continue
             print(
                 "drain-wave: %s has no open dispatch in .scratch/%s/wave-ledger.json" % (slug, feat),
                 file=sys.stderr,
@@ -1192,6 +1198,8 @@ def cmd_collect(root, pairs):
             print("drain-wave: %s was already collected in its open wave" % slug, file=sys.stderr)
             return 1
         hits[slug] = hit
+    if replayed:
+        plan = [entry for entry in plan if entry[1] not in replayed]
     outstanding = set()
     scratch = os.path.join(root, ".scratch")
     if os.path.isdir(scratch):
@@ -1211,7 +1219,13 @@ def cmd_collect(root, pairs):
             file=sys.stderr,
         )
         return 1
+    if not plan:
+        print("drain-wave: reported results were already collected; nothing to do")
+        return 0
     for feat, data in sorted(ledgers.items()):
+        names = ", ".join(slug for f, slug, _, _ in plan if f == feat)
+        if not names:
+            continue
         touched = set()
         for f, slug, result, conflict_evidence in plan:
             if f == feat:
@@ -1223,7 +1237,6 @@ def cmd_collect(root, pairs):
             if id(w) in touched and not (set(w["dispatched"]) - set(w.get("closed", {}))):
                 w["closed_at"] = now_iso()
         save_ledger(root, feat, data)
-        names = ", ".join(slug for f, slug, _, _ in plan if f == feat)
         print("drain-wave: collected %s -> .scratch/%s/wave-ledger.json" % (names, feat))
     return 0
 

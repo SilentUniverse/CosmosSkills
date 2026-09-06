@@ -325,17 +325,17 @@ created: 2026-08-30
 - P1 预检：`{action}` → passed；observed=exit 0；evidence=inline；checked=2026-08-30
 """
 
-            unittest_action = shlex.join([sys.executable, "-m", "unittest", "-q"])
-            (issues / "01-one.md").write_text(body("ready", unittest_action), encoding="utf-8")
-            (issues / "02-two.md").write_text(body("ready", unittest_action), encoding="utf-8")
+            shared_action = shlex.join([sys.executable, "-c", "print('ok')"])
+            (issues / "01-one.md").write_text(body("ready", shared_action), encoding="utf-8")
+            (issues / "02-two.md").write_text(body("ready", shared_action), encoding="utf-8")
             (issues / "03-different-readiness.md").write_text(
-                body("ready", unittest_action, fixtures="empty"), encoding="utf-8"
+                body("ready", shared_action, fixtures="empty"), encoding="utf-8"
             )
             (issues / "04-unique.md").write_text(
                 body("ready", "python -m compileall ."), encoding="utf-8"
             )
             (issues / "05-done.md").write_text(
-                body("done", unittest_action), encoding="utf-8"
+                body("done", shared_action), encoding="utf-8"
             )
 
             plan = preflight.duplicate_plan(root)

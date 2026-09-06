@@ -840,6 +840,14 @@ class VerifyArtifactsV3Tests(unittest.TestCase):
         result, output = self.run_gate(v3_issue_body(done=False))
         self.assertEqual(0, result, output)
 
+    def test_issue_contract_digest_ignores_line_endings(self):
+        body = v3_issue_body()
+        lf = workflow_contract.issue_contract_digest(body)
+        crlf = workflow_contract.issue_contract_digest(body.replace("\n", "\r\n"))
+        cr_only = workflow_contract.issue_contract_digest(body.replace("\n", "\r"))
+        self.assertEqual(lf, crlf)
+        self.assertEqual(lf, cr_only)
+
     def test_v3_missing_receipt_file_fails(self):
         def drop_receipt(root):
             (root / ".scratch" / "search" / "receipts" / "01-search-targeted.json").unlink()

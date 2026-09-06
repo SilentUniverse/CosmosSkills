@@ -52,8 +52,10 @@ a branch that already has an open PR merges that PR instead; the merge returns t
 the default branch. Without gh, land natively: `git switch` to the default branch and
 `git merge --ff-only <branch>`; with diverged histories, use `git merge --squash <branch>`
 plus `git commit` with the same message. Push the default branch, then delete the merged branch
-with `git branch -d` (after a squash landing `-d` refuses; `-D` is then the content-verified
-equivalent) and `git push origin --delete <branch>`.
+with `git branch -d` and `git push origin --delete <branch>`. After a squash landing `-d` refuses;
+verify the landed tree matches the branch (`git diff HEAD <branch>` empty), then `-D`. Where the
+host reserves `git branch -D` (git-guardrails), report the verified branch for the user to delete
+by hand: the landing stands, cleanup is reported, never bypassed.
 
 For submission, the mutating commands are `git add`, `git commit`, `git switch`, `git push`,
 `git merge`, the post-landing `git branch -d` (`-D` only after a squash landing), and, on the

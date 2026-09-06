@@ -260,6 +260,18 @@ class TestSupervisorTests(unittest.TestCase):
             supervisor.command_argv(r'python "C:\repo\test files\test_a.py" -q', "windows"),
         )
 
+    def test_windows_command_parser_accepts_posix_single_quoted_paths(self):
+        self.assertEqual(
+            [r"C:\repo\run tool\python.exe", "-m", "pytest", "-q"],
+            supervisor.command_argv(
+                r"'C:\repo\run tool\python.exe' -m pytest -q", "windows"
+            ),
+        )
+        self.assertEqual(
+            ["echo", "it's fine", "-q"],
+            supervisor.command_argv('echo "it\'s fine" -q', "windows"),
+        )
+
     def test_environment_secrets_are_redacted_from_log_and_receipt_tail(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

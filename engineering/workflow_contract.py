@@ -94,8 +94,22 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _absolute_anywhere(value: str) -> bool:
+    """Absolute on the recording platform: leading slash (POSIX/UNC) or a drive anchor.
+
+    A receipt recorded on POSIX carries `/...` paths that Windows `Path.is_absolute`
+    rejects (no drive); recognizing them keeps checkout-absolute evidence portable.
+    """
+    return value.startswith("/") or Path(value).is_absolute()
+
+
 def issue_contract_digest(raw: str) -> str:
-    """Hash the immutable issue contract; status and Comments are execution state."""
+    """Hash the immutable issue contract; status and Comments are execution state.
+
+    Line endings are normalized so a digest written through a text-mode reader and
+    revalidated through a byte-mode reader agree on every platform.
+    """
+    raw = raw.replace("\r\n", "\n").replace("\r", "\n")
     contract = raw.split("\n## Comments", 1)[0]
     lines = contract.splitlines(keepends=True)
     in_frontmatter = bool(lines and lines[0].strip() == "---")
@@ -138,7 +152,13 @@ def _pair_text(values: Mapping[str, str]) -> str:
 
 
 def _windows_command_argv(command: str) -> List[str]:
-    """Parse the Windows command-line quoting accepted by CreateProcess/CommandLineToArgvW."""
+    """Parse Windows command-line quoting, plus single-quote grouping for POSIX-style shells.
+
+    Double quotes keep CreateProcess/CommandLineToArgvW semantics (backslash escapes
+    before `"`). Single quotes group literally with no escapes, matching the POSIX
+    shells that drive these commands on Windows (Git Bash, MSYS); on stock cmd nobody
+    quotes paths with `'`, so accepting both keeps every substrate's receipts valid.
+    """
     argv: List[str] = []
     index = 0
     while index < len(command):
@@ -147,11 +167,15 @@ def _windows_command_argv(command: str) -> List[str]:
         if index == len(command):
             break
         argument: List[str] = []
-        quoted = False
+        quote = ""
         while index < len(command):
-            if command[index] in " \t" and not quoted:
+            if command[index] in " \t" and not quote:
                 break
-            if command[index] == "\\":
+            if command[index] == "'" and quote != '"':
+                quote = "" if quote == "'" else "'"
+                index += 1
+                continue
+            if command[index] == "\\" and quote != "'":
                 start = index
                 while index < len(command) and command[index] == "\\":
                     index += 1
@@ -162,18 +186,18 @@ def _windows_command_argv(command: str) -> List[str]:
                         argument.append('"')
                         index += 1
                     else:
-                        quoted = not quoted
+                        quote = "" if quote == '"' else '"'
                         index += 1
                 else:
                     argument.extend("\\" * count)
                 continue
-            if command[index] == '"':
-                quoted = not quoted
+            if command[index] == '"' and quote != "'":
+                quote = "" if quote == '"' else '"'
                 index += 1
                 continue
             argument.append(command[index])
             index += 1
-        if quoted:
+        if quote:
             raise ValueError("unclosed quote in Windows verifier command")
         argv.append("".join(argument))
     return argv
@@ -589,17 +613,19 @@ def validate_v3_completion(
             if not isinstance(cwd_value, str) or not cwd_value.strip():
                 raise ValueError(f"issue '{slug}' receipt cwd is missing")
             payload_cwd = Path(cwd_value)
-            if data.get("status") == "ready" or not payload_cwd.is_absolute():
-                if not payload_cwd.is_absolute():
+            cwd_portable_absolute = _absolute_anywhere(cwd_value)
+            if data.get("status") == "ready" or not cwd_portable_absolute:
+                if not cwd_portable_absolute:
                     payload_cwd = root / payload_cwd
                 expected_cwd = (root / verifier["cwd"]).resolve()
                 if payload_cwd.resolve() != expected_cwd:
                     raise ValueError(f"issue '{slug}' receipt cwd does not match verifier profile")
             if not re.fullmatch(r"[0-9a-f]{64}", str(payload.get("log_sha256", ""))):
                 raise ValueError(f"issue '{slug}' receipt log_sha256 is invalid")
-            log_path = Path(str(payload.get("log", "")))
+            log_text = str(payload.get("log", ""))
+            log_path = Path(log_text)
             local_log = None
-            if not log_path.is_absolute():
+            if not _absolute_anywhere(log_text):
                 local_log = root / log_path
             else:
                 try:
