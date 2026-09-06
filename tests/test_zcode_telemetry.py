@@ -3,6 +3,7 @@ import json
 import sqlite3
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -31,6 +32,10 @@ class ZCodeTelemetryTests(unittest.TestCase):
               model_retry_count integer, tool_error_count integer
             );
             create table tool_usage (id text primary key, session_id text);
+            create table part (
+              id text primary key, message_id text, session_id text not null,
+              time_created integer, time_updated integer, data text not null, sequence integer
+            );
             """
         )
         sessions = [
@@ -119,6 +124,157 @@ class ZCodeTelemetryTests(unittest.TestCase):
             self.assertIsNone(updated["metrics"]["wall_time_ms"])
             self.assertIsNone(updated["metrics"]["input_tokens"])
             self.assertIsNone(updated["metrics"]["tool_calls"])
+
+
+    def write_part(self, path, part_id, session_id, payload, time_created=1000):
+        connection = sqlite3.connect(path)
+        connection.execute(
+            "insert into part values (?,?,?,?,?,?,?)",
+            (part_id, None, session_id, time_created, time_created, payload, 1),
+        )
+        connection.commit()
+        connection.close()
+
+    def test_skill_usage_counts_by_parsed_argument(self):
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "db.sqlite"
+            self.make_database(database)
+            self.write_part(
+                database,
+                "p1",
+                "root-spec",
+                '{"type":"tool","callID":"c1","tool":"Skill","state":{"status":"completed","input":{"skill":"atk"},"output":"x"}}',
+            )
+            self.write_part(
+                database,
+                "p2",
+                "root-spec",
+                '{"type":"tool","tool":"Skill","state":{"input":{"skill":"atk"}}}',
+            )
+            self.write_part(
+                database,
+                "p3",
+                "root-tdd",
+                '{"type":"tool","tool":"Skill","state":{"input":{"skill":"lint"}}}',
+            )
+            self.write_part(
+                database,
+                "p4",
+                "root-spec",
+                '{"type":"tool","tool":"Bash","state":{"output":"runs Skill check"}}',
+            )
+            self.write_part(database, "p5", "root-spec", "not json mentioning Skill")
+            result = telemetry.skill_usage(database)
+            self.assertEqual(
+                [
+                    {"skill": "atk", "invocations": 2, "sessions": 1,
+                     "session_active_ms": 1000, "session_input_tokens": 400,
+                     "session_output_tokens": 10},
+                    {"skill": "lint", "invocations": 1, "sessions": 1,
+                     "session_active_ms": 2000, "session_input_tokens": 600,
+                     "session_output_tokens": 20},
+                ],
+                result["skills"],
+            )
+
+    def test_skill_usage_days_filter_excludes_old_invocations(self):
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "db.sqlite"
+            self.make_database(database)
+            recent_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+            self.write_part(
+                database,
+                "old",
+                "root-spec",
+                '{"type":"tool","tool":"Skill","state":{"input":{"skill":"atk"}}}',
+                time_created=1000,
+            )
+            self.write_part(
+                database,
+                "new",
+                "root-tdd",
+                '{"type":"tool","tool":"Skill","state":{"input":{"skill":"lint"}}}',
+                time_created=recent_ms,
+            )
+            result = telemetry.skill_usage(database, days=1)
+            self.assertEqual(["lint"], [row["skill"] for row in result["skills"]])
+
+    def test_skill_usage_requires_part_table(self):
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "db.sqlite"
+            connection = sqlite3.connect(database)
+            connection.executescript(
+                """
+                create table session (id text primary key);
+                create table turn_usage (session_id text);
+                create table tool_usage (id text primary key, session_id text);
+                """
+            )
+            connection.commit()
+            connection.close()
+            with self.assertRaises(telemetry.TelemetryError):
+                telemetry.skill_usage(database)
+
+
+    def test_context_profile_aggregates_read_and_write_bytes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "db.sqlite"
+            self.make_database(database)
+            self.write_part(
+                database,
+                "r1",
+                "root-spec",
+                '{"type":"tool","tool":"Read","state":{"status":"completed",'
+                '"input":{"file_path":"/repo/a.md"},"output":"' + "x" * 300 + '"}}',
+            )
+            self.write_part(
+                database,
+                "r2",
+                "root-spec",
+                '{"type":"tool","tool":"Read","state":{"status":"error",'
+                '"input":{"file_path":"/repo/failed.md"},"output":"boom"}}',
+            )
+            self.write_part(
+                database,
+                "w1",
+                "root-spec",
+                '{"type":"tool","tool":"Write","state":{"status":"completed",'
+                '"input":{"file_path":"/repo/out.md","content":"' + "y" * 120 + '"},"output":"ok"}}',
+            )
+            self.write_part(
+                database,
+                "e1",
+                "root-tdd",
+                '{"type":"tool","tool":"Edit","state":{"status":"completed",'
+                '"input":{"file_path":"/repo/out.md","old_string":"a","new_string":"' + "z" * 80 + '"},"output":"ok"}}',
+            )
+            result = telemetry.context_profile(database)
+            self.assertEqual(
+                {"read_calls": 1, "read_bytes": 300, "write_calls": 1,
+                 "write_bytes": 120, "edit_calls": 1, "edit_bytes": 80},
+                result["totals"],
+            )
+            self.assertEqual(
+                [{"path": "/repo/a.md", "calls": 1, "bytes": 300}], result["top_reads"]
+            )
+            self.assertEqual(
+                [{"path": "/repo/out.md", "calls": 2, "bytes": 200}], result["top_writes"]
+            )
+
+    def test_context_profile_days_filter_and_top_limit(self):
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "db.sqlite"
+            self.make_database(database)
+            recent_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+            for index, created in enumerate((1000, recent_ms)):
+                payload = (
+                    '{"type":"tool","tool":"Read","state":{"status":"completed",'
+                    '"input":{"file_path":"/repo/%d.md"},"output":"xx"}}' % index
+                )
+                self.write_part(database, f"r{index}", "root-spec", payload, time_created=created)
+            result = telemetry.context_profile(database, days=1, top=1)
+            self.assertEqual(1, result["totals"]["read_calls"])
+            self.assertEqual([{"path": "/repo/1.md", "calls": 1, "bytes": 2}], result["top_reads"])
 
 
 if __name__ == "__main__":

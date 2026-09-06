@@ -1,7 +1,8 @@
 # Drain mode
 
 Bare `/tdd` drains all active features serially; `<feat>` scopes one feature; `-p` enables
-independent worker waves, at most four issues per wave. `-log` always runs one issue per wave.
+independent worker waves, at most four issues per wave (mechanics in
+[DRAIN-PARALLEL.md](DRAIN-PARALLEL.md)). `-log` always runs one issue per wave.
 The caller owns the entire requested batch through implementation, integration, and remaining fixes.
 
 ## Driver and inputs
@@ -83,10 +84,8 @@ covers readiness only; RED/GREEN and final behavior evidence are not cached.
 Serial mode runs one issue at a time through [SKILL.md](SKILL.md)'s autonomous loop. Use the same
 per-issue evidence and recovery rules as parallel work; no subagent or worktree is required.
 
-For `-p`, use the driver's computed collision-free wave. Overlapping `touches`, `test_paths`, or
-exact `exclusive_resources` IDs serialize, and missing path declarations run alone. Declare shared
-root/config paths explicitly. SPEC names exclusive devices, databases, build outputs, and constrained
-runners on every card that uses them; do not rely on a prose warning the driver cannot enforce.
+For `-p`, load [DRAIN-PARALLEL.md](DRAIN-PARALLEL.md) for collision-free waves, packet and brief
+generation, worker launch, supervision, and the open-wave barrier; this file stays loaded alongside it.
 
 Before execution record:
 
@@ -110,22 +109,15 @@ requested or necessary for authorized isolation, while honoring the driver's col
 follow host branch naming (Codex: `codex/`). Merge in dependency order, resolve conflicts through
 `/conflicts`, and verify on the integrated tree. Worktrees cannot write shared stash/tmp state.
 
-After dispatch, generate all wave packets in one read-only call per feature:
+## Worker brief contract (`-p`)
 
-```text
-python3 <skills-root>/workflow-state.py packets <repo-root> <feat> <slug>...
-```
-
-This avoids repeated process/profile reads and persists nothing. `packets` requires exactly the
-feature's outstanding open-wave slugs, checks every card against its dispatch-time contract hash,
-and returns one shared wave/baseline binding. It refuses undispatched, partial, or changed input.
-Render every worker brief mechanically:
-`python3 <skills-root>/workflow-state.py briefs <repo-root> <feat>` emits one brief per outstanding
-slug — packet, receipt-hit token(s) when the ledger recorded them, and the derived tests-so-far
-manifest (done cards' `test_paths`, archived history included, derived per call). The bullets below stay the brief
-contract; supply what they name verbatim. Start delegated
-workers from these immutable inputs before beginning the orchestrator's RED action. Each worker
-receives a self-contained brief:
+`python3 <skills-root>/workflow-state.py briefs <repo-root> <feat>` renders the mechanical half of
+every outstanding worker brief: packet, receipt-hit token(s) when the ledger recorded them, and the
+derived tests-so-far manifest (done cards' `test_paths`, archived history included, derived per
+call). Generation, launch, and supervision live in [DRAIN-PARALLEL.md](DRAIN-PARALLEL.md). The
+bullets below stay the single-sourced brief contract; supply what they name verbatim. Start
+delegated workers from these immutable inputs before beginning the orchestrator's RED action. Each
+worker receives a self-contained brief:
 
 - Run `/tdd <issue-path>` with inherited `-log`, not drain mode. No nested agents.
 - Supply that issue's compact projection from `workflow-state.py packets` and exact receipt-hit token, if
@@ -140,42 +132,8 @@ receives a self-contained brief:
 - Require evidence pointers and changed-file ownership deltas. Commands, tallies, and declared paths
   already retained by the card/receipt are not repeated in the return.
 
-Assign the first (highest-priority) issue to the orchestrator by default. Launch every remaining
-worker concurrently in one host operation, then immediately begin the orchestrator issue; the
-four-issue cap includes the orchestrator. If its next action cannot yield within the supervision
-interval, delegate that issue too and keep the orchestrator on supervision, evidence review, and
-reconciliation. The orchestrator's issue follows the same ownership and evidence contract.
-
-Until every worker closes, repeat a bounded supervision loop:
-
-1. Keep one cursor per worker. Consume one compact event snapshot at the first meaningful RED/GREEN
-   boundary after at least about 30 seconds since the previous status call; if no boundary arrives,
-   check by about one minute. Consume an explicit attention/final event immediately without an
-   extra status call. Check events against the packet, declared paths, first test, and verifier;
-   silence alone is not drift.
-2. Between checks, fill the bounded interval with one RED/GREEN action, evidence/ownership review
-   for returned work, reconciliation preparation for this wave, or other read-only close-out work.
-   Do not spend a remote call before every short local action.
-3. If no safe work remains, use one cursor-aware wait of up to about one minute. Do not busy-poll,
-   reread full worker history, or request periodic prose status.
-4. Resolve repo-observable context gaps for the worker and send only the missing packet field,
-   pointer, command, or evidence. Correct concrete scope/path/test drift promptly; interrupt and
-   rebrief only when continuing would contaminate ownership. A new consequential choice returns to
-   the caller.
-5. Consume final results immediately and retain their compact outcomes in the current wave context,
-   but do not partially collect the ledger. Do not redo the worker's task; once every worker is
-   terminal, verify the combined evidence and ownership before the one wave commit.
-
-While workers remain, the orchestrator may write only its assigned issue's declared paths and
-`.scratch`; outside that scope, only read-only inspection is allowed. Do not launch the batch suite
-or shared-cache preflight. Unassigned activity drifts fingerprints and blurs path ownership. Do not
-materialize next-wave packets, briefs, or manifests while the wave is open; they would be stale by
-construction. After reconciliation rerun `step` and generate the next wave's inputs once. Do not
-dispatch a refill either: one open wave across all features is the reconciliation contract because
-every worker diffs against the same recorded baseline. Dispatch
-the next wave as soon as the ledger closes. This fixed shared-tree barrier may leave a short-lived
-free slot, but prevents a refill from inheriting moving sibling edits and turning ownership review
-into an ambiguous multi-baseline merge.
+Worker assignment, launch, the bounded supervision loop, orchestrator write scope, and the
+open-wave barrier are owned by [DRAIN-PARALLEL.md](DRAIN-PARALLEL.md).
 
 Per-issue GREEN requires all AC plus the touched module's scoped tests and applicable build.
 Write the [completion record](COMPLETION-RECORD.md), sync `test_paths`, then close to `done`.

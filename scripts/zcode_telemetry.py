@@ -200,6 +200,172 @@ def summarize(
         connection.close()
 
 
+def skill_usage(database: Path, days: Optional[int] = None) -> Mapping[str, Any]:
+    """Aggregate Skill tool calls by parsed skill argument to rank skills by usage and cost.
+
+    Cost fields sum turn_usage over every session that invoked the skill (each session
+    counted once per skill), so a session using several skills contributes to each; this
+    is a ranking signal, not additive cost."""
+    connection = _connect(database)
+    try:
+        tables = {
+            str(row[0])
+            for row in connection.execute("select name from sqlite_master where type='table'")
+        }
+        if "part" not in tables:
+            raise TelemetryError("ZCode database missing table: part")
+        cutoff = 0
+        if days is not None:
+            cutoff = int(datetime.now(timezone.utc).timestamp() * 1000 - days * 86400_000)
+        invocations: Dict[str, int] = {}
+        session_ids: Dict[str, set] = {}
+        for row in connection.execute(
+            "select session_id, time_created, data from part where data like '%Skill%'"
+        ):
+            if cutoff and row["time_created"] is not None and int(row["time_created"]) < cutoff:
+                continue
+            try:
+                payload = json.loads(row["data"])
+            except (TypeError, json.JSONDecodeError):
+                continue
+            if not isinstance(payload, dict) or payload.get("tool") != "Skill":
+                continue
+            state = payload.get("state")
+            call_input = state.get("input") if isinstance(state, dict) else None
+            skill = call_input.get("skill") if isinstance(call_input, dict) else None
+            if not isinstance(skill, str) or not skill:
+                continue
+            invocations[skill] = invocations.get(skill, 0) + 1
+            session_ids.setdefault(skill, set()).add(str(row["session_id"]))
+
+        skills = []
+        for skill in sorted(invocations, key=lambda name: (-invocations[name], name)):
+            ids = sorted(session_ids[skill])
+            totals = _turn_totals(connection, ids)
+            skills.append(
+                {
+                    "skill": skill,
+                    "invocations": invocations[skill],
+                    "sessions": len(ids),
+                    "session_active_ms": totals["active_ms"],
+                    "session_input_tokens": totals["input_tokens"],
+                    "session_output_tokens": totals["output_tokens"],
+                }
+            )
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "measurement": "skill invocations with session-level cost attribution",
+            "source_database": str(database.resolve()),
+            "source_tables": ["part", "turn_usage"],
+            "measured_at": datetime.now(timezone.utc).date().isoformat(),
+            "days": days,
+            "skills": skills,
+        }
+    finally:
+        connection.close()
+
+
+def context_profile(database: Path, days: Optional[int] = None, top: int = 40) -> Mapping[str, Any]:
+    """Aggregate completed Read/Write/Edit tool calls by file path.
+
+    Read bytes count what actually entered the context (tool output); Write/Edit bytes
+    count the new content each call produced. Post-hoc from the local history database
+    only — no workflow path touches this, so profiling costs the main flow nothing."""
+    connection = _connect(database)
+    try:
+        tables = {
+            str(row[0])
+            for row in connection.execute("select name from sqlite_master where type='table'")
+        }
+        if "part" not in tables:
+            raise TelemetryError("ZCode database missing table: part")
+        cutoff = 0
+        if days is not None:
+            cutoff = int(datetime.now(timezone.utc).timestamp() * 1000 - days * 86400_000)
+        rows: Dict[str, Dict[str, int]] = {}
+        totals = {
+            "read_calls": 0,
+            "read_bytes": 0,
+            "write_calls": 0,
+            "write_bytes": 0,
+            "edit_calls": 0,
+            "edit_bytes": 0,
+        }
+        for row in connection.execute(
+            "select time_created, data from part "
+            "where data like '%\"tool\":\"Read\"%' or data like '%\"tool\":\"Write\"%' "
+            "or data like '%\"tool\":\"Edit\"%'"
+        ):
+            if cutoff and row["time_created"] is not None and int(row["time_created"]) < cutoff:
+                continue
+            try:
+                payload = json.loads(row["data"])
+            except (TypeError, json.JSONDecodeError):
+                continue
+            if not isinstance(payload, dict):
+                continue
+            tool = payload.get("tool")
+            state = payload.get("state")
+            if tool not in {"Read", "Write", "Edit"} or not isinstance(state, dict):
+                continue
+            if state.get("status") != "completed":
+                continue
+            call_input = state.get("input")
+            path = call_input.get("file_path") if isinstance(call_input, dict) else None
+            if not isinstance(path, str) or not path:
+                continue
+            entry = rows.setdefault(path, {"read_calls": 0, "read_bytes": 0,
+                                           "write_calls": 0, "write_bytes": 0,
+                                           "edit_calls": 0, "edit_bytes": 0})
+            if tool == "Read":
+                output = state.get("output")
+                size = len(output) if isinstance(output, str) else 0
+                entry["read_calls"] += 1
+                entry["read_bytes"] += size
+                totals["read_calls"] += 1
+                totals["read_bytes"] += size
+            elif tool == "Write":
+                content = call_input.get("content")
+                size = len(content) if isinstance(content, str) else 0
+                entry["write_calls"] += 1
+                entry["write_bytes"] += size
+                totals["write_calls"] += 1
+                totals["write_bytes"] += size
+            else:
+                replacement = call_input.get("new_string")
+                size = len(replacement) if isinstance(replacement, str) else 0
+                entry["edit_calls"] += 1
+                entry["edit_bytes"] += size
+                totals["edit_calls"] += 1
+                totals["edit_bytes"] += size
+        ranked = sorted(rows.items(), key=lambda item: (-item[1]["read_bytes"], item[0]))
+        top_reads = [
+            {"path": path, "calls": counts["read_calls"], "bytes": counts["read_bytes"]}
+            for path, counts in ranked[:top]
+            if counts["read_calls"]
+        ]
+        ranked_writes = sorted(rows.items(), key=lambda item: (-item[1]["write_bytes"], item[0]))
+        top_writes = [
+            {"path": path, "calls": counts["write_calls"] + counts["edit_calls"],
+             "bytes": counts["write_bytes"] + counts["edit_bytes"]}
+            for path, counts in ranked_writes[:top]
+            if counts["write_calls"] + counts["edit_calls"]
+        ]
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "measurement": "context read bytes and produced write bytes by file path",
+            "source_database": str(database.resolve()),
+            "source_tables": ["part"],
+            "measured_at": datetime.now(timezone.utc).date().isoformat(),
+            "days": days,
+            "totals": totals,
+            "top_reads": top_reads,
+            "top_writes": top_writes,
+        }
+    finally:
+        connection.close()
+
+
 def list_sessions(database: Path, directory: str) -> List[Mapping[str, Any]]:
     connection = _connect(database)
     try:
@@ -277,6 +443,13 @@ def build_parser() -> argparse.ArgumentParser:
     listing = commands.add_parser("list", help="list sessions for one project directory")
     listing.add_argument("--db", type=Path, default=DEFAULT_DB)
     listing.add_argument("--directory", required=True)
+    usage = commands.add_parser("skills", help="aggregate Skill invocations per skill name")
+    usage.add_argument("--db", type=Path, default=DEFAULT_DB)
+    usage.add_argument("--days", type=int, help="only count invocations from the last N days")
+    profile = commands.add_parser("profile", help="aggregate Read/Write/Edit bytes by file path")
+    profile.add_argument("--db", type=Path, default=DEFAULT_DB)
+    profile.add_argument("--days", type=int, help="only count calls from the last N days")
+    profile.add_argument("--top", type=int, default=40, help="rows per ranking table")
     summary = commands.add_parser("summarize", help="summarize selected non-overlapping root sessions")
     summary.add_argument("--db", type=Path, default=DEFAULT_DB)
     summary.add_argument("--root-session", action="append", type=_parse_root, required=True)
@@ -291,6 +464,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     try:
         if args.command == "list":
             print(json.dumps(list_sessions(args.db, args.directory), ensure_ascii=False, indent=2))
+            return 0
+        if args.command == "skills":
+            print(json.dumps(skill_usage(args.db, args.days), ensure_ascii=False, indent=2, sort_keys=True))
+            return 0
+        if args.command == "profile":
+            print(json.dumps(context_profile(args.db, args.days, args.top), ensure_ascii=False, indent=2, sort_keys=True))
             return 0
         if bool(args.observation) != bool(args.run_id):
             raise TelemetryError("--observation and --run-id must be used together")

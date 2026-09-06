@@ -7,8 +7,8 @@ disable-model-invocation: true
 
 # Write Skills
 
-Optimize lexicographically: product quality and correctness first, elapsed delivery time second,
-and token use third. Never buy speed or smaller context by weakening required evidence, safety, or
+Optimize in the resident policy's lexicographic order (CLAUDE.md §5a).
+Never buy speed or smaller context by weakening required evidence, safety, or
 clarity. Among equally sound designs, choose the faster path; among equally fast paths, choose the
 smaller prompt surface.
 

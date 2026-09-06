@@ -1,3 +1,4 @@
+import re
 import unittest
 from pathlib import Path
 
@@ -91,7 +92,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertIn("only when review found", completion)
 
     def test_parallel_briefs_and_waiting_work_do_not_materialize_duplicate_inputs(self):
-        drain = text("workflow/tdd/DRAIN.md")
+        drain = text("workflow/tdd/DRAIN.md") + text("workflow/tdd/DRAIN-PARALLEL.md")
         tdd = text("workflow/tdd/SKILL.md")
         compact = " ".join(drain.split())
         self.assertIn("packet's `context`", drain)
@@ -121,9 +122,24 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertNotIn("Preserve the readiness register", prd)
         self.assertNotIn("| P# | cwd | prerequisites", prd)
 
+    def test_structure_maps_match_top_level_definition_order(self):
+        for path in (
+            "workflow/verify-artifacts.py",
+            "workflow/tdd/scripts/drain-wave.py",
+        ):
+            source = text(path)
+            block = source.split("--- structure map", 1)[1].split(
+                "--- end structure map", 1
+            )[0]
+            mapped = re.findall(r"^# (\w+) — ", block, re.M)
+            defined = re.findall(r"^(?:def|class) (\w+)", source, re.M)
+            self.assertEqual(defined, mapped, path)
+
     def test_dependency_has_one_owner_and_supervision_is_rate_limited(self):
         issue = text("workflow/spec/ISSUE-TEMPLATE.md")
-        drain = " ".join(text("workflow/tdd/DRAIN.md").split())
+        drain = " ".join(
+            (text("workflow/tdd/DRAIN.md") + text("workflow/tdd/DRAIN-PARALLEL.md")).split()
+        )
         self.assertIn("`blocked_by` is the single dependency source", issue)
         self.assertNotIn("## 前置依赖（Blocked by）", issue)
         self.assertIn("after at least about 30 seconds", drain)
