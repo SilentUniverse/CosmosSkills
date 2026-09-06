@@ -60,8 +60,8 @@ Variants must be **structurally different**: different layout, different informa
 Create a single switcher component on the route:
 
 ```tsx
-// Development-only variant branch; keep existing page rendering as the default.
-const variant = searchParams.get('variant') ?? 'A';
+const variant = isDevelopment ? searchParams.get('variant') : null;
+if (variant !== 'A' && variant !== 'B' && variant !== 'C') return <ExistingPage {...data} />;
 return (
   <>
     {variant === 'A' && <VariantA {...data} />}
@@ -71,6 +71,8 @@ return (
   </>
 );
 ```
+
+Use the project's development flag for `isDevelopment`; `ExistingPage` is the original rendering.
 
 For sub-shape A (existing page): keep all the existing data fetching above the switcher; only the rendered subtree changes per variant.
 

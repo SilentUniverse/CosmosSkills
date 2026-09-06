@@ -35,7 +35,10 @@ git log  <fixed-point>..HEAD --oneline   # the commit list
 Resolve the ref (`git rev-parse <fixed-point>`) and inspect the diff before dispatch. Report an
 empty diff as no changes in that scope. A bad supplied ref needs correction; gather sources meanwhile.
 
-Working-tree mode — uncommitted changes (e.g. a drain batch before commit): `git diff HEAD`, fixed point `HEAD`.
+Working-tree mode: capture `git status --short`, `git diff HEAD`, and the contents of in-scope
+untracked files. Git diff omits those files, so an empty tracked diff does not prove an empty review.
+Pass their paths with the diff to every applicable axis; report excluded paths. Pin committed refs
+to resolved SHAs and restart affected review only if the reviewed tree changes.
 
 ### 2. Identify the spec source
 
@@ -43,7 +46,9 @@ Look for the originating spec, in this order:
 
 1. A path the user (or caller) passed as an argument — an issue file or PRD.
 2. The issue referenced by the branch / feature slug: `.scratch/<feat>/issues/NN-*.md`; its `## 验收标准（AC）` block is the spec. For a `redo`/`fix` issue, also read the parent named by `refines:`. Review a multi-issue batch per issue; ask only when a requirement cannot be attributed after lookup.
-3. The feature PRD: `.scratch/<feat>/PRD.md`.
+3. The feature's live PRD: inspect `PRD.md` and `PRD-vN.md` frontmatter and follow `supersedes` to
+   the unique live head. Do not default to v1 or guess between multiple heads. If a supplied source
+   was superseded, retain any requested historical comparison and identify the current contract.
 4. Use the user's explicit requirements if no artifact exists. If no contract is available,
    report "无 spec 可比对" and complete the available axes; never infer a Spec pass.
 
@@ -62,9 +67,11 @@ Otherwise run separate inline passes with the same [briefs](SUBAGENT-BRIEFS.md),
 they are not independent reviews. If independence is required, report that gate unmet and return
 the useful findings. Bound delegated scope, output, and tool calls; no nested delegation.
 
-**Standards sub-agent** — pass: the full diff command and commit list; the standards-source files found in step 3; the smell baseline: [SMELL-BASELINE.md](SMELL-BASELINE.md) in this skill's folder (`~/.claude/skills/code-review/SMELL-BASELINE.md` when installed). Brief: §Standards.
+**Standards sub-agent** — pass the pinned review inputs from step 1, applicable standards sources,
+and [SMELL-BASELINE.md](SMELL-BASELINE.md). Brief: §Standards.
 
-**Spec sub-agent** — pass: the diff command and commit list; the path or fetched contents of the spec (issue `## AC` block and/or PRD). Brief: §Spec.
+**Spec sub-agent** — pass the same review inputs and the resolved requirements, including inherited
+constraints or pending manual checks relevant to this scope. Brief: §Spec.
 
 **Experience sub-agent (conditional)** — only if the originating issue says
 `experience_review: graded`. Pass the canonical experience contract and anonymous operated-state

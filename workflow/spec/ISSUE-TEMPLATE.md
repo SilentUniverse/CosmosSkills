@@ -15,7 +15,11 @@ Write issues in dependency order (blockers first) so `blocked_by` can reference 
 
 ## 上级
 
-Parent PRD path + the PRD lines governing this slice: 用户场景 + related 实现决策, verbatim, ≤5 lines. `detail` / `redo` / `fix`: the parent issue path + its relevant AC lines instead. `/tdd` reads the issue, never the PRD.
+When a parent PRD exists, give its path and extract the scenario, decisions, and constraints needed
+by this slice. `detail` / `redo` / `fix` give the parent issue path and relevant AC instead. Without
+a parent artifact, record the settled goal and constraints here; do not invent a PRD or a path.
+Keep the extract compact without dropping a controlling constraint. TDD starts from this card and
+opens a named parent section only if the extract cannot resolve a discovered ambiguity.
 
 ## 做什么（What to build）
 
@@ -93,6 +97,11 @@ does not cross it.
 - invariants: `CODEBASE.md` 的 `<area>` 不变量块（多块用顿号分隔）
 - adr: `<NNNN-slug>`（本区无 ADR 治理则省略本行）
 - neighbors: `<touches/test_paths 之外、确实需要读取的邻接模块/文件>`（无则省略；不重抄写集）
+
+## 手动验证
+
+Omit this section unless an agent-inaccessible check has no parent PRD owner. List the pending
+check and the person or access needed; it is not an agent-runnable AC.
 
 ## Comments
 

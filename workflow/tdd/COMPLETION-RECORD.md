@@ -9,12 +9,16 @@ record; execution receipts and tests hold machine evidence. Do not narrate the i
    preserve user changes and other workers' hunks even when they appear in the same working tree.
 2. Append newly written test files to frontmatter `test_paths:`.
 3. Cover chosen failure modes: empty/boundary/error and relevant concurrency/timeout behavior.
-4. Ensure executed verifier commands exist in `CODEBASE.md` `## Verifier commands`.
+4. Reuse project verification commands; cache a reusable adapter in `CODEBASE.md` only when
+   project configuration cannot cheaply supply it.
 5. Challenge the most plausible failure and trace it to evidence. A review with no finding is
    valid; do not invent a defect, new test, or extra round to create a record line.
 
-Hands-on checks an agent cannot run belong in the PRD's 端到端验证, not an issue AC. Exact command,
-exit, observable result, and evidence path are proof; “implemented” or “tests pass” is not.
+Hands-on checks an agent cannot run belong in the PRD's 端到端验证 or, without a parent PRD, the
+issue's `## 手动验证` projected as `manual_verification`. Keep them outside agent-runnable ACs.
+Report pending checks and their required owner/access at single-issue and batch handoff; `done`
+means the agent-runnable contract passed, not that these human checks passed. Exact command, exit,
+observable result, and evidence path are proof; “implemented” or “tests pass” is not.
 
 ## Compact record
 
@@ -73,7 +77,7 @@ or several named issue receipts; batch-level full/build evidence stays at batch 
 ## Gate and failure
 
 For experience-review issues, write structured evidence first and run
-`python ~/.claude/skills/verify-artifacts.py <repo-root>` (`python3` only when `python` is absent)
+`python <skills-root>/verify-artifacts.py <repo-root> --feature <feat>` (`python3` only when `python` is absent)
 before accepting `done`. A gate failure
 restores only that issue to `ready`.
 

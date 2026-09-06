@@ -23,7 +23,7 @@ Classify each unit:
   Park optional future work in 尚未明确; if it blocks the requested outcome, surface what is missing
   and a useful question. Finish independent units; parked in-scope work is not completion.
 - Check the agent cannot run (irreducible taste, inaccessible external account, permission) → not an AC. Park: PRD
-  端到端验证; no PRD → `### 完成` 手动验证 on the issue that has the agent-runnable AC.
+  端到端验证; no PRD → `## 手动验证` on the issue that has the agent-runnable AC, separate from completion.
   A unit that is only that check is not an issue.
 
 Split when units have independent outcomes, verification, or scheduling needs. A dependency is
@@ -31,7 +31,7 @@ Split when units have independent outcomes, verification, or scheduling needs. A
 its error paths together. Each extra card must repay its handoff and verification overhead.
 
 Parallel-bound slices declare their write set: `touches:` (dirs) + `test_paths:` (test files,
-from the AC). `--log` slices declare no `test_paths`; their acceptance is a log predicate. `-p` wave
+from the AC). `-log` slices declare no `test_paths`; their acceptance is a log predicate. `-p` wave
 semantics live with the field: [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md). Only a graphical UI
 slice adds `experience_review`: use `runtime` for operated-state/runtime integrity and `graded` when
 visual hierarchy or usability is itself an aligned requirement. Backend, library, API, CLI,

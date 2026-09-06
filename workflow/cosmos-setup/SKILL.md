@@ -47,11 +47,12 @@ otherwise rename it `domain.md.bak`. Detail: [MIGRATION.md](MIGRATION.md).
 switch. An existing `gh` / `glab` tracker alone is not a migration trigger. Preserve it unless
 the user chose a replacement. Procedure: [MIGRATION.md](MIGRATION.md).
 
-**Case 4 — PRD/issue-like files at non-default paths.** Surface the paths found. Offer two
-options, recommending (i) by default since it is non-destructive:
+**Case 4 — PRD/issue-like files at non-default paths.** Surface the paths and their consumers.
+The bundled Python workflow tools use `.scratch/`; a path declaration alone does not retarget them.
 
-- (i) **Configure paths in place.** Record the actual paths in the `## Agent skills` block so
-  the skills read/write there. No file moves.
+- (i) **Configure paths in place.** Use this only when a repository adapter supports the selected
+  tracker and paths. Verify its execution, state projection, and artifact gate before recording
+  the actual paths and adapter entrypoints in `## Agent skills`. No file moves.
 - (ii) **Adopt new layout.** Help the user move/symlink existing files into
   `.scratch/<feat>/`. Show the planned moves before executing; use `git mv` where possible.
 

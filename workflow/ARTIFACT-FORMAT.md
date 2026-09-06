@@ -53,8 +53,8 @@ rather than hand-editing it.
 
 **Two zones.** The generated zone (skeleton + invariant blocks) belongs to `/map` and the
 event-driven append rules above. The hand zone is exactly one section, `## Verifier commands` — the home of the verifier
-command cache. It is born lazily: the first run that settles a verifier command creates the
-file with the frontmatter stub plus only that section; nothing else may live there. One exact
+command cache. It is born only when a reusable adapter cannot be cheaply recovered from project
+configuration; create the frontmatter stub plus that section when needed. One exact
 replayable line per reused adapter command; common categories are full suite + build, scoped
 test, static gate, perf measurement, module boundary enforcement, evidence retention, and
 impact detection. Omit what the stack does not have. `/map` regeneration and `verify-artifacts.py` leave the hand
@@ -138,7 +138,7 @@ Rules:
   It is exempt from the ALL-CAPS singleton rule; the block appends at the end of a hand-written
   file.
 - **Legacy monolith:** a root file with per-area `## ` sections and no roster is rebuilt wholesale
-  by the next `/map --all`.
+  by the next `/map -all`.
 - Use **CONTEXT.md domain vocabulary** and **codebase-design vocabulary** (module, seam, depth).
   Decisions → ADR; vocabulary → CONTEXT.md; transient focus and speculation → nowhere.
 
@@ -219,7 +219,7 @@ Field rules:
   needs `touches:` + `test_paths:`; overlapping `touches:` or colliding `test_paths:` serialize
   into successive waves; an issue missing either runs alone in its own wave. Completed at green
   by the run that wrote the files. Appending a newly written test
-  file is a sanctioned ownership correction on a `done` card; active-batch reopening follows `status` above. `--log`
+  file is a sanctioned ownership correction on a `done` card; active-batch reopening follows `status` above. `-log`
   slices omit it: acceptance is a log predicate, not test files. The gate checks
   `### 完成` 新增测试 files against it only in legacy records that still carry that line. Optional.
 - **exclusive_resources** — exact stable IDs for runtime resources that cannot be shared safely
@@ -333,7 +333,7 @@ Feature-scoped defaults owned by `/spec`. Before writing any issue, compare plan
 cards' cwd, fingerprint, prerequisites, and prepare state. If two or more share a base, select the
 largest sharing group (dependency order breaks a size tie) and write `verifier.json` first with its
 named-command union. Single cards and other groups stay v2 because a feature has one profile path;
-PRDs do not copy this readiness data. The feature-scoped `/spec --feature` gate rejects a newly
+PRDs do not copy this readiness data. The feature-scoped `verify-artifacts.py --feature <feat>` gate rejects a newly
 written all-v2 queue when such a sharing group exists, while whole-tree checks remain compatible
 with legacy queues; when a profile is active, it also rejects any ready v2 card that copies that
 profile's environment base instead of referencing it, and rejects an unreferenced profile. Cards
@@ -495,7 +495,7 @@ yq --front-matter=extract '.blocked_by[]' .scratch/balance/issues/02-api.md
 To inspect effective delivered behavior without loading history bodies:
 
 ```bash
-python workflow/workflow-state.py inspect . balance --format human
+python <skills-root>/workflow-state.py inspect . balance --format human
 ```
 
 ## Machine gate

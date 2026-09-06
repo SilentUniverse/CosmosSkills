@@ -14,7 +14,8 @@ conversation summary. Preserve decisions and exact replay strings; discard explo
 
 - Feature work → `.scratch/<feat>/handoff.md`.
 - Cross-feature work → `.scratch/handoff.md`.
-- Interactive work writes only on explicit `/handoff`; unattended batches may overwrite at wave close.
+- Interactive work writes when requested or when unfinished state must cross a real session boundary;
+  unattended batches may overwrite at wave close.
 - Finished work gets no handoff. Never use an OS temp directory.
 
 ## Input budget

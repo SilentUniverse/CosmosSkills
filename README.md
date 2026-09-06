@@ -28,7 +28,7 @@ CosmosSkills 是一套给单人开发者的 AI 编程工程方法论：28 个跨
 - **按需行为 eval**：默认关闭；项目内保留 previous / candidate / no-skill 配对实验，跨项目则导出同一份独立公开考卷，比较 Verified Success、速度、同口径成本与交接摩擦
 - **单人本地优先**：本地 markdown 队列（ready | done 两态），零外部服务；中文沟通、沿用代码术语；面向人的输出以结果、证据和待决定事项为主
 
-完整背景故事与设计出处见 [中文版](docs/introduction.zh.md) · [English](docs/introduction.en.md)；工作流设计审计见 [workflow-instruction-audit](docs/workflow-instruction-audit.md)。
+完整背景故事与设计出处见 [中文版](docs/introduction.zh.md) · [English](docs/introduction.en.md)。
 
 ## 九条定律
 
@@ -72,6 +72,7 @@ curl -fsSL https://raw.githubusercontent.com/SilentUniverse/CosmosSkills/main/cl
 
 Codex 在本仓库通过根 [AGENTS.md](AGENTS.md) 读取共享策略 [CLAUDE.md](claude/CLAUDE.md)，避免维护两份正文。
 安装器分发 Claude Code/ZCode 配置及已有 `~/.agents/skills`；不会修改全局 `~/.codex/AGENTS.md`。
+显式指定安装目标或 ClaudeRoot 时，不镜像到用户级 ZCode / agents 目录；隔离安装需同时指定这两个路径。
 在其他 Codex 项目使用这套常驻策略时，将共享文件的实际路径加入相应 AGENTS.md，并保留原有项目规则。
 
 新项目直接用 `/spec` 起步即可。`.scratch/` 本地 issue、两态词汇和 `CODEBASE.md`
@@ -158,7 +159,8 @@ flowchart LR
 | 新需求 / 改已有需求 | `/spec <需求>` |
 | 做一条 issue | `/tdd <path>` |
 | 排空一个 feature 的 ready | `/tdd <feat>` |
-| 车机 / 设备，验收在 log 里 | `/tdd --log` |
+| 全量测试与构建 | `/tdd -all` |
+| 车机 / 设备，验收在 log 里 | `/tdd -log` |
 | 过夜无人值守跑批 | 双击仓库根的 [overnight.cmd](overnight.cmd)（会问项目路径；给它建个桌面快捷方式最省事，也可把项目文件夹拖上去）；终端 `overnight.cmd [repo] [feat]`；macOS / Linux：`python scripts/overnight.py` |
 | 上一 session 留了 handoff | `/resume` |
 | 做到哪了 | `python3 <skills-root>/workflow-state.py survey . --format human`（默认只看 ready/blocked/zombie；`--history` 才列已交付历史） |
@@ -168,8 +170,7 @@ flowchart LR
 | 上游前证明 workflow 改进 | `/eval full <skill>`（3–5 次配对，默认平时不跑） |
 | 与原生方案或其他 harness 比较 | `/eval export <campaign>`（各边独立跑同一公开包，私有盲判后 N 路报告） |
 | 文档 / 技能文件改完 | `/lint <文件>` 查视角泄漏 |
-| 5 轮内能收尾 | `/compact`（grill→spec 之间禁止） |
-| 还有半天 / 换任务 | `/handoff` + `/clear` |
+| 接近真实会话边界 | 按 [PHASE-BOUNDARIES.md](claude/PHASE-BOUNDARIES.md) 选择继续或桥接，不按固定轮数压缩 |
 
 能传路径就别让 agent 扫仓库。别把 PRD / issue 粘进对话。
 
@@ -188,8 +189,8 @@ flowchart LR
 
 | | |
 |---|---|
-| 5 轮内能收尾 | `/compact`（grill→spec 之间禁止） |
-| 还有半天 | `/handoff` + `/clear` |
+| 仍能在当前上下文完成当前片段 | 继续，不为固定轮数压缩 |
+| 未完成工作必须跨会话 | `/handoff` + `/clear` |
 | 读大文件 / 陌生模块 | 先 `rg` 定位并按需读；只有大量独立研究才用 subagent |
 | 做一半换任务 | `/handoff` → `/clear` → 新 session |
 
@@ -202,7 +203,7 @@ flowchart LR
 | `ready` | 已对齐，逐条证据与验证环境都预检通过，可派发 |
 | `done` | 不可改。返工新建 redo |
 
-人手验证（品味、外部账号、人眼）记在 PRD 端到端验证。车机 / 设备走 `/tdd --log`。没有 inbox / blocked / shelved。
+人手验证（品味、外部账号、人眼）记在 PRD 端到端验证；无 PRD 时记在 issue 的手动验证区。车机 / 设备走 `/tdd -log`。没有 inbox / blocked / shelved。
 
 ```bash
 rg '^status: ready' -g '**/issues/*.md' .scratch
@@ -216,7 +217,7 @@ rg '^status: ready' -g '**/issues/*.md' .scratch
 
 **从 0 到 1** — 零 setup，默认约定直接生效。
 
-1. 直接 `/spec` 起步；第一次预检跑通的验证命令懒写入 `CODEBASE.md` 的 `## Verifier commands` 区（文件随之出生，天生带真内容）
+1. 直接 `/spec` 起步；复用项目已有验证命令，只有不能从配置轻易找回的可复用适配器才写入 `CODEBASE.md` 的 `## Verifier commands` 区
 2. 领域重的项目再 `/domain-modeling` 出术语表（CONTEXT.md）
 3. 护栏按需：[shell-guardrails](tooling/shell-guardrails/SKILL.md) 选择合并、禁 push 或仅 modern CLI 策略；提交门用 [setup-pre-commit](tooling/setup-pre-commit/SKILL.md)
 
@@ -304,13 +305,13 @@ git_base: 7af387c
 | [spec](workflow/spec/SKILL.md) | 规划并跑通验证环境预检，再写 PRD / issue |
 | [eval](workflow/eval/SKILL.md) | 手动打开评测；保留项目内 previous/candidate A/B，也可导出独立包与任意外部 workflow 比较；默认关闭 |
 | [atk](workflow/atk/SKILL.md) | 对抗审查自己的产出；工作流只调审查方向，手动默认讲解，`-r` 纯审查且不改文件 |
-| [tdd](workflow/tdd/SKILL.md) | 写代码；`--log` 读设备 log。[DRAIN.md](workflow/tdd/DRAIN.md) |
-| [commit](workflow/commit/SKILL.md) | 只提交本任务已验证路径并落地；`-local` / `--local` 仅建本地提交 |
+| [tdd](workflow/tdd/SKILL.md) | 写代码；`-all` 跑全量，`-log` 读设备 log。[DRAIN.md](workflow/tdd/DRAIN.md) |
+| [commit](workflow/commit/SKILL.md) | 只提交本任务已验证路径并落地；`-local` 仅建本地提交 |
 | [tidy](workflow/tidy/SKILL.md) | 派生状态查询 + 已关闭批次安全缓存 GC；不搬 issue / test |
 | [diagnose](workflow/diagnose/SKILL.md) | 硬 bug / 性能回归 |
 | [conflicts](workflow/conflicts/SKILL.md) | 解决 Git merge / rebase 冲突 |
 | [map](workflow/map/SKILL.md) | 生成/刷新 `CODEBASE.md` 结构地图 |
-| [show](workflow/show/SKILL.md) | 讲解陌生代码区：一屏（目的/模块图/一条流/先读什么）；`--html` 出给人看的单页 |
+| [show](workflow/show/SKILL.md) | 讲解陌生代码区：一屏（目的/模块图/一条流/先读什么）；`-html` 出给人看的单页 |
 | [lint](workflow/lint/SKILL.md) | 视角审查：这句话离开写它的会话还成立吗 |
 | [write-skill](workflow/write-skill/SKILL.md) | 写 / 改技能；确定性检查常跑，行为 eval 仅在手动 `/eval` 后运行 |
 | [record-gif](workflow/record-gif/SKILL.md) | UI 录成验证过的 GIF |

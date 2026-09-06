@@ -147,7 +147,9 @@ class OvernightTests(unittest.TestCase):
             self.assertIn("至少约 30 秒", launches[0])
             self.assertIn("最迟约一分钟检查", launches[0])
             self.assertNotIn("每个主 action 前", launches[0])
-            self.assertLess(len(launches[0]), 700)
+            # Budget instruction text, not machine-specific checkout/temp paths.
+            normalized = launches[0].replace(str(ROOT), "<skills-root>").replace(str(root), "<repo>")
+            self.assertLess(len(normalized), 700)
 
     def test_preflight_prompt_requires_supervised_execution_receipt(self):
         with tempfile.TemporaryDirectory() as directory:

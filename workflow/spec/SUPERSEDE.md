@@ -6,8 +6,9 @@ ask only about consequences the request and repository cannot resolve.
 
 1. **Derive the next snapshot.** Live PRD exists → propose `PRD-vN.md` per
    [PRD-TEMPLATE.md](PRD-TEMPLATE.md) — highest + 1, `supersedes:` the previous filename,
-   carry forward still-open 尚未明确. No live PRD → propose `PRD.md` v1. This is receipt input,
-   not a file write.
+   carry forward still-open 尚未明确. Without a live PRD, reconcile the owning issues directly;
+   create `PRD.md` only if shared scenarios or decisions need a durable owner. This is planning
+   input, not a file write or a new alignment gate.
 2. **Reconcile.** Run `python <skills-root>/workflow-state.py inspect <repo-root> <feat>
    --format json`; use `python3` only when `python` is absent. The projection reads top-level and
    legacy archived done issues and folds completed redo lineage, so delivered work is not mistaken
@@ -34,7 +35,7 @@ ask only about consequences the request and repository cannot resolve.
 
    Hard rule: never edit a `done` issue; always write a new `NN-redo-X.md` (`category: redo`,
    `refines:` the original slug).
-3. **Execute settled changes.** Write the PRD, then apply the reconciliation. Deletes
+3. **Execute settled changes.** Write the PRD when needed, then apply the reconciliation. Deletes
    relocate to `.scratch/tmp/reconcile-<date>/`
    (undo = move back), never `rm`. Ready-issue edits happen in place; refresh the
    `## 上级` extract.

@@ -2,7 +2,7 @@
 name: show
 description: >-
   Use when the user is unfamiliar with a module or asks how an area of code works. Gives a one-screen purpose, module map, traced flow, and reading order; optional HTML creates a self-contained explainer while durable mapping belongs to map.
-argument-hint: "Path/module/question to explain (optional: --html = page for humans)"
+argument-hint: "Path/module/question to explain (optional: -html = page for humans)"
 disable-model-invocation: true
 ---
 
@@ -24,7 +24,7 @@ One screen, this shape:
    names, a trace gives behavior.
 4. **Read first** — 2-3 files in reading order.
 
-## `--html` — same shape, human page
+## `-html` — same shape, human page
 
 The four parts as one self-contained HTML page, with real typography and the traced flow as a
 visual sequence, for reading away from the terminal or handing to someone. Write to

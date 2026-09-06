@@ -307,6 +307,9 @@ def _issue_packet(root, feature, slug, path, raw, issue_data, profile=_PROFILE_U
         packet["contract_version"] = data["contract_version"]
     if data.get("experience_review"):
         packet["experience_review"] = data["experience_review"]
+    manual_verification = section_body(raw, "手动验证")
+    if manual_verification:
+        packet["manual_verification"] = manual_verification
     attempt = latest_attempt(raw)
     if attempt:
         packet["latest_attempt"] = attempt
