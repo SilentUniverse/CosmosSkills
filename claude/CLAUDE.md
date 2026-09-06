@@ -75,8 +75,10 @@ one. Later requirement changes create redo issues. Superseded ADR bodies are imm
 
 ## 7. Shell and platform
 
-- Use available purpose-built tools; shell search starts with `rg`/`rg --files`. Fall back to
-  installed equivalents when needed, respecting active hooks; do not install tools for stylistic preference.
+- Use available purpose-built tools; shell search starts with `rg`/`rg --files`, filename search
+  uses `fd`, in-place edits use `sd` (host-side `grep`/`find`/`sed` are blocked where the
+  shell-guardrails hook is installed). Fall back to installed equivalents when needed, respecting
+  active hooks; do not install tools for stylistic preference.
 - Before destructive directory work, enumerate hidden and ignored entries with platform-native tools.
 - PowerShell invoked from bash sets UTF-8 input/output explicitly. PS/cmd do not write text files.
 
