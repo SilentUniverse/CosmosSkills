@@ -9,10 +9,11 @@ The caller owns the entire requested batch through implementation, integration, 
 Start each scheduling round with:
 
 ```text
-python3 <tdd-skill-dir>/scripts/drain-wave.py step <repo-root> [<feat>]
+python3 <tdd-skill-dir>/scripts/drain-wave.py step <repo-root> [<feat>] [-p]
 ```
 
-Follow its next action and exact command. `next` calculates eligible waves; `dispatch` records
+Without `-p`, `step` returns one issue even when several do not collide; `-p` returns the
+collision-free wave. Follow its next action and exact command. `next` calculates eligible waves; `dispatch` records
 intent before work; `collect` closes assignments; `audit` checks test ownership before batch close.
 Exit meanings: 0 dispatchable; 3 uncollected work; 4 no dispatchable work; 5 missing shared preflight
 receipt; 6 unresolved contract conflict. Exit 4 alone does not prove all requested work shipped.
@@ -31,7 +32,8 @@ delegation triggers. If subagents are unavailable, run serially and disclose the
 ## Preflight receipts
 
 A batch cache is useful only when two or more ready cards in one feature share the exact
-`(cwd, P# action, environment fingerprint)` tuple. `dispatch` already checks this; inspect duplicates
+`(cwd, resolved P# action, environment fingerprint, semantic verifier profile digest)` tuple.
+JSON whitespace/key order do not invalidate it. `dispatch` already checks this; inspect duplicates
 separately only when needed:
 
 ```text
@@ -42,14 +44,17 @@ No duplicates means no shared cache; continue normal execution. For each cache m
 orchestrator runs the action through `test-supervisor.py --scope preflight`, then records it:
 
 ```text
-python3 <tdd-skill-dir>/scripts/preflight-receipt.py record <receipt> --cwd <cwd> --action <action> --fingerprint <value> --execution-receipt <execution.json>
+python3 <tdd-skill-dir>/scripts/preflight-receipt.py record <receipt> --cwd <cwd> --action <resolved-action> --fingerprint <value> --verifier-digest <v3-digest> --execution-receipt <execution.json>
 ```
 
 Rerun `plan` or dispatch after recording. A cache entry requires actual passing execution evidence.
+Pass the `verifier_digest` emitted by `plan` for v3 tuples; a declared `profile:NAME` action is
+rejected without it because the card's effective deviations cannot be reconstructed from the cache
+path alone. Legacy non-profile tuples omit the option.
 Only the orchestrator writes the cache. Dispatch persists assignments and emits
 `receipt-hit:<key>` for each applicable issue; copy it verbatim into the brief.
 
-Before the first issue edit, recompute its fingerprint. Exact tuple, matching fingerprint, and
+Before the first issue edit, recompute its fingerprint. Exact tuple, matching fingerprint/profile, and
 supplied key permit reuse; unique checks replay normally. Drift or failed replay leaves the card
 `ready` with expected/observed evidence. The caller repairs declared setup outside the active
 behavior wave, refreshes readiness, and resumes. New consequential dependency or authority choices
@@ -72,7 +77,8 @@ Before execution record:
 python3 <tdd-skill-dir>/scripts/drain-wave.py dispatch <repo-root> <slug>...
 ```
 
-Dispatch writes `.scratch/<feat>/wave-ledger.json` with the wave baseline and issue assignments.
+Dispatch writes `.scratch/<feat>/wave-ledger.json` with issue assignments and a baseline digest;
+the ledger stores each distinct `git status --porcelain` snapshot once at top level.
 Its dependency, collision, four-issue cap, and preflight refusals are gates to resolve, not bypass.
 For a serial batch dispatch only the chosen issue. Save its baseline diff as needed to distinguish
 pre-existing or concurrent edits; status alone cannot establish ownership.
@@ -85,7 +91,9 @@ follow host branch naming (Codex: `codex/`). Merge in dependency order, resolve 
 Each worker receives a self-contained brief:
 
 - Run `/tdd <issue-path>` with inherited `--log`, not drain mode. No nested agents.
-- Supply objective/constraints from the card, scoped-test/build commands, and any exact receipt key.
+- Generate `workflow-state.py packet <repo-root> <feat> <slug>` and supply that projection plus any
+  exact receipt key; do not paste the full card or prior Comments.
+- Supply only constraints absent from the packet and batch-level commands the issue cannot derive.
   Reuse settled decisions; only new consequential choices return to the caller.
 - Supply prior waves' `test_paths` as the tests-so-far manifest. Reuse existing coverage.
 - Copy `## 相关面` pointers; read those first and expand only for a discovered dependency.
@@ -95,7 +103,8 @@ Per-issue GREEN requires all AC plus the touched module's scoped tests and appli
 Write the [completion record](COMPLETION-RECORD.md), sync `test_paths`, then close to `done`.
 Only the batch close runs the whole suite unless an issue explicitly requires it.
 
-Return one outcome; red/blocked summaries should stay under 400 words:
+Return one outcome. Green is at most eight compact lines; red/blocked/conflict stays under 150 words
+plus the shortest decisive error excerpt:
 
 | Result | Evidence and state |
 |---|---|

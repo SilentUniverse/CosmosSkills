@@ -42,9 +42,11 @@ In order:
    radius crosses — the executor starts with these, expanding only for a discovered dependency. No draft artifact or
    extra status is created. SUPERSEDE writes
    once the affected decisions are settled ([SUPERSEDE.md](SUPERSEDE.md)).
-5. **Gate.** Whole-tree: `python ~/.claude/skills/verify-artifacts.py` (in a repo checkout:
-   `engineering/verify-artifacts.py`), run with the target repo root as cwd. `python3` only if
-   `python` is missing; never retry python3 after a non-zero gate exit.
+5. **Gate.** Check the feature written in this pass: `python ~/.claude/skills/verify-artifacts.py
+   <repo-root> --feature <feat>` (in this checkout: `engineering/verify-artifacts.py`). This blocks
+   new feature defects without charging the task for unrelated legacy debt. The whole-tree form
+   (omit `--feature`) remains the batch-close/CI/migration gate. `python3` only if `python` is
+   missing; never retry it after a non-zero gate exit.
 6. **Cold-read executor audit.** Re-read each card written this run as a fresh agent that sees
    only its declared inputs. Check that every AC points to a recorded passed P#, its exact action/evidence is
    present, and no 做什么/AC mismatch or hidden dependency remains. Do not execute P# again here:

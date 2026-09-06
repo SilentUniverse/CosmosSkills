@@ -18,6 +18,7 @@ SPEC = importlib.util.spec_from_file_location(
 assert SPEC and SPEC.loader
 verify_artifacts = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(verify_artifacts)
+import workflow_contract
 
 PNG_1X1 = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
@@ -644,38 +645,57 @@ def plant_v3_profile(root):
     profile.write_text(
         json.dumps(
             {
-                "schema_version": 1,
+                "schema_version": 2,
                 "cwd": ".",
                 "fingerprint": "git=abc123; lock=none; runtime=python-3.13; tools=pytest-8; services=none",
                 "prerequisites": "fixtures=ready; services=none; permissions=local; network=off",
                 "prepare": "无（已就绪）",
                 "commands": {"scoped": "python -m pytest tests/test_search.py -q"},
+                "completion_commands": ["scoped"],
             }
         ),
         encoding="utf-8",
     )
 
 
-def plant_v3_receipt(root, outcome="pass"):
+def plant_v3_receipt(root, outcome="pass", *, ac=None, bound=True):
     receipts = root / ".scratch" / "search" / "receipts"
     receipts.mkdir(parents=True, exist_ok=True)
+    log = root / ".scratch" / "tmp" / "01-search-targeted.log"
+    log.parent.mkdir(parents=True, exist_ok=True)
+    log.write_text("2 passed\n", encoding="utf-8")
+    issue = root / ".scratch" / "search" / "issues" / "01-search.md"
+    original = issue.read_text(encoding="utf-8")
+    if bound and "status: done" in original:
+        issue.write_text(original.replace("status: done", "status: ready"), encoding="utf-8")
+    try:
+        binding = dict(workflow_contract.issue_binding(issue, "scoped")) if bound else None
+    finally:
+        if bound and "status: done" in original:
+            issue.write_text(original, encoding="utf-8")
+    if ac is not None and binding is not None:
+        binding["ac"] = ac
+    payload = {
+        "schema_version": 1,
+        "argv_style": "posix",
+        "scope": "targeted",
+        "outcome": outcome,
+        "argv": ["python", "-m", "pytest", "tests/test_search.py", "-q"],
+        "cwd": ".",
+        "exit_code": 0,
+        "log": ".scratch/tmp/01-search-targeted.log",
+        "log_sha256": hashlib.sha256(log.read_bytes()).hexdigest(),
+    }
+    if binding is not None:
+        payload["issue"] = binding
     (receipts / "01-search-targeted.json").write_text(
-        json.dumps(
-            {
-                "schema_version": 1,
-                "scope": "targeted",
-                "outcome": outcome,
-                "argv": ["python", "-m", "pytest", "tests/test_search.py", "-q"],
-                "exit_code": 0,
-            }
-        ),
+        json.dumps(payload),
         encoding="utf-8",
     )
 
 
 def v3_issue_body(
     done=True,
-    ac_claim="AC 1-2 pass",
     review=True,
     receipt_ref=".scratch/search/receipts/01-search-targeted.json",
 ):
@@ -684,11 +704,11 @@ def v3_issue_body(
     if done:
         completion = (
             "\n### 完成 — 2026-09-03\n\n"
-            f"- receipt: {receipt_ref}；"
-            f"{ac_claim}\n{review_line}"
+            f"- receipt: {receipt_ref}\n{review_line}"
         )
     return f"""---
 contract_version: 3
+verifier_schema: 2
 type: issue
 feature: search
 status: {'done' if done else 'ready'}
@@ -716,8 +736,8 @@ Search history.
 - profile: verifier.json
 - 接缝：HistorySearch public API
 - P1 预检：`profile:scoped` → passed；observed=exit 0, 2 collected；evidence=inline；checked=2026-09-03
-- #1 → `pytest tests/test_search.py::test_match`；预检：P1；预期证据：exit 0
-- #2 → `pytest tests/test_search.py::test_empty`；预检：P1；预期证据：exit 0
+- #1 → `profile:scoped`；预检：P1；预期证据：exit 0
+- #2 → `profile:scoped`；预检：P1；预期证据：exit 0
 
 ## 相关面（Read contract）
 
@@ -741,7 +761,8 @@ class VerifyArtifactsV3Tests(unittest.TestCase):
                 body, encoding="utf-8"
             )
             plant_v3_profile(root)
-            plant_v3_receipt(root)
+            if "status: done" in body:
+                plant_v3_receipt(root)
             tests = root / "tests"
             tests.mkdir()
             (tests / "test_search.py").write_text("# fixture\n", encoding="utf-8")
@@ -766,7 +787,7 @@ class VerifyArtifactsV3Tests(unittest.TestCase):
 
         result, output = self.run_gate(v3_issue_body(), mutate=drop_receipt)
         self.assertEqual(1, result)
-        self.assertIn("receipt file missing", output)
+        self.assertIn("receipt missing", output)
 
     def test_v3_receipt_outcome_not_pass_fails(self):
         def flip_outcome(root):
@@ -774,7 +795,7 @@ class VerifyArtifactsV3Tests(unittest.TestCase):
 
         result, output = self.run_gate(v3_issue_body(), mutate=flip_outcome)
         self.assertEqual(1, result)
-        self.assertIn("receipt outcome 'fail' != pass", output)
+        self.assertIn("receipt outcome 'fail'/exit 0 != pass/0", output)
 
     def test_v3_receipt_not_json_fails(self):
         def corrupt_receipt(root):
@@ -792,7 +813,7 @@ class VerifyArtifactsV3Tests(unittest.TestCase):
 
         result, output = self.run_gate(v3_issue_body(), mutate=drop_profile)
         self.assertEqual(1, result)
-        self.assertIn("profile file missing", output)
+        self.assertIn("profile file unreadable", output)
 
     def test_v3_done_without_review_line_fails(self):
         result, output = self.run_gate(v3_issue_body(review=False))
@@ -800,16 +821,284 @@ class VerifyArtifactsV3Tests(unittest.TestCase):
         self.assertIn("done record missing 审查", output)
 
     def test_v3_receipt_without_full_ac_coverage_fails(self):
-        result, output = self.run_gate(v3_issue_body(ac_claim="AC 1 pass"))
+        result, output = self.run_gate(
+            v3_issue_body(), mutate=lambda root: plant_v3_receipt(root, ac=[1])
+        )
         self.assertEqual(1, result)
-        self.assertIn("does not cover AC: #2", output)
+        self.assertIn("completion receipts do not cover AC: #2", output)
+
+    def test_v3_unbound_passing_receipt_fails(self):
+        result, output = self.run_gate(
+            v3_issue_body(), mutate=lambda root: plant_v3_receipt(root, bound=False)
+        )
+        self.assertEqual(1, result)
+        self.assertIn("receipt has no issue binding", output)
+
+    def test_v3_profile_v1_keeps_legacy_prose_receipts_readable(self):
+        def make_legacy(root):
+            issue = root / ".scratch" / "search" / "issues" / "01-search.md"
+            issue.write_text(
+                issue.read_text(encoding="utf-8").replace("verifier_schema: 2\n", ""),
+                encoding="utf-8",
+            )
+            profile = root / ".scratch" / "search" / "verifier.json"
+            payload = json.loads(profile.read_text(encoding="utf-8"))
+            payload["schema_version"] = 1
+            profile.write_text(json.dumps(payload), encoding="utf-8")
+            plant_v3_receipt(root, bound=False)
+
+        result, output = self.run_gate(
+            v3_issue_body(
+                receipt_ref=".scratch/search/receipts/01-search-targeted.json；AC 1-2 pass"
+            ),
+            mutate=make_legacy,
+        )
+        self.assertEqual(0, result, output)
+
+    def test_v3_profile_v1_accepts_old_minimum_and_multiple_ac_claims(self):
+        def make_old_minimum(root):
+            issue = root / ".scratch" / "search" / "issues" / "01-search.md"
+            issue.write_text(
+                issue.read_text(encoding="utf-8").replace("verifier_schema: 2\n", ""),
+                encoding="utf-8",
+            )
+            profile = root / ".scratch" / "search" / "verifier.json"
+            profile.write_text(
+                json.dumps({
+                    "commands": {"scoped": "python -m pytest tests/test_search.py -q"},
+                    "fingerprint": "git=abc123; lock=none; runtime=python-3.13; tools=pytest-8; services=none",
+                }),
+                encoding="utf-8",
+            )
+            receipt = root / ".scratch" / "search" / "receipts" / "01-search-targeted.json"
+            receipt.write_text(json.dumps({"outcome": "pass"}), encoding="utf-8")
+
+        result, output = self.run_gate(
+            v3_issue_body(
+                receipt_ref=".scratch/search/receipts/01-search-targeted.json；AC 1；AC 2 pass"
+            ),
+            mutate=make_old_minimum,
+        )
+        self.assertEqual(0, result, output)
+
+    def test_v3_prose_containing_deviation_word_is_not_machine_syntax(self):
+        body = v3_issue_body(done=False).replace(
+            "- #1 →", "- 偏差（仅有时写）：环境略有不同\n- 偏差说明：无命令变化\n- #1 →"
+        )
+        result, output = self.run_gate(body)
+        self.assertEqual(0, result, output)
+
+    def test_v3_misspelled_machine_deviation_is_rejected(self):
+        body = v3_issue_body(done=False).replace(
+            "- #1 →", "- 偏差 fingerprit.git：abc\n- #1 →"
+        )
+        result, output = self.run_gate(body)
+        self.assertEqual(1, result)
+        self.assertIn("invalid v3 deviation syntax", output)
+
+    def test_v3_done_receipt_still_rejects_invalid_log_shape(self):
+        def corrupt_log_path(root):
+            receipt = root / ".scratch" / "search" / "receipts" / "01-search-targeted.json"
+            payload = json.loads(receipt.read_text(encoding="utf-8"))
+            payload["log"] = "/missing/run.log"
+            receipt.write_text(json.dumps(payload), encoding="utf-8")
+
+        result, output = self.run_gate(v3_issue_body(), mutate=corrupt_log_path)
+        self.assertEqual(1, result)
+        self.assertIn("receipt log must identify .scratch/tmp/", output)
+
+    def test_v3_done_receipt_survives_transient_log_and_checkout_removal(self):
+        def remove_machine_local_evidence(root):
+            receipt = root / ".scratch" / "search" / "receipts" / "01-search-targeted.json"
+            payload = json.loads(receipt.read_text(encoding="utf-8"))
+            (root / payload["log"]).unlink()
+            payload["log"] = "/old/checkout/.scratch/tmp/01-search-targeted.log"
+            payload["cwd"] = "/old/checkout"
+            receipt.write_text(json.dumps(payload), encoding="utf-8")
+
+        result, output = self.run_gate(
+            v3_issue_body(), mutate=remove_machine_local_evidence
+        )
+        self.assertEqual(0, result, output)
+
+    def test_v3_profile_downgrade_cannot_enable_legacy_receipt(self):
+        def downgrade(root):
+            profile = root / ".scratch" / "search" / "verifier.json"
+            payload = json.loads(profile.read_text(encoding="utf-8"))
+            payload["schema_version"] = 1
+            profile.write_text(json.dumps(payload), encoding="utf-8")
+            plant_v3_receipt(root, bound=False)
+
+        result, output = self.run_gate(v3_issue_body(), mutate=downgrade)
+        self.assertEqual(1, result)
+        self.assertIn("verifier_schema '2' != profile schema 1", output)
+
+    def test_v3_receipt_verifier_must_match_each_bound_ac(self):
+        def swap_verifier(root):
+            profile = root / ".scratch" / "search" / "verifier.json"
+            profile_data = json.loads(profile.read_text(encoding="utf-8"))
+            profile_data["commands"]["noop"] = "python -c pass"
+            profile_data["completion_commands"].append("noop")
+            profile.write_text(json.dumps(profile_data), encoding="utf-8")
+            plant_v3_receipt(root)
+            receipt = root / ".scratch" / "search" / "receipts" / "01-search-targeted.json"
+            payload = json.loads(receipt.read_text(encoding="utf-8"))
+            payload["issue"]["verifier"] = "noop"
+            payload["argv"] = ["python", "-c", "pass"]
+            receipt.write_text(json.dumps(payload), encoding="utf-8")
+
+        result, output = self.run_gate(v3_issue_body(), mutate=swap_verifier)
+        self.assertEqual(1, result)
+        self.assertIn("is not mapped by AC", output)
+
+    def test_v3_receipt_binding_cwd_must_match_profile(self):
+        def wrong_cwd_binding(root):
+            receipt = root / ".scratch" / "search" / "receipts" / "01-search-targeted.json"
+            payload = json.loads(receipt.read_text(encoding="utf-8"))
+            payload["issue"]["cwd"] = "tests"
+            receipt.write_text(json.dumps(payload), encoding="utf-8")
+
+        result, output = self.run_gate(v3_issue_body(), mutate=wrong_cwd_binding)
+        self.assertEqual(1, result)
+        self.assertIn("receipt binding cwd 'tests' != '.'", output)
+
+    def test_v3_boolean_profile_or_receipt_schema_is_rejected(self):
+        def boolean_profile(root):
+            profile = root / ".scratch" / "search" / "verifier.json"
+            payload = json.loads(profile.read_text(encoding="utf-8"))
+            payload["schema_version"] = True
+            profile.write_text(json.dumps(payload), encoding="utf-8")
+
+        result, output = self.run_gate(v3_issue_body(done=False), mutate=boolean_profile)
+        self.assertEqual(1, result)
+        self.assertIn("needs schema_version 1 or 2", output)
+
+        def boolean_receipt(root):
+            receipt = root / ".scratch" / "search" / "receipts" / "01-search-targeted.json"
+            payload = json.loads(receipt.read_text(encoding="utf-8"))
+            payload["schema_version"] = True
+            receipt.write_text(json.dumps(payload), encoding="utf-8")
+
+        result, output = self.run_gate(v3_issue_body(), mutate=boolean_receipt)
+        self.assertEqual(1, result)
+        self.assertIn("receipt needs schema_version 1", output)
+
+    def test_v3_malformed_completion_list_or_ac_binding_reports_violation(self):
+        def malformed_commands(root):
+            profile = root / ".scratch" / "search" / "verifier.json"
+            payload = json.loads(profile.read_text(encoding="utf-8"))
+            payload["completion_commands"] = [{}]
+            profile.write_text(json.dumps(payload), encoding="utf-8")
+
+        result, output = self.run_gate(v3_issue_body(done=False), mutate=malformed_commands)
+        self.assertEqual(1, result)
+        self.assertIn("needs unique completion_commands", output)
+
+        def malformed_ac(root):
+            receipt = root / ".scratch" / "search" / "receipts" / "01-search-targeted.json"
+            payload = json.loads(receipt.read_text(encoding="utf-8"))
+            payload["issue"]["ac"] = [{}]
+            receipt.write_text(json.dumps(payload), encoding="utf-8")
+
+        result, output = self.run_gate(v3_issue_body(), mutate=malformed_ac)
+        self.assertEqual(1, result)
+        self.assertIn("receipt binding ac is invalid", output)
+
+    def test_v3_completion_receipt_scope_is_whitelisted(self):
+        def invalid_scope(root):
+            receipt = root / ".scratch" / "search" / "receipts" / "01-search-targeted.json"
+            payload = json.loads(receipt.read_text(encoding="utf-8"))
+            payload["scope"] = "garbage"
+            receipt.write_text(json.dumps(payload), encoding="utf-8")
+
+        result, output = self.run_gate(v3_issue_body(), mutate=invalid_scope)
+        self.assertEqual(1, result)
+        self.assertIn("completion receipt has invalid scope", output)
+
+    def test_v3_profile_keeps_v2_readiness_contract(self):
+        def weak_readiness(root):
+            profile = root / ".scratch" / "search" / "verifier.json"
+            payload = json.loads(profile.read_text(encoding="utf-8"))
+            payload["prerequisites"] = "fixtures=ready"
+            payload["prepare"] = "later"
+            profile.write_text(json.dumps(payload), encoding="utf-8")
+
+        result, output = self.run_gate(v3_issue_body(done=False), mutate=weak_readiness)
+        self.assertEqual(1, result)
+        self.assertIn("prerequisites missing keys", output)
+
+    def test_feature_scope_rejects_path_segments(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / ".scratch" / "demo").mkdir(parents=True)
+            output = io.StringIO()
+            with redirect_stdout(output):
+                result = verify_artifacts.main(
+                    ["verify-artifacts.py", str(root), "--feature", ".."]
+                )
+            self.assertEqual(1, result)
+            self.assertIn("must be one directory name", output.getvalue())
+
+    def test_v3_issue_binding_accepts_utf8_bom_consistently(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issue = root / ".scratch" / "search" / "issues" / "01-search.md"
+            issue.parent.mkdir(parents=True)
+            issue.write_text(v3_issue_body(done=False), encoding="utf-8-sig")
+            plant_v3_profile(root)
+            binding = workflow_contract.issue_binding(issue, "scoped")
+            self.assertEqual("01-search", binding["slug"])
+
+    def test_v3_receipt_is_invalidated_by_profile_drift(self):
+        def drift(root):
+            profile = root / ".scratch" / "search" / "verifier.json"
+            payload = json.loads(profile.read_text(encoding="utf-8"))
+            payload["commands"]["scoped"] += " -x"
+            profile.write_text(json.dumps(payload), encoding="utf-8")
+
+        result, output = self.run_gate(v3_issue_body(), mutate=drift)
+        self.assertEqual(1, result)
+        self.assertIn("receipt verifier profile changed", output)
+
+    def test_v3_card_rejects_duplicated_profile_boilerplate(self):
+        body = v3_issue_body(done=False).replace(
+            "- profile: verifier.json\n",
+            "- profile: verifier.json\n- 工作目录：`.`\n",
+        )
+        result, output = self.run_gate(body)
+        self.assertEqual(1, result)
+        self.assertIn("duplicates profile fields: 工作目录", output)
 
     def test_v3_receipt_path_escape_is_rejected(self):
         result, output = self.run_gate(
             v3_issue_body(receipt_ref="../../outside/receipt.json")
         )
         self.assertEqual(1, result)
-        self.assertIn("must stay under .scratch/<feat>/receipts/", output)
+        self.assertIn("must stay under .scratch/search/receipts/", output)
+
+    def test_feature_gate_ignores_unrelated_legacy_violations(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            search = root / ".scratch" / "search" / "issues"
+            search.mkdir(parents=True)
+            (search / "01-search.md").write_text(v3_issue_body(done=False), encoding="utf-8")
+            plant_v3_profile(root)
+            legacy = root / ".scratch" / "legacy" / "issues"
+            legacy.mkdir(parents=True)
+            (legacy / "bad.md").write_text("not frontmatter\n", encoding="utf-8")
+
+            scoped_out = io.StringIO()
+            with redirect_stdout(scoped_out):
+                scoped = verify_artifacts.main(
+                    ["verify-artifacts.py", str(root), "--feature", "search"]
+                )
+            whole_out = io.StringIO()
+            with redirect_stdout(whole_out):
+                whole = verify_artifacts.main(["verify-artifacts.py", str(root)])
+
+            self.assertEqual(0, scoped, scoped_out.getvalue())
+            self.assertEqual(1, whole)
+            self.assertIn("legacy", whole_out.getvalue())
 
 
 if __name__ == "__main__":

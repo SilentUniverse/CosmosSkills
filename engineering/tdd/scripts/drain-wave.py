@@ -33,6 +33,11 @@ from contextlib import redirect_stderr, redirect_stdout
 from datetime import datetime
 from pathlib import Path
 
+ENGINEERING_ROOT = Path(__file__).resolve().parents[2]
+if str(ENGINEERING_ROOT) not in sys.path:
+    sys.path.insert(0, str(ENGINEERING_ROOT))
+from workflow_contract import validate_v3_completion
+
 RESULTS = ("green", "red", "blocked", "conflict", "aborted")
 MAX_IN_FLIGHT = 4
 SKIP_DIRS = {
@@ -186,6 +191,15 @@ def load_issues(root, feat):
             if fm is None:
                 print("drain-wave: %s has no YAML frontmatter" % p, file=sys.stderr)
                 return None
+            if fm.get("status") == "done" and str(fm.get("contract_version", "")) == "3":
+                try:
+                    validate_v3_completion(Path(root), Path(p))
+                except (OSError, UnicodeError, ValueError) as exc:
+                    print(
+                        "drain-wave: %s has invalid completion evidence: %s" % (p, exc),
+                        file=sys.stderr,
+                    )
+                    return None
             issues[slug] = (os.path.basename(fd), p, fm)
     return issues
 
@@ -211,6 +225,15 @@ def load_archived_done(root, feat):
                     file=sys.stderr,
                 )
                 return None
+            if str(fm.get("contract_version", "")) == "3":
+                try:
+                    validate_v3_completion(Path(root), Path(path))
+                except (OSError, UnicodeError, ValueError) as exc:
+                    print(
+                        "drain-wave: %s has invalid completion evidence: %s" % (path, exc),
+                        file=sys.stderr,
+                    )
+                    return None
             if slug in owners and owners[slug] != feature:
                 print(
                     "drain-wave: duplicate archived slug '%s' in features '%s' and '%s'"
@@ -238,6 +261,14 @@ def load_ledger(root, feat):
         print("drain-wave: %s unreadable - fix or delete it before continuing" % p, file=sys.stderr)
         sys.exit(1)
     data.setdefault("waves", [])
+    baselines = data.setdefault("baselines", {})
+    for wave in data["waves"]:
+        if "baseline" not in wave:
+            continue
+        snapshot = str(wave.pop("baseline"))
+        digest = hashlib.sha256(snapshot.encode("utf-8")).hexdigest()
+        baselines.setdefault(digest, snapshot)
+        wave["baseline_sha256"] = digest
     return data
 
 
@@ -394,9 +425,14 @@ def settle_zombies(root, issues, archived_done=None):
         changed = False
         for w in open_waves(data):
             for slug in set(w["dispatched"]) - set(w.get("closed", {})):
-                if slug in archived_done or (
-                    slug in issues and issues[slug][2].get("status") == "done"
-                ):
+                live_done = slug in issues and issues[slug][2].get("status") == "done"
+                valid_done = live_done
+                if live_done and str(issues[slug][2].get("contract_version", "")) == "3":
+                    try:
+                        validate_v3_completion(Path(root), Path(issues[slug][1]))
+                    except (OSError, UnicodeError, ValueError):
+                        valid_done = False
+                if slug in archived_done or valid_done:
                     w.setdefault("closed", {})[slug] = "green"
                     changed = True
                     auto.append("%s (auto-closed: done on disk)" % slug)
@@ -497,7 +533,7 @@ def cmd_next(root, feat):
     return 0
 
 
-def cmd_step(root, feat):
+def cmd_step(root, feat, parallel=False):
     issues = load_issues(root, feat)
     if issues is None:
         return 1
@@ -535,7 +571,7 @@ def cmd_step(root, feat):
     if plan["solo_now"]:
         wave = [plan["solo_now"]]
     else:
-        wave = plan["wave"]
+        wave = plan["wave"] if parallel else plan["wave"][:1]
     if wave:
         print("action: dispatch %s" % " ".join(wave))
         print("run: drain-wave.py dispatch <repo-root> %s" % " ".join(wave))
@@ -568,6 +604,7 @@ def dispatch_receipt_hits(root, issues, slugs, ledgers):
                 cwd=assignment.get("cwd", ""),
                 action=assignment.get("action", ""),
                 fingerprint=assignment.get("fingerprint", ""),
+                verifier_digest=assignment.get("verifier_digest", ""),
             )
             if entry is not None:
                 hits[slug].append(assignment["key"])
@@ -585,7 +622,10 @@ def dispatch_receipt_hits(root, issues, slugs, ledgers):
     for duplicate in relevant:
         assignment = {
             key: duplicate[key]
-            for key in ("key", "cwd", "action", "fingerprint", "receipt")
+            for key in (
+                "key", "cwd", "action", "declared_action", "fingerprint",
+                "verifier_digest", "receipt",
+            )
         }
         feat = duplicate["feature"]
         by_issue = ledgers[feat].setdefault("preflight_assignments", {})
@@ -699,8 +739,10 @@ def cmd_dispatch(root, slugs):
         )
         return 5
     baseline = git_baseline(root)
+    baseline_sha256 = hashlib.sha256(baseline.encode("utf-8")).hexdigest()
     for feat, group in sorted(by_feat.items()):
         data = ledgers[feat]
+        data.setdefault("baselines", {}).setdefault(baseline_sha256, baseline)
         num = max((w["wave"] for w in data["waves"]), default=0) + 1
         group_hits = {
             slug: receipt_hits[slug]
@@ -712,7 +754,7 @@ def cmd_dispatch(root, slugs):
                 "wave": num,
                 "at": now_iso(),
                 "dispatched": sorted(group),
-                "baseline": baseline,
+                "baseline_sha256": baseline_sha256,
                 "receipt_hits": group_hits,
                 "closed": {},
             }
@@ -722,7 +764,7 @@ def cmd_dispatch(root, slugs):
         for slug in sorted(group_hits):
             for key in group_hits[slug]:
                 print("brief: %s receipt-hit:%s" % (slug, key))
-    print("baseline recorded; subagents may start")
+    print("baseline recorded; execution may start")
     return 0
 
 
@@ -757,6 +799,15 @@ def cmd_collect(root, pairs):
                 file=sys.stderr,
             )
             return 1
+        if result == "green" and str(issues[slug][2].get("contract_version", "")) == "3":
+            try:
+                validate_v3_completion(Path(root), Path(issues[slug][1]))
+            except (OSError, UnicodeError, ValueError) as exc:
+                print(
+                    "drain-wave: %s has invalid completion evidence: %s" % (slug, exc),
+                    file=sys.stderr,
+                )
+                return 1
         plan.append((issues[slug][0], slug, result))
     ledgers = {}
     hits = {}
@@ -948,7 +999,7 @@ def main(argv):
         except (AttributeError, ValueError):
             pass
     usage = (
-        "usage: drain-wave.py step <repo-root> [<feat>] | next <repo-root> [<feat>] | "
+        "usage: drain-wave.py step <repo-root> [<feat>] [-p|--parallel] | next <repo-root> [<feat>] | "
         "dispatch <repo-root> <slug>... | "
         "collect <repo-root> <slug>=<result>[,...] | audit <repo-root> [<feat>] | "
         "dismiss-conflict <repo-root> <feat> <slug> <evidence.json> | selftest"
@@ -964,11 +1015,14 @@ def main(argv):
         print("drain-wave: no such directory '%s'" % root, file=sys.stderr)
         return 2
     if cmd == "step":
-        feat = argv[3] if len(argv) == 4 else None
-        if len(argv) > 4:
+        step_args = argv[3:]
+        parallel = "-p" in step_args or "--parallel" in step_args
+        step_args = [value for value in step_args if value not in ("-p", "--parallel")]
+        feat = step_args[0] if len(step_args) == 1 else None
+        if len(step_args) > 1:
             print(usage, file=sys.stderr)
             return 2
-        return cmd_step(root, feat)
+        return cmd_step(root, feat, parallel=parallel)
     if cmd == "next":
         feat = argv[3] if len(argv) == 4 else None
         if len(argv) > 4:

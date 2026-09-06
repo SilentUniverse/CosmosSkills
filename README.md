@@ -28,7 +28,7 @@ CosmosSkills 是一套给单人开发者的 AI 编程工程方法论：31 个跨
 - **按需行为 eval**：默认关闭；项目内保留 previous / candidate / no-skill 配对实验，跨项目则导出同一份独立公开考卷，比较 Verified Success、速度、同口径成本与交接摩擦
 - **单人本地优先**：本地 markdown 队列（ready | done 两态），零外部服务；中文沟通、沿用代码术语；面向人的输出以结果、证据和待决定事项为主
 
-完整背景故事与设计出处见 [中文版](docs/introduction.zh.md) · [English](docs/introduction.en.md)
+完整背景故事与设计出处见 [中文版](docs/introduction.zh.md) · [English](docs/introduction.en.md)；工作流设计审计见 [workflow-instruction-audit](docs/workflow-instruction-audit.md)。
 
 ## 九条定律
 
@@ -41,7 +41,7 @@ SOLID、Clean Code 是下游经验——告诉 AI 该写成什么样，规则一
 | 3 | Parsimony | 还能删掉什么？ | 选型阶梯逐级下行；对抗自审问「想象未来的抽象」 |
 | 4 | Locality | 影响能否限制在这里？ | 切卡算推理半径；两轴测试进 `CODEBASE.md` |
 | 5 | Provability | 为什么确信它对？ | 等价设计选正确性论证更短者 |
-| 6 | Adversarial Review | 怎么把它打爆？ | spec 收尾自动 `/atk`；完成记录必填审查 |
+| 6 | Adversarial Review | 怎么把它打爆？ | 高风险 spec 收尾 `/atk`；完成记录必填审查 |
 | 7 | Empiricism | 现实数据怎么说？ | 观测压倒推理；性能主张必须带测量 |
 | 8 | Reversibility | 错了能回来吗？ | 单向门单独标出吃最重审查；`PRD-v2` 对账 |
 | 9 | Evolution | 最小正确下一步是什么？ | 首卡 = 最小可工作核心；宽重构 expand→contract |
@@ -95,7 +95,7 @@ flowchart LR
 | | 做什么 |
 |---|---|
 | `/spec` | 固定意图与证据，准备验证环境，落档拆 issue。不写产品代码 |
-| `/atk` | 对抗审查。spec 收尾自动跑；手动敲另有逐条讲解 |
+| `/atk` | 对抗审查。新 public seam、单向门、耦合切片或证据不稳时由 spec 调用；手动敲另有逐条讲解 |
 | `/tdd` | 红绿，写代码 |
 | `/tidy` | 查询派生状态，清理已关闭批次的显式缓存；不搬 issue / test |
 | `/eval` | 手动打开项目内 A/B 或跨项目 portable campaign；平时关闭 |
@@ -161,7 +161,7 @@ flowchart LR
 | 车机 / 设备，验收在 log 里 | `/tdd --log` |
 | 过夜无人值守跑批 | 双击仓库根的 [overnight.cmd](overnight.cmd)（会问项目路径；给它建个桌面快捷方式最省事，也可把项目文件夹拖上去）；终端 `overnight.cmd [repo] [feat]`；macOS / Linux：`python scripts/overnight.py` |
 | 上一 session 留了 handoff | `/resume` |
-| 做到哪了 | `python3 <skills-root>/workflow-state.py survey . --format human` |
+| 做到哪了 | `python3 <skills-root>/workflow-state.py survey . --format human`（默认只看 ready/blocked/zombie；`--history` 才列已交付历史） |
 | 想听 AI 逐条讲它改了什么 | `/atk`（默认讲上一轮增量；`--all` 讲全部未提交） |
 | 快速检查 workflow 改动 | `/eval smoke <skill>`（筛回归，不能声称更好） |
 | 上游前证明 workflow 改进 | `/eval full <skill>`（3–5 次配对，默认平时不跑） |
@@ -268,7 +268,7 @@ git_base: 7af387c
 **少烧 token**
 
 1. `CLAUDE.md` / `SKILL.md` 保持稳定
-2. 大文档先搜索定位、只读命中段；跨 session 才 handoff，大量独立研究才 subagent
+2. 未知结构的大文档先搜索定位；选中的指令文件完整读一次，其他材料只读命中段；跨 session 才 handoff，大量独立研究才 subagent
 3. 别把 PRD / issue 粘进对话
 4. 整文件读优于多次摸索
 5. 稳定的验证适配器缓存在 `CODEBASE.md` 的 `## Verifier commands` 区；每张卡只记录这次真实 P# 结果和环境指纹，执行时用重放发现漂移
@@ -337,7 +337,7 @@ git_base: 7af387c
 | 全局规则源 | 只改 [`claude/CLAUDE.md`](claude/CLAUDE.md)；安装器复制到 Claude / ZCode 目标 |
 | 改 skill | 改仓库即可（junction）；平时跑 L0，想验证或上游前手动 `/eval`，再做 previous RED → candidate GREEN → 全回归 |
 | 加 / 改 / 退役流程规则 | 先登记 [RULE-LEDGER.md](engineering/RULE-LEDGER.md)（防什么失败 · 出处 · 探针）；需要测量模型代际差异时，显式 `/eval full` 跑对应探针；普通规则修复先做确定性检查 |
-| SKILL.md | <100 行；超了按 [write-skill](productivity/write-skill/SKILL.md) 拆；`/atk` + `/lint` + `wc -l` 常跑，行为 eval 仅显式开启 |
+| SKILL.md | 按 [write-skill](productivity/write-skill/SKILL.md) 做披露测试；行数只提示复查，不是拆分门槛；最终范围跑一次 `/atk` + `/lint` + `wc -l`，行为 eval 仅显式开启 |
 | 改 hook | 先跑 `test-block-legacy-cli.ps1` / `test-block-dangerous-git.ps1` |
 | 改 verify-artifacts | 跨平台先跑 `python3 -m unittest discover -s tests -v`；Windows 再跑 `test-verify-codebase.ps1` 全集 |
 | 跑大测试 | 用 `tdd/scripts/test-supervisor.py` 指定 scope、timeout、log、receipt；不要因慢而委派 |

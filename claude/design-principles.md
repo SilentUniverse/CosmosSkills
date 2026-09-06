@@ -34,7 +34,7 @@ that fires everywhere fires nowhere.
 
 ## Deliberately excluded
 
-- **Inversion / Falsifiability** — already covered by Adversarial Review (§5): actively seek the evidence that would prove you wrong.
+- **Inversion / Falsifiability** — covered by Adversarial Review plus the evidence gate: actively seek the evidence that would prove you wrong.
 - **Specification** — a means to Invariant + Provability, not a peer principle; `/spec` is that means.
 
 These words don't say what good code looks like — they let the agent derive it.

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Mechanical gate for the ARTIFACT-FORMAT.md contract (.scratch/ artifacts + CODEBASE.md map).
 # Stdlib only. Exit: 0 clean, 1 violations, 2 usage.
-# Invoke: python verify-artifacts.py [<repo-root>]
+# Invoke: python verify-artifacts.py [<repo-root>] [--feature <feat>]
 # If the `python` interpreter is missing, python3 verify-artifacts.py [<repo-root>]
 # Do not retry python3 after a non-zero gate exit (that is a contract violation).
 import hashlib
@@ -10,6 +10,12 @@ import os
 import re
 import subprocess
 import sys
+from pathlib import Path
+
+ENGINEERING_ROOT = Path(__file__).resolve().parent
+if str(ENGINEERING_ROOT) not in sys.path:
+    sys.path.insert(0, str(ENGINEERING_ROOT))
+from workflow_contract import effective_verifier, validate_v3_completion
 
 SKIP_DIRS = {
     ".git",
@@ -185,7 +191,7 @@ def bullet_value(lines, word):
 def inline_value(text, key):
     """Read `key=value` from a semicolon-delimited prose contract."""
     match = re.search(
-        r"(?:^|[;\uff1b\s`])" + re.escape(key) + r"\s*=\s*([^;\uff1b`]+)",
+        r"(?:^|[;\uff1b\s`])" + re.escape(key) + r"\s*=\s*([^;\uff1b`。]+)",
         text or "",
     )
     return match.group(1).strip() if match else ""
@@ -593,14 +599,27 @@ def main(argv):
             stream.reconfigure(errors="replace")
         except (AttributeError, ValueError):
             pass
-    if len(argv) > 2:
-        print("verify-artifacts: usage: python verify-artifacts.py [<repo-root>]", file=sys.stderr)
+    BAD_UTF8.clear()
+    args = list(argv[1:])
+    feature = None
+    if "--feature" in args:
+        index = args.index("--feature")
+        if index + 1 >= len(args) or args[index + 1].startswith("--"):
+            print("verify-artifacts: --feature requires a feature slug", file=sys.stderr)
+            return 2
+        feature = args[index + 1]
+        del args[index:index + 2]
+    if len(args) > 1 or any(arg.startswith("--") for arg in args):
+        print(
+            "verify-artifacts: usage: python verify-artifacts.py [<repo-root>] [--feature <feat>]",
+            file=sys.stderr,
+        )
         return 2
-    root = os.path.abspath(argv[1] if len(argv) == 2 else os.getcwd())
+    root = os.path.abspath(args[0] if args else os.getcwd())
     scratch = os.path.join(root, ".scratch")
     has_scratch = os.path.isdir(scratch)
     cb_path = os.path.join(root, "CODEBASE.md")
-    has_cb = os.path.isfile(cb_path)
+    has_cb = feature is None and os.path.isfile(cb_path)
 
     errors = []
     n_issues = n_prds = n_handoffs = n_summaries = n_cb_blocks = 0
@@ -701,11 +720,28 @@ def main(argv):
             if not ok:
                 err("%s: roster path '%s' is not an existing directory" % (cb_path, p))
 
+    if feature is not None:
+        if (
+            not feature
+            or feature in (".", "..")
+            or "/" in feature
+            or "\\" in feature
+            or os.path.basename(feature) != feature
+        ):
+            print("verify-artifacts: feature must be one directory name")
+            return 1
+        feature_path = os.path.realpath(os.path.join(scratch, feature))
+        if (
+            not os.path.isdir(feature_path)
+            or os.path.dirname(feature_path) != os.path.realpath(scratch)
+        ):
+            print("verify-artifacts: feature '%s' not found under %s" % (feature, scratch))
+            return 1
     if not has_scratch and not has_cb:
         print("verify-artifacts: no .scratch/ and no CODEBASE.md under %s - nothing to check, clean." % root)
         return 0
 
-    for nf_path, rel in nested_claude_files(root):
+    for nf_path, rel in (nested_claude_files(root) if feature is None else []):
         nf_lines = read_lines(nf_path)
         begins = sum(1 for x in nf_lines if BEGIN_GEN.match(x))
         ends = sum(1 for x in nf_lines if END_GEN.match(x))
@@ -759,6 +795,8 @@ def main(argv):
                 if os.path.isdir(os.path.join(scratch, n))
             ]
         )
+        if feature is not None:
+            scratch_dirs = [path for path in scratch_dirs if os.path.basename(path) == feature]
     for fd in scratch_dirs:
         feat = os.path.basename(fd)
 
@@ -883,6 +921,14 @@ def main(argv):
                     err("%s: archived issue must be done" % af)
                 if done_record(archived_lines) is None:
                     err("%s: archived done issue has no ### 完成 record" % af)
+                if str(archived_fm.get("contract_version", "")) == "3":
+                    try:
+                        effective_verifier(
+                            Path(root), feat, Path(af).read_text(encoding="utf-8-sig")
+                        )
+                        validate_v3_completion(Path(root), Path(af))
+                    except (OSError, UnicodeError, ValueError) as exc:
+                        err("%s: %s" % (af, exc))
             graph = {}
             for f in files:
                 n_issues += 1
@@ -966,47 +1012,12 @@ def main(argv):
                             elif "无" not in setup and "result=" not in setup:
                                 err("%s: contract v2 准备动作 needs result= or explicit 无" % f)
                         else:
-                            if not bullet_value(verification, PROFILE):
-                                err("%s: contract v3 验证设计 missing profile" % f)
-                            else:
-                                profile_path = os.path.join(
-                                    root, ".scratch", feat, "verifier.json"
+                            try:
+                                effective_verifier(
+                                    Path(root), feat, Path(f).read_text(encoding="utf-8-sig")
                                 )
-                                profile = None
-                                if not os.path.isfile(profile_path):
-                                    err(
-                                        "%s: contract v3 profile file missing: .scratch/%s/verifier.json"
-                                        % (f, feat)
-                                    )
-                                else:
-                                    try:
-                                        with open(profile_path, "r", encoding="utf-8") as stream:
-                                            profile = json.load(stream)
-                                    except (OSError, ValueError) as exc:
-                                        err(
-                                            "%s: contract v3 profile file not valid JSON: %s"
-                                            % (f, exc)
-                                        )
-                                if profile is not None:
-                                    commands = profile.get("commands")
-                                    if not isinstance(commands, dict) or not commands:
-                                        err("%s: contract v3 profile needs non-empty commands" % f)
-                                    fingerprint = str(profile.get("fingerprint", ""))
-                                    if not fingerprint:
-                                        err("%s: contract v3 profile missing fingerprint" % f)
-                                    else:
-                                        missing_keys = [
-                                            key
-                                            for key in ("git", "lock", "runtime", "tools", "services")
-                                            if not re.search(
-                                                r"(?:^|[;；\s`])" + key + r"\s*=", fingerprint
-                                            )
-                                        ]
-                                        if missing_keys:
-                                            err(
-                                                "%s: contract v3 profile fingerprint missing keys: %s"
-                                                % (f, ", ".join(missing_keys))
-                                            )
+                            except (OSError, UnicodeError, ValueError) as exc:
+                                err("%s: %s" % (f, exc))
 
                         experience = bullet_value(verification, TIYAN_YANZHENG)
                         if experience_review:
@@ -1195,68 +1206,10 @@ def main(argv):
                         ):
                             err("%s: contract v2 done record missing 验证命令" % f)
                         if contract_version == "3":
-                            receipt_line = bullet_value(rec or [], RECEIPT_KEY)
-                            if not receipt_line:
-                                err("%s: contract v3 done record missing receipt" % f)
-                            else:
-                                relative = (
-                                    receipt_line.split("；")[0].split(";")[0].strip().strip("` ")
-                                )
-                                if not relative.endswith(".json"):
-                                    err(
-                                        "%s: contract v3 receipt must reference a .json file: %r"
-                                        % (f, relative)
-                                    )
-                                else:
-                                    parts = relative.replace("\\", "/").split("/")
-                                    if (
-                                        len(parts) < 4
-                                        or parts[0] != ".scratch"
-                                        or parts[2] != "receipts"
-                                        or ".." in parts
-                                    ):
-                                        err(
-                                            "%s: contract v3 receipt path must stay under"
-                                            " .scratch/<feat>/receipts/: %r" % (f, relative)
-                                        )
-                                        parts = None
-                                    payload = None
-                                    if parts is not None:
-                                        receipt_file = os.path.join(root, *parts)
-                                        if not os.path.isfile(receipt_file):
-                                            err(
-                                                "%s: contract v3 receipt file missing: %s"
-                                                % (f, relative)
-                                            )
-                                        else:
-                                            try:
-                                                with open(receipt_file, "r", encoding="utf-8") as stream:
-                                                    payload = json.load(stream)
-                                            except (OSError, ValueError) as exc:
-                                                err(
-                                                    "%s: contract v3 receipt not valid JSON: %s"
-                                                    % (f, exc)
-                                                )
-                                    if payload is not None:
-                                        if str(payload.get("outcome")) != "pass":
-                                            err(
-                                                "%s: contract v3 receipt outcome %r != pass"
-                                                % (f, payload.get("outcome"))
-                                            )
-                                claimed = set()
-                                for part in re.findall(r"AC\s*([\d,\-]+)", receipt_line):
-                                    for token in part.split(","):
-                                        if re.match(r"^\d+$", token):
-                                            claimed.add(int(token))
-                                        elif re.match(r"^\d+-\d+$", token):
-                                            low, high = token.split("-")
-                                            claimed.update(range(int(low), int(high) + 1))
-                                unclaimed = sorted(mapped_acs - claimed)
-                                if unclaimed:
-                                    err(
-                                        "%s: contract v3 receipt does not cover AC: %s"
-                                        % (f, ", ".join("#%d" % n for n in unclaimed))
-                                    )
+                            try:
+                                validate_v3_completion(Path(root), Path(f))
+                            except (OSError, UnicodeError, ValueError) as exc:
+                                err("%s: %s" % (f, exc))
                             if not bullet_value(rec or [], CHASHEN):
                                 err("%s: contract v3 done record missing 审查" % f)
                         if contract_version == "2":
@@ -1277,12 +1230,11 @@ def main(argv):
                                 experience = bullet_value(rec or [], TIYAN_YANZHENG)
                                 valid_experience = (
                                     bool(experience)
-                                    and ("→ passed" in experience or "-> passed" in experience)
                                     and "evidence=" in experience
                                 )
                                 if not valid_experience:
                                     err(
-                                        "%s: opted-in experience done record needs passed 体验验证 with evidence="
+                                        "%s: opted-in experience done record needs 体验验证 with evidence="
                                         % f
                                     )
                                 else:
@@ -1301,21 +1253,34 @@ def main(argv):
                                         experience_states,
                                         err,
                                     )
+                        declared_raw = [str(p).replace("\\", "/") for p in as_list(fm.get("test_paths")) if p]
+
+                        def completion_test_exists(value):
+                            cand = value.replace("\\", "/")
+                            if os.path.isfile(os.path.join(root, cand)) or os.path.isfile(os.path.join(fd, cand)):
+                                return True
+                            if "/" in cand:
+                                return False
+                            matches = [
+                                path for path in declared_raw
+                                if os.path.basename(path).lower() == cand.lower()
+                                and (
+                                    os.path.isfile(os.path.join(root, path))
+                                    or os.path.isfile(os.path.join(fd, path))
+                                )
+                            ]
+                            return len(matches) == 1
+
                         for m in sorted(set(TEST_PATH.findall("\n".join(test_named_fields)))):
                             cand = m.replace("\\", "/")
-                            if not (
-                                os.path.isfile(os.path.join(root, cand))
-                                or os.path.isfile(os.path.join(fd, cand))
-                            ):
+                            if not completion_test_exists(cand):
                                 err("%s: ### 完成 names missing test file '%s'" % (f, m))
                         # records are prose-typed: normalize ./ prefix, separators, and case
                         # (Windows-first repos) before membership comparison
                         def _norm(p):
                             return p.replace("\\", "/").rstrip("/").lstrip("./").lower()
 
-                        declared = {
-                            _norm(p) for p in as_list(fm.get("test_paths")) if p
-                        }
+                        declared = {_norm(p) for p in declared_raw}
                         if declared:
                             xin = [
                                 line.lstrip()
@@ -1333,7 +1298,7 @@ def main(argv):
                 err("%s: in (or depends on) a blocked_by cycle" % by_slug[c])
 
     cfh = os.path.join(scratch, "handoff.md")
-    if os.path.isfile(cfh):
+    if feature is None and os.path.isfile(cfh):
         check_handoff(cfh, "")
 
     for p in sorted(BAD_UTF8):
@@ -1345,8 +1310,15 @@ def main(argv):
             print("  %s" % e)
         return 1
     print(
-        "verify-artifacts: OK - checked %d issue(s), %d PRD(s), %d handoff(s), %d summary(s), %d codebase block(s)."
-        % (n_issues, n_prds, n_handoffs, n_summaries, n_cb_blocks)
+        "verify-artifacts: OK%s - checked %d issue(s), %d PRD(s), %d handoff(s), %d summary(s), %d codebase block(s)."
+        % (
+            " feature=%s" % feature if feature is not None else "",
+            n_issues,
+            n_prds,
+            n_handoffs,
+            n_summaries,
+            n_cb_blocks,
+        )
     )
     return 0
 

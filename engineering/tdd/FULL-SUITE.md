@@ -25,7 +25,9 @@ recent local or CI evidence and report that assumption.
 The supervisor redirects output before launch. It returns only outcome, scope, exit, duration, log,
 and receipt paths to the conversation. On timeout it stops the process group/tree, waits the grace
 period, escalates, and exits 124. Launch or signal crashes exit 125. A normal failure preserves its
-exit code when possible.
+exit code when possible. Values from environment variables named like key/token/secret/password/auth
+are redacted from the stored log; putting one directly in argv is rejected. Pass credentials through
+the environment.
 
 ## Reading results
 

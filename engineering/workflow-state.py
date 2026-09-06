@@ -9,8 +9,15 @@ import re
 import sys
 from pathlib import Path
 
+ENGINEERING_ROOT = Path(__file__).resolve().parent
+if str(ENGINEERING_ROOT) not in sys.path:
+    sys.path.insert(0, str(ENGINEERING_ROOT))
+from workflow_contract import effective_verifier, issue_contract_digest, validate_v3_completion
+
 
 ISSUE_NAME = re.compile(r"^(\d+)-.+\.md$")
+PROFILE_NAME = re.compile(r"\bprofile:([A-Za-z][A-Za-z0-9_-]*)\b")
+MAPPED_ACTION = re.compile(r"^(\s*-\s*#\d+\s*(?:→|->)\s*)`([^`]+)`")
 
 
 def scalar(value):
@@ -88,6 +95,32 @@ def section_summary(raw):
     return " ".join(body[:3])
 
 
+def compact_summary(raw, limit=160):
+    value = section_summary(raw)
+    return value if len(value) <= limit else value[: limit - 1].rstrip() + "…"
+
+
+def safe_segment(value, label):
+    value = str(value)
+    if not value or value in (".", "..") or "/" in value or "\\" in value:
+        raise ValueError("%s must be one directory/file stem" % label)
+    return value
+
+
+def feature_issue_dir(root, feature):
+    root = Path(root).resolve()
+    feature = safe_segment(feature, "feature")
+    scratch = (root / ".scratch").resolve()
+    feature_dir = (scratch / feature).resolve()
+    issue_dir = (feature_dir / "issues").resolve()
+    try:
+        feature_dir.relative_to(scratch)
+        issue_dir.relative_to(feature_dir)
+    except ValueError as exc:
+        raise ValueError("feature issue directory must stay under .scratch") from exc
+    return issue_dir
+
+
 def section_lines(raw, heading, limit=3):
     lines = raw.splitlines()
     active = False
@@ -103,29 +136,50 @@ def section_lines(raw, heading, limit=3):
     return body[:limit]
 
 
+def section_body(raw, heading):
+    return section_lines(raw, heading, limit=None)
+
+
 def contract_digest(raw):
     contract = raw.split("\n## Comments", 1)[0]
     return hashlib.sha256(contract.encode("utf-8")).hexdigest()
 
 
 def issue_paths(root, feature):
-    issue_dir = Path(root) / ".scratch" / feature / "issues"
+    issue_dir = feature_issue_dir(root, feature)
     if not issue_dir.is_dir():
         raise ValueError("feature '%s' has no issue directory" % feature)
-    paths = [path for path in issue_dir.glob("*.md") if path.is_file()]
+    paths = [path.resolve() for path in issue_dir.glob("*.md") if path.is_file()]
     archive = issue_dir / "archive"
     if archive.is_dir():
-        paths.extend(path for path in archive.glob("*.md") if path.is_file())
+        archive = archive.resolve()
+        try:
+            archive.relative_to(issue_dir)
+        except ValueError as exc:
+            raise ValueError("issue archive must stay under its feature") from exc
+        paths.extend(path.resolve() for path in archive.glob("*.md") if path.is_file())
+    for path in paths:
+        try:
+            path.relative_to(issue_dir)
+        except ValueError as exc:
+            raise ValueError("issue path must stay under its feature") from exc
     return sorted(paths)
 
 
+def issue_state(root, feature, path):
+    raw = path.read_text(encoding="utf-8-sig")
+    data = frontmatter_rich(raw, path)
+    if data.get("type") != "issue" or data.get("feature") != feature:
+        raise ValueError("%s: issue identity does not match feature '%s'" % (path, feature))
+    if data.get("status") == "done" and data.get("contract_version") == "3":
+        validate_v3_completion(Path(root).resolve(), path, raw)
+    return raw, data
+
+
 def issue_record(root, feature, path):
-    raw = path.read_text(encoding="utf-8")
-    data = frontmatter(raw, path)
+    raw, data = issue_state(root, feature, path)
     if data.get("status") != "done":
         return None
-    if data.get("type") != "issue" or data.get("feature") != feature:
-        raise ValueError("%s: done issue identity does not match feature '%s'" % (path, feature))
     relative = path.relative_to(root).as_posix()
     return {
         "slug": path.stem,
@@ -185,21 +239,28 @@ def inspect_feature(root, feature):
 
 
 def find_issue(root, feature, slug):
-    issue_dir = Path(root) / ".scratch" / feature / "issues"
+    issue_dir = feature_issue_dir(root, feature)
+    slug = safe_segment(slug, "slug")
     if not issue_dir.is_dir():
         raise ValueError("feature '%s' has no issue directory" % feature)
     path = issue_dir / ("%s.md" % slug)
     if path.is_file():
-        return path
+        resolved = path.resolve()
+        try:
+            resolved.relative_to(issue_dir)
+        except ValueError as exc:
+            raise ValueError("issue path must stay under its feature") from exc
+        return resolved
     raise ValueError("issue '%s' not found in feature '%s'" % (slug, feature))
 
 
 def issue_packet(root, feature, slug):
     root = Path(root).resolve()
     path = find_issue(root, feature, slug)
-    raw = path.read_text(encoding="utf-8")
-    data = {key: value for key, value in frontmatter_rich(raw, path).items()}
-    return {
+    raw, issue_data = issue_state(root, feature, path)
+    data = dict(issue_data)
+    verification = section_body(raw, "验证设计")
+    packet = {
         "schema_version": 1,
         "slug": slug,
         "feature": feature,
@@ -209,51 +270,57 @@ def issue_packet(root, feature, slug):
         "blocked_by": data.get("blocked_by", []),
         "test_paths": data.get("test_paths", []),
         "touches": data.get("touches", []),
-        "summary": section_summary(raw),
-        "context": section_lines(raw, "相关面"),
+        "parent": section_body(raw, "上级"),
+        "objective": section_body(raw, "做什么"),
+        "acceptance": section_body(raw, "验收标准"),
+        "verification": verification,
+        "context": section_body(raw, "相关面"),
+        "dependencies": section_body(raw, "前置依赖"),
         "digest": contract_digest(raw),
+        "contract_sha256": issue_contract_digest(raw),
         "source": path.relative_to(root).as_posix(),
     }
-
-
-def _verify_v3_receipt(root, raw, slug):
-    for line in raw.splitlines():
-        s = line.strip()
-        if not s.startswith("- receipt:"):
-            continue
-        relative = s[len("- receipt:"):].split("；")[0].split(";")[0].strip().strip("` ")
-        parts = relative.replace("\\", "/").split("/")
-        if (
-            not relative.endswith(".json")
-            or len(parts) < 4
-            or parts[0] != ".scratch"
-            or parts[2] != "receipts"
-            or ".." in parts
-        ):
-            raise ValueError(
-                "issue '%s' receipt path must stay under .scratch/<feat>/receipts/: %s"
-                % (slug, relative)
-            )
-        path = root.joinpath(*parts)
-        if not path.is_file():
-            raise ValueError("issue '%s' receipt missing: %s" % (slug, relative))
-        try:
-            payload = json.loads(path.read_text(encoding="utf-8"))
-        except ValueError as exc:
-            raise ValueError("issue '%s' receipt not valid JSON: %s" % (slug, exc))
-        if payload.get("outcome") != "pass":
-            raise ValueError(
-                "issue '%s' receipt outcome %r != pass" % (slug, payload.get("outcome"))
-            )
-        return
-    raise ValueError("issue '%s' contract v3 record has no receipt line" % slug)
+    if str(data.get("contract_version", "")) == "3":
+        verifier = dict(effective_verifier(root, feature, raw))
+        verifier.pop("ac_commands", None)
+        action_counts = {}
+        for line in verification:
+            match = MAPPED_ACTION.match(line)
+            if match and not match.group(2).startswith("profile:"):
+                action_counts[match.group(2)] = action_counts.get(match.group(2), 0) + 1
+        aliases = {}
+        compact = []
+        for line in verification:
+            stripped = line.strip()
+            if stripped.startswith("- profile:") or stripped.startswith("- 偏差 "):
+                continue
+            match = MAPPED_ACTION.match(line)
+            if match and action_counts.get(match.group(2), 0) > 1:
+                action = match.group(2)
+                alias = aliases.setdefault(action, "card_%d" % (len(aliases) + 1))
+                line = line[: match.start(2)] + "packet:" + alias + line[match.end(2):]
+            compact.append(line)
+        referenced = {
+            name for line in compact for name in PROFILE_NAME.findall(line)
+        }
+        referenced.update(verifier.get("completion_commands", []))
+        commands = {
+            name: command
+            for name, command in verifier["commands"].items()
+            if name in referenced
+        }
+        verifier["commands"] = commands
+        packet["verification"] = compact
+        packet["effective_verifier"] = verifier
+        if aliases:
+            packet["packet_commands"] = {alias: action for action, alias in aliases.items()}
+    return packet
 
 
 def close_issue(root, feature, slug):
     root = Path(root).resolve()
     path = find_issue(root, feature, slug)
-    raw = path.read_text(encoding="utf-8")
-    data = frontmatter(raw, path)
+    raw, data = issue_state(root, feature, path)
     if data.get("status") != "ready":
         raise ValueError(
             "issue '%s' is '%s'; close requires status: ready" % (slug, data.get("status"))
@@ -261,7 +328,7 @@ def close_issue(root, feature, slug):
     if "### 完成" not in raw:
         raise ValueError("issue '%s' has no ### 完成 record" % slug)
     if data.get("contract_version") == "3":
-        _verify_v3_receipt(root, raw, slug)
+        validate_v3_completion(root, path, raw)
     lines = raw.splitlines(keepends=True)
     updated = []
     scanning = False
@@ -326,7 +393,7 @@ def stats(root):
     cards = {"v2": 0, "v3": 0}
     card_bytes = {"v2": 0, "v3": 0}
     for path in sorted(root.glob(".scratch/*/issues/*.md")):
-        raw = path.read_text(encoding="utf-8")
+        raw = path.read_text(encoding="utf-8-sig")
         try:
             data = frontmatter(raw, path)
         except ValueError:
@@ -350,6 +417,82 @@ def render_human(state):
     for item in state["delivered"]:
         summary = item["summary"] or "（无行为摘要）"
         lines.append("- %s — %s [%s]" % (item["slug"], summary, item["path"]))
+    return "\n".join(lines)
+
+
+def feature_frontier(root, feature):
+    root = Path(root).resolve()
+    issue_dir = feature_issue_dir(root, feature)
+    live = []
+    done = set()
+    if not issue_dir.is_dir():
+        raise ValueError("feature '%s' has no issue directory" % feature)
+    for path in issue_paths(root, feature):
+        raw, data = issue_state(root, feature, path)
+        if path.parent.name == "archive":
+            if data.get("status") == "done":
+                done.add(path.stem)
+            continue
+        status = data.get("status")
+        if status == "done":
+            done.add(path.stem)
+        live.append((path, raw, data))
+    ready = []
+    blocked = []
+    for path, raw, data in live:
+        if data.get("status") != "ready":
+            continue
+        dependencies = [value for value in data.get("blocked_by", []) if value]
+        missing = [value for value in dependencies if value not in done]
+        item = {
+            "slug": path.stem,
+            "summary": compact_summary(raw),
+            "blocked_by": missing,
+        }
+        (blocked if missing else ready).append(item)
+    zombies = []
+    ledger = root / ".scratch" / feature / "wave-ledger.json"
+    if ledger.is_file():
+        try:
+            payload = json.loads(ledger.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            payload = {}
+        for wave in payload.get("waves", []):
+            for slug in sorted(set(wave.get("dispatched", [])) - set(wave.get("closed", {}))):
+                zombies.append({"slug": slug, "wave": wave.get("wave")})
+    zombie_slugs = {item["slug"] for item in zombies}
+    ready = [item for item in ready if item["slug"] not in zombie_slugs]
+    blocked = [item for item in blocked if item["slug"] not in zombie_slugs]
+    return {
+        "feature": feature,
+        "counts": {
+            "ready": len(ready),
+            "blocked": len(blocked),
+            "done": len(done),
+            "zombie": len(zombies),
+        },
+        "ready": ready,
+        "blocked": blocked,
+        "zombies": zombies,
+    }
+
+
+def render_survey(states):
+    if not states:
+        return "（无 feature state）"
+    lines = ["# workflow frontier"]
+    for state in states:
+        count = state["counts"]
+        lines.append(
+            "%s: ready=%d blocked=%d done=%d zombie=%d"
+            % (state["feature"], count["ready"], count["blocked"], count["done"], count["zombie"])
+        )
+        for item in state["ready"]:
+            lines.append("- ready %s — %s" % (item["slug"], item["summary"] or "（无摘要）"))
+        for item in state["blocked"]:
+            lines.append("- blocked %s ← %s" % (item["slug"], ", ".join(item["blocked_by"])))
+        for item in state["zombies"]:
+            lines.append("- zombie %s (wave %s)" % (item["slug"], item["wave"]))
     return "\n".join(lines)
 
 
@@ -379,10 +522,10 @@ def gc_feature(root, feature, apply=False):
     feature_dir = root / ".scratch" / feature
     ready = False
     for path in issue_paths(root, feature):
+        _, data = issue_state(root, feature, path)
         if path.parent.name == "archive":
             continue
-        raw = path.read_text(encoding="utf-8")
-        if frontmatter(raw, path).get("status") == "ready":
+        if data.get("status") == "ready":
             ready = True
             break
     ledger = feature_dir / "wave-ledger.json"
@@ -416,6 +559,7 @@ def parser():
     survey = sub.add_parser("survey")
     survey.add_argument("root")
     survey.add_argument("--format", choices=("json", "human"), default="human")
+    survey.add_argument("--history", action="store_true")
     gc = sub.add_parser("gc")
     gc.add_argument("root")
     gc.add_argument("feature")
@@ -440,14 +584,23 @@ def main(argv=None):
             state = inspect_feature(args.root, args.feature)
             output = json.dumps(state, ensure_ascii=False, indent=2) if args.format == "json" else render_human(state)
         elif args.command == "survey":
-            states = [inspect_feature(args.root, feature) for feature in feature_names(args.root)]
+            if args.history:
+                states = [inspect_feature(args.root, feature) for feature in feature_names(args.root)]
+            else:
+                states = [feature_frontier(args.root, feature) for feature in feature_names(args.root)]
             if args.format == "json":
                 output = json.dumps(states, ensure_ascii=False, indent=2)
             else:
-                output = "\n\n".join(render_human(state) for state in states) or "（无 feature state）"
+                output = (
+                    "\n\n".join(render_human(state) for state in states) or "（无 feature state）"
+                    if args.history
+                    else render_survey(states)
+                )
         elif args.command == "packet":
             output = json.dumps(
-                issue_packet(args.root, args.feature, args.slug), ensure_ascii=False, indent=2
+                issue_packet(args.root, args.feature, args.slug),
+                ensure_ascii=False,
+                separators=(",", ":"),
             )
         elif args.command == "close":
             output = json.dumps(

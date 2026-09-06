@@ -2,7 +2,7 @@
 """Reuse supervised SPEC preflight results within one TDD drain batch.
 
 The test supervisor executes the action and writes evidence. This script accepts only a passing,
-integrity-checked preflight receipt for the exact cwd/action/fingerprint tuple.
+integrity-checked receipt for the exact cwd/resolved-action/fingerprint/profile-digest tuple.
 
 Exit codes: 0 hit/recorded, 1 invalid receipt or input, 2 usage, 3 cache miss.
 """
@@ -14,13 +14,17 @@ import hashlib
 import json
 import os
 import re
-import shlex
 import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 from contextlib import contextmanager
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+
+ENGINEERING_ROOT = Path(__file__).resolve().parents[2]
+if str(ENGINEERING_ROOT) not in sys.path:
+    sys.path.insert(0, str(ENGINEERING_ROOT))
+from workflow_contract import command_argv, effective_verifier, resolve_action
 
 
 SCHEMA_VERSION = 1
@@ -39,9 +43,14 @@ def _normal_cwd(value: str) -> str:
     return os.path.normpath(_text(value, "cwd")).replace("\\", "/")
 
 
-def _key(cwd: str, action: str, fingerprint: str) -> str:
+def _key(cwd: str, action: str, fingerprint: str, verifier_digest: str = "") -> str:
     payload = json.dumps(
-        {"action": action, "cwd": cwd, "fingerprint": fingerprint},
+        {
+            "action": action,
+            "cwd": cwd,
+            "fingerprint": fingerprint,
+            "verifier_digest": verifier_digest,
+        },
         ensure_ascii=False,
         separators=(",", ":"),
         sort_keys=True,
@@ -72,11 +81,17 @@ def _execution(receipt: Path, cwd: str, action: str) -> Dict[str, Any]:
         data = json.loads(receipt.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise ValueError(f"{receipt}: invalid execution receipt: {exc}") from exc
-    if not isinstance(data, dict) or data.get("schema_version") != 1:
+    if (
+        not isinstance(data, dict)
+        or type(data.get("schema_version")) is not int
+        or data.get("schema_version") != 1
+    ):
         raise ValueError(f"{receipt}: unsupported execution receipt schema")
     if data.get("scope") != "preflight" or data.get("outcome") != "pass":
         raise ValueError(f"{receipt}: preflight execution did not pass")
-    if data.get("exit_code") != 0 or data.get("argv") != shlex.split(action):
+    if data.get("exit_code") != 0 or data.get("argv") != command_argv(
+        action, data.get("argv_style")
+    ):
         raise ValueError(f"{receipt}: execution does not match action")
     if Path(str(data.get("cwd", ""))).resolve() != _declared_cwd(receipt, cwd):
         raise ValueError(f"{receipt}: execution does not match cwd")
@@ -93,7 +108,11 @@ def _load(path: Path) -> Dict[str, Any]:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise ValueError(f"{path}: {exc}") from exc
-    if not isinstance(data, dict) or data.get("schema_version") != SCHEMA_VERSION:
+    if (
+        not isinstance(data, dict)
+        or type(data.get("schema_version")) is not int
+        or data.get("schema_version") != SCHEMA_VERSION
+    ):
         raise ValueError(f"{path}: unsupported preflight receipt schema")
     if not isinstance(data.get("entries"), dict):
         raise ValueError(f"{path}: entries must be an object")
@@ -156,9 +175,9 @@ def _exclusive_writer(path: Path):
             pass
 
 
-def _resolve_action(receipt: Path, action: str) -> str:
+def _resolve_action(receipt: Path, action: str) -> Tuple[str, bool]:
     if not action.startswith("profile:"):
-        return action
+        return action, False
     name = action[len("profile:"):].strip()
     profile = receipt.resolve().parent / "verifier.json"
     try:
@@ -168,7 +187,7 @@ def _resolve_action(receipt: Path, action: str) -> str:
     command = (data.get("commands") or {}).get(name)
     if not command:
         raise ValueError(f"{receipt}: verifier.json has no command '{name}'")
-    return command
+    return command, True
 
 
 def record(
@@ -178,21 +197,27 @@ def record(
     action: str,
     fingerprint: str,
     execution_receipt: Path,
+    verifier_digest: str = "",
 ) -> str:
     cwd = _normal_cwd(cwd)
     action = _text(action, "action")
     fingerprint = _text(fingerprint, "fingerprint")
-    execution = _execution(execution_receipt, cwd, _resolve_action(path, action))
-    key = _key(cwd, action, fingerprint)
+    resolved_action, profile_action = _resolve_action(path, action)
+    if profile_action and not verifier_digest:
+        raise ValueError("profile action requires --verifier-digest from plan/dispatch")
+    execution = _execution(execution_receipt, cwd, resolved_action)
+    key = _key(cwd, resolved_action, fingerprint, verifier_digest)
     with _exclusive_writer(path):
         data = _load(path)
         data["entries"][key] = {
-            "action": action,
+            "action": resolved_action,
+            "declared_action": action,
             "checked_at": execution["ended_at"],
             "cwd": cwd,
             "duration_seconds": execution["duration_seconds"],
             "evidence": str(execution_receipt.resolve()),
             "fingerprint": fingerprint,
+            "verifier_digest": verifier_digest,
             "observed": "exit 0",
             "result": "passed",
         }
@@ -200,12 +225,22 @@ def record(
     return key
 
 
-def check(path: Path, *, cwd: str, action: str, fingerprint: str) -> Optional[Dict[str, Any]]:
+def check(
+    path: Path,
+    *,
+    cwd: str,
+    action: str,
+    fingerprint: str,
+    verifier_digest: str = "",
+) -> Optional[Dict[str, Any]]:
     cwd = _normal_cwd(cwd)
     action = _text(action, "action")
     fingerprint = _text(fingerprint, "fingerprint")
+    resolved_action, profile_action = _resolve_action(path, action)
+    if profile_action and not verifier_digest:
+        raise ValueError("profile action requires --verifier-digest from plan/dispatch")
     data = _load(path)
-    entry = data["entries"].get(_key(cwd, action, fingerprint))
+    entry = data["entries"].get(_key(cwd, resolved_action, fingerprint, verifier_digest))
     if not isinstance(entry, dict) or entry.get("result") != "passed":
         return None
     return entry
@@ -266,39 +301,42 @@ def issue_preflight_rows(
         if not issues_dir.is_dir():
             continue
         for issue in sorted(issues_dir.glob("*.md")):
-            lines = issue.read_text(encoding="utf-8-sig").splitlines()
+            issue_raw = issue.read_text(encoding="utf-8-sig")
+            lines = issue_raw.splitlines()
             card = _frontmatter(lines)
             if card.get("status") not in statuses:
                 continue
             verification = _verification(lines)
             cwd = _bullet(verification, "工作目录")
             fingerprint = _bullet(verification, "环境指纹")
-            if not cwd or not fingerprint:
-                profile_path = feature_dir / "verifier.json"
-                if str(card.get("contract_version", "")) != "3" or not profile_path.is_file():
-                    continue
+            verifier = None
+            if str(card.get("contract_version", "")) == "3":
                 try:
-                    profile = json.loads(profile_path.read_text(encoding="utf-8"))
-                except (OSError, json.JSONDecodeError):
-                    continue
-                cwd = cwd or str(profile.get("cwd", "") or "")
-                fingerprint = fingerprint or str(profile.get("fingerprint", "") or "")
-                if not cwd or not fingerprint:
-                    continue
+                    verifier = effective_verifier(root, feature_dir.name, issue_raw)
+                except (OSError, ValueError) as exc:
+                    raise ValueError(f"{issue}: {exc}") from exc
+                cwd = cwd or str(verifier["cwd"])
+                fingerprint = fingerprint or str(verifier["fingerprint"])
+            if not cwd or not fingerprint:
+                continue
             for line in verification:
                 match = PREFLIGHT.match(line)
                 if match:
                     normal_cwd = _normal_cwd(cwd)
-                    action = match.group(1).strip()
+                    declared_action = match.group(1).strip()
+                    action = resolve_action(verifier, declared_action) if verifier else declared_action
+                    verifier_digest = str(verifier["effective_sha256"]) if verifier else ""
                     rows.append(
                         {
                             "feature": feature_dir.name,
                             "issue": issue.relative_to(root).as_posix(),
                             "slug": issue.stem,
-                            "key": _key(normal_cwd, action, fingerprint),
+                            "key": _key(normal_cwd, action, fingerprint, verifier_digest),
                             "cwd": normal_cwd,
                             "action": action,
+                            "declared_action": declared_action,
                             "fingerprint": fingerprint,
+                            "verifier_digest": verifier_digest,
                             "receipt": (
                                 scratch / feature_dir.name / "preflight-receipt.json"
                             ).relative_to(root).as_posix(),
@@ -333,6 +371,7 @@ def duplicate_plan(
             cwd=sample["cwd"],
             action=sample["action"],
             fingerprint=sample["fingerprint"],
+            verifier_digest=sample.get("verifier_digest", ""),
         )
         duplicates.append(
             {
@@ -340,7 +379,9 @@ def duplicate_plan(
                 "key": sample["key"],
                 "cwd": sample["cwd"],
                 "action": sample["action"],
+                "declared_action": sample.get("declared_action", sample["action"]),
                 "fingerprint": sample["fingerprint"],
+                "verifier_digest": sample.get("verifier_digest", ""),
                 "issues": unique_issues,
                 "receipt": sample["receipt"],
                 "status": "hit" if hit else "miss",
@@ -358,6 +399,7 @@ def build_parser() -> argparse.ArgumentParser:
         command.add_argument("--cwd", required=True)
         command.add_argument("--action", required=True)
         command.add_argument("--fingerprint", required=True)
+        command.add_argument("--verifier-digest", default="")
         if name == "record":
             command.add_argument("--execution-receipt", type=Path, required=True)
     plan = commands.add_parser("plan", help="list only duplicate ready-card preflight tuples")
@@ -379,6 +421,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                 action=args.action,
                 fingerprint=args.fingerprint,
                 execution_receipt=args.execution_receipt,
+                verifier_digest=args.verifier_digest,
             )
             print(f"recorded: {key}")
             return 0
@@ -387,6 +430,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             cwd=args.cwd,
             action=args.action,
             fingerprint=args.fingerprint,
+            verifier_digest=args.verifier_digest,
         )
         if entry is None:
             print("cache-miss")

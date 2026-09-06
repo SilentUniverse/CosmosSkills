@@ -8,7 +8,7 @@ argument-hint: "Issue path, feature slug, -p, --full, --log, or nothing to drain
 
 ## Invocation
 
-- `/tdd <issue-path>` — run that one issue. Read its frontmatter `status:` first (per [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd)) and obey the guard. One slice, fully visible. For a minimal projection instead of the full card, run `python <skills-root>/workflow-state.py packet <repo-root> <feat> <slug>` (`python3` only when `python` is absent); it prints status, `blocked_by`, `test_paths`, the `## 相关面` context pointers, contract digest, and the source path without writing anything.
+- `/tdd <issue-path>` — run that one issue. Read its frontmatter `status:` first (per [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd)) and obey the guard. One slice, fully visible. Prefer `python <skills-root>/workflow-state.py packet <repo-root> <feat> <slug>` (`python3` only when `python` is absent): its compact JSON contains the parent, objective, AC, verification, dependencies, context pointers, declared paths, contract digest, and resolved v3 verifier, while omitting Comments/history.
 - `/tdd` (bare) — **drain (serial)**: every `ready` issue across `.scratch/`, one at a time, dependency order, to completion. The dumb-but-legible batch path: no worktrees; watch each one in this session.
 - `/tdd <feat>` — drain scoped to one feature's `issues/` directory.
 - `/tdd -p [<feat>]` — **drain (parallel)**: ready issues fan out to subagents (one per issue, ≤4 in flight); each issue's verbose output stays isolated, independent slices finish in parallel. Wave rules: declared collisions serialize, undeclared issues run alone. Worktree only on explicit request, and runner-driven session rotation: [DRAIN.md](DRAIN.md).
@@ -20,7 +20,7 @@ argument-hint: "Issue path, feature slug, -p, --full, --log, or nothing to drain
 
 ### Drain mode
 
-Enumerate `ready` issues, topologically sort on `blocked_by`, run the batch through the autonomous loop (§Workflow), close with one full suite + build. Two paths: **serial** (default: legible, one at a time) and **parallel** (`-p`: subagent waves). Batches keep a bounded context per issue — the accumulated conversation never becomes the context carrier ([DRAIN.md](DRAIN.md) context budget). Full algorithm, subagent brief, edit-in-place-vs-worktree call: **[DRAIN.md](DRAIN.md)**.
+Enumerate `ready` issues, topologically sort on `blocked_by`, run the batch through the autonomous loop (§Workflow), close with one full suite + build. Two paths: **serial** (default: one issue returned by each driver step) and **parallel** (`-p`: subagent waves). The issue packet, code, receipts, and rolling handoff carry durable context; keep conversation summaries out of subsequent issue briefs. Full algorithm, subagent brief, edit-in-place-vs-worktree call: **[DRAIN.md](DRAIN.md)**.
 
 ### Status guard (issue-driven invocation)
 

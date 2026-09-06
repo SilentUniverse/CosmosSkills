@@ -1,11 +1,16 @@
 import importlib.util
+import io
 import json
+import os
 import subprocess
+import stat
 import sys
 import tempfile
 import time
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -102,9 +107,9 @@ class TestSupervisorTests(unittest.TestCase):
                     sys.executable,
                     str(ROOT / "engineering" / "tdd" / "scripts" / "test-supervisor.py"),
                     "--receipt",
-                    str(root / "receipt.json"),
+                    str(root / ".scratch" / "receipt.json"),
                     "--log",
-                    str(root / "run.log"),
+                    str(root / ".scratch" / "tmp" / "run.log"),
                     "--cwd",
                     str(root),
                     "--timeout",
@@ -118,6 +123,174 @@ class TestSupervisorTests(unittest.TestCase):
             )
             self.assertEqual(2, completed.returncode)
             self.assertIn("command must not be empty", completed.stderr)
+
+    def test_multiline_environment_secret_is_redacted(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            secret = "abcd\nefgh"
+            env = dict(os.environ)
+            env["PRIVATE_KEY"] = secret
+            _, exit_code = supervisor.run_command(
+                [sys.executable, "-c", "import os; print(os.environ['PRIVATE_KEY'])"],
+                cwd=root,
+                receipt=root / "receipt.json",
+                log=root / "run.log",
+                timeout=2,
+                grace=0.1,
+                scope="targeted",
+                env=env,
+            )
+            output = (root / "run.log").read_text(encoding="utf-8")
+            self.assertEqual(0, exit_code)
+            for part in secret.splitlines():
+                self.assertNotIn(part, output)
+
+    def test_non_secret_auth_socket_is_not_rejected_or_redacted(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            socket = "/private/tmp/ssh-agent.socket"
+            result, exit_code = supervisor.run_command(
+                [sys.executable, "-c", "import sys; print(sys.argv[1])", socket],
+                cwd=root,
+                receipt=root / "receipt.json",
+                log=root / "run.log",
+                timeout=2,
+                grace=0.1,
+                scope="targeted",
+                env={"SSH_AUTH_SOCK": socket},
+            )
+            self.assertEqual(0, exit_code)
+            self.assertEqual("pass", result["outcome"])
+            self.assertIn(socket, (root / "run.log").read_text(encoding="utf-8"))
+
+    def test_sanitize_failure_preserves_raw_log(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "run.log.raw"
+            target = root / "run.log"
+            source.write_text("evidence\n", encoding="utf-8")
+            with mock.patch.object(supervisor.os, "replace", side_effect=OSError("disk full")):
+                with self.assertRaisesRegex(OSError, "disk full"):
+                    supervisor._sanitize_log(source, target, [])
+            self.assertEqual("evidence\n", source.read_text(encoding="utf-8"))
+            if os.name != "nt":
+                self.assertEqual(0o600, stat.S_IMODE(source.stat().st_mode))
+            self.assertFalse(target.exists())
+            self.assertEqual([], list(root.glob("run.log.tmp.*")))
+
+    def test_authorization_header_is_still_treated_as_secret(self):
+        secret = "Bearer abcdefghijklmnop"
+        self.assertEqual(
+            [secret.encode("utf-8")],
+            supervisor._secret_values({"HTTP_AUTHORIZATION_HEADER": secret}),
+        )
+
+    def test_bound_cli_rejects_wrong_cwd_and_output_paths_before_execution(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issue = root / ".scratch" / "demo" / "issues" / "01-safe.md"
+            issue.parent.mkdir(parents=True)
+            issue.write_text(
+                "---\ncontract_version: 3\nverifier_schema: 2\ntype: issue\n"
+                "feature: demo\nstatus: ready\n---\n"
+                "## 验收标准\n- [ ] safe\n"
+                "## 验证设计\n- profile: verifier.json\n"
+                "- #1 → `profile:scoped`\n",
+                encoding="utf-8",
+            )
+            (root / ".scratch" / "demo" / "verifier.json").write_text(
+                json.dumps({
+                    "schema_version": 2,
+                    "cwd": ".",
+                    "fingerprint": "git=x; lock=none; runtime=py; tools=py; services=none",
+                    "prerequisites": "fixtures=ready; services=none; permissions=local; network=off",
+                    "prepare": "无（已就绪）",
+                    "commands": {"scoped": f"{sys.executable} -c pass"},
+                    "completion_commands": ["scoped"],
+                }),
+                encoding="utf-8",
+            )
+            base = [
+                "--receipt", str(root / ".scratch" / "demo" / "receipts" / "run.json"),
+                "--log", str(root / ".scratch" / "tmp" / "run.log"),
+                "--timeout", "1", "--scope", "targeted",
+                "--issue", str(issue), "--verifier", "scoped", "--ac", "1", "--",
+                sys.executable, "-c", "pass",
+            ]
+            stderr = io.StringIO()
+            with redirect_stderr(stderr):
+                wrong_cwd = supervisor.main(["--cwd", str(root / "elsewhere"), *base])
+            self.assertEqual(2, wrong_cwd)
+            self.assertIn("must match verifier profile cwd", stderr.getvalue())
+
+            outside = list(base)
+            outside[1] = str(root / "do-not-overwrite.json")
+            stderr = io.StringIO()
+            with redirect_stderr(stderr):
+                wrong_path = supervisor.main(["--cwd", str(root), *outside])
+            self.assertEqual(2, wrong_path)
+            self.assertIn("--receipt must stay under", stderr.getvalue())
+            self.assertFalse((root / "do-not-overwrite.json").exists())
+
+            with redirect_stdout(io.StringIO()):
+                correct = supervisor.main(["--cwd", str(root), *base])
+            self.assertEqual(0, correct)
+            saved = json.loads(
+                (root / ".scratch" / "demo" / "receipts" / "run.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertEqual(".", saved["cwd"])
+            self.assertEqual(".scratch/tmp/run.log", saved["log"])
+
+    def test_windows_command_parser_preserves_backslashes_and_quotes(self):
+        self.assertEqual(
+            ["python", r"C:\repo\tests\test_a.py", "-q"],
+            supervisor.command_argv(r"python C:\repo\tests\test_a.py -q", "windows"),
+        )
+        self.assertEqual(
+            ["python", r"C:\repo\test files\test_a.py", "-q"],
+            supervisor.command_argv(r'python "C:\repo\test files\test_a.py" -q', "windows"),
+        )
+
+    def test_environment_secrets_are_redacted_from_log_and_receipt_tail(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            secret = "super-secret-value-123"
+            env = dict(os.environ)
+            env["SERVICE_API_TOKEN"] = secret
+            result, exit_code = supervisor.run_command(
+                [sys.executable, "-c", "import os; print(os.environ['SERVICE_API_TOKEN'])"],
+                cwd=root,
+                receipt=root / "receipt.json",
+                log=root / "run.log",
+                timeout=2,
+                grace=0.1,
+                scope="targeted",
+                env=env,
+            )
+            serialized = (root / "receipt.json").read_text(encoding="utf-8")
+            self.assertEqual(0, exit_code)
+            self.assertNotIn(secret, (root / "run.log").read_text(encoding="utf-8"))
+            self.assertNotIn(secret, serialized)
+            self.assertIn("[REDACTED]", (root / "run.log").read_text(encoding="utf-8"))
+            self.assertEqual("pass", result["outcome"])
+
+    def test_environment_secret_in_argv_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            secret = "super-secret-value-123"
+            with self.assertRaisesRegex(ValueError, "argv contains an environment secret"):
+                supervisor.run_command(
+                    [sys.executable, "-c", "print('ok')", secret],
+                    cwd=root,
+                    receipt=root / "receipt.json",
+                    log=root / "run.log",
+                    timeout=2,
+                    grace=0.1,
+                    scope="targeted",
+                    env={"SERVICE_API_TOKEN": secret},
+                )
 
 
 if __name__ == "__main__":

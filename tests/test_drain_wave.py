@@ -116,6 +116,9 @@ class DrainWaveReceiptTests(unittest.TestCase):
             ledger = wave.load_ledger(str(root), "demo")
             self.assertEqual([key], ledger["waves"][0]["receipt_hits"]["01-one"])
             self.assertEqual([key], ledger["waves"][1]["receipt_hits"]["02-two"])
+            self.assertNotIn("baseline", ledger["waves"][0])
+            self.assertIn("baseline_sha256", ledger["waves"][0])
+            self.assertEqual(1, len(ledger["baselines"]))
 
     def test_unique_preflight_keeps_the_ordinary_dispatch_path(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -193,6 +196,25 @@ class DrainWaveReceiptTests(unittest.TestCase):
             self.assertEqual(4, code, output)
             self.assertIn("action: close", output)
             self.assertIn("workflow-state.py gc", output)
+
+    def test_step_is_serial_by_default_and_parallel_only_when_requested(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "demo" / "issues"
+            issues.mkdir(parents=True)
+            (issues / "01-one.md").write_text(issue_body("pkg-a"), encoding="utf-8")
+            (issues / "02-two.md").write_text(issue_body("pkg-b"), encoding="utf-8")
+
+            serial_code, serial = self.call(wave.cmd_step, str(root), "demo")
+            parallel_code, parallel = self.call(
+                wave.cmd_step, str(root), "demo", True
+            )
+
+            self.assertEqual(0, serial_code)
+            self.assertIn("action: dispatch 01-one", serial)
+            self.assertNotIn("02-two", serial)
+            self.assertEqual(0, parallel_code)
+            self.assertIn("action: dispatch 01-one 02-two", parallel)
 
     def test_dismissed_false_conflict_preserves_contract_and_resumes_dispatch(self):
         with tempfile.TemporaryDirectory() as directory:

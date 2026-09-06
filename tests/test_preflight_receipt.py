@@ -73,18 +73,29 @@ class PreflightReceiptTests(unittest.TestCase):
                 json.dumps({"commands": {"scoped": command}}), encoding="utf-8"
             )
             path = feature / "preflight-receipt.json"
+            digest = "d" * 64
+            with self.assertRaisesRegex(ValueError, "requires --verifier-digest"):
+                preflight.record(
+                    path,
+                    cwd=str(root),
+                    action="profile:scoped",
+                    fingerprint="git=abc; lock=none",
+                    execution_receipt=passing_execution(root, command),
+                )
             preflight.record(
                 path,
                 cwd=str(root),
                 action="profile:scoped",
                 fingerprint="git=abc; lock=none",
                 execution_receipt=passing_execution(root, command),
+                verifier_digest=digest,
             )
             hit = preflight.check(
                 path,
                 cwd=str(root),
                 action="profile:scoped",
                 fingerprint="git=abc; lock=none",
+                verifier_digest=digest,
             )
             self.assertIsNotNone(hit)
 
@@ -94,7 +105,7 @@ class PreflightReceiptTests(unittest.TestCase):
             issues = root / ".scratch" / "demo" / "issues"
             issues.mkdir(parents=True)
             (issues / "01-lean.md").write_text(
-                "---\ncontract_version: 3\ntype: issue\nfeature: demo\nstatus: ready\n"
+                "---\ncontract_version: 3\nverifier_schema: 2\ntype: issue\nfeature: demo\nstatus: ready\n"
                 "---\n\n## 验证设计（Verification Design）\n\n"
                 "- profile: verifier.json\n"
                 "- P1 预检：`profile:scoped` → passed；observed=exit 0；evidence=inline；checked=2026-09-03\n",
@@ -103,9 +114,13 @@ class PreflightReceiptTests(unittest.TestCase):
             (root / ".scratch" / "demo" / "verifier.json").write_text(
                 json.dumps(
                     {
+                        "schema_version": 2,
                         "cwd": ".",
                         "fingerprint": "git=abc; lock=none; runtime=py-3.9; tools=pytest; services=none",
+                        "prerequisites": "fixtures=ready; services=none; permissions=local; network=off",
+                        "prepare": "无（已就绪）",
                         "commands": {"scoped": "pytest -q"},
+                        "completion_commands": ["scoped"],
                     }
                 ),
                 encoding="utf-8",
@@ -114,11 +129,56 @@ class PreflightReceiptTests(unittest.TestCase):
             rows = preflight.issue_preflight_rows(root)
 
             self.assertEqual(1, len(rows))
-            self.assertEqual("profile:scoped", rows[0]["action"])
+            self.assertEqual("pytest -q", rows[0]["action"])
+            self.assertEqual("profile:scoped", rows[0]["declared_action"])
+            self.assertEqual(64, len(rows[0]["verifier_digest"]))
             self.assertEqual(
                 "git=abc; lock=none; runtime=py-3.9; tools=pytest; services=none",
                 rows[0]["fingerprint"],
             )
+
+    def test_profile_or_card_deviation_changes_preflight_key(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            feature = root / ".scratch" / "demo"
+            issues = feature / "issues"
+            issues.mkdir(parents=True)
+            issue = issues / "01-lean.md"
+            body = (
+                "---\ncontract_version: 3\nverifier_schema: 2\ntype: issue\nfeature: demo\nstatus: ready\n---\n"
+                "## 验证设计\n- profile: verifier.json\n"
+                "- P1 预检：`profile:scoped` → passed\n"
+            )
+            issue.write_text(body, encoding="utf-8")
+            profile = {
+                "schema_version": 2,
+                "cwd": ".",
+                "fingerprint": "git=abc; lock=none; runtime=py; tools=pytest; services=none",
+                "prerequisites": "fixtures=ready; services=none; permissions=local; network=off",
+                "prepare": "无（已就绪）",
+                "commands": {"scoped": "pytest -q"},
+                "completion_commands": ["scoped"],
+            }
+            profile_path = feature / "verifier.json"
+            profile_path.write_text(json.dumps(profile), encoding="utf-8")
+            original = preflight.issue_preflight_rows(root)[0]
+
+            profile_path.write_text(json.dumps(profile, indent=4), encoding="utf-8")
+            reformatted = preflight.issue_preflight_rows(root)[0]
+            self.assertEqual(original["key"], reformatted["key"])
+
+            profile["commands"]["scoped"] = "pytest tests/unit -q"
+            profile_path.write_text(json.dumps(profile), encoding="utf-8")
+            changed_profile = preflight.issue_preflight_rows(root)[0]
+            self.assertNotEqual(original["key"], changed_profile["key"])
+
+            issue.write_text(
+                body + "- 偏差 fingerprint.git：`def`\n",
+                encoding="utf-8",
+            )
+            changed_card = preflight.issue_preflight_rows(root)[0]
+            self.assertEqual("git=def; lock=none; runtime=py; tools=pytest; services=none", changed_card["fingerprint"])
+            self.assertNotEqual(changed_profile["key"], changed_card["key"])
 
     def test_profile_action_with_unknown_name_fails(self):
         with tempfile.TemporaryDirectory() as directory:

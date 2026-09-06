@@ -22,8 +22,10 @@ python <skills-root>/workflow-state.py inspect <repo-root> <feat> --format human
 python <skills-root>/workflow-state.py gc <repo-root> <feat>
 ```
 
-Use `python3` only when `python` is absent. The projection reads top-level and legacy archived done
-issues, folds completed redo lineage, and prints source digests. It writes nothing.
+Use `python3` only when `python` is absent. The default survey prints only the active frontier
+(`ready`, `blocked`, and open-wave zombies); add `--history` for delivered history. Per-feature
+`inspect` reads top-level and legacy archived done issues, folds completed redo lineage, and prints
+source digests. Both projections write nothing.
 
 ## GC
 

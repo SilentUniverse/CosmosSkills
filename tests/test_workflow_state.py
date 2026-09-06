@@ -14,6 +14,7 @@ SPEC = importlib.util.spec_from_file_location(
 assert SPEC and SPEC.loader
 workflow_state = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(workflow_state)
+import workflow_contract
 
 
 def plant_issue(root, slug, *, status="done", category="enhancement", refines="", archive=False):
@@ -141,7 +142,10 @@ class WorkflowStateTests(unittest.TestCase):
             (issue_dir / "01-base.md").write_text(
                 "---\ntype: issue\nfeature: demo\nstatus: ready\n"
                 "blocked_by: [09-other, 10-x]\ntest_paths: [tests/test_a.py]\n"
-                "---\n\n## 做什么（What to build）\n\nDeliver base behavior.\n\n"
+                "---\n\n## 上级\n\nPRD #billing\n\n"
+                "## 做什么（What to build）\n\nDeliver base behavior.\n\n"
+                "## 验收标准（Acceptance Criteria）\n\n- [ ] Refund is ordered.\n\n"
+                "## 验证设计（Verification Design）\n\n- #1 → tests/test_a.py::test_refund\n\n"
                 "## 相关面（Read contract）\n\n"
                 "- invariants: CODEBASE.md 的 billing 不变量块\n"
                 "- adr: 0007-refund-ordering\n"
@@ -158,6 +162,10 @@ class WorkflowStateTests(unittest.TestCase):
             self.assertEqual("ready", packet["status"])
             self.assertEqual(["09-other", "10-x"], packet["blocked_by"])
             self.assertEqual(["tests/test_a.py"], packet["test_paths"])
+            self.assertEqual(["PRD #billing"], packet["parent"])
+            self.assertEqual(["Deliver base behavior."], packet["objective"])
+            self.assertEqual(["- [ ] Refund is ordered."], packet["acceptance"])
+            self.assertEqual(["- #1 → tests/test_a.py::test_refund"], packet["verification"])
             self.assertEqual(
                 [
                     "- invariants: CODEBASE.md 的 billing 不变量块",
@@ -167,7 +175,61 @@ class WorkflowStateTests(unittest.TestCase):
                 packet["context"],
             )
             self.assertEqual(64, len(packet["digest"]))
+            self.assertEqual(64, len(packet["contract_sha256"]))
+            self.assertNotEqual(packet["digest"], packet["contract_sha256"])
             self.assertEqual(".scratch/demo/issues/01-base.md", packet["source"])
+
+    def test_survey_defaults_to_frontier_and_history_is_opt_in(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_issue(root, "01-done", status="done")
+            plant_issue(root, "02-ready", status="ready")
+            issues = root / ".scratch" / "demo" / "issues"
+            blocked = issues / "03-blocked.md"
+            blocked.write_text(
+                blocked.read_text(encoding="utf-8") if blocked.exists() else
+                "---\ntype: issue\nfeature: demo\nstatus: ready\nblocked_by: [99-missing]\n---\n"
+                "## 做什么（What to build）\n\nBlocked behavior.\n",
+                encoding="utf-8",
+            )
+            (root / ".scratch" / "demo" / "wave-ledger.json").write_text(
+                json.dumps({"waves": [{"wave": 2, "dispatched": ["02-ready"], "closed": {}}]}),
+                encoding="utf-8",
+            )
+
+            frontier = workflow_state.feature_frontier(root, "demo")
+            human = workflow_state.render_survey([frontier])
+
+            self.assertEqual(
+                {"ready": 0, "blocked": 1, "done": 1, "zombie": 1},
+                frontier["counts"],
+            )
+            self.assertNotIn("- ready 02-ready", human)
+            self.assertIn("- blocked 03-blocked ← 99-missing", human)
+            self.assertIn("- zombie 02-ready (wave 2)", human)
+            self.assertNotIn("01-done —", human)
+
+    def test_invalid_v3_done_card_cannot_enter_history_or_unblock_dependents(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "demo" / "issues"
+            issues.mkdir(parents=True)
+            (issues / "01-invalid.md").write_text(
+                "---\ncontract_version: 3\ntype: issue\nfeature: demo\nstatus: done\n---\n"
+                "## 验收标准\n- [ ] invalid\n"
+                "## 验证设计\n- profile: verifier.json\n"
+                "## Comments\n### 完成 — 2026-09-03\n",
+                encoding="utf-8",
+            )
+            (issues / "02-dependent.md").write_text(
+                "---\ntype: issue\nfeature: demo\nstatus: ready\n"
+                "blocked_by: [01-invalid]\n---\n## 做什么\nDependent.\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "profile file unreadable"):
+                workflow_state.feature_frontier(root, "demo")
+            with self.assertRaisesRegex(ValueError, "profile file unreadable"):
+                workflow_state.inspect_feature(root, "demo")
 
     def test_packet_parses_block_style_frontmatter_lists(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -184,6 +246,61 @@ class WorkflowStateTests(unittest.TestCase):
             packet = workflow_state.issue_packet(root, "demo", "01-block")
 
             self.assertEqual(["tests/test_a.py", "tests/test_b.py"], packet["test_paths"])
+
+    def test_packet_rejects_feature_and_slug_path_traversal(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / ".scratch" / "demo" / "issues").mkdir(parents=True)
+            with self.assertRaisesRegex(ValueError, "feature must be one"):
+                workflow_state.issue_packet(root, "../..", "outside")
+            with self.assertRaisesRegex(ValueError, "slug must be one"):
+                workflow_state.issue_packet(root, "demo", "../outside")
+
+    def test_v3_packet_resolves_only_used_profile_commands(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            feature = root / ".scratch" / "demo"
+            issues = feature / "issues"
+            issues.mkdir(parents=True)
+            (issues / "01-v3.md").write_text(
+                "---\ncontract_version: 3\nverifier_schema: 2\ntype: issue\nfeature: demo\nstatus: ready\n---\n"
+                "## 验收标准\n- [ ] one\n- [ ] two\n"
+                "## 验证设计\n- profile: verifier.json\n- 接缝：API\n"
+                "- P1 预检：`profile:preflight` → passed\n"
+                "- #1 → `profile:scoped`；预检：P1\n"
+                "- #2 → `profile:scoped`；预检：P1\n",
+                encoding="utf-8",
+            )
+            (feature / "verifier.json").write_text(
+                json.dumps(
+                    {
+                        "schema_version": 2,
+                        "cwd": ".",
+                        "fingerprint": "git=abc; lock=none; runtime=py; tools=pytest; services=none",
+                        "prerequisites": "fixtures=ready; services=none; permissions=local; network=off",
+                        "prepare": "无（已就绪）",
+                        "commands": {
+                            "preflight": "pytest --collect-only",
+                            "scoped": "python -m pytest tests/test_long_name.py -q",
+                            "unused": "pytest slow",
+                        },
+                        "completion_commands": ["scoped"],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            packet = workflow_state.issue_packet(root, "demo", "01-v3")
+
+            self.assertEqual(
+                {
+                    "preflight": "pytest --collect-only",
+                    "scoped": "python -m pytest tests/test_long_name.py -q",
+                },
+                packet["effective_verifier"]["commands"],
+            )
+            self.assertNotIn("packet_commands", packet)
+            self.assertNotIn("unused", packet["effective_verifier"]["commands"])
 
     def test_close_flips_ready_with_record_and_reports_gc(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -272,23 +389,65 @@ class WorkflowStateTests(unittest.TestCase):
             issue_dir.mkdir(parents=True)
             path = issue_dir / "01-v3.md"
             body = (
-                "---\ncontract_version: 3\ntype: issue\nfeature: demo\nstatus: ready\n"
+                "---\ncontract_version: 3\nverifier_schema: 2\ntype: issue\nfeature: demo\nstatus: ready\n"
                 "---\n\n## 验收标准（Acceptance Criteria）\n\n- [ ] works\n\n"
+                "## 验证设计（Verification Design）\n\n- profile: verifier.json\n"
+                "- 接缝：public API\n- P1 预检：`profile:scoped` → passed\n"
+                "- #1 → `profile:scoped`；预检：P1；预期证据：exit 0\n\n"
                 "## Comments\n\n### 完成 — 2026-09-03\n\n"
-                "- receipt: .scratch/demo/receipts/01-v3-targeted.json；AC 1 pass\n"
+                "- receipt: .scratch/demo/receipts/01-v3-targeted.json\n"
                 "- 审查：pass\n"
             )
             path.write_text(body, encoding="utf-8")
+            (root / ".scratch" / "demo" / "verifier.json").write_text(
+                json.dumps(
+                    {
+                        "schema_version": 2,
+                        "cwd": ".",
+                        "fingerprint": "git=abc; lock=none; runtime=py; tools=pytest; services=none",
+                        "prerequisites": "fixtures=ready; services=none; permissions=local; network=off",
+                        "prepare": "无（已就绪）",
+                        "commands": {"scoped": "python -m pytest tests/test_a.py -q"},
+                        "completion_commands": ["scoped"],
+                    }
+                ),
+                encoding="utf-8",
+            )
             receipts = root / ".scratch" / "demo" / "receipts"
             receipts.mkdir(parents=True)
             receipt = receipts / "01-v3-targeted.json"
-            receipt.write_text('{"outcome": "fail"}', encoding="utf-8")
+            log = root / ".scratch" / "tmp" / "01-v3.log"
+            log.parent.mkdir(parents=True)
+            log.write_text("passed\n", encoding="utf-8")
+            payload = {
+                "schema_version": 1,
+                "argv_style": "posix",
+                "scope": "targeted",
+                "outcome": "fail",
+                "exit_code": 0,
+                "argv": ["python", "-m", "pytest", "tests/test_a.py", "-q"],
+                "cwd": ".",
+                "log": ".scratch/tmp/01-v3.log",
+                "log_sha256": workflow_contract._sha256(log),
+                "issue": dict(workflow_contract.issue_binding(path, "scoped")),
+            }
+            receipt.write_text(json.dumps(payload), encoding="utf-8")
 
-            with self.assertRaisesRegex(ValueError, "outcome 'fail' != pass"):
+            with self.assertRaisesRegex(ValueError, "outcome 'fail'/exit 0 != pass/0"):
                 workflow_state.close_issue(root, "demo", "01-v3")
             self.assertIn("status: ready", path.read_text(encoding="utf-8"))
 
-            receipt.write_text('{"outcome": "pass"}', encoding="utf-8")
+            payload["outcome"] = "pass"
+            payload["cwd"] = str(root / "tests")
+            receipt.write_text(json.dumps(payload), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "receipt cwd does not match verifier profile"):
+                workflow_state.close_issue(root, "demo", "01-v3")
+            payload["cwd"] = "."
+            receipt.write_text(json.dumps(payload), encoding="utf-8")
+            log.unlink()
+            with self.assertRaisesRegex(ValueError, "receipt log is missing or changed"):
+                workflow_state.close_issue(root, "demo", "01-v3")
+            log.write_text("passed\n", encoding="utf-8")
             result = workflow_state.close_issue(root, "demo", "01-v3")
             self.assertEqual("done", result["status"])
 

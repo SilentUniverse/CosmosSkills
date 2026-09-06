@@ -11,7 +11,7 @@
 # failure aborts (1). No wave is ever
 # scheduled from a rotting context. Stops on: batch complete (0), two consecutive sessions
 # with no progress (stuck red, 3), no schedulable wave — blocked_by cycle (1), or 50
-# sessions (0); each session is bounded by --max-turns. Any nonzero claude exit aborts (1)
+# sessions (3); each session is bounded by --max-turns. Any nonzero claude exit aborts (1)
 # with the handoff left in place for morning diagnosis.
 #
 #   python overnight.py            # every feature: drain all ready issues under .scratch/
@@ -24,6 +24,7 @@ import re
 import shutil
 import subprocess
 import sys
+import hashlib
 
 MAX_SESSIONS = 50
 MAX_TURNS = 40
@@ -166,6 +167,7 @@ def main(argv):
 
     ran = False
     complete = False
+    last_conflict = None
     prev1 = prev2 = -1
     for _ in range(MAX_SESSIONS):
         code, out = run_tool(wave_script, next_args)
@@ -173,13 +175,24 @@ def main(argv):
             complete = True
             break
         if code == 6:
-            print(
-                "overnight: receipt conflict requires /spec realignment; stopping before dispatch. %s"
-                % out,
-                file=sys.stderr,
+            marker = hashlib.sha256(out.encode("utf-8")).hexdigest()
+            if marker == last_conflict:
+                print(
+                    "overnight: independently reviewed receipt conflict remains unresolved; "
+                    "stopping before dispatch. %s" % out,
+                    file=sys.stderr,
+                )
+                return 3
+            last_conflict = marker
+            prompt = (
+                "这是一次独立的 receipt conflict 核查，不派发新波。先按 /spec 回归卡片事实，"
+                "复现失败并区分产品契约冲突与工件/环境误报：\n%s\n"
+                "若证据推翻冲突，只修复可证明的工件缺陷并按 DRAIN.md 保存 conflict-review receipt、"
+                "dismiss-conflict；若确需用户决定，保持卡片 ready，写 %s，明确事实、推测和会推翻结论的证据。"
+                "结束会话，不调用 next/dispatch。" % (out, handoff)
             )
-            return 3
-        if code == 3:
+            detail = "independent conflict review"
+        elif code == 3:
             prompt = (
                 "drain-wave.py next 报 exit 3——已派发未闭环的僵尸：\n%s\n"
                 "按 EDGE-CASES.md 逐个处置：采纳（补 ### 完成、置 done）则 collect green；"
@@ -209,7 +222,7 @@ def main(argv):
                     "不得编辑产品代码、issue 状态或 wave ledger，也不得安装、升级或启动未声明依赖。\n"
                     "对每个唯一 tuple：在 repo root 为 %s、其声明 cwd 下原样执行 action 一次；"
                     "只有 exit 0 且观察结果符合卡片预期时，才运行 python \"%s\" record，"
-                    "把 receipt/cwd/action/fingerprint 原样传入，并填写 observed 与可复核 evidence。"
+                    "把 receipt/cwd/action/fingerprint/verifier_digest 原样传入。"
                     "任一失败就报告失败并停止，绝不能写 passed receipt。全部记录后结束会话，"
                     "不要调用 next/dispatch。\n%s"
                     % (root, receipt_script, dout)
@@ -271,7 +284,15 @@ def main(argv):
                 file=sys.stderr,
             )
             return 1
-    if complete and ran:
+    if not complete:
+        print(
+            "overnight: reached %d-session cap before batch completion — see %s"
+            % (MAX_SESSIONS, log_path),
+            file=sys.stderr,
+        )
+        return 3
+    handoff_path = os.path.join(root, handoff.replace("/", os.sep))
+    if complete and (ran or os.path.isfile(handoff_path)):
         print("overnight: batch complete — close-out session (audit + full suite)")
         prompt = (
             "对 %s 收尾：按 DRAIN.md 关批。先归账无主测试：python \"%s\" audit \"%s\"%s；"
@@ -286,7 +307,14 @@ def main(argv):
                 file=sys.stderr,
             )
             return 1
-    print("overnight: no ready issues left (or stop condition hit) — see %s" % log_path)
+        acode, aout = run_tool(wave_script, ["audit", root] + ([feat] if feat else []))
+        if acode != 0:
+            print("overnight: close-out audit still fails — %s" % aout, file=sys.stderr)
+            return 1
+        if os.path.isfile(handoff_path):
+            print("overnight: close-out left active handoff %s" % handoff, file=sys.stderr)
+            return 1
+    print("overnight: batch closed — see %s" % log_path)
     return 0
 
 

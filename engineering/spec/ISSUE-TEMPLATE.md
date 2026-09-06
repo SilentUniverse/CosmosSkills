@@ -9,7 +9,7 @@ Write issues in dependency order (blockers first) so you can reference real file
 <issue-template>
 
 ---
-# frontmatter per ARTIFACT-FORMAT.md — contract_version / type / feature / status / category / blocked_by / refines / touches / test_paths / created; add experience_review only for graphical UI
+# frontmatter per ARTIFACT-FORMAT.md — contract_version / verifier_schema (v3 schema 2 only) / type / feature / status / category / blocked_by / refines / touches / test_paths / created; add experience_review only for graphical UI
 # a fresh slice defaults to status: ready, category: enhancement
 ---
 
@@ -56,7 +56,8 @@ masquerade as proof. AI judgment is allowed only under
 
 ### contract_version: 3（精简形态）
 
-Multi-slice features with a `verifier.json` use the lean form: `contract_version: 3`, and the
+Multi-slice features with a schema-2 `verifier.json` use the lean form: `contract_version: 3` plus
+frontmatter `verifier_schema: 2`, and the
 per-card boilerplate moves into `.scratch/<feat>/verifier.json` (cwd、fingerprint、prerequisites、
 prepare、named commands — schema in [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md)). The card keeps
 seam, per-AC mapping, preflight evidence, and deviations only:
@@ -67,12 +68,19 @@ seam, per-AC mapping, preflight evidence, and deviations only:
 - profile: verifier.json
 - 接缝：<external/public interface used by the AC>
 - P1 预检：`profile:scoped` → passed；observed=<exit/assertion>；evidence=<path|inline>；checked=<YYYY-MM-DD>
-- #1 → <exact agent-runnable final test / action>；预检：P1；预期证据：<assertion + exit/tally>
-- 偏差（仅有时写）：<与 profile 默认不同的指纹键/命令，一行一条>
+- #1 → `profile:scoped`；预检：P1；预期证据：<assertion + exit/tally>
+- 偏差 fingerprint.KEY：`<replacement value>`（仅有差异时）
+- 偏差 command.NAME：`<replacement command>`（仅有差异时）
 ```
 
-A `profile:NAME` action resolves through `verifier.json` `commands` at replay; full command text
-still works. Graphical-UI issues (`experience_review`) stay on contract_version 2.
+A fingerprint deviation key must already exist. A command deviation may replace a shared name or
+fill a card-local name declared by `completion_commands`. `profile:NAME` resolves through effective
+`commands` at replay and in AC mappings. A schema-2 AC maps to exactly one final `profile:NAME`;
+full command text is limited to one-off P# readiness actions. Graphical-UI issues
+(`experience_review`) stay on contract_version 2.
+
+Every final `NAME` must be listed in schema-2 `completion_commands`; preflight-only names are not
+valid completion evidence. A receipt may claim only the ACs mapped to its verifier.
 
 ## 相关面（Read contract）
 
@@ -94,7 +102,7 @@ does not cross it.
 
 </issue-template>
 
-**Frontmatter** — fill every ordinary field per the schema in [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd). New issues use `contract_version: 2`; an additive edit upgrades a `ready` legacy issue after adding its fully executed 验证设计, while `done` stays immutable. The fields that drive this skill's output are `category`, `blocked_by`, and `refines`. Graphical UI alone adds `experience_review: runtime|graded`; every non-graphical issue omits it. `category` defaults to `enhancement`; `detail`/`redo`/`fix` mark later sub-behaviour / re-work and MUST also set `refines:`. `blocked_by` holds sibling slugs that must reach `done` first; `/tdd`'s drain mode topologically sorts on it. `refines` is the parent slug, set for non-top-level slices. Parallel-bound slices also declare `touches:` + `test_paths:` from the AC. `/tdd -p` reads them as its only collision signal and skips the drain-time guess. A slice that edits a repo-root shared surface (workspace manifest or root config) declares that file verbatim in `touches:` so the drain serializes on it. Dependency/lock preparation belongs to SPEC readiness; a behavior issue does not discover or install it.
+**Frontmatter** — fill every ordinary field per the schema in [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd). New issues default to `contract_version: 2`; a card in a feature with a schema-2 `verifier.json` profile and without `experience_review` uses `3`, adds `verifier_schema: 2`, and records changed profile fingerprint keys or commands as 偏差 lines instead of falling back to v2 boilerplate. An additive edit upgrades a `ready` legacy issue after adding its fully executed 验证设计, while `done` stays immutable. The fields that drive this skill's output are `category`, `blocked_by`, and `refines`. Graphical UI alone adds `experience_review: runtime|graded`; every non-graphical issue omits it. `category` defaults to `enhancement`; `detail`/`redo`/`fix` mark later sub-behaviour / re-work and MUST also set `refines:`. `blocked_by` holds sibling slugs that must reach `done` first; `/tdd`'s drain mode topologically sorts on it. `refines` is the parent slug, set for non-top-level slices. Parallel-bound slices also declare `touches:` + `test_paths:` from the AC. `/tdd -p` reads them as its only collision signal and skips the drain-time guess. A slice that edits a repo-root shared surface (workspace manifest or root config) declares that file verbatim in `touches:` so the drain serializes on it. Dependency/lock preparation belongs to SPEC readiness; a behavior issue does not discover or install it.
 
 Never edit a `done` issue or the parent PRD. A `ready` issue may be edited in place by an
 additive re-run or a reconciliation.

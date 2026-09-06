@@ -27,7 +27,7 @@ Append the record to `## Comments` first, then flip the card mechanically:
 - 验证命令：`<exact command>` → exit <code>，<tally>，<duration class/time>；evidence=<receipt/log path or test assertion>
 - 验收：#1 → `<test path::case or CLI predicate>`；#2 → `<evidence>`
 - 审查：<failure challenge>→<evidence>→<disposition>；<diff hunk>→<AC or reverted>
-- 体验验证：`<operated-state action>` → passed；evidence=.scratch/<feat>/evidence/<slug>-experience.json
+- 体验验证：evidence=.scratch/<feat>/evidence/<slug>-experience.json
 ```
 
 Then flip the card mechanically:
@@ -44,13 +44,20 @@ For `contract_version: 3` cards the record is the receipt-reference form:
 ```markdown
 ### 完成 — YYYY-MM-DD
 
-- receipt: .scratch/<feat>/receipts/<slug>-<scope>.json；AC 1-<N> pass
+- receipt: .scratch/<feat>/receipts/<slug>-<scope>.json
 - 审查：pass
 ```
 
-Run each command through `test-supervisor.py` with `--receipt` under `.scratch/<feat>/receipts/`
-(durable evidence; logs stay in `.scratch/tmp/`). The gate re-verifies the receipt file (JSON,
-outcome pass) and its AC coverage; expand 审查 to one line only for a finding —
+Run each named final command through `test-supervisor.py` with `--issue <card>`, `--verifier <name>`,
+`--receipt` under `.scratch/<feat>/receipts/`, and `--log` under `.scratch/tmp/`. One command covering
+the whole card omits `--ac`; otherwise pass its subset as `--ac 1,3-5` and add one receipt line per
+command. Every selected AC must map to that verifier in `## 验证设计`. The supervisor rejects a
+different cwd, command argv, or output path before execution, then records the card/AC/profile/cwd/
+platform-argv binding. At `close`, the gate requires receipt union to cover every AC and re-verifies
+each passing exit and transient log hash. Later `done`/archive audits use the durable receipt and do
+not require the ignored log or original checkout path. Coverage comes from bindings, not editable
+completion prose.
+Expand 审查 to one line only for a finding —
 `<finding> → 已落在 <test/invariant/revert>`. `close` enforces the same receipt check before
 flipping.
 
@@ -58,8 +65,9 @@ Omit `体验验证` unless the issue opts into graphical experience review. Add 
 the next maintainer cannot derive from code, issue, receipt, or git. `test_paths:` already lists test
 files; do not repeat a “新增测试” inventory unless a legacy consumer requires it.
 
-For multiple commands, add one `验证命令` line per distinct scope (`targeted`, `module`, `full`,
-`build`). Map every AC on `验收`; combine them on one line when still unambiguous.
+For v2 multiple commands, add one `验证命令` line per distinct scope (`targeted`, `module`, `full`,
+`build`). Map every AC on `验收`; combine them on one line when still unambiguous. For v3, keep one
+or several named issue receipts; batch-level full/build evidence stays at batch close.
 
 ## Gate and failure
 
