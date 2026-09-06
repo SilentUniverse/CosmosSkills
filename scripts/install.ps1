@@ -237,7 +237,8 @@ Write-Host ""
 
 # --- Distribute ARTIFACT-FORMAT.md to the skills root so workflow skills' `../ARTIFACT-FORMAT.md`
 #     links resolve. On Windows `..` is normalized textually (it does not traverse the junction),
-#     so `<skills>/tdd/../ARTIFACT-FORMAT.md` -> `<skills>/ARTIFACT-FORMAT.md`. Put the file there. ---
+#     so `<skills>/tdd/../ARTIFACT-FORMAT.md` -> `<skills>/ARTIFACT-FORMAT.md`. Put the file there.
+#     REPORT-FORMAT.md rides the same channel. ---
 $afSource = Join-Path $root "workflow/ARTIFACT-FORMAT.md"
 if (Test-Path -LiteralPath $afSource) {
     $afTarget = Join-Path $Target "ARTIFACT-FORMAT.md"
@@ -247,6 +248,18 @@ if (Test-Path -LiteralPath $afSource) {
     else {
         Copy-Item -LiteralPath $afSource -Destination $afTarget -Force
         Write-Host ("Contract: copied ARTIFACT-FORMAT.md -> {0}" -f $afTarget) -ForegroundColor Green
+    }
+}
+
+$rfSource = Join-Path $root "workflow/REPORT-FORMAT.md"
+if (Test-Path -LiteralPath $rfSource) {
+    $rfTarget = Join-Path $Target "REPORT-FORMAT.md"
+    if ($DryRun) {
+        Write-Host ("[DryRun] Copy REPORT-FORMAT.md -> {0}" -f $rfTarget) -ForegroundColor Yellow
+    }
+    else {
+        Copy-Item -LiteralPath $rfSource -Destination $rfTarget -Force
+        Write-Host ("Contract: copied REPORT-FORMAT.md -> {0}" -f $rfTarget) -ForegroundColor Green
     }
 }
 
@@ -382,7 +395,7 @@ if ($sharedInstall -and ((Test-Path -LiteralPath $agentsSkills) -or (Test-Path -
         if ($DryRun) { Write-Host "[DryRun] Create folder: $agentsSkills" }
         else { New-Item -ItemType Directory -Path $agentsSkills -Force | Out-Null }
     }
-    foreach ($shared in @("ARTIFACT-FORMAT.md", "verify-artifacts.py", "workflow-state.py", "workflow_contract.py")) {
+    foreach ($shared in @("ARTIFACT-FORMAT.md", "REPORT-FORMAT.md", "verify-artifacts.py", "workflow-state.py", "workflow_contract.py")) {
         $sharedSrc = Join-Path $root "workflow/$shared"
         if (-not (Test-Path -LiteralPath $sharedSrc)) { continue }
         $sharedDst = Join-Path $agentsSkills $shared

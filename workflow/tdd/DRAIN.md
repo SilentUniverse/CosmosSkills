@@ -304,10 +304,10 @@ an independent Experience judge with the canonical contract and anonymous operat
 Runtime failure or rubric miss reopens its owning issue; an inconclusive/unavailable judge stays
 unverified. Runtime-only and non-graphical work do not launch this axis.
 
-Report one screen, omitting empty blocks:
+Report one screen, omitting empty blocks, per [REPORT-FORMAT.md](../REPORT-FORMAT.md):
 
 1. 结果: shipped/failed/deferred counts, exact closing commands and observed verdicts/tallies.
-2. Frontier: each unfinished issue, its cause and next action.
+2. 未竟: each unfinished issue, its cause and next action.
 3. 待裁决: consequential unresolved choices with quoted evidence and recommendations.
 4. 等你验证: pending human checks with runnable steps; do not claim the whole outcome verified.
 5. 详文: completion/evidence paths. Handoff only when a later session must continue.

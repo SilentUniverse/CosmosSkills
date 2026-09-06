@@ -95,9 +95,10 @@ earns one line saying so. A Standards finding must cite the file that establishe
 it enforces; a convention it cannot cite is a preference, not a finding.
 
 Present reports under `## Standards`, `## Spec`, and when activated `## Experience`; keep the axes
-separate. State coverage first: refs and paths reviewed, file count, and what was skipped
-(generated files, vendored trees, a dropped axis and why). An unstated gap reads as a clean bill
-of health. End with a one-line summary: total findings per axis, and the worst issue within each axis.
+separate, omitting empty axes. State coverage first: refs and paths reviewed, file count, and what
+was skipped (generated files, vendored trees, a dropped axis and why). An unstated gap reads as a
+clean bill of health. End with a one-line summary: total findings per axis, and the worst issue
+within each axis. Layout otherwise follows [REPORT-FORMAT.md](../REPORT-FORMAT.md).
 
 A review-only request ends with findings. For an authorized review-and-fix task, continue fixing
 confirmed in-scope issues and verifying the affected behavior; report any unresolved gate honestly.

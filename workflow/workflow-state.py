@@ -94,7 +94,7 @@ def section_summary(raw):
         if line.startswith("## 做什么"):
             active = True
             continue
-        if active and line.startswith("## "):
+        if active and (line.startswith("## ") or line.startswith("### ")):
             break
         if active and line.strip():
             body.append(line.strip())
@@ -610,8 +610,10 @@ def stats(root):
 
 
 def render_human(state):
-    lines = ["# %s — current reality" % state["feature"]]
-    lines.append("source: %d done issue(s), digest %s" % (state["source_count"], state["source_digest"]))
+    lines = [
+        "# %s — 现状: 已交付 %d · 来源 digest %s"
+        % (state["feature"], state["source_count"], state["source_digest"])
+    ]
     if not state["delivered"]:
         lines.append("- （无已交付行为）")
     for item in state["delivered"]:
@@ -680,12 +682,18 @@ def feature_frontier(root, feature):
 def render_survey(states):
     if not states:
         return "（无 feature state）"
-    lines = ["# workflow frontier"]
+    lines = ["# 工作流前沿"]
     for state in states:
         count = state["counts"]
         lines.append(
-            "%s: ready=%d blocked=%d done=%d zombie=%d"
-            % (state["feature"], count["ready"], count["blocked"], count["done"], count["zombie"])
+            "%s: ready %d · blocked %d · done %d · zombie %d"
+            % (
+                state["feature"],
+                count["ready"],
+                count["blocked"],
+                count["done"],
+                count["zombie"],
+            )
         )
         for item in state["ready"]:
             lines.append("- ready %s — %s" % (item["slug"], item["summary"] or "（无摘要）"))
