@@ -94,9 +94,11 @@ calibration or example vocabulary.
 
 ## Output
 
-Lead line: 范围（N 文件 M 行新增）· 发现 X · 检查（探针 + 语义扫）. One finding, one fenced text block:
-位置 / 原句 / 问题 / 改为 one field per line; bare newline-separated fields collapse into one rendered
-Markdown paragraph. Field semantics: 问题 = what a HEAD reader can't resolve or would misread,
+Lead line: 范围（N 文件 M 行新增）· 发现 X · 检查（探针 + 语义扫）. One finding, one block:
+**N. <位置[:行]>** followed by 原句 / 问题 / 改为, one sentence each by default (原句 gives the key
+fragment, ≤1 line). 改为 expands to the full replacement text only when the short form cannot be
+applied unambiguously — no cap when it does, no derivation prose ever. Field semantics: 问题 = what a HEAD reader can't resolve or would misread,
 改为 = the restated text, pure deletion writes 删除. Benign hits: one line, count + why benign.
 Clean run: the lead line only. When invoked by another skill, return findings for its report;
-do not trigger another acceptance cycle for the prose fixes themselves.
+do not trigger another acceptance cycle for the prose fixes themselves. This section is the
+发现 form of [REPORT-FORMAT.md](../REPORT-FORMAT.md).

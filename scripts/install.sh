@@ -183,6 +183,7 @@ copy_file() {
 
 echo
 copy_file "$ROOT/workflow/ARTIFACT-FORMAT.md" "$TARGET/ARTIFACT-FORMAT.md" "Contract: ARTIFACT-FORMAT.md"
+copy_file "$ROOT/workflow/REPORT-FORMAT.md" "$TARGET/REPORT-FORMAT.md" "Contract: REPORT-FORMAT.md"
 for gate in verify-artifacts.py workflow-state.py workflow_contract.py; do
   copy_file "$ROOT/workflow/$gate" "$TARGET/$gate" "Gate: $gate"
 done
@@ -274,6 +275,7 @@ if [[ "$SHARED_INSTALL" -eq 1 && ( -d "$agents_skills" || -d "${HOME}/.zcode" ) 
   # Contract files land first: linked skills resolve ../ARTIFACT-FORMAT.md
   # textually inside the skills root, same as in ~/.claude/skills.
   copy_file "$ROOT/workflow/ARTIFACT-FORMAT.md" "$agents_skills/ARTIFACT-FORMAT.md" "Contract: ARTIFACT-FORMAT.md (agents)"
+  copy_file "$ROOT/workflow/REPORT-FORMAT.md" "$agents_skills/REPORT-FORMAT.md" "Contract: REPORT-FORMAT.md (agents)"
   copy_file "$ROOT/workflow/verify-artifacts.py" "$agents_skills/verify-artifacts.py" "Gate: verify-artifacts.py (agents)"
   copy_file "$ROOT/workflow/workflow-state.py" "$agents_skills/workflow-state.py" "State: workflow-state.py (agents)"
   copy_file "$ROOT/workflow/workflow_contract.py" "$agents_skills/workflow_contract.py" "Contract: workflow_contract.py (agents)"

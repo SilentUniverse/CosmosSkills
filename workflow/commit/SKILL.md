@@ -96,4 +96,5 @@ in Chinese, one bullet per meaningful mechanism and file group. An empty body is
 the title fully reconstructs the change.
 
 Report the commit hash and included paths. For a landed change, also report the pushed ref, pull
-request URL when applicable, default-branch result, and any cleanup still pending.
+request URL when applicable, default-branch result, and any cleanup still pending. Layout follows
+[REPORT-FORMAT.md](../REPORT-FORMAT.md).

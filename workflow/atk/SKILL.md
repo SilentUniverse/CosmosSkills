@@ -65,44 +65,55 @@ Lead with scope, actionable findings, and checks actually run. A clean review is
 may integrate this result into its own report instead of repeating a full skill report.
 
 **发现** — manual and spec audit modes. Findings include location, exact quote, consequence, and disposition. 处置 is
-three-valued: 修复—改成什么 / 否决—为什么不改 / 保留—何时再动. No quote, no finding. One finding, one block:
-each finding renders as a fenced text block with 位置 / 原句 / 问题 / 处置 one field per line, like the
-calibration blocks below. Bare newline-separated fields collapse into one rendered Markdown paragraph; a
-fence keeps them apart.
+three-valued: 修复—改成什么 / 否决—为什么不改 / 保留—何时再动. No quote, no finding. All findings
+live in one section, compact first and impact-level last; no separate 讲解 or 其他改动 sections
+follow.
+
+**N. <位置[:行]> — <处置>**
+
+原句：关键片段，≤1 行；核对需要全句时才给全句。
+
+问题：一句话说本质——什么跟什么冲突、什么坏了；不说推导。
+
+改法：一句话方向，仅 修复；格式、排版、措辞类改动通常止于处置行。
+
+An impact-level finding — the change alters how the whole codebase or workflow behaves: a new
+guarantee, a changed contract, a different failure mode, a moved invariant — goes last in the
+section and adds a 讲解 field inside its own block: 改前 → 改后 and why, as long as clarity
+needs, no cap, no derivation prose. Non-impact findings come first and stay compact, and every
+applied change still appears — its own line or a pointer inside the finding it serves — never
+silently dropped.
+
+Fields sit on their own lines separated by blank lines; no code fence, no bullet chrome. Findings
+are numbered so later prose can cite 发现 #N.
 
 Calibration — only the second entry is a finding; the first survives any outcome:
 
-Not a finding (“查了什么”凑数：无位置、无引用、无可证伪断言):
+Not a finding（"查了什么"凑数：无位置、无引用、无可证伪断言）:
 
-```text
-位置：workflow-state.py
+**1. workflow-state.py — 保留**
+
 原句：（无）
-问题：导入和路径逻辑整体看下来没发现问题
-处置：保留
-```
 
-A finding (定位到行、引用原句、断言可错):
+问题：导入和路径逻辑整体看下来没发现问题。
 
-```text
-位置：workflow-state.py:121
+A finding（定位到行、引用原句、断言可错）:
+
+**2. workflow-state.py:121 — 修复**
+
 原句：os.path.join(root, *relative.split("/"))
-问题：../ 组件可逃逸仓库根
-处置：修复—路径锁在 .scratch/<feat>/receipts/ 下
-```
 
-**改动讲解** — user-typed without `-r` only. One item per change:
+问题：../ 组件可逃逸仓库根。
 
-```
-1. <文件 位置>：<原文关键片段> → <改后关键片段>（add `+ …`, delete `- …`）
-   原因：<一句短语，机制性理由，不写论证>
-```
+改法：路径锁在 .scratch/<feat>/receipts/ 下。
 
-A finding's fix item writes 原因 as 见发现 #N; long text compresses to its load-bearing part.
-Under `-r`, a 修复 disposition proposes what to change but never performs the change.
+**讲解 rides inside impact findings** — see the 发现 spec above. Under `-r`, a 修复 disposition
+proposes what to change but never performs the change.
 Audit-only runs return their scoped response to the caller; no lead line or chat output. Non-diff
 targets (design, plan, decision): findings only, both modes. Questions riding on the invocation
 are answered after the findings; they are the caller's ask, not leakage.
 
 Round discipline: a later `/atk` covers only changes since the last `/atk`; an earlier item
 reappears only if it changed again. An explicitly named scope overrides the round default.
-No process narration. Outside `-r`, prose fixes can chain to `/lint`.
+No process narration. Outside `-r`, prose fixes can chain to `/lint`. Report layout follows
+[REPORT-FORMAT.md](../REPORT-FORMAT.md); the finding block above is its 发现 form.
