@@ -16,7 +16,7 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location(
     "test_supervisor",
-    ROOT / "engineering" / "tdd" / "scripts" / "test-supervisor.py",
+    ROOT / "workflow" / "tdd" / "scripts" / "test-supervisor.py",
 )
 assert SPEC and SPEC.loader
 supervisor = importlib.util.module_from_spec(SPEC)
@@ -110,7 +110,7 @@ class TestSupervisorTests(unittest.TestCase):
             completed = subprocess.run(
                 [
                     sys.executable,
-                    str(ROOT / "engineering" / "tdd" / "scripts" / "test-supervisor.py"),
+                    str(ROOT / "workflow" / "tdd" / "scripts" / "test-supervisor.py"),
                     "--receipt",
                     str(root / ".scratch" / "receipt.json"),
                     "--log",

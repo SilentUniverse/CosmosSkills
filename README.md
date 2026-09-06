@@ -20,7 +20,7 @@ A complete engineering methodology for your coding agent — nine laws, an artif
 
 ## 这是什么
 
-CosmosSkills 是一套给单人开发者的 AI 编程工程方法论：31 个跨宿主技能、九条设计定律、一道工件门和一套按需行为 eval。它假设 AI 每次进场都从零开始，不信任 AI 的自我汇报——定律给方向，机器与可重放证据给结论。
+CosmosSkills 是一套给单人开发者的 AI 编程工程方法论：28 个跨宿主技能、九条设计定律、一道工件门和一套按需行为 eval。它假设 AI 每次进场都从零开始，不信任 AI 的自我汇报——定律给方向，机器与可重放证据给结论。所有权衡按字典序处理：产品质量与正确性 > 交付速度 > Token 消耗；后两项不得削弱前一项的证据、安全或可访问性。
 
 - **九条定律**：从 Hoare、Dijkstra、Parnas、Ousterhout 等软件工程经典提炼的九个问题。不给规范，让 AI 自己推导出好代码
 - **机器门**：`verify-artifacts.py` 校验每份工件——完成记录点名的测试文件必须真实存在于磁盘，误删当场红灯；依赖图有环、PRD 版本链多头或缺头、需求记录源哈希漂移都会红灯
@@ -102,10 +102,10 @@ flowchart LR
 
 详细执行规则以各技能为准，入口不重复维护第二套流程：
 
-- [spec](engineering/spec/SKILL.md)：明确结果、依赖和证据。多切片或跨会话工作才写可独立执行的卡；共享决策需要长期维护时才写 PRD。
-- [tdd](engineering/tdd/SKILL.md)：按行为红绿验证；小而明确的需求可直接执行。复杂需求先在同一任务中规划，随后继续实现。
-- [atk](engineering/atk/SKILL.md)：检查承重规则与失败方式；无发现也可通过，不为凑报告制造问题。
-- [tidy](engineering/tidy/SKILL.md)：查询交付状态，清理已关闭批次的显式缓存。
+- [spec](workflow/spec/SKILL.md)：明确结果、依赖和证据。多切片或跨会话工作才写可独立执行的卡；共享决策需要长期维护时才写 PRD。
+- [tdd](workflow/tdd/SKILL.md)：按行为红绿验证；小而明确的需求可直接执行。复杂需求先在同一任务中规划，随后继续实现。
+- [atk](workflow/atk/SKILL.md)：检查承重规则与失败方式；无发现也可通过，不为凑报告制造问题。
+- [tidy](workflow/tidy/SKILL.md)：查询交付状态，清理已关闭批次的显式缓存。
 
 技能是阶段工具。要求“实现并验证”时，规划、审查结束后继续工作；明确只要规划或审阅时，完成该范围即可。已授权提交则验证后进入 `/commit`，无需再发一次命令。
 
@@ -126,7 +126,7 @@ flowchart LR
 
 ## 设计哲学
 
-**上下文按需加载。** 技能头以 100 行为目标，分文件按使用场景而非机械行数。先读任务点名文件、卡片或地图入口，发现依赖再展开；保留精简证据。只在真实会话边界交接，不按卡片数量强制换会话。
+**上下文按需加载。** `SKILL.md` 保留共同路径；互斥或低频分支在决策点直接链接到 references/scripts/assets。约 100 行只触发披露复查，不是机械拆分门槛。先读任务点名文件、卡片或地图入口，发现依赖再展开；保留精简证据。只在真实会话边界交接，不按卡片数量强制换会话。
 
 **深模块：接口留给品味，实现交给 AI。** 大量行为收进一个小接口，测试锁死接口行为——实现随便 AI 怎么写，红灯会说话。接口在文件置顶（类型先行，实现后看）；目录结构就是模块地图，地图和目录对不上，本身就是架构问题。
 
@@ -136,7 +136,7 @@ flowchart LR
 
 **只并行真正独立的工作。** 默认 inline。`/tdd -p` 只并行写集和运行资源不冲突的卡；独立盲审保留独立上下文；大量多源研究必须有窄输出且主线程仍有可做工作。单文件、单次搜索、慢命令、大输出、顺序依赖和上下文清理都不是委派理由。全量 suite 由当前会话启动 supervisor；Standards / Spec 独立审查仍可并行。
 
-31 个技能、工件门、按需行为 eval、九个词——目标仍是**更少的 token、更快的交付、可逐条审查的质量**；是否做到由 [evals](evals/README.md) 的真实对照结果回答，不由 README 宣称。
+28 个技能、工件门、按需行为 eval、九个词——目标是**先保证可逐条审查的产品质量，再缩短交付时间，最后降低 Token 消耗**；是否做到由 [evals](evals/README.md) 的真实对照结果回答，不由 README 宣称。
 
 ### 读写控制面
 
@@ -174,7 +174,7 @@ flowchart LR
 
 ### 改已有功能
 
-`/spec "给订单加部分退款"` 会先做**影响面探测**：`rg` / `ast-grep` 查引用；小半径一行带过；真耦合才出报告（模块、可能回归的行为、哪些测试预期要改）。宽重构 expand → contract。grep 看不见的 invariant 落该区 `CODEBASE.md` 块。Python 等动态语言会标明静态查不全。命令：[impact-detection.md](engineering/spec/impact-detection.md)。
+`/spec "给订单加部分退款"` 会先做**影响面探测**：`rg` / `ast-grep` 查引用；小半径一行带过；真耦合才出报告（模块、可能回归的行为、哪些测试预期要改）。宽重构 expand → contract。grep 看不见的 invariant 落该区 `CODEBASE.md` 块。Python 等动态语言会标明静态查不全。命令：[impact-detection.md](workflow/spec/impact-detection.md)。
 
 | issue | |
 |---|---|
@@ -217,7 +217,7 @@ rg '^status: ready' -g '**/issues/*.md' .scratch
 
 1. 直接 `/spec` 起步；第一次预检跑通的验证命令懒写入 `CODEBASE.md` 的 `## Verifier commands` 区（文件随之出生，天生带真内容）
 2. 领域重的项目再 `/domain-modeling` 出术语表（CONTEXT.md）
-3. 护栏按需：[git-guardrails](misc/git-guardrails-claude-code/SKILL.md)、[modern-cli-guardrails](misc/modern-cli-guardrails/SKILL.md)、[setup-pre-commit](misc/setup-pre-commit/SKILL.md)
+3. 护栏按需：[shell-guardrails](tooling/shell-guardrails/SKILL.md) 选择合并、禁 push 或仅 modern CLI 策略；提交门用 [setup-pre-commit](tooling/setup-pre-commit/SKILL.md)
 
 **接收已有项目** — 导航噪声真实存在时才建地图。
 
@@ -234,7 +234,7 @@ rg '^status: ready' -g '**/issues/*.md' .scratch
 | 工作态 | `.scratch/<feat>/` | `PRD.md`、`issues/`、按需 `handoff.md`（`tmp/` 被 ignore；不新建 `SUMMARY.md`） |
 | 方法评测 | skills 仓库 `evals/` | 真实 regression/capability/routing case、rubric、calibration；runner 结果按 revision 另存 |
 
-完整目录契约（一棵树 + 命名规则）：[ARTIFACT-FORMAT.md](engineering/ARTIFACT-FORMAT.md)。
+完整目录契约（一棵树 + 命名规则）：[ARTIFACT-FORMAT.md](workflow/ARTIFACT-FORMAT.md)。
 
 `CONTEXT.md` 只写概念，一两句，不带路径、不带实现：
 
@@ -263,7 +263,7 @@ git_base: 7af387c
 
 ## 低频
 
-**ADR** 只在两处提议：`/grill`（三条标准见 `engineering/domain-modeling/ADR-FORMAT.md`）；`/improve-arch`（你否决一个重构且理由有分量）。`CONTEXT.md` 记是什么，`CODEBASE.md` 记 grep 拿不到的 + 怎么验证，`docs/adr/` 记为什么。
+**ADR** 只在两处提议：`/grill`（三条标准见 `workflow/domain-modeling/ADR-FORMAT.md`）；`/improve-arch`（你否决一个重构且理由有分量）。`CONTEXT.md` 记是什么，`CODEBASE.md` 记 grep 拿不到的 + 怎么验证，`docs/adr/` 记为什么。
 
 **少烧 token**
 
@@ -287,45 +287,51 @@ git_base: 7af387c
 
 常用类目：全量套件+构建、scoped 测试、静态门禁、性能、模块边界、证据留存、影响面探测；没用到的省略。
 
-其他语言：[impact-detection.md](engineering/spec/impact-detection.md)。
+其他语言：[impact-detection.md](workflow/spec/impact-detection.md)。
 
 ---
 
 ## skill
 
+源码只分两层：[workflow](workflow/README.md) 放产品与开发工作流，[tooling](tooling/README.md) 放安装、迁移和宿主工具。
+
 | | 何时用 |
 |---|---|
-| [cosmos-setup](engineering/cosmos-setup/SKILL.md) | 偏离处理：非默认 tracker/路径、遗留状态迁移、domain.md 折叠、schema 升级 |
-| [grill](engineering/grill/SKILL.md) | 拷问方案。[grilling](productivity/grilling/SKILL.md) + [domain-modeling](engineering/domain-modeling/SKILL.md) |
-| [prototype](engineering/prototype/SKILL.md) | `/spec` 前造一次性原型 |
-| [spec](engineering/spec/SKILL.md) | 规划并跑通验证环境预检，再写 PRD / issue |
-| [eval](engineering/eval/SKILL.md) | 手动打开评测；保留项目内 previous/candidate A/B，也可导出独立包与任意外部 workflow 比较；默认关闭 |
-| [atk](engineering/atk/SKILL.md) | 对抗审查自己的产出；工作流只调审查方向，讲解仅手动触发 |
-| [tdd](engineering/tdd/SKILL.md) | 写代码；`--log` 读设备 log。[DRAIN.md](engineering/tdd/DRAIN.md) |
-| [commit](engineering/commit/SKILL.md) | 提交：默认只建本地提交；`-p` 提交全部已检查修改并推送当前分支 |
-| [tidy](engineering/tidy/SKILL.md) | 派生状态查询 + 已关闭批次安全缓存 GC；不搬 issue / test |
-| [diagnose](engineering/diagnose/SKILL.md) | 硬 bug / 性能回归 |
-| [merge-conflicts](engineering/merge-conflicts/SKILL.md) | merge / rebase 冲突 |
-| [map](engineering/map/SKILL.md) | 生成/刷新 `CODEBASE.md` 结构地图 |
-| [show](engineering/show/SKILL.md) | 讲解陌生代码区：一屏（目的/模块图/一条流/先读什么）；`--html` 出给人看的单页 |
-| [lint](engineering/lint/SKILL.md) | 视角审查：这句话离开写它的会话还成立吗 |
-| [write-skill](productivity/write-skill/SKILL.md) | 写 / 改技能；L0 常跑，行为 eval 仅在手动 `/eval` 后运行 |
-| [record-gif](engineering/record-gif/SKILL.md) | UI 录成验证过的 GIF |
-| [research](engineering/research/SKILL.md) | 后台调研 |
-| [improve-arch](engineering/improve-arch/SKILL.md) | 架构回顾。[codebase-design](engineering/codebase-design/SKILL.md) |
+| [cosmos-setup](workflow/cosmos-setup/SKILL.md) | 偏离处理：非默认 tracker/路径、遗留状态迁移、domain.md 折叠、schema 升级 |
+| [grill](workflow/grill/SKILL.md) | 拷问方案并维护已有领域记录。[domain-modeling](workflow/domain-modeling/SKILL.md) |
+| [prototype](workflow/prototype/SKILL.md) | `/spec` 前造一次性原型 |
+| [spec](workflow/spec/SKILL.md) | 规划并跑通验证环境预检，再写 PRD / issue |
+| [eval](workflow/eval/SKILL.md) | 手动打开评测；保留项目内 previous/candidate A/B，也可导出独立包与任意外部 workflow 比较；默认关闭 |
+| [atk](workflow/atk/SKILL.md) | 对抗审查自己的产出；工作流只调审查方向，讲解仅手动触发 |
+| [tdd](workflow/tdd/SKILL.md) | 写代码；`--log` 读设备 log。[DRAIN.md](workflow/tdd/DRAIN.md) |
+| [commit](workflow/commit/SKILL.md) | 只提交本任务已验证路径并落地；`-local` / `--local` 仅建本地提交 |
+| [tidy](workflow/tidy/SKILL.md) | 派生状态查询 + 已关闭批次安全缓存 GC；不搬 issue / test |
+| [diagnose](workflow/diagnose/SKILL.md) | 硬 bug / 性能回归 |
+| [conflicts](workflow/conflicts/SKILL.md) | 解决 Git merge / rebase 冲突 |
+| [map](workflow/map/SKILL.md) | 生成/刷新 `CODEBASE.md` 结构地图 |
+| [show](workflow/show/SKILL.md) | 讲解陌生代码区：一屏（目的/模块图/一条流/先读什么）；`--html` 出给人看的单页 |
+| [lint](workflow/lint/SKILL.md) | 视角审查：这句话离开写它的会话还成立吗 |
+| [write-skill](workflow/write-skill/SKILL.md) | 写 / 改技能；确定性检查常跑，行为 eval 仅在手动 `/eval` 后运行 |
+| [record-gif](workflow/record-gif/SKILL.md) | UI 录成验证过的 GIF |
+| [research](workflow/research/SKILL.md) | 后台调研 |
+| [improve-arch](workflow/improve-arch/SKILL.md) | 架构回顾。[codebase-design](workflow/codebase-design/SKILL.md) |
 
 **引擎**（也可单独喊）
 
 | | 承载 | 单独喊 |
 |---|---|---|
-| [grilling](productivity/grilling/SKILL.md) | 采访循环 | 临时想清楚一件事 |
-| [domain-modeling](engineering/domain-modeling/SKILL.md) | 术语 / ADR | 只补表或一条 ADR |
-| [codebase-design](engineering/codebase-design/SKILL.md) | deep-module 词汇 | 设计单个模块接口 |
-| [code-review](engineering/code-review/SKILL.md) | Standards + Spec | 评 diff / 分支 / PR |
+| [domain-modeling](workflow/domain-modeling/SKILL.md) | 术语 / ADR | 只补表或一条 ADR |
+| [codebase-design](workflow/codebase-design/SKILL.md) | deep-module 词汇 | 设计单个模块接口 |
+| [code-review](workflow/code-review/SKILL.md) | Standards + Spec | 评 diff / 分支 / PR |
 
-**其他：** [handoff](productivity/handoff/SKILL.md) · [resume](productivity/resume/SKILL.md) · [caveman](productivity/caveman/SKILL.md) · [teach](productivity/teach/SKILL.md)
+**其他：** [handoff](workflow/handoff/SKILL.md) · [resume](workflow/resume/SKILL.md) · [brief](workflow/brief/SKILL.md) · [teach](workflow/teach/SKILL.md)
 
-**一次性：** [git-guardrails](misc/git-guardrails-claude-code/SKILL.md) · [modern-cli-guardrails](misc/modern-cli-guardrails/SKILL.md) · [setup-pre-commit](misc/setup-pre-commit/SKILL.md) · [migrate-to-shoehorn](misc/migrate-to-shoehorn/SKILL.md)（仅 TS）
+**一次性：** [shell-guardrails](tooling/shell-guardrails/SKILL.md) · [setup-pre-commit](tooling/setup-pre-commit/SKILL.md) · [migrate-to-shoehorn](tooling/migrate-to-shoehorn/SKILL.md)（仅 TS）
+
+名称迁移只有两项公共命令：`merge-conflicts` → `/conflicts`，`caveman` → `/brief`。
+内部 `grilling` 已并入 `/grill`；两套单项 hook 技能已并入 `/shell-guardrails` 的按需分支。
+`atk / map / eval / commit / handoff / resume / show / lint / tidy / improve-arch` 保持不变。
+拉取名称或目录迁移后重跑 [Windows](install.cmd) 或 [Linux/macOS](scripts/install.sh) 安装器；它会创建当前链接，并只清理指向本仓库的退役 skill 链接。
 
 ---
 
@@ -335,13 +341,13 @@ git_base: 7af387c
 |---|---|
 | 改完 CLAUDE.md / references / hooks | Windows 再双击 `install.cmd` |
 | 全局规则源 | 只改 [`claude/CLAUDE.md`](claude/CLAUDE.md)；安装器复制到 Claude / ZCode 目标 |
-| 改 skill | 改仓库即可（junction）；平时跑 L0，想验证或上游前手动 `/eval`，再做 previous RED → candidate GREEN → 全回归 |
-| 加 / 改 / 退役流程规则 | 先登记 [RULE-LEDGER.md](engineering/RULE-LEDGER.md)（防什么失败 · 出处 · 探针）；需要测量模型代际差异时，显式 `/eval full` 跑对应探针；普通规则修复先做确定性检查 |
-| SKILL.md | 按 [write-skill](productivity/write-skill/SKILL.md) 做披露测试；行数只提示复查，不是拆分门槛；最终范围跑一次 `/atk` + `/lint` + `wc -l`，行为 eval 仅显式开启 |
+| 改 skill | 改仓库即可（junction）；先跑 `python3 scripts/validate-skills.py`，想验证或上游前手动 `/eval`，再做 previous RED → candidate GREEN → 全回归 |
+| 加 / 改 / 退役流程规则 | 先登记 [RULE-LEDGER.md](workflow/RULE-LEDGER.md)（防什么失败 · 出处 · 探针）；需要测量模型代际差异时，显式 `/eval full` 跑对应探针；普通规则修复先做确定性检查 |
+| SKILL.md | 按 [write-skill](workflow/write-skill/SKILL.md) 做披露测试；行数只提示复查，不是拆分门槛；最终范围跑一次 `/atk` + `/lint` + `wc -l`，行为 eval 仅显式开启 |
 | 改 hook | 先跑 `test-block-legacy-cli.ps1` / `test-block-dangerous-git.ps1` |
 | 改 verify-artifacts | 跨平台先跑 `python3 -m unittest discover -s tests -v`；Windows 再跑 `test-verify-codebase.ps1` 全集 |
 | 跑大测试 | 用 `tdd/scripts/test-supervisor.py` 指定 scope、timeout、log、receipt；不要因慢而委派 |
 | 改 eval 协议 | `python3 scripts/eval.py validate-cases evals/cases` + `python3 scripts/eval_campaign.py --help` + `python3 -m unittest discover -s tests -v` |
-| 契约 | [ARTIFACT-FORMAT.md](engineering/ARTIFACT-FORMAT.md) |
+| 契约 | [ARTIFACT-FORMAT.md](workflow/ARTIFACT-FORMAT.md) |
 
 每个文件有读者；每个状态有闭环；每个入口有守门。

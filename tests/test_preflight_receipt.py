@@ -11,7 +11,7 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location(
     "preflight_receipt",
-    ROOT / "engineering" / "tdd" / "scripts" / "preflight-receipt.py",
+    ROOT / "workflow" / "tdd" / "scripts" / "preflight-receipt.py",
 )
 assert SPEC and SPEC.loader
 preflight = importlib.util.module_from_spec(SPEC)
@@ -19,7 +19,7 @@ SPEC.loader.exec_module(preflight)
 
 SUPERVISOR_SPEC = importlib.util.spec_from_file_location(
     "test_supervisor_for_preflight",
-    ROOT / "engineering" / "tdd" / "scripts" / "test-supervisor.py",
+    ROOT / "workflow" / "tdd" / "scripts" / "test-supervisor.py",
 )
 assert SUPERVISOR_SPEC and SUPERVISOR_SPEC.loader
 supervisor = importlib.util.module_from_spec(SUPERVISOR_SPEC)

@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "engineering" / "spec" / "scripts" / "pyright-impact.py"
+SCRIPT = ROOT / "workflow" / "spec" / "scripts" / "pyright-impact.py"
 
 
 def diagnostic(*, line, message, rule="reportArgumentType", severity="error"):
@@ -55,7 +55,7 @@ def load_helper():
 
 class PyrightImpactContractTests(unittest.TestCase):
     def test_python_impact_uses_a_baseline_delta_instead_of_all_diagnostics(self):
-        guidance = (ROOT / "engineering" / "spec" / "impact-detection.md").read_text(
+        guidance = (ROOT / "workflow" / "spec" / "impact-detection.md").read_text(
             encoding="utf-8"
         )
 

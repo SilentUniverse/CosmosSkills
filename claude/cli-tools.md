@@ -2,9 +2,9 @@
 
 ## Forbidden → modern (hard-enforced)
 
-When the `modern-cli-guardrails` or combined `shell-guardrails` hook is installed, a `Bash` command is blocked (exit 2) before it runs when a **host-side segment** invokes a legacy tool in command position.
+When the `shell-guardrails` modern-CLI policy is installed, a `Bash` command is blocked (exit 2) before it runs when a **host-side segment** invokes a legacy tool in command position.
 
-The concrete `settings.json` `PreToolUse` config, hook script install locations, and verification steps live in `misc/modern-cli-guardrails/WIRING.md` — not duplicated here.
+The concrete `settings.json` `PreToolUse` config, carrier selection, install locations, and verification steps live in `tooling/shell-guardrails/` — not duplicated here.
 
 | Forbidden | Use instead |
 |---|---|

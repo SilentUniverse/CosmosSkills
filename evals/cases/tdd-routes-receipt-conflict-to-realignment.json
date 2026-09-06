@@ -9,7 +9,7 @@
   ],
   "origin": {
     "kind": "capability",
-    "reference": "engineering/atk/RECEIPT-CONFLICT.md: blind classification cannot rewrite the aligned contract"
+    "reference": "workflow/atk/RECEIPT-CONFLICT.md: blind classification cannot rewrite the aligned contract"
   },
   "task": {
     "prompt": "Implement the ready issue test-first.",

@@ -11,7 +11,7 @@ from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location(
-    "workflow_state", ROOT / "engineering" / "workflow-state.py"
+    "workflow_state", ROOT / "workflow" / "workflow-state.py"
 )
 assert SPEC and SPEC.loader
 workflow_state = importlib.util.module_from_spec(SPEC)

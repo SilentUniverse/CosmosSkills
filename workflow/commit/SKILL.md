@@ -1,0 +1,91 @@
+---
+name: commit
+description: >-
+  Use when the user asks to commit, submit, push, merge, or land the current change, including a local-only commit. Creates one scoped Git commit, preserves unrelated work, and either stops locally or lands through a pull request or verified native merge.
+argument-hint: "[-local|--local]"
+---
+
+# Commit
+
+This is the submit phase after validation. Existing authorization to commit or submit carries into
+this skill. Preserve any explicit local-only or narrower file scope.
+
+## Inspect
+
+Before staging, read:
+
+- `git status --short`
+- `git diff HEAD`
+- `git branch --show-current`
+- `git log --oneline -10`
+
+Read every untracked path in scope because `git diff HEAD` omits its contents. Attribute each changed
+path to the current task; ambiguous or unrelated work stays outside the commit.
+
+Unless local-only mode is selected, also resolve the upstream, remotes, and default branch. Prefer `gh repo view --json
+defaultBranchRef` when authenticated; otherwise inspect `git remote show origin`. A detached HEAD
+blocks submission. With no remote, create the local commit and report that landing could not proceed.
+
+The landing unit is the whole topic branch, not only the new commit. Before staging on an existing
+non-default branch, inspect `git log --oneline <default>..HEAD` and `git diff --name-status
+<default>...HEAD`. Reuse that branch only when every ahead commit and changed path belongs to the
+authorized task or the user explicitly selected the whole branch. Otherwise stop before mutation and
+ask whether to isolate the task or land the broader branch.
+
+For an HTTPS GitHub remote, authenticated `gh` may configure Git credentials with `gh auth setup-git`.
+SSH, non-GitHub, and unauthenticated environments retain native Git authentication.
+
+## Commit modes
+
+- Default: include only task-attributable paths. If currently on the default branch, create a topic
+  branch using the repository or host-required prefix; otherwise use `<type>/<slug>` from the commit
+  title. Stage explicit paths with
+  `git add -- <paths>` and commit them with `git commit --only -- <paths>` so unrelated staged work
+  remains staged but outside this commit. Push and land the branch.
+- `-local` or `--local`: use the same scoped staging and commit, then stop without pushing or merging.
+
+Never stage with `git add -A` or `git add .`. A broad “everything” request still applies to the
+validated task scope; unrelated work needs its own validation and commit. Ignored files stay
+excluded unless explicitly in the validated scope. Preserve intentional partial-file boundaries;
+if one file mixes task and unrelated edits, ask for a narrower choice instead of silently submitting
+both.
+
+## Land
+
+Resolve the submission remote and inspect the current branch's configured upstream. Its remote ref
+must be `refs/heads/<current>`; a differently named target, especially the default branch, is not a
+valid topic upstream. Never use an unqualified `git push` in this workflow. Publish with the explicit
+refspec `git push <remote> HEAD:refs/heads/<current>`; add `-u` only when creating that same-name
+upstream, or stop if the intended remote cannot be resolved without changing repository configuration.
+
+When authenticated `gh` is usable for a GitHub repository, look up the branch's pull request first.
+When none exists, create it with `gh pr create --base <default> --head <current>` so repository
+configuration cannot silently redirect either side. Before reusing or merging one, inspect `gh pr view --json
+baseRefName,headRefName,state,url`; its head must be the current branch and its base must be the
+resolved default branch. A different base or head blocks landing until the user selects the intended
+target. Run `gh pr merge --squash --delete-branch`; add `--auto` only while required checks are
+pending. Return the worktree to the default branch after the merge.
+
+Without `gh`, switch to the default branch and attempt `git merge --ff-only <branch>`. If histories
+diverged, use `git merge --squash <branch>` and commit with the same message. Push the landed default
+branch with `git push <remote> HEAD:refs/heads/<default>`. Delete the local and remote topic branch
+only after verifying the landed tree matches it. If policy blocks forced local branch cleanup after
+a squash merge, leave the verified branch and report the remaining cleanup.
+
+Never switch branches or create a native squash commit through an index or worktree containing
+unrelated changes. Use an isolated clean worktree for native landing, or stop with the scoped commit
+intact when isolation is unavailable.
+
+Never force-push, pull, rebase, amend, bypass hooks or checks, use administrator overrides, or push
+the default branch except to publish the authorized landing. A hook failure returns to in-scope
+repair and validation. A failed push or merge leaves the valid commit or branch intact and is
+reported at the exact stopping point.
+
+## Message and report
+
+Use an English imperative title matching repository history: `type(scope): summary`. Write the body
+in Chinese, one bullet per meaningful mechanism and file group. An empty body is acceptable only when
+the title fully reconstructs the change.
+
+Report the commit hash and included paths. For a landed change, also report the pushed ref, pull
+request URL when applicable, default-branch result, and any cleanup still pending.
