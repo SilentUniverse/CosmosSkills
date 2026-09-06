@@ -504,7 +504,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         if args.dry_run:
             report["engine"] = "gh" if use_gh else "native"
             report["dry_run"] = True
-            report.setdefault("steps", []).append(
+            report["steps"] = (
                 ["push topic", "create/reuse PR", "squash merge", "verify MERGED", "cleanup"]
                 if use_gh
                 else ["fetch", "isolated worktree", "ff-only or squash", "verify", "publish default"]
