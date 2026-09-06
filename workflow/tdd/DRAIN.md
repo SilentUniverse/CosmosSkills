@@ -45,8 +45,17 @@ not invalidate it; changed values do. `dispatch` already checks this; inspect du
 python3 <tdd-skill-dir>/scripts/preflight-receipt.py plan <repo-root> [<feat>]
 ```
 
-No duplicates means no shared cache; continue normal execution. For each cache miss, the
-orchestrator runs the action through `test-supervisor.py --scope preflight`, then records it:
+No duplicates means no shared cache; continue normal execution. Execute and record every miss in
+one serial call — it runs each action through the supervisor (scope `preflight`), records only
+passing executions, and returns per-tuple verdicts; a failed tuple is reported, never recorded,
+and independent tuples still run:
+
+```text
+python3 <tdd-skill-dir>/scripts/preflight-receipt.py run <repo-root> [<feat>]
+```
+
+The manual per-tuple path is also available: run the action through
+`test-supervisor.py --scope preflight`, then record it:
 
 ```text
 python3 <tdd-skill-dir>/scripts/preflight-receipt.py record <receipt> --cwd <cwd> --action <resolved-action> --fingerprint <value> --readiness-digest <v2-digest> --verifier-digest <v3-digest> --execution-receipt <execution.json>
@@ -110,7 +119,11 @@ python3 <skills-root>/workflow-state.py packets <repo-root> <feat> <slug>...
 This avoids repeated process/profile reads and persists nothing. `packets` requires exactly the
 feature's outstanding open-wave slugs, checks every card against its dispatch-time contract hash,
 and returns one shared wave/baseline binding. It refuses undispatched, partial, or changed input.
-Start delegated
+Render every worker brief mechanically:
+`python3 <skills-root>/workflow-state.py briefs <repo-root> <feat>` emits one brief per outstanding
+slug — packet, receipt-hit token(s) when the ledger recorded them, and the derived tests-so-far
+manifest (done cards' `test_paths`, archived history included, derived per call). The bullets below stay the brief
+contract; supply what they name verbatim. Start delegated
 workers from these immutable inputs before beginning the orchestrator's RED action. Each worker
 receives a self-contained brief:
 

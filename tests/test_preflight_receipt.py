@@ -406,6 +406,96 @@ created: 2026-08-30
                 preflight.duplicate_plan(root, rows=scanned),
             )
 
+    def test_run_records_passing_misses_and_reports_failures(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "demo" / "issues"
+            issues.mkdir(parents=True)
+
+            def body(name, action):
+                return (
+                    "---\nstatus: ready\n---\n## 验证设计\n"
+                    "- 工作目录：`.`\n"
+                    "- 环境指纹：`git=abc; lock=none; runtime=py; tools=unittest; services=none`\n"
+                    "- P1 预检：`%s` → passed；observed=exit 0\n" % action
+                )
+
+            good = shlex.join([sys.executable, "-c", "print('ok')"])
+            bad = shlex.join([sys.executable, "-c", "raise SystemExit(3)"])
+            for name, action in (
+                ("01-one.md", good),
+                ("02-two.md", good),
+                ("03-three.md", bad),
+                ("04-four.md", bad),
+            ):
+                (issues / name).write_text(body(name, action), encoding="utf-8")
+
+            report = preflight.run_planned(root)
+            by_action = {item["action"]: item for item in report["verdicts"]}
+            self.assertEqual(1, report["recorded"])
+            self.assertEqual(1, report["failed"])
+            self.assertEqual("recorded", by_action[good]["status"])
+            self.assertEqual("failed", by_action[bad]["status"])
+            cache = json.loads(
+                (root / ".scratch" / "demo" / "preflight-receipt.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertEqual(1, len(cache["entries"]))
+            self.assertTrue(
+                (root / ".scratch" / "tmp").glob("preflight-*.log")
+            )
+            # A re-run reports the recorded tuple as a hit and retries nothing else.
+            rerun = preflight.run_planned(root)
+            self.assertEqual(0, rerun["recorded"])
+            self.assertEqual(1, rerun["hit"])
+            self.assertEqual(1, rerun["failed"])
+
+    def test_run_exit_code_marks_failures(self):
+        import io
+        from contextlib import redirect_stdout
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "demo" / "issues"
+            issues.mkdir(parents=True)
+            bad = shlex.join([sys.executable, "-c", "raise SystemExit(9)"])
+            for name in ("01-one.md", "02-two.md"):
+                (issues / name).write_text(
+                    "---\nstatus: ready\n---\n## 验证设计\n"
+                    "- 工作目录：`.`\n"
+                    "- 环境指纹：`git=abc; lock=none`\n"
+                    "- P1 预检：`%s` → passed；observed=exit 0\n" % bad,
+                    encoding="utf-8",
+                )
+            with redirect_stdout(io.StringIO()):
+                code = preflight.main(["run", str(root), "--timeout", "5"])
+            self.assertEqual(1, code)
+
+    def test_run_supports_legacy_v1_issues_without_verifier(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "demo" / "issues"
+            issues.mkdir(parents=True)
+            good = shlex.join([sys.executable, "-c", "print('legacy')"])
+            for name in ("01-old.md", "02-older.md"):
+                # No contract_version: legacy v1 readiness path with prerequisites.
+                (issues / name).write_text(
+                    "---\nstatus: ready\n---\n## 验证设计\n"
+                    "- 工作目录：`.`\n"
+                    "- 环境指纹：`git=abc; lock=none`\n"
+                    "- 前置条件：`fixtures=ready; services=none`\n"
+                    "- 准备动作：`无`\n"
+                    "- P1 预检：`%s` → passed；observed=exit 0\n" % good,
+                    encoding="utf-8",
+                )
+            report = preflight.run_planned(root)
+            self.assertEqual(1, report["recorded"])
+            self.assertEqual(0, report["failed"])
+            self.assertTrue(
+                (root / ".scratch" / "demo" / "preflight-receipt.json").exists()
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
