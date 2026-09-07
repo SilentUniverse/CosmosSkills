@@ -85,11 +85,18 @@ class LandFixture(unittest.TestCase):
             ["git", "init", "-q", "--bare", str(remote)],
             check=True, capture_output=True, text=True,
         )
+        # The bare remote and the work clone must agree on `main` regardless of
+        # the runner's init.defaultBranch (CI images default to master).
+        subprocess.run(
+            ["git", "--git-dir", str(remote), "symbolic-ref", "HEAD", "refs/heads/main"],
+            check=True, capture_output=True, text=True,
+        )
         work = directory / "work"
         subprocess.run(
             ["git", "clone", "-q", str(remote), str(work)],
             check=True, capture_output=True, text=True,
         )
+        git(work, "branch", "-q", "-m", "main")
         git(work, "config", "user.email", "t@t")
         git(work, "config", "user.name", "t")
         git(work, "commit", "--allow-empty", "-m", "base")
