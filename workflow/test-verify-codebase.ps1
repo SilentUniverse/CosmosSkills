@@ -251,6 +251,8 @@ created: 2026-08-18
 
 ## body
 '@
+# PS 5.1 parses this BOM-less file as ANSI, so the done heading is built from code points.
+$issueArchived = $issueArchived + "`n### " + [string][char]0x5B8C + [string][char]0x6210 + "`n"
 $issueChild = @'
 ---
 type: issue
