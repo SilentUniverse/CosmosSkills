@@ -33,6 +33,8 @@ defaults and skill procedures. A skill phase cannot narrow an authorized end-to-
 Use the first rung that works: nothing → stdlib → native platform → installed dependency → minimum
 new code. Minimize concepts, states, and exceptions, not line count. Validate real IO/protocol/file/
 subprocess boundaries; trust typed internals. Security, validation, and accessibility stay intact.
+At completion, run the deletion test on what this task added: each new abstraction, layer, or
+artifact keeps a live consumer (a caller, a test, or a recorded decision) or is deleted.
 
 ## 4. Change only the requested surface
 
