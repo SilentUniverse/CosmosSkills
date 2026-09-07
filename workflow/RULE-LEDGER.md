@@ -61,6 +61,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | §7·c | PS 设 UTF-8；PS/cmd 不写文本文件 | 过程 | 流程 | 38b2c6a（UTF-8 note）、94aea23（PS5.1/cmd 规则） |
 | §8 | 独立工作或判断才委派；预算约束尝试而非完成条件 | 过程·经济 | 自审 | 65f1318（tool-call cap）、51a7d4a（默认 inline） |
 | §9 | ADB 前加载设备规则参考 | 过程 | 流程 | 7f56614（android-adb reference） |
+| §3·末 | 完成时删除测试：新增抽象无活消费者即删；设计侧见 spec §3，深审锚点 /atk Re-derive | 过程·经济 | 流程 | 死抽象累积税；未溯源 |
 
 ## B. spec — workflow/spec/SKILL.md（每次规划付费）
 

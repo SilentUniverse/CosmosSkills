@@ -35,8 +35,9 @@ Name what is out of scope.
 `-r` changes execution, not scrutiny: complete the same analysis, but treat every cut, rebuild,
 drop, or fix below as a recommendation and never apply it.
 
-1. **Re-derive each load-bearing choice.** What breaks without it? No answer → cut. Propped up only
-   by analogy or sunk cost → rebuild it from the constraints, or drop it.
+1. **Re-derive each load-bearing choice.** What breaks without it, and who consumes it now (a
+caller, a test, or a recorded decision)? No answer → cut. Propped up only by analogy or sunk cost →
+rebuild it from the constraints, or drop it.
 2. **Attack five surfaces:** semantics (meaning changed?), consistency (stale or renamed refs?),
    runtime (does it run on Windows?), necessity (readerless file, fake pause, unclosed state,
    doorless entry?), cost (tokens, attention).
