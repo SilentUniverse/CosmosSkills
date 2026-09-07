@@ -45,8 +45,9 @@ a resolvable change story is still change narration; class 3 routes it out.
 
 ## Symbol discipline (rule prose)
 
-Rule sentences that cram criteria, conditions, or justifications into symbols are restated as
-plain sentences, word-for-word in meaning. Targets:
+The sentence is the unit: a rule sentence that forces a re-read is restated even when each of its
+symbols is individually exempt. Rule sentences that cram criteria, conditions, or justifications
+into symbols are restated as plain sentences, word-for-word in meaning. Targets:
 
 - Parentheticals, round or full-width, carrying two or more clauses of rule content: criteria
   lists, conditions with their action, justifications with reasoning.
@@ -82,15 +83,21 @@ calibration or example vocabulary.
 2. **Audit read-only**: run the [batteries](references/batteries.md), then judge every hit
    semantically. The batteries are probes, not the definition. Also read the densest prose in
    scope without a pattern in hand; in rule prose, apply Symbol discipline below.
+   The judged unit is the sentence, not the changed line or fragment. Prose the examiner authored
+   this session reads back with the author's eyes: get one cold-reader subagent pass over the
+   changed sentences when available; otherwise re-read each changed sentence in isolation, out of
+   document order, and disclose the missing independence.
 3. **Fix**: restate surviving propositions, delete transcripts. Before deleting a passage,
    enumerate its propositions: actor/action; condition/timing/ordering; modality
    (must/may/never); negative guarantee and exception; ownership/failure/consequence. Restore any
    slot the text carried that the code doesn't. A smaller word count alone is not an improvement.
+   Reuse the established sibling form when the same rule already lives on another surface.
 4. **Overcorrection traps**: flipping an obligation into an endorsement; promoting a hypothetical
    to a shipped feature; deleting a true fact with the transcript around it; dropping provenance
    while keeping the number. When propositions share a line, delete clauses, not sentences.
-5. **Verify**: re-run the batteries expecting only sanctioned keeps; confirm every remaining
-   citation resolves at HEAD.
+5. **Verify**: re-run the batteries expecting only sanctioned keeps, and re-read every sentence a
+   fix touched; a clean prior pass does not carry over. Confirm every remaining citation resolves
+   at HEAD.
 
 ## Output
 

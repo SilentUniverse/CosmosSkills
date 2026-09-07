@@ -58,7 +58,8 @@ A proposed coverage, size, or timing bar →
 
 A small settled plan can remain inline with its outcome, constraints, and verification route.
 Run the deletion test on the plan's structure: every proposed boundary, interface, artifact kind,
-PRD, or verifier profile names its consuming card, AC, test, or recorded decision, or leaves the plan.
+PRD, or verifier profile names its consuming card, AC, test, or recorded decision; anything unnamed
+leaves the plan.
 For a queue or handoff, read [CARD-TEST.md](CARD-TEST.md) to choose independently executable slices,
 [VERIFICATION-DESIGN.md](VERIFICATION-DESIGN.md) to prepare each verifier, and
 [ISSUE-TEMPLATE.md](ISSUE-TEMPLATE.md) plus the relevant
