@@ -20,11 +20,12 @@ Keep these case-sensitive; `-i` turns version tags into noise.
 ## Symbol probe (rule prose only)
 
 ```sh
-rg '\([^()]{40,}\)| — .* — ' --hidden -g '!.git/**' <scope>
+rg '\([^()]{40,}\)|（[^（）]{40,}）| — .* — ' --hidden -g '!.git/**' <scope>
 ```
 
 Over-matches heavily. Judge every hit against the Symbol-discipline section and its exemptions;
-hits outside rule prose (templates, quoted examples, tables) are skipped. A single em-dash
+hits outside rule prose (templates, quoted examples, tables) are skipped for probe noise only; a
+table cell carrying rule content is still rule prose when read. A single em-dash
 joining clauses has no reliable pattern; the semantic scan catches it.
 
 ## Exclusions
