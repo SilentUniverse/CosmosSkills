@@ -159,6 +159,9 @@
 {"id": "winpath-adb-shell-unquoted", "command": "adb shell uiautomator dump /sdcard/x.xml", "expect": "block", "tier": "winpath", "platform": "msys", "note": "unquoted device path gets mangled by MSYS"}
 {"id": "winpath-adb-no-pathconv", "command": "MSYS_NO_PATHCONV=1 adb pull /sdcard/x \"$TEMP/x\"", "expect": "allow", "tier": "winpath", "platform": "msys", "note": "documented working form: conversion off, local path in Windows form"}
 {"id": "winpath-adb-logcat-rg", "command": "adb logcat -d | rg -i pattern", "expect": "allow", "tier": "winpath", "platform": "msys", "note": "host-side filter with the modern tool"}
+{"id": "winpath-ast-grep-tmp", "command": "ast-grep -p 'x' /tmp/f", "expect": "block", "tier": "winpath", "platform": "msys", "note": "ast-grep is a native exe (recommended by impact-detection); a POSIX path arg gets mangled"}
+{"id": "winpath-sg-tmp", "command": "sg -p 'x' /tmp/f", "expect": "block", "tier": "winpath", "platform": "msys", "note": "sg is the ast-grep binary alias on Windows"}
+{"id": "winpath-ast-grep-relative", "command": "ast-grep -p 'x' src", "expect": "allow", "tier": "winpath", "platform": "msys", "note": "repo-relative path is fine for the native exe"}
 {"id": "legacy-adb-exec-out", "command": "adb exec-out screencap -p > screen.png", "expect": "allow", "tier": "legacy"}
 {"id": "legacy-adb-crlf-tr", "command": "adb shell pidof com.x | tr -d '\\r'", "expect": "allow", "tier": "legacy", "note": "host-side CRLF strip; tr is not in the legacy set"}
 {"id": "git-exe-reset", "command": "git.exe reset --hard", "expect": "block", "tier": "git", "note": ".exe suffix must survive the prefilter so basename() can strip it"}

@@ -376,7 +376,7 @@ def split_segments(text):
 # --------------------------------------------------------------------- tiers
 
 GIT_VALUE_FLAGS = {'-C', '-c', '--git-dir', '--work-tree', '--namespace'}
-NATIVE_RE = re.compile(r'^(?:python3?|py|pwsh|powershell|cmd|node|rg|fd|bat|jq|yq|sd)$')
+NATIVE_RE = re.compile(r'^(?:python3?|py|pwsh|powershell|cmd|node|rg|fd|bat|jq|yq|sd|ast-grep|sg)$')
 POSIX_TOK_RE = re.compile(r'^/(?:tmp|[A-Za-z])(?:/|$)')
 CMD_SWITCH_RE = re.compile(r'^/[A-Za-z]$')
 REDIR_RE = re.compile(r'^(?:\d)?>{1,2}$|^<$')
