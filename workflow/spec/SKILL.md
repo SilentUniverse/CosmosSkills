@@ -1,17 +1,24 @@
 ---
 name: spec
 description: >-
-  Use when the user explicitly asks for a plan or specification, or when work needs multiple verifiable slices, a durable handoff, or consequential product-boundary decisions. Produces an execution-ready spec; small settled changes can proceed inline and tdd owns implementation.
+  Use when the user explicitly asks for a plan or specification, or when work needs multiple verifiable slices, a durable handoff, or consequential product-boundary decisions. Produces a reviewable, execution-ready plan and waits for user review before implementation; tdd owns implementation.
 argument-hint: "The need — anything from one line to a full design"
 disable-model-invocation: true
 ---
 
 # Spec
 
-Owns planning and execution readiness. An explicit `/spec` or plan-only request ends with its usable
-plan. Inside an implementation request, return the settled contract to the caller and continue
-implementation in the same task. This phase may run declared setup and representative verifier
-preflights; it does not write product behavior.
+Owns planning and execution readiness. By default, deliver the usable plan and wait for user review
+before implementation, including when an implementation task routes here. A general implementation
+request or earlier authorization does not waive this review checkpoint. Continue only when the user
+accepts the presented plan for implementation, invokes `/tdd` for it, or explicitly requests planning
+followed by implementation without waiting. An explicit plan-only request ends with the plan.
+Agent self-review, review-only requests, and `ready` status do not supply user acceptance.
+Acceptance remains valid for an unchanged plan and contract-preserving repairs; changes to outcome,
+scope, or public contract return the affected plan to user review.
+
+This phase may run declared setup and representative verifier preflights; it does not write product
+behavior. Resolve routine details and finish the reviewable plan before waiting.
 
 Intent has two paths:
 
@@ -88,7 +95,7 @@ Before writing any issue:
    paths/resources, and the read pointers needed by their reasoning radius. Preserve shipped done
    contracts; additive and superseding work follow their selected branch.
 
-## 4. Accept and continue
+## 4. Validate and present for review
 
 Read each written card from only its declared inputs. Check 做什么 against every AC, the passed P#
 mapping and exact final action/evidence, required parent constraints, and dependencies. Reuse the
@@ -106,5 +113,6 @@ only if `python` is missing, never as a retry for a gate failure. Re-run only af
 The whole-tree form remains the batch-close/CI/migration gate.
 
 Return written paths or the inline plan, material assumptions, actual evidence, and unresolved
-decisions. For an implementation request, continue with the accepted cards or inline contract;
-no new command or session reset is needed. A phase boundary does not complete the caller's objective.
+decisions. Apply the review checkpoint above before handing the cards or inline contract to TDD.
+While review is pending, end with the complete plan and state that implementation awaits user review.
+After acceptance, continue in the same task without another confirmation or session reset.
