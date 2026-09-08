@@ -40,7 +40,7 @@ Git-bash rewrites an argument that begins with `/` into a Windows path before th
 - `rg -n "^/show" <file>` — anchor leads
 - `MSYS_NO_PATHCONV=1 <cmd>` — kills conversion for one command (also affects real path args, so keep it scoped)
 
-`rg`/`fd`/`sd`/`jq`/`yq` are native Windows exes, not bash built-ins: a **path argument** in POSIX form (`/tmp/f`, `/d/repo/...`) is mistranslated the same way, and the shell-guardrails path tier blocks it (exit 2). The redirect `<native> > /tmp/f` is safe (bash owns the redirect), but reading that file back with `rg /tmp/f` is not. Feed native tools Windows or repo-relative paths, and prefer a pipe over a temp file:
+`rg`/`fd`/`sd`/`jq`/`yq`/`ast-grep` are native Windows exes, not bash built-ins: a **path argument** in POSIX form (`/tmp/f`, `/d/repo/...`) is mistranslated the same way, and the shell-guardrails path tier blocks it (exit 2). The redirect `<native> > /tmp/f` is safe (bash owns the redirect), but reading that file back with `rg /tmp/f` is not. Feed native tools Windows or repo-relative paths, and prefer a pipe over a temp file:
 
 - `git show <rev>:<path> | rg -n <pat>` — nothing native ever touches `/tmp`; no temp file to clean up
 - temp file needed: `out="$(cygpath -w "$TEMP")\f.py"; … > "$out"; rg -n <pat> "$out"` — writer and reader both use the Windows path
