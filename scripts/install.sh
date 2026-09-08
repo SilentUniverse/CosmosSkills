@@ -259,61 +259,58 @@ if [[ "$DRY_RUN" -eq 0 && "$copied_hooks" -gt 0 ]]; then
 fi
 
 # --- Distribute the ZCode side. ZCode auto-loads ~/.zcode/AGENTS.md the way
-#     Claude Code loads ~/.claude/CLAUDE.md, and discovers user skills in
-#     ~/.agents/skills, the shared root; one live link per skill name
-#     serves every host. Real entries there belong to other tools and are
-#     never touched: only links resolving into this repo are recreated. ---
-agents_deployed=0
-if [[ "$SHARED_INSTALL" -eq 1 && -d "${HOME}/.zcode" ]]; then
-  copy_file "$ROOT/claude/CLAUDE.md" "${HOME}/.zcode/AGENTS.md" "Guidelines: AGENTS.md (ZCode)"
-fi
+#     Claude Code loads ~/.claude/CLAUDE.md. Skills mirror into the shared roots
+#     hosts discover from: ~/.agents/skills (cross-tool root) and ~/.zcode/skills
+#     (ZCode's own root); one live link per skill name serves every host. Real
+#     entries and foreign links are never touched: only links resolving into this
+#     repo are recreated. Contract files land first: linked skills resolve
+#     ../ARTIFACT-FORMAT.md textually inside the skills root, as in ~/.claude/skills. ---
+mirror_shared_root() {
+  local skills_root="$1"
+  local label="$2"
 
-agents_skills="${HOME}/.agents/skills"
-if [[ "$SHARED_INSTALL" -eq 1 && ( -d "$agents_skills" || -d "${HOME}/.zcode" ) ]]; then
-  [[ "$DRY_RUN" -eq 1 ]] || mkdir -p "$agents_skills"
+  [[ "$DRY_RUN" -eq 1 ]] || mkdir -p "$skills_root"
 
-  # Contract files land first: linked skills resolve ../ARTIFACT-FORMAT.md
-  # textually inside the skills root, same as in ~/.claude/skills.
-  copy_file "$ROOT/workflow/ARTIFACT-FORMAT.md" "$agents_skills/ARTIFACT-FORMAT.md" "Contract: ARTIFACT-FORMAT.md (agents)"
-  copy_file "$ROOT/workflow/REPORT-FORMAT.md" "$agents_skills/REPORT-FORMAT.md" "Contract: REPORT-FORMAT.md (agents)"
-  copy_file "$ROOT/workflow/verify-artifacts.py" "$agents_skills/verify-artifacts.py" "Gate: verify-artifacts.py (agents)"
-  copy_file "$ROOT/workflow/workflow-state.py" "$agents_skills/workflow-state.py" "State: workflow-state.py (agents)"
-  copy_file "$ROOT/workflow/workflow_contract.py" "$agents_skills/workflow_contract.py" "Contract: workflow_contract.py (agents)"
+  copy_file "$ROOT/workflow/ARTIFACT-FORMAT.md" "$skills_root/ARTIFACT-FORMAT.md" "Contract: ARTIFACT-FORMAT.md ($label)"
+  copy_file "$ROOT/workflow/REPORT-FORMAT.md" "$skills_root/REPORT-FORMAT.md" "Contract: REPORT-FORMAT.md ($label)"
+  copy_file "$ROOT/workflow/verify-artifacts.py" "$skills_root/verify-artifacts.py" "Gate: verify-artifacts.py ($label)"
+  copy_file "$ROOT/workflow/workflow-state.py" "$skills_root/workflow-state.py" "State: workflow-state.py ($label)"
+  copy_file "$ROOT/workflow/workflow_contract.py" "$skills_root/workflow_contract.py" "Contract: workflow_contract.py ($label)"
 
   for i in "${!NAMES[@]}"; do
     name="${NAMES[$i]}"
     src="${SOURCES[$i]}"
-    link="$agents_skills/$name"
+    link="$skills_root/$name"
 
     if [[ -e "$link" || -L "$link" ]]; then
       if [[ -L "$link" ]]; then
         if ! link_points_into_repo "$link"; then
-          printf 'Agents root keeps foreign link %s, skipping\n' "$name"
+          printf '%s root keeps foreign link %s, skipping\n' "$label" "$name"
           continue
         fi
         if [[ "$DRY_RUN" -eq 1 ]]; then
-          echo "[DryRun] Recreate agents link $name"
+          echo "[DryRun] Recreate $label link $name"
         else
           rm -f "$link"
         fi
       else
-        printf 'Agents root keeps real entry %s, skipping\n' "$name"
+        printf '%s root keeps real entry %s, skipping\n' "$label" "$name"
         continue
       fi
     fi
 
     if [[ "$DRY_RUN" -eq 1 ]]; then
-      printf '[DryRun] Link %-26s -> %s (agents)\n' "$name" "$src"
+      printf '[DryRun] Link %-26s -> %s (%s)\n' "$name" "$src" "$label"
     else
       ln -s "$src" "$link"
-      printf 'Linked %-26s -> %s (agents)\n' "$name" "$src"
+      printf 'Linked %-26s -> %s (%s)\n' "$name" "$src" "$label"
       agents_deployed=1
     fi
   done
 
   # Orphan links in the shared root that point into this repo but are no
   # longer current skills (source renamed/removed).
-  for entry in "$agents_skills"/*; do
+  for entry in "$skills_root"/*; do
     [[ -e "$entry" || -L "$entry" ]] || continue
     [[ -L "$entry" ]] || continue
     link_points_into_repo "$entry" || continue
@@ -324,13 +321,28 @@ if [[ "$SHARED_INSTALL" -eq 1 && ( -d "$agents_skills" || -d "${HOME}/.zcode" ) 
     done
     if [[ "$keep" -eq 0 ]]; then
       if [[ "$DRY_RUN" -eq 1 ]]; then
-        echo "[DryRun] Remove orphan agents link: $entry"
+        echo "[DryRun] Remove orphan $label link: $entry"
       else
         rm -f "$entry"
-        echo "Removed orphan agents link: $entry"
+        echo "Removed orphan $label link: $entry"
       fi
     fi
   done
+}
+
+agents_deployed=0
+if [[ "$SHARED_INSTALL" -eq 1 && -d "${HOME}/.zcode" ]]; then
+  copy_file "$ROOT/claude/CLAUDE.md" "${HOME}/.zcode/AGENTS.md" "Guidelines: AGENTS.md (ZCode)"
+fi
+
+if [[ "$SHARED_INSTALL" -eq 1 ]]; then
+  agents_skills="${HOME}/.agents/skills"
+  if [[ -d "$agents_skills" || -d "${HOME}/.zcode" ]]; then
+    mirror_shared_root "$agents_skills" "agents"
+  fi
+  if [[ -d "${HOME}/.zcode" ]]; then
+    mirror_shared_root "${HOME}/.zcode/skills" "zcode"
+  fi
 fi
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
@@ -343,7 +355,7 @@ else
   echo "Use /<name> in Claude Code. cosmos-setup only handles repos that deviate from the defaults; default repos need no bootstrap."
   if [[ "$agents_deployed" -eq 1 ]]; then
     if [[ -d "${HOME}/.zcode" ]]; then
-      echo "ZCode: skills + contract files in ~/.agents/skills, AGENTS.md in ~/.zcode. Restart ZCode to load."
+      echo "ZCode: skills + contract files in ~/.agents/skills and ~/.zcode/skills, AGENTS.md in ~/.zcode. Restart ZCode to load."
     else
       echo "Agents hosts: skills + contract files in ~/.agents/skills."
     fi

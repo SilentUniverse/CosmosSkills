@@ -71,7 +71,7 @@ curl -fsSL https://raw.githubusercontent.com/SilentUniverse/CosmosSkills/main/cl
 ```
 
 Codex 在本仓库通过根 [AGENTS.md](AGENTS.md) 读取共享策略 [CLAUDE.md](claude/CLAUDE.md)，避免维护两份正文。
-安装器分发 Claude Code/ZCode 配置及已有 `~/.agents/skills`；不会修改全局 `~/.codex/AGENTS.md`。
+安装器分发 Claude Code/ZCode 配置，并把技能镜像到 `~/.agents/skills` 与 `~/.zcode/skills`；不会修改全局 `~/.codex/AGENTS.md`。
 显式指定安装目标或 ClaudeRoot 时，不镜像到用户级 ZCode / agents 目录；隔离安装需同时指定这两个路径。
 在其他 Codex 项目使用这套常驻策略时，将共享文件的实际路径加入相应 AGENTS.md，并保留原有项目规则。
 
