@@ -11,8 +11,8 @@
     claude/CLAUDE.md -> ~/.claude/CLAUDE.md; claude/*.md -> ~/.claude/references/
     (pruning removed ones); ARTIFACT-FORMAT.md -> <target>; hook scripts (explicit
     list) -> ~/.claude/hooks/. CLAUDE.md additionally -> ~/.zcode/AGENTS.md. Skills and
-    the shared contract files mirror into ~/.agents/skills/ when the shared root or
-    ZCode is present; real entries and foreign links there are kept. CLAUDE.md and
+    the shared contract files mirror into ~/.agents/skills/ (and ~/.zcode/skills/ when
+    ZCode is present); real entries and foreign links there are kept. CLAUDE.md and
     the contract files are COPIES, not links; re-run after edits.
 
     Behavior:
@@ -120,6 +120,81 @@ function Get-SkillName {
         }
     }
     return $null
+}
+
+function Install-SharedSkillRoot {
+    # Mirror the workflow into a shared skills root a host discovers from. Contract
+    # files land first so junctioned skills resolve `../ARTIFACT-FORMAT.md` textually.
+    # Real entries and foreign links are kept; only links into this repo are recreated.
+    # Returns the number of skill links created. Reads $skills/$root/$linkedNames/$DryRun
+    # from the script scope, so it must be called after those are set.
+    param(
+        [string]$SkillsRoot,
+        [string]$Label
+    )
+
+    if (-not (Test-Path -LiteralPath $SkillsRoot)) {
+        if ($DryRun) { Write-Host "[DryRun] Create folder: $SkillsRoot" }
+        else { New-Item -ItemType Directory -Path $SkillsRoot -Force | Out-Null }
+    }
+
+    foreach ($shared in @("ARTIFACT-FORMAT.md", "REPORT-FORMAT.md", "verify-artifacts.py", "workflow-state.py", "workflow_contract.py")) {
+        $sharedSrc = Join-Path $root "workflow/$shared"
+        if (-not (Test-Path -LiteralPath $sharedSrc)) { continue }
+        $sharedDst = Join-Path $SkillsRoot $shared
+        if ($DryRun) { Write-Host ("[DryRun] Copy {0} -> {1}" -f $shared, $sharedDst) -ForegroundColor Yellow }
+        else {
+            Copy-Item -LiteralPath $sharedSrc -Destination $sharedDst -Force
+            Write-Host ("Contract: copied {0} -> {1}" -f $shared, $sharedDst) -ForegroundColor Green
+        }
+    }
+
+    $rootLinked = 0
+    foreach ($s in $skills) {
+        $linkPath = Join-Path $SkillsRoot $s.Name
+        $item = Get-PathEntry $linkPath
+        if ($null -ne $item) {
+            $isLink = ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0
+            if ($isLink) {
+                if (-not (Test-PathUnderRoot (Get-JunctionTarget $linkPath) $root)) {
+                    Write-Host ("{0} root keeps foreign link {1}, skipping" -f $Label, $s.Name)
+                    continue
+                }
+                if ($DryRun) { Write-Host ("[DryRun] Recreate {0} link {1}" -f $Label, $s.Name) }
+                else { [System.IO.Directory]::Delete($linkPath) }
+            }
+            else {
+                Write-Host ("{0} root keeps real entry {1}, skipping" -f $Label, $s.Name)
+                continue
+            }
+        }
+        if ($DryRun) {
+            Write-Host ("[DryRun] Link {0,-26} -> {1} ({2})" -f $s.Name, $s.Source, $Label)
+        }
+        else {
+            New-JunctionCompat -LinkPath $linkPath -TargetPath $s.Source
+            Write-Host ("Linked {0,-26} -> {1} ({2})" -f $s.Name, $s.Source, $Label) -ForegroundColor Green
+            $rootLinked++
+        }
+    }
+
+    if (Test-Path -LiteralPath $SkillsRoot) {
+        Get-ChildItem -LiteralPath $SkillsRoot -Force | Where-Object {
+            ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -and
+            (Test-PathUnderRoot (Get-JunctionTarget $_.FullName) $root) -and
+            $linkedNames -notcontains $_.Name
+        } | ForEach-Object {
+            if ($DryRun) {
+                Write-Host ("[DryRun] Remove orphan {0} link: {1}" -f $Label, $_.FullName) -ForegroundColor Yellow
+            }
+            else {
+                [System.IO.Directory]::Delete($_.FullName)
+                Write-Host ("Removed orphan {0} link: {1}" -f $Label, $_.FullName) -ForegroundColor Yellow
+            }
+        } | Out-Null
+    }
+
+    return $rootLinked
 }
 
 $skillRoots = @(
@@ -382,73 +457,18 @@ if ($sharedInstall -and $cmMain -and (Test-Path -LiteralPath (Join-Path $HOME ".
     }
 }
 
-# --- Mirror skills into ~/.agents/skills/, the shared root ZCode discovers user
-#     skills from. First same-named skill wins, so one live link per name serves
-#     every host. Real entries there belong to other tools and are never touched;
-#     only links resolving into this repo are recreated. Contract files land
-#     first: junctioned skills resolve `../ARTIFACT-FORMAT.md` textually, the
-#     same way they do in $Target. ---
-$agentsSkills = Join-Path $HOME ".agents/skills"
+# --- Mirror skills into the shared roots hosts discover from: ~/.agents/skills
+#     (cross-tool root for Claude Code and ZCode) and ~/.zcode/skills (ZCode's own
+#     root). First same-named skill wins, so one live link per name serves every host. ---
 $agentsLinked = 0
-if ($sharedInstall -and ((Test-Path -LiteralPath $agentsSkills) -or (Test-Path -LiteralPath (Join-Path $HOME ".zcode")))) {
-    if (-not (Test-Path -LiteralPath $agentsSkills)) {
-        if ($DryRun) { Write-Host "[DryRun] Create folder: $agentsSkills" }
-        else { New-Item -ItemType Directory -Path $agentsSkills -Force | Out-Null }
+$zcodeRoot = Join-Path $HOME ".zcode"
+if ($sharedInstall) {
+    $agentsSkills = Join-Path $HOME ".agents/skills"
+    if ((Test-Path -LiteralPath $agentsSkills) -or (Test-Path -LiteralPath $zcodeRoot)) {
+        $agentsLinked += Install-SharedSkillRoot -SkillsRoot $agentsSkills -Label "agents"
     }
-    foreach ($shared in @("ARTIFACT-FORMAT.md", "REPORT-FORMAT.md", "verify-artifacts.py", "workflow-state.py", "workflow_contract.py")) {
-        $sharedSrc = Join-Path $root "workflow/$shared"
-        if (-not (Test-Path -LiteralPath $sharedSrc)) { continue }
-        $sharedDst = Join-Path $agentsSkills $shared
-        if ($DryRun) { Write-Host ("[DryRun] Copy {0} -> {1}" -f $shared, $sharedDst) -ForegroundColor Yellow }
-        else {
-            Copy-Item -LiteralPath $sharedSrc -Destination $sharedDst -Force
-            Write-Host ("Contract: copied {0} -> {1}" -f $shared, $sharedDst) -ForegroundColor Green
-        }
-    }
-
-    $agentsLinked = 0
-    foreach ($s in $skills) {
-        $linkPath = Join-Path $agentsSkills $s.Name
-        $item = Get-PathEntry $linkPath
-        if ($null -ne $item) {
-            $isLink = ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0
-            if ($isLink) {
-                if (-not (Test-PathUnderRoot (Get-JunctionTarget $linkPath) $root)) {
-                    Write-Host ("Agents root keeps foreign link {0}, skipping" -f $s.Name)
-                    continue
-                }
-                if ($DryRun) { Write-Host ("[DryRun] Recreate agents link {0}" -f $s.Name) }
-                else { [System.IO.Directory]::Delete($linkPath) }
-            }
-            else {
-                Write-Host ("Agents root keeps real entry {0}, skipping" -f $s.Name)
-                continue
-            }
-        }
-        if ($DryRun) {
-            Write-Host ("[DryRun] Link {0,-26} -> {1} (agents)" -f $s.Name, $s.Source)
-        }
-        else {
-            New-JunctionCompat -LinkPath $linkPath -TargetPath $s.Source
-            Write-Host ("Linked {0,-26} -> {1} (agents)" -f $s.Name, $s.Source) -ForegroundColor Green
-            $agentsLinked++
-        }
-    }
-
-    if (Test-Path -LiteralPath $agentsSkills) {
-        Get-ChildItem -LiteralPath $agentsSkills -Force | Where-Object {
-            ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -and
-            (Test-PathUnderRoot (Get-JunctionTarget $_.FullName) $root) -and
-            $linkedNames -notcontains $_.Name
-        } | ForEach-Object {
-            if ($DryRun) {
-                Write-Host ("[DryRun] Remove orphan agents link: {0}" -f $_.FullName) -ForegroundColor Yellow
-            }
-            else {
-                [System.IO.Directory]::Delete($_.FullName)
-                Write-Host ("Removed orphan agents link: {0}" -f $_.FullName) -ForegroundColor Yellow
-            }
-        }
+    if (Test-Path -LiteralPath $zcodeRoot) {
+        $agentsLinked += Install-SharedSkillRoot -SkillsRoot (Join-Path $zcodeRoot "skills") -Label "zcode"
     }
 }
 
@@ -462,8 +482,8 @@ else {
     }
     Write-Host "Use /<name> in Claude Code. cosmos-setup only handles repos that deviate from the defaults; default repos need no bootstrap."
     if ($agentsLinked -gt 0) {
-        if (Test-Path -LiteralPath (Join-Path $HOME ".zcode")) {
-            Write-Host "ZCode: skills + contract files in ~/.agents/skills, AGENTS.md in ~/.zcode. Restart ZCode to load."
+        if (Test-Path -LiteralPath $zcodeRoot) {
+            Write-Host "ZCode: skills + contract files in ~/.agents/skills and ~/.zcode/skills, AGENTS.md in ~/.zcode. Restart ZCode to load."
         }
         else {
             Write-Host "Agents hosts: skills + contract files in ~/.agents/skills."
