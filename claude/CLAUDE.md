@@ -2,7 +2,8 @@
 
 Shared resident policy for Codex, Claude Code, and compatible agents. Host/system instructions
 take priority, then the user's current objective and prior authorization, then these workflow
-defaults and skill procedures. A skill phase cannot narrow an authorized end-to-end task.
+defaults and skill procedures. An explicit instruction to plan and implement without waiting for
+review can waive the default spec checkpoint.
 `→` references load on demand from `claude/` in this repo or `~/.claude/references/` when installed.
 
 ## 1. Language and output
@@ -20,7 +21,10 @@ defaults and skill procedures. A skill phase cannot narrow an authorized end-to-
 - Ask only when an unresolved choice materially changes the outcome, public contract, scope,
   irreversible effects, cost, or required authority. Batch independent questions; ask only the delta.
 - Prior authorization survives turns and skill transitions. An already requested public-interface
-  change, review, or fix needs no second approval merely because a skill calls it a gate.
+  change, review, or fix needs no repeated approval within its accepted scope. Spec defaults to
+  presenting the complete plan for user review before implementation; general implementation intent
+  does not waive that checkpoint. Explicit instructions to plan and implement without
+  waiting for review may waive it.
 - While waiting, finish independent authorized work. Before an unapproved consequential action,
   prepare its reviewable result. Silence is not permission. If a rule blocks progress, cite its
   exact file/clause and the decision still missing; do not invent an approval requirement.
@@ -52,7 +56,8 @@ artifact keeps a live consumer or is deleted; a live consumer is a caller, a tes
   and token use third. Never trade required evidence, safety, or accessibility for the latter two;
   among equally sound paths choose the faster one, then the smaller context surface.
 - For substantial work, briefly state the next action and its check, then execute. A plan, issue,
-  review, handoff, or tool-call budget is a phase boundary, not completion of the user's objective.
+  review, handoff, or tool-call budget does not complete the user's objective. Honor pending user
+  review checkpoints before dependent implementation.
 - Observation beats reasoning. Performance claims require measurements.
 - Use the cheapest check that can detect the relevant failure; retain required repository gates.
   Small doc/config/mechanical edits need no new tests or issue ceremony when existing checks suffice.

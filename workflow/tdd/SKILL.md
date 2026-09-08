@@ -23,7 +23,7 @@ argument-hint: "Issue path, feature slug, -p, -all, -log, or nothing to drain al
 - `/tdd -log` — the verdict is a command's log file, not test runs: [LOG.md](LOG.md). Same mode when the user says this run drives a device and the result lands in a log file. Combines with any form above.
 - Task-scoped entry without an issue: for one settled local behavior, keep outcome, constraints, and evidence inline
   and execute this loop without issue artifacts. Multi-slice or unresolved product work uses `/spec`
-  first, then resumes here within the original request. Unknown failures use `/diagnose`.
+  first, then resumes here after its user-review checkpoint is satisfied. Unknown failures use `/diagnose`.
 
 ### Drain mode
 
@@ -34,9 +34,13 @@ worker waves. Keep conversation summaries out of subsequent issue briefs.
 
 ### Status guard (issue-driven invocation)
 
+Apply spec's user-review checkpoint before starting execution. `ready` records technical readiness,
+not user acceptance. A user-issued `/tdd` accepts the targeted plan for implementation; an automatic
+caller must carry acceptance or an explicit instruction to plan and implement without waiting.
+
 | Status | Action |
 | --- | --- |
-| `ready` | **Autonomous mode** — skip "confirm with user" prompts; run unattended. |
+| `ready` | Once the review checkpoint is satisfied, run autonomously without repeated confirmation. |
 | `done` | Verify/report existing completion. A requested behavior change routes to `/spec` for a redo; do not ask the user to edit status. Active-batch recovery follows DRAIN. |
 | anything else | Inspect the invalid state; repair an unambiguous schema typo, otherwise report the exact ambiguity. Do not guess approval from status. |
 

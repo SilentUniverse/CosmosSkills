@@ -195,7 +195,8 @@ conflict evidence, safely interrupt/revert unfinished siblings, and classify the
 keep already verified green siblings. Reconcile, then include every result in the one wave collect.
 The ledger rejects new dispatch while the recorded contract
 digest is unchanged. The caller resolves it through `/spec` within this task, asking only the new
-consequential decision. Update the actual affected contract and readiness before resuming; cosmetic
+consequential decision. Apply spec's user-review checkpoint to a changed plan, then update the actual
+affected contract and readiness before resuming; cosmetic
 changes made solely to release the digest guard are invalid.
 
 Before collecting a conflict, retain `.scratch/<feat>/receipts/<slug>-conflict.json` with

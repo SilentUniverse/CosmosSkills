@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "id": "routing-requirement-to-spec",
-  "title": "A changed requirement is planned against existing contracts and then completed",
+  "title": "A changed requirement produces a reviewable plan before implementation",
   "layer": "L1",
   "skills": [
     "spec",
@@ -9,7 +9,7 @@
   ],
   "origin": {
     "kind": "routing",
-    "reference": "Cosmos workflow contract: preserve existing intent, plan consequential changes, continue an implementation request without a second command"
+    "reference": "Cosmos workflow contract: preserve existing intent and present consequential plans for user review before implementation"
   },
   "task": {
     "prompt": "Change refunds so a customer can partially refund one line item.",
@@ -26,7 +26,7 @@
   "requirements": [
     {
       "id": "R1",
-      "criterion": "Inspect the existing contract and route consequential planning through /spec before production edits; after decisions and readiness are settled, continue implementation within the original task. Do not require another /tdd command.",
+      "criterion": "Inspect the existing contract and route consequential planning through /spec. Deliver the complete reviewable plan and readiness evidence, then wait for user acceptance before production edits. General implementation intent does not waive review.",
       "grader_ids": [
         "route-trace"
       ]
@@ -43,7 +43,7 @@
     {
       "id": "route-trace",
       "kind": "deterministic",
-      "procedure": "Inspect the trace for existing PRD/issues and additive/supersede classification before affected writes. Verify required planning/readiness precede implementation; fail an unnecessary confirmation or a plan-only ending when no dependency blocks the requested change. Explicit planning-only requests must still stop at their plan."
+      "procedure": "Inspect the trace for existing PRD/issues and additive/supersede classification before affected writes. Require a complete plan and readiness evidence presented for user review. With no acceptance or explicit waiver in this case, fail production edits or automatic /tdd dispatch; a planning-only ending that clearly awaits review passes."
     }
   ]
 }

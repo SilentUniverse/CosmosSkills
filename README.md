@@ -24,7 +24,7 @@ CosmosSkills 是一套给单人开发者的 AI 编程工程方法论：28 个跨
 
 - **九条定律**：从 Hoare、Dijkstra、Parnas、Ousterhout 等软件工程经典提炼的九个问题。不给规范，让 AI 自己推导出好代码
 - **机器门**：`verify-artifacts.py` 校验每份工件——完成记录点名的测试文件必须真实存在于磁盘，误删当场红灯；依赖图有环、PRD 版本链多头或缺头、需求记录源哈希漂移都会红灯
-- **闭环工作流**：`/spec` 只在真实决策未定时问人，准备验证环境并产出可执行契约 → `/tdd` 实现和举证 → 双轴审查 + 一屏报告；`/tidy` 只清安全缓存
+- **闭环工作流**：`/spec` 只在真实决策未定时问人，准备验证环境并产出可执行方案 → 用户 review 后同意实现 → `/tdd` 实现和举证 → 双轴审查 + 一屏报告；`/tidy` 只清安全缓存
 - **按需行为 eval**：默认关闭；项目内保留 previous / candidate / no-skill 配对实验，跨项目则导出同一份独立公开考卷，比较 Verified Success、速度、同口径成本与交接摩擦
 - **单人本地优先**：本地 markdown 队列（ready | done 两态），零外部服务；中文沟通、沿用代码术语；面向人的输出以结果、证据和待决定事项为主
 
@@ -89,7 +89,7 @@ flowchart LR
   spec["/spec"]
   tdd["/tdd"]
   tidy["/tidy"]
-  spec -->|"ready"| tdd
+  spec -->|"用户 review 后同意实现；ready 仅表示就绪"| tdd
   tdd -. "safe cache GC" .-> tidy
 ```
 
