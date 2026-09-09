@@ -351,6 +351,18 @@ retire_zcode_mirror() {
       echo "Removed zcode mirror link: $entry"
     fi
   done
+  # The old installer also copied contract files here as real files, which
+  # the link filter above never sees; remove those exact known names.
+  local f
+  for f in ARTIFACT-FORMAT.md REPORT-FORMAT.md verify-artifacts.py workflow-state.py            workflow_contract.py workflow_runtime.py process_tree.py; do
+    [[ -f "$zcode_skills/$f" && ! -L "$zcode_skills/$f" ]] || continue
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      echo "[DryRun] Remove zcode contract copy: $zcode_skills/$f"
+    else
+      rm -f "$zcode_skills/$f"
+      echo "Removed zcode contract copy: $zcode_skills/$f"
+    fi
+  done
 }
 
 agents_deployed=0
