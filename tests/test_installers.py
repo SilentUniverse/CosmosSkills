@@ -23,6 +23,12 @@ class InstallerTests(unittest.TestCase):
             if probe.is_symlink():
                 probe.unlink()
 
+    def bash_executable(self) -> str:
+        # Absolute path on purpose: Windows' CreateProcess searches System32
+        # before PATH, and Server 2025 ships a WSL stub there, so a bare
+        # "bash" name launches the stub (exit 1, no distro) instead of Git Bash.
+        return shutil.which("bash") or "bash"
+
     @unittest.skipUnless(os.name != "nt" and shutil.which("jq"), "Unix carrier requires jq")
     def test_copied_git_hook_runs_through_bash_without_executable_permission(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -146,7 +152,7 @@ class InstallerTests(unittest.TestCase):
             )
             result = subprocess.run(
                 [
-                    "bash",
+                    self.bash_executable(),
                     str(ROOT / "scripts" / "install.sh"),
                     "--dry-run",
                     "--target",
@@ -159,7 +165,12 @@ class InstallerTests(unittest.TestCase):
                 capture_output=True,
                 check=False,
             )
-            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertEqual(
+                0,
+                result.returncode,
+                "bash=%s\n--- stdout ---\n%s\n--- stderr ---\n%s"
+                % (self.bash_executable(), result.stdout, result.stderr),
+            )
             self.assertIn("Found 28 skills", result.stdout)
             self.assertIn("Link brief", result.stdout)
             self.assertIn("Link conflicts", result.stdout)
