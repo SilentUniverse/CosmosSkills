@@ -11,9 +11,11 @@
     claude/CLAUDE.md -> ~/.claude/CLAUDE.md; claude/*.md -> ~/.claude/references/
     (pruning removed ones); ARTIFACT-FORMAT.md -> <target>; hook scripts (explicit
     list) -> ~/.claude/hooks/. CLAUDE.md additionally -> ~/.zcode/AGENTS.md. Skills and
-    the shared contract files mirror into ~/.agents/skills/ (and ~/.zcode/skills/ when
-    ZCode is present); real entries and foreign links there are kept. CLAUDE.md and
-    the contract files are COPIES, not links; re-run after edits.
+    the shared contract files mirror into ~/.agents/skills/ only. ZCode discovers that
+    root too; a second mirror in ~/.zcode/skills would resident-load every skill
+    twice, so links into this repo that remain there are removed. Real entries and
+    foreign links are kept. CLAUDE.md and the contract files are COPIES, not links;
+    re-run after edits.
 
     Behavior:
     - Existing link: recreate it.
@@ -126,6 +128,9 @@ function Install-SharedSkillRoot {
     # Mirror the workflow into a shared skills root a host discovers from. Contract
     # files land first so junctioned skills resolve `../ARTIFACT-FORMAT.md` textually.
     # Real entries and foreign links are kept; only links into this repo are recreated.
+    # The explicit -Target is the user-designated destination: its entries are
+    # backed up or replaced. Shared roots are an install side effect and never
+    # touch entries this repo does not own.
     # Returns the number of skill links created. Reads $skills/$root/$linkedNames/$DryRun
     # from the script scope, so it must be called after those are set.
     param(
@@ -457,9 +462,11 @@ if ($sharedInstall -and $cmMain -and (Test-Path -LiteralPath (Join-Path $HOME ".
     }
 }
 
-# --- Mirror skills into the shared roots hosts discover from: ~/.agents/skills
-#     (cross-tool root for Claude Code and ZCode) and ~/.zcode/skills (ZCode's own
-#     root). First same-named skill wins, so one live link per name serves every host. ---
+# --- Mirror skills into the cross-tool root hosts discover from:
+#     ~/.agents/skills. ZCode reads it too, so a second mirror in
+#     ~/.zcode/skills would resident-load every skill twice. Links into this
+#     repo that remain there are removed; real entries and foreign links are
+#     kept. ---
 $agentsLinked = 0
 $zcodeRoot = Join-Path $HOME ".zcode"
 if ($sharedInstall) {
@@ -467,8 +474,20 @@ if ($sharedInstall) {
     if ((Test-Path -LiteralPath $agentsSkills) -or (Test-Path -LiteralPath $zcodeRoot)) {
         $agentsLinked += Install-SharedSkillRoot -SkillsRoot $agentsSkills -Label "agents"
     }
-    if (Test-Path -LiteralPath $zcodeRoot) {
-        $agentsLinked += Install-SharedSkillRoot -SkillsRoot (Join-Path $zcodeRoot "skills") -Label "zcode"
+    $zcodeSkills = Join-Path $zcodeRoot "skills"
+    if (Test-Path -LiteralPath $zcodeSkills) {
+        Get-ChildItem -LiteralPath $zcodeSkills -Force | Where-Object {
+            ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -and
+            (Test-PathUnderRoot (Get-JunctionTarget $_.FullName) $root)
+        } | ForEach-Object {
+            if ($DryRun) {
+                Write-Host ("[DryRun] Remove zcode mirror link: {0}" -f $_.FullName) -ForegroundColor Yellow
+            }
+            else {
+                [System.IO.Directory]::Delete($_.FullName)
+                Write-Host ("Removed zcode mirror link: {0}" -f $_.FullName) -ForegroundColor Yellow
+            }
+        } | Out-Null
     }
 }
 
@@ -482,11 +501,6 @@ else {
     }
     Write-Host "Use /<name> in Claude Code. cosmos-setup only handles repos that deviate from the defaults; default repos need no bootstrap."
     if ($agentsLinked -gt 0) {
-        if (Test-Path -LiteralPath $zcodeRoot) {
-            Write-Host "ZCode: skills + contract files in ~/.agents/skills and ~/.zcode/skills, AGENTS.md in ~/.zcode. Restart ZCode to load."
-        }
-        else {
-            Write-Host "Agents hosts: skills + contract files in ~/.agents/skills."
-        }
+        Write-Host "Agents hosts: skills + contract files in ~/.agents/skills."
     }
 }

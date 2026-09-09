@@ -26,7 +26,8 @@ from typing import Any, Dict, List, Optional, Sequence
 
 def _git(repo: Path, args: Sequence[str]) -> str:
     process = subprocess.run(
-        ["git", "-C", str(repo), *args], capture_output=True, text=True, check=False
+        ["git", "-C", str(repo), *args], capture_output=True, text=True, check=False,
+        encoding="utf-8", errors="replace",
     )
     if process.returncode != 0:
         print(
@@ -88,7 +89,12 @@ def build_bundle(
             continue
         raw = (repo / path).read_bytes()
         truncated = len(raw) > max_bytes
-        content = raw[:max_bytes].decode("utf-8", errors="replace")
+        # Review bundles feed prompts; normalize Windows CRLF to the LF that
+        # `git diff` (and every other embedded line) uses. A truncation cut can
+        # strand one \r after its \n — drop it, it is a slicing artifact.
+        content = raw[:max_bytes].decode("utf-8", errors="replace").replace("\r\n", "\n")
+        if truncated and content.endswith("\r"):
+            content = content[:-1]
         if truncated:
             content += "\n[review-input: truncated at %d of %d bytes]\n" % (
                 max_bytes, len(raw)
@@ -110,6 +116,11 @@ def build_bundle(
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("repo_root", type=Path)
     parser.add_argument(

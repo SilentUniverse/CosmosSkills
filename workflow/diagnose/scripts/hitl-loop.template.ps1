@@ -1,7 +1,7 @@
 # Human-in-the-loop reproduction loop (Windows / PowerShell).
 # Copy this file to .scratch/tmp/hitl-<bug>.ps1 (never edit the template in place),
 # edit the steps below, and run it:
-#   pwsh -NoProfile -File .scratch/tmp/hitl-<bug>.ps1
+#   pwsh -NoProfile -File .scratch/tmp/hitl-<bug>.ps1   (or: powershell -NoProfile -ExecutionPolicy Bypass -File ...)
 # The agent runs the script; the user follows prompts in their terminal.
 #
 # Two helpers:

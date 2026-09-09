@@ -110,7 +110,14 @@ class ProcessTree:
         except PermissionError:
             pass  # Darwin can deny signal probes for a group containing only zombies.
         # Orphan zombies cannot write; some hosts defer reaping them indefinitely.
-        result = subprocess.run(["ps", "-eo", "pgid=,stat="], capture_output=True, text=True, timeout=5, check=True)
+        # Minimal containers ship no ps: with the zombie check unavailable,
+        # report not-alive — claiming alive here would flag every run on such
+        # hosts as orphaned (crash) and make stop() wait forever. A real
+        # escaped orphan then goes un-flagged, which the supervisor tolerates.
+        try:
+            result = subprocess.run(["ps", "-eo", "pgid=,stat="], capture_output=True, text=True, timeout=5, check=True)
+        except (FileNotFoundError, subprocess.SubprocessError):
+            return False
         return any(parts[0] == str(self.process.pid) and not parts[1].startswith("Z")
                    for line in result.stdout.splitlines() if len(parts := line.split()) >= 2)
 

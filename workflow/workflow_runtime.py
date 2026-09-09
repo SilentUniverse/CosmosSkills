@@ -7,7 +7,20 @@ import json
 import os
 import tempfile
 import threading
+import time
 from pathlib import Path
+
+# msvcrt has no shared mode (LK_NBRLCK is as exclusive as LK_NBLCK), so on
+# Windows concurrent readers serialize behind a bounded retry instead of
+# failing; writers keep the fail-fast contract.
+LOCK_ATTEMPTS = 40
+LOCK_RETRY_SECONDS = 0.025
+
+if os.name == "nt":
+    import msvcrt as _msvcrt
+    _NT_UNLCK = _msvcrt.LK_UNLCK
+else:  # pragma: no cover - POSIX builds never touch the nt branch
+    _NT_UNLCK = None
 
 
 _held = threading.local()
@@ -177,7 +190,15 @@ def write_state(root, path, content):
 
 def require_settled(root):
     if (Path(root) / ".scratch" / ".workflow-pending.json").exists():
-        raise ValueError("interrupted workflow publication; retry the mutating operation to recover")
+        raise ValueError(
+            "interrupted workflow publication: .scratch/.workflow-pending.json exists and its "
+            "replay keeps failing; reconcile the conflicting file it names, or delete the "
+            "pending file to discard the interrupted batch, then rerun the mutating operation")
+
+
+def _nt_lock(fd, mode):
+    import msvcrt
+    msvcrt.locking(fd, mode, 1)
 
 
 @contextlib.contextmanager
@@ -199,12 +220,28 @@ def file_lock(path, shared=False):
         try:
             if os.name == "nt":
                 import msvcrt
-                mode = msvcrt.LK_NBRLCK if shared else msvcrt.LK_NBLCK
-                msvcrt.locking(stream.fileno(), mode, 1)
+                attempts = LOCK_ATTEMPTS if shared else 1
+                failure = None
+                acquired = False
+                for attempt in range(attempts):
+                    try:
+                        _nt_lock(stream.fileno(), msvcrt.LK_NBLCK)
+                        acquired = True
+                        break
+                    except OSError as exc:
+                        failure = exc
+                        if attempt + 1 < attempts:
+                            time.sleep(LOCK_RETRY_SECONDS)
+                if not acquired:
+                    raise ValueError(
+                        "workflow state is busy after %d lock attempts; another workflow "
+                        "operation is holding it" % attempts) from failure
             else:
                 import fcntl
                 mode = fcntl.LOCK_SH if shared else fcntl.LOCK_EX
                 fcntl.flock(stream.fileno(), mode | fcntl.LOCK_NB)
+        except ValueError:
+            raise
         except OSError as exc:
             raise ValueError("workflow state is busy; retry after the current operation") from exc
         try:
@@ -212,7 +249,7 @@ def file_lock(path, shared=False):
         finally:
             stream.seek(0)
             if os.name == "nt":
-                msvcrt.locking(stream.fileno(), msvcrt.LK_UNLCK, 1)
+                _nt_lock(stream.fileno(), _NT_UNLCK)
             else:
                 fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
 

@@ -12,6 +12,17 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class InstallerTests(unittest.TestCase):
+    def require_symlink_privilege(self, directory: Path) -> None:
+        # Windows without Developer Mode/admin refuses os.symlink outright.
+        probe = directory / ".symlink-probe"
+        try:
+            probe.symlink_to(ROOT, target_is_directory=True)
+        except OSError:
+            self.skipTest("symlink privilege unavailable on this volume")
+        finally:
+            if probe.is_symlink():
+                probe.unlink()
+
     @unittest.skipUnless(os.name != "nt" and shutil.which("jq"), "Unix carrier requires jq")
     def test_copied_git_hook_runs_through_bash_without_executable_permission(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -123,6 +134,7 @@ class InstallerTests(unittest.TestCase):
             probe = Path(tmp)
             target = probe / "skills"
             target.mkdir()
+            self.require_symlink_privilege(probe)
             stale = target / "verify-artifacts.sh"
             stale.write_text("keep during dry-run\n", encoding="utf-8")
             (target / "atk").symlink_to(ROOT / "engineering" / "atk", target_is_directory=True)
@@ -165,6 +177,7 @@ class InstallerTests(unittest.TestCase):
             probe = Path(tmp)
             target = probe / "skills"
             target.mkdir()
+            self.require_symlink_privilege(probe)
             stale = target / "verify-artifacts.ps1"
             stale.write_text("keep during dry-run\n", encoding="utf-8")
             (target / "atk").symlink_to(ROOT / "engineering" / "atk", target_is_directory=True)

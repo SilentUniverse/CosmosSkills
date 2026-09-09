@@ -90,7 +90,7 @@ measured from the trajectory/grader; unknown is an incomplete assessment, never 
 ## 3. Import and compare
 
 ```bash
-python3 scripts/eval.py from-claude artifacts/planner.jsonl artifacts/executor.jsonl \
+python scripts/eval.py from-claude artifacts/planner.jsonl artifacts/executor.jsonl \
   --assessment artifacts/assessment.json --cases evals/cases \
   --run-id <case>-<arm>-<trial> --case-id <case> --arm <arm> \
   --policy-revision <git-rev> --trial <n> --reasoning <effort> \

@@ -87,9 +87,13 @@ Engine or policy changes: run the shared corpus once on both profiles from
 For wiring-only changes, verify the deployed copy and settings with the spot checks below.
 
 ```bash
-python3 run_corpus.py scripts/guard-shell.py
-GUARD_SHELL_FORCE_MSYS=1 python3 run_corpus.py scripts/guard-shell.py --platform msys
+python run_corpus.py scripts/guard-shell.py
+GUARD_SHELL_FORCE_MSYS=1 python run_corpus.py scripts/guard-shell.py --platform msys
 ```
+
+These lines run unchanged under Git Bash on Windows. Use `python`; on Unix substitute
+`python3`.
+
 Add `--bench` when changing performance-sensitive code or when latency is part of the request.
 
 Spot checks — feed a fake payload and assert the exit code (a blocked command

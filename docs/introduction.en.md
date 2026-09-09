@@ -30,7 +30,7 @@ After extensive research, nine words survived, each carrying one question:
 
 The essential difference from conventional standards (SOLID, Clean Code, Design Patterns): those are **downstream experience** — they tell the AI what good code looks like, and rules pile up until they can't be held. These nine are **upstream laws** — each word anchored in a concept the model already knows, letting the AI derive good code on its own. And every law has a designated checkpoint in the workflow, at one of three enforcement grades — a machine gate that goes red, a mandatory process step, or a self-review done criterion — never a poster on the wall; every grade's check is written into the workflow files.
 
-### Four Pillars
+### Five Pillars
 
 **A machine gate.** `verify-artifacts.py` intercepts dependency cycles, missing frontmatter, and v2 issues without AC-to-evidence-to-P# mappings. P# and tests run through a bounded supervisor that records scope, duration, exit, log digest, and process-tree termination. Prose cannot self-report success.
 
@@ -44,7 +44,7 @@ The essential difference from conventional standards (SOLID, Clean Code, Design 
 
 ### Lineage and Tailoring
 
-The methodology's prototype comes from mattpocock/skills — an excellent workflow built for team collaboration, deeply integrated with GitHub, in an English-first world. CosmosSkills re-tailored it for the solo local developer: collaboration machinery removed entirely, issues became a local markdown queue (two states, zero external dependencies), a bilingual contract established (English for thinking and code, Chinese for conversation), plus a hard rule solving "AI output humans can't read" — every human-facing finding renders in a fixed four-part shape (location, quote, problem, disposition), one fact per line, machine internals never shown.
+The methodology's prototype comes from mattpocock/skills — an excellent workflow built for team collaboration, deeply integrated with GitHub, in an English-first world. CosmosSkills re-tailored it for the solo local developer: collaboration machinery removed entirely, issues became a local markdown queue (two states, zero external dependencies), a bilingual contract established (English for thinking and code, Chinese for conversation), and legislated against "AI output humans can't read": human-facing reports foreground results, evidence, and pending decisions; detailed logs are read on demand.
 
 ### The Name
 

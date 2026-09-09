@@ -64,9 +64,11 @@ in [README.md](README.md).
 For an engine or policy change, run both non-executing corpus profiles:
 
 ```bash
-python3 tooling/shell-guardrails/run_corpus.py tooling/shell-guardrails/scripts/guard-shell.py
-GUARD_SHELL_FORCE_MSYS=1 python3 tooling/shell-guardrails/run_corpus.py tooling/shell-guardrails/scripts/guard-shell.py --platform msys
+python tooling/shell-guardrails/run_corpus.py tooling/shell-guardrails/scripts/guard-shell.py
+GUARD_SHELL_FORCE_MSYS=1 python tooling/shell-guardrails/run_corpus.py tooling/shell-guardrails/scripts/guard-shell.py --platform msys
 ```
+
+Use `python` (`python3` on Unix); on Windows Git Bash the POSIX env prefix above works unchanged.
 
 For wiring-only work, verify the deployed copy, parsed settings, one blocked payload, and one allowed
 payload. A block exits 2 with an ASCII message on stderr; an allow exits 0 silently. Never execute a

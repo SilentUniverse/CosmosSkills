@@ -15,14 +15,15 @@ SPEC preflight；它们证明“这张卡现在能执行”，不评价“整套
 - `smoke`：一次 previous/candidate 配对，快速发现明显回归；只能筛查，不能声称更好。
 - `full`：默认 previous/candidate/no-skill 各 3 次；固定控制变量并独立评分，可用于上游前结论。
 
-`start-session` 只创建隔离目录和固定 run matrix，不会偷偷启动 agent：
+`start-session` 只创建隔离目录和固定 run matrix，不会偷偷启动 agent。命令统一用 `python`；
+Unix 没有 `python` 别名时用 `python3`，Windows 的 `python3` 是必失败的 Store 别名：
 
 ```bash
-python3 scripts/eval.py start-session .eval-runs/spec-check --cases evals/cases \
+python scripts/eval.py start-session .eval-runs/spec-check --cases evals/cases \
   --profile smoke --skill spec --case spec-verifier-preflight
-python3 scripts/eval.py session-status .eval-runs/spec-check
+python scripts/eval.py session-status .eval-runs/spec-check
 # 按 session.json 跑完并写入 results.jsonl 后：
-python3 scripts/eval.py session-report .eval-runs/spec-check \
+python scripts/eval.py session-report .eval-runs/spec-check \
   --output .eval-runs/spec-check/report.md
 ```
 
@@ -160,11 +161,11 @@ runner 输出 JSONL。成功记录至少包含：
 ## 命令
 
 ```bash
-python3 scripts/eval.py validate-cases evals/cases
-python3 scripts/eval.py list-cases evals/cases --skill spec
-python3 scripts/eval.py validate-runs results.jsonl --cases evals/cases
-python3 scripts/eval.py summarize results.jsonl --cases evals/cases
-python3 scripts/eval.py compare results.jsonl --cases evals/cases \
+python scripts/eval.py validate-cases evals/cases
+python scripts/eval.py list-cases evals/cases --skill spec
+python scripts/eval.py validate-runs results.jsonl --cases evals/cases
+python scripts/eval.py summarize results.jsonl --cases evals/cases
+python scripts/eval.py compare results.jsonl --cases evals/cases \
   --baseline previous --candidate candidate --require-improvement
 ```
 
@@ -175,7 +176,7 @@ Claude Code 可把真实 `stream-json` trace 与独立 grader 结果合成同一
 assessment 格式见 [adapters/claude-code.md](adapters/claude-code.md)：
 
 ```bash
-python3 scripts/eval.py from-claude artifacts/planner.jsonl artifacts/executor.jsonl \
+python scripts/eval.py from-claude artifacts/planner.jsonl artifacts/executor.jsonl \
   --assessment artifacts/assessment.json --cases evals/cases \
   --run-id <id> --case-id <case> --arm <arm> --policy-revision <rev> --trial 1 \
   --reasoning <level> --repo-revision <rev> --environment <image> \

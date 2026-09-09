@@ -6,14 +6,14 @@ resource metrics before a campaign submission is sealed; normal `/spec` and `/td
 List candidate sessions for one fixture checkout:
 
 ```bash
-python3 scripts/zcode_telemetry.py list --directory /absolute/path/to/fixture
+python scripts/zcode_telemetry.py list --directory /absolute/path/to/fixture
 ```
 
 Select only non-overlapping root sessions. Name each phase and retain the generated JSON with the
 submission:
 
 ```bash
-python3 scripts/zcode_telemetry.py summarize \
+python scripts/zcode_telemetry.py summarize \
   --root-session 'sess_spec=SPEC and verifier readiness' \
   --root-session 'sess_tdd=TDD and final verification' \
   --output /absolute/path/to/submission/artifacts/process/zcode-history-metrics.json \
