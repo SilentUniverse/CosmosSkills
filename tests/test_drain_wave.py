@@ -189,7 +189,10 @@ class DrainWaveReceiptTests(unittest.TestCase):
             self.assertEqual(0, self.call(wave.cmd_dispatch, root, ["00-history"])[0])
             historical.write_text("shipped behavior\n", encoding="utf-8")
             self.assertEqual(0, self.call(wave.cmd_collect, root, ["00-history=red"])[0])
-            old.write_text(old.read_text().replace("status: ready", "status: done"), encoding="utf-8")
+            old.write_text(
+                old.read_text(encoding="utf-8").replace("status: ready", "status: done"),
+                encoding="utf-8",
+            )
             (issues / "01-one.md").write_text(issue_body("pkg"), encoding="utf-8")
             self.assertEqual(0, self.call(wave.cmd_dispatch, root, ["01-one"])[0])
             execution = wave.load_ledger(root, "demo")["waves"][-1]["execution"]

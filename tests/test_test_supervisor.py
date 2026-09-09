@@ -173,7 +173,7 @@ class TestSupervisorTests(unittest.TestCase):
                 timeout=2,
                 grace=0.1,
                 scope="targeted",
-                env={"SSH_AUTH_SOCK": socket},
+                env={**os.environ, "SSH_AUTH_SOCK": socket},
             )
             self.assertEqual(0, exit_code)
             self.assertEqual("pass", result["outcome"])
