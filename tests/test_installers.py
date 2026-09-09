@@ -159,7 +159,12 @@ class InstallerTests(unittest.TestCase):
                 capture_output=True,
                 check=False,
             )
-            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertEqual(
+                0,
+                result.returncode,
+                "bash=%s\n--- stdout ---\n%s\n--- stderr ---\n%s"
+                % (shutil.which("bash"), result.stdout, result.stderr),
+            )
             self.assertIn("Found 28 skills", result.stdout)
             self.assertIn("Link brief", result.stdout)
             self.assertIn("Link conflicts", result.stdout)
