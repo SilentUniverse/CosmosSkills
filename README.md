@@ -20,7 +20,7 @@ A complete engineering methodology for your coding agent — nine laws, an artif
 
 ## 这是什么
 
-CosmosSkills 是一套给单人开发者的 AI 编程工程方法论：28 个跨宿主技能、九条设计定律、一道工件门和一套按需行为 eval。它假设 AI 每次进场都从零开始，不信任 AI 的自我汇报——定律给方向，机器与可重放证据给结论。所有权衡按字典序处理：产品质量与正确性 > 交付速度 > Token 消耗；后两项不得削弱前一项的证据、安全或可访问性。
+CosmosSkills 是一套给单人开发者的 AI 编程工程方法论：28 个跨宿主技能、九条设计定律、一道工件门和一套按需行为 eval。连续会话复用已核实的上下文，跨会话保留可校验的恢复入口；AI 的自我汇报不能代替证据。定律给方向，机器与可重放证据给结论。所有权衡按字典序处理：产品质量与正确性 > 交付速度 > Token 消耗；后两项不得削弱前一项的证据、安全或可访问性。
 
 - **九条定律**：从 Hoare、Dijkstra、Parnas、Ousterhout 等软件工程经典提炼的九个问题。不给规范，让 AI 自己推导出好代码
 - **机器门**：`verify-artifacts.py` 校验每份工件——完成记录点名的测试文件必须真实存在于磁盘，误删当场红灯；依赖图有环、PRD 版本链多头或缺头、需求记录源哈希漂移都会红灯
@@ -147,7 +147,7 @@ flowchart LR
 | AI | resident `AGENTS.md` / `CLAUDE.md`、当前任务或卡、点名路径、验证命令；续跑再读 handoff `Continue` | 源文件、必要时的 issue/PRD、执行证据、必要不变量 | 全仓扫描、重复 SUMMARY、长日志入上下文 |
 | 代码维护者 | 接口、测试、代码无法表达的 why/约束 | 语义必要注释 | 翻译代码、改动叙述、教程、装饰分隔注释 |
 
-派生状态统一走 `workflow-state.py inspect`；测试输出统一走 supervisor；跨 session 状态统一走带 worktree digest 的 handoff（capsule 三型：active-work / awaiting-alignment / external-pending，resume 按型路由）。三者都让上下文只接收摘要，同时保留可回放原始证据。
+派生状态统一走 `workflow-state.py inspect`；测试输出统一走 supervisor；跨 session 状态统一走带 worktree digest 的 handoff。三者提供摘要及原始证据指针。handoff 的 capsule 分为 `active-work`、`awaiting-alignment`、`external-pending`，resume 按类型路由。
 
 ---
 
@@ -161,10 +161,10 @@ flowchart LR
 | 排空一个 feature 的 ready | `/tdd <feat>` |
 | 全量测试与构建 | `/tdd -all` |
 | 车机 / 设备，验收在 log 里 | `/tdd -log` |
-| 过夜无人值守跑批 | 双击仓库根的 [overnight.cmd](overnight.cmd)（会问项目路径；给它建个桌面快捷方式最省事，也可把项目文件夹拖上去）；终端 `overnight.cmd [repo] [feat]`；macOS / Linux：`python scripts/overnight.py` |
+| 过夜无人值守跑批 | Windows：双击仓库根的 [overnight.cmd](overnight.cmd) 后输入项目路径，可建桌面快捷方式或将项目文件夹拖到脚本上；终端 `overnight.cmd [repo] [feat]`；macOS / Linux：`python scripts/overnight.py` |
 | 上一 session 留了 handoff | `/resume` |
-| 做到哪了 | `python3 <skills-root>/workflow-state.py survey . --format human`（默认只看 ready/blocked/zombie；`--history` 才列已交付历史） |
-| 想听 AI 逐条讲它改了什么 | `/atk`（默认讲上一轮增量；`-all` 讲全部未提交） |
+| 做到哪了 | `python3 <skills-root>/workflow-state.py survey . --format human`；默认只看 ready/blocked/zombie，`--history` 列已交付历史 |
+| 想听 AI 逐条讲它改了什么 | `/atk` 默认讲上一轮增量；`-all` 讲全部未提交 |
 | 只要对抗审查，不允许改文件 | `/atk -r <目标>`（可省略目标，或用 `-all`） |
 | 快速检查 workflow 改动 | `/eval smoke <skill>`（筛回归，不能声称更好） |
 | 上游前证明 workflow 改进 | `/eval full <skill>`（3–5 次配对，默认平时不跑） |
@@ -194,7 +194,7 @@ flowchart LR
 | 读大文件 / 陌生模块 | 先 `rg` 定位并按需读；只有大量独立研究才用 subagent |
 | 做一半换任务 | `/handoff` → `/clear` → 新 session |
 
-`/resume` 一次定位最近 active handoff，同时校验 `git_base` 与 `worktree_digest`，再按 `Continue` 的 READ/RUN/CONFIRM 续跑；桥接目标完成后删除。一份 handoff 一次消费。已完整结束就不写 handoff。
+`/resume` 按任务指针或 feature 定位 active handoff，同时校验 `git_base` 与 `worktree_digest`，再按 `Continue` 的 READ/RUN/CONFIRM 续跑。多个候选不按时间猜选；发布和消费都校验所读版本，保留并发写入。已完整结束就不写 handoff。
 
 ### 状态
 
@@ -209,7 +209,7 @@ flowchart LR
 rg '^status: ready' -g '**/issues/*.md' .scratch
 ```
 
-单字段：`yq --front-matter=extract '.status' <file>`。当前交付面：`python3 <skills-root>/workflow-state.py inspect <repo> <feat> --format human`。`SUMMARY.md` 与 `issues/archive/` 仅作为遗留迁移输入。
+单字段：`yq --front-matter=extract '.status' <file>`。已追踪交付记录：`python3 <skills-root>/workflow-state.py inspect <repo> <feat> --format human`。`SUMMARY.md` 仅用于遗留迁移；`issues/archive/` 保存已归档完成卡，仍参与依赖与历史测试查询。
 
 ---
 
@@ -232,8 +232,8 @@ rg '^status: ready' -g '**/issues/*.md' .scratch
 | | 位置 | 放什么 |
 |---|---|---|
 | 项目级 | 仓库根 | `CONTEXT.md` 术语、`CODEBASE.md` 结构地图 |
-| 长期 | `docs/` | `docs/adr/`（命令缓存在 CODEBASE.md 的 Verifier commands 区；`docs/agents/` 仅非默认 tracker 存在） |
-| 工作态 | `.scratch/<feat>/` | `PRD.md`、`issues/`、按需 `handoff.md`（`tmp/` 被 ignore；不新建 `SUMMARY.md`） |
+| 长期 | `docs/` | `docs/adr/`；命令缓存在 CODEBASE.md 的 Verifier commands 区，`docs/agents/` 仅非默认 tracker 存在 |
+| 工作态 | `.scratch/<feat>/` | `PRD.md`、`issues/`、按需 `handoff.md`；`tmp/` 被 ignore，不新建 `SUMMARY.md` |
 | 方法评测 | skills 仓库 `evals/` | 真实 regression/capability/routing case、rubric、calibration；runner 结果按 revision 另存 |
 
 完整目录契约（一棵树 + 命名规则）：[ARTIFACT-FORMAT.md](workflow/ARTIFACT-FORMAT.md)。

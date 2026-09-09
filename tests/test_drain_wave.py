@@ -5,7 +5,9 @@ import shlex
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
+from unittest.mock import patch
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
@@ -73,7 +75,282 @@ def conflict_pair(root, slug, feature="demo"):
 
 
 class DrainWaveReceiptTests(unittest.TestCase):
+    def test_collision_detection_includes_lexical_aliases_and_repo_root(self):
+        self.assertTrue(wave.path_overlap("pkg/../tests", "tests/test_case.py"))
+        self.assertTrue(wave.path_overlap(".", "pkg/test_case.py"))
+
+    def test_batch_audit_ignores_unchanged_historical_tests(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch/demo/issues"
+            issues.mkdir(parents=True)
+            (issues / "01-one.md").write_text(issue_body("pkg"), encoding="utf-8")
+            tests = root / "pkg"
+            tests.mkdir()
+            (tests / "test_historical.py").write_text("previous work\n", encoding="utf-8")
+            self.assertEqual(0, self.call(wave.cmd_dispatch, root, ["01-one"])[0])
+            self.assertEqual(0, self.call(wave.cmd_collect, root, ["01-one=red"])[0])
+            code, output = self.call(wave.cmd_audit, root, "demo")
+            self.assertEqual(0, code, output)
+
+    def test_collect_cannot_apply_an_old_execution_to_a_retry(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "demo" / "issues"
+            issues.mkdir(parents=True)
+            (issues / "01-one.md").write_text(issue_body("pkg"), encoding="utf-8")
+            self.assertEqual(0, self.call(wave.cmd_dispatch, str(root), ["01-one"])[0])
+            code, output = self.call(wave.cmd_collect, str(root), ["01-one=red"], "stale")
+            self.assertEqual(1, code, output)
+            self.assertEqual({}, wave.load_ledger(root, "demo")["waves"][-1]["closed"])
+
+    def test_batch_audit_requires_ownership_for_deleted_tests(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch/demo/issues"
+            issues.mkdir(parents=True)
+            (issues / "01-one.md").write_text(issue_body("pkg"), encoding="utf-8")
+            tests = root / "pkg"
+            tests.mkdir()
+            historical = tests / "test_historical.py"
+            historical.write_text("previous work\n", encoding="utf-8")
+            self.assertEqual(0, self.call(wave.cmd_dispatch, root, ["01-one"])[0])
+            historical.unlink()
+            self.assertEqual(0, self.call(wave.cmd_collect, root, ["01-one=red"])[0])
+            code, output = self.call(wave.cmd_audit, root, "demo")
+            self.assertEqual(1, code, output)
+            self.assertIn("pkg/test_historical.py", output)
+
+    def test_git_batch_audit_compares_preexisting_dirty_and_untracked_tests(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch/demo/issues"
+            issues.mkdir(parents=True)
+            (issues / "01-one.md").write_text(issue_body("pkg"), encoding="utf-8")
+            tests = root / "pkg"
+            tests.mkdir()
+            tracked = tests / "test_historical.py"
+            tracked.write_text("committed\n", encoding="utf-8")
+            for args in (["init", "-q"], ["add", "pkg"],
+                         ["-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-qm", "fixture"]):
+                subprocess.run(["git"] + args, cwd=root, check=True, capture_output=True)
+            tracked.write_text("user dirty work\n", encoding="utf-8")
+            untracked = tests / "test_user.py"
+            untracked.write_text("user new work\n", encoding="utf-8")
+            self.assertEqual(0, self.call(wave.cmd_dispatch, root, ["01-one"])[0])
+            self.assertEqual(0, self.call(wave.cmd_collect, root, ["01-one=red"])[0])
+            code, output = self.call(wave.cmd_audit, root, "demo")
+            self.assertEqual(0, code, output)
+            for action in ("add", "modify", "delete"):
+                with self.subTest(action=action):
+                    added = tests / "test_unowned.py"
+                    if action == "add":
+                        added.write_text("batch addition\n", encoding="utf-8")
+                    elif action == "modify":
+                        tracked.write_text("batch modification\n", encoding="utf-8")
+                    else:
+                        tracked.unlink()
+                    code, output = self.call(wave.cmd_audit, root, "demo")
+                    self.assertEqual(1, code, output)
+                    self.assertIn("test_unowned.py" if action == "add" else "test_historical.py", output)
+                    added.unlink(missing_ok=True)
+                    tracked.write_text("user dirty work\n", encoding="utf-8")
+
+    def test_batch_audit_cannot_borrow_ownership_from_an_undispatched_history_card(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch/demo/issues"
+            issues.mkdir(parents=True)
+            (issues / "01-one.md").write_text(issue_body("pkg"), encoding="utf-8")
+            (issues / "00-history.md").write_text(
+                issue_body("pkg").replace("status: ready", "status: done")
+                .replace("pkg/test_feature.py", "pkg/test_historical.py"), encoding="utf-8")
+            tests = root / "pkg"
+            tests.mkdir()
+            historical = tests / "test_historical.py"
+            historical.write_text("old behavior\n", encoding="utf-8")
+            self.assertEqual(0, self.call(wave.cmd_dispatch, root, ["01-one"])[0])
+            historical.write_text("new behavior\n", encoding="utf-8")
+            self.assertEqual(0, self.call(wave.cmd_collect, root, ["01-one=red"])[0])
+            code, output = self.call(wave.cmd_audit, root, "demo")
+            self.assertEqual(1, code, output)
+            self.assertIn("pkg/test_historical.py", output)
+
+    def test_batch_audit_requires_membership_when_old_executions_are_retained(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch/demo/issues"
+            issues.mkdir(parents=True)
+            old = issues / "00-history.md"
+            old.write_text(issue_body("pkg").replace("pkg/test_feature.py", "pkg/test_historical.py"), encoding="utf-8")
+            tests = root / "pkg"
+            tests.mkdir()
+            historical = tests / "test_historical.py"
+            self.assertEqual(0, self.call(wave.cmd_dispatch, root, ["00-history"])[0])
+            historical.write_text("shipped behavior\n", encoding="utf-8")
+            self.assertEqual(0, self.call(wave.cmd_collect, root, ["00-history=red"])[0])
+            old.write_text(old.read_text().replace("status: ready", "status: done"), encoding="utf-8")
+            (issues / "01-one.md").write_text(issue_body("pkg"), encoding="utf-8")
+            self.assertEqual(0, self.call(wave.cmd_dispatch, root, ["01-one"])[0])
+            execution = wave.load_ledger(root, "demo")["waves"][-1]["execution"]
+            historical.write_text("unowned batch edit\n", encoding="utf-8")
+            self.assertEqual(0, self.call(wave.cmd_collect, root, ["01-one=red"])[0])
+            code, output = self.call(wave.cmd_audit, root, "demo")
+            self.assertEqual(1, code, output)
+            self.assertIn("--execution", output)
+            code, output = self.call(wave.cmd_audit, root, "demo", [execution])
+            self.assertEqual(1, code, output)
+            self.assertIn("pkg/test_historical.py", output)
+            historical.write_text("shipped behavior\n", encoding="utf-8")
+            self.assertEqual(0, self.call(wave.cmd_audit, root, "demo", [execution])[0])
+            ledger_path = root / ".scratch/demo/wave-ledger.json"
+            ledger = json.loads(ledger_path.read_text())
+            for entry in ledger["waves"]:
+                entry.pop("execution")
+            ledger_path.write_text(json.dumps(ledger), encoding="utf-8")
+            code, output = self.call(wave.cmd_audit, root, "demo")
+            self.assertEqual(1, code, output)
+            self.assertIn("--execution", output)
+
+    def test_batch_audit_refuses_ambiguous_spelling_after_a_directory_is_deleted(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            tests = root / "pkg"
+            tests.mkdir()
+            if not (root / "PKG").exists():
+                self.skipTest("requires a case-insensitive filesystem")
+            historical = tests / "test_historical.py"
+            historical.write_text("previous work\n", encoding="utf-8")
+            for args in (["init", "-q"], ["add", "pkg"],
+                         ["-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-qm", "fixture"]):
+                subprocess.run(["git"] + args, cwd=root, check=True, capture_output=True)
+            issues = root / ".scratch/demo/issues"
+            issues.mkdir(parents=True)
+            (issues / "01-one.md").write_text(issue_body("PKG"), encoding="utf-8")
+            self.assertEqual(0, self.call(wave.cmd_dispatch, root, ["01-one"])[0])
+            historical.unlink()
+            tests.rmdir()
+            self.assertEqual(0, self.call(wave.cmd_collect, root, ["01-one=red"])[0])
+            code, output = self.call(wave.cmd_audit, root, "demo")
+            self.assertEqual(1, code, output)
+            self.assertIn("ambiguous path spelling", output)
+
+    def test_batch_audit_reads_ledger_after_the_last_live_card_disappears(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch/demo/issues"
+            issues.mkdir(parents=True)
+            card = issues / "01-one.md"
+            card.write_text(issue_body("pkg"), encoding="utf-8")
+            self.assertEqual(0, self.call(wave.cmd_dispatch, root, ["01-one"])[0])
+            self.assertEqual(0, self.call(wave.cmd_collect, root, ["01-one=red"])[0])
+            card.unlink()
+            code, output = self.call(wave.cmd_audit, root, "demo")
+            self.assertEqual(1, code, output)
+            self.assertIn("cannot resolve dispatched issue", output)
+
+    def test_batch_audit_resolves_repository_path_aliases(self):
+        for declared in ("pkg/../tests", "TESTS"):
+            with self.subTest(declared=declared), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                (root / "pkg").mkdir()
+                (root / "tests").mkdir()
+                if declared == "TESTS" and not (root / declared).exists():
+                    continue
+                issues = root / ".scratch/demo/issues"
+                issues.mkdir(parents=True)
+                (issues / "01-one.md").write_text(issue_body(declared), encoding="utf-8")
+                subprocess.run(["git", "init", "-q"], cwd=root, check=True, capture_output=True)
+                self.assertEqual(0, self.call(wave.cmd_dispatch, root, ["01-one"])[0])
+                (root / "tests/test_unowned.py").write_text("batch behavior\n", encoding="utf-8")
+                self.assertEqual(0, self.call(wave.cmd_collect, root, ["01-one=red"])[0])
+                code, output = self.call(wave.cmd_audit, root, "demo")
+                self.assertEqual(1, code, output)
+                self.assertIn("tests/test_unowned.py", output)
+
+    def test_cross_feature_dispatch_prepares_all_ledgers_before_publishing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for feature, slug in (("one", "01-one"), ("two", "02-two")):
+                issues = root / ".scratch" / feature / "issues"
+                issues.mkdir(parents=True)
+                (issues / (slug + ".md")).write_text(
+                    issue_body("pkg/" + feature, action="echo " + feature), encoding="utf-8"
+                )
+            save = wave.save_ledger
+            def fail_second(repo, feature, data):
+                if feature == "two":
+                    raise OSError("injected write failure")
+                save(repo, feature, data)
+            with patch.object(wave, "save_ledger", side_effect=fail_second):
+                code, output = self.call(wave.cmd_dispatch, str(root), ["01-one", "02-two"])
+            self.assertEqual(1, code, output)
+            self.assertFalse((root / ".scratch" / "one" / "wave-ledger.json").exists())
+            self.assertFalse((root / ".scratch" / "two" / "wave-ledger.json").exists())
+
+    def test_concurrent_dispatch_cannot_publish_two_assignments(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "demo" / "issues"
+            issues.mkdir(parents=True)
+            for slug in ("01-one", "02-two"):
+                (issues / (slug + ".md")).write_text(
+                    issue_body("pkg/" + slug, action="echo " + slug), encoding="utf-8"
+                )
+            script = '''import importlib.util, pathlib, sys, time
+spec = importlib.util.spec_from_file_location("wave", sys.argv[1])
+wave = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(wave)
+root = pathlib.Path(sys.argv[2])
+original = wave.workspace_baseline
+def paused(*args):
+    (root / "entered").touch()
+    deadline = time.monotonic() + 15
+    while not (root / "release").exists():
+        if time.monotonic() > deadline: raise RuntimeError("test release missing")
+        time.sleep(0.01)
+    return original(*args)
+if sys.argv[3] == "01-one": wave.workspace_baseline = paused
+raise SystemExit(wave.cmd_dispatch(str(root), [sys.argv[3]]))
+'''
+            args = [sys.executable, "-c", script, str(Path(wave.__file__)), str(root)]
+            first = subprocess.Popen(args + ["01-one"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            try:
+                deadline = time.monotonic() + 10
+                while not (root / "entered").exists() and first.poll() is None:
+                    self.assertLess(time.monotonic(), deadline)
+                    time.sleep(0.01)
+                self.assertTrue((root / "entered").exists())
+                second = subprocess.run(args + ["02-two"], capture_output=True, timeout=10)
+            finally:
+                (root / "release").touch()
+                first_output = first.communicate(timeout=10)
+            self.assertEqual(0, first.returncode, first_output)
+            self.assertNotEqual(0, second.returncode, second.stdout)
+            ledger = json.loads((issues.parent / "wave-ledger.json").read_text(encoding="utf-8"))
+            self.assertEqual([["01-one"]], [w["dispatched"] for w in ledger["waves"]])
+
+    def test_serial_step_does_not_compute_parallel_collisions(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "demo" / "issues"
+            issues.mkdir(parents=True)
+            for number in range(1, 5):
+                (issues / ("%02d-task.md" % number)).write_text(
+                    issue_body("pkg/%d" % number), encoding="utf-8"
+                )
+            with patch.object(wave, "collides", wraps=wave.collides) as collision:
+                code, output = self.call(wave.cmd_step, str(root), "demo")
+            self.assertEqual(0, code, output)
+            self.assertIn("action: dispatch 01-task\n", output)
+            self.assertEqual(0, collision.call_count)
+
     def call(self, fn, *args):
+        if fn is wave.cmd_collect and len(args) == 2:
+            ledgers = sorted((Path(args[0]) / ".scratch").glob("*/wave-ledger.json"))
+            executions = [json.loads(path.read_text(encoding="utf-8"))["waves"][-1].get("execution")
+                          for path in ledgers]
+            args = args + (executions[0] if executions else None,)
         output = io.StringIO()
         with redirect_stdout(output), redirect_stderr(output):
             code = fn(*args)

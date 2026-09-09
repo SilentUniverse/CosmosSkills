@@ -96,7 +96,7 @@ class WorkflowContractTests(unittest.TestCase):
         tdd = text("workflow/tdd/SKILL.md")
         compact = " ".join(drain.split())
         self.assertIn("packet's `context`", drain)
-        self.assertIn("workflow-state.py packets", drain)
+        self.assertIn("workflow-state.py briefs", drain)
         self.assertIn("do not regenerate it", drain)
         self.assertIn("caller-supplied packet", tdd)
         self.assertIn("Do not materialize next-wave packets", compact)

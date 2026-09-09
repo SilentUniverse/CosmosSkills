@@ -28,3 +28,23 @@ jobs:
       - name: CODEBASE.md regression harness
         shell: powershell
         run: powershell -NoProfile -ExecutionPolicy Bypass -File workflow/test-verify-codebase.ps1
+
+  runtime-portability:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+      - name: State transactions, ownership, process trees, and native session arguments
+        run: python -m unittest discover -s tests -p test_workflow_runtime.py
+      - run: python -m unittest discover -s tests -p test_drain_wave.py
+      - run: python -m unittest discover -s tests -p test_workflow_state.py
+      - run: python -m unittest discover -s tests -p test_handoff_state.py
+      - run: python -m unittest discover -s tests -p test_test_supervisor.py
+      - run: python -m unittest discover -s tests -p test_preflight_receipt.py
+      - run: python -m unittest discover -s tests -p test_overnight.py

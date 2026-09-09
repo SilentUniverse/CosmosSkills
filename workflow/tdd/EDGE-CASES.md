@@ -5,7 +5,10 @@ Loaded by [tdd](SKILL.md) for prior completion records, dispatched work, and red
 ## Dispatched but never closed
 
 `drain-wave.py next` exits 3 when the ledger holds dispatched work without a collected result.
-Inspect its diff and baseline before any new wave; resolve each issue by evidence:
+First use the owning host's task/process handles to confirm workers and verifier descendants are
+terminal. A timestamp, timeout, missing heartbeat, or parent-process exit alone is not proof.
+Unknown owners require reconciliation at that host; preserve their work meanwhile.
+Then inspect the diff and baseline before any new wave; resolve each issue by evidence:
 
 - **Adopt** useful in-scope work: finish/verify it, write `### 完成`, set `done`, and retain a
   `green` outcome.
@@ -15,7 +18,7 @@ Inspect its diff and baseline before any new wave; resolve each issue by evidenc
 
 After every outstanding issue has an outcome, run the combined scoped checks and reconcile changed
 paths against the wave baseline. Then pass all remaining outcomes to one `drain-wave.py collect`
-call. A `done` card is still a zombie until this wave-level reconciliation is committed.
+call with that dispatch's `--execution <id>`. A `done` card is still a zombie until this wave-level reconciliation is committed.
 An assigned card moved to `archive/` or deleted also remains a zombie; restore it to its feature's
 live issue path before explicit collection. `next` and `step` never infer an outcome or mutate the
 ledger.

@@ -1,5 +1,8 @@
 import importlib.util
+import hashlib
+import json
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -20,6 +23,42 @@ def git(root, *args):
 
 
 class HandoffStateTests(unittest.TestCase):
+    def test_publish_does_not_restamp_a_draft_over_product_drift(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = self.repo(directory)
+            path = self.write_handoff(root, handoff_state.snapshot(root))
+            expected = handoff_state.version(path)
+            draft = root / ".scratch/tmp/draft.md"
+            draft.parent.mkdir(parents=True)
+            draft.write_bytes(path.read_bytes())
+            (root / "source.txt").write_text("concurrent change\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "baseline changed"):
+                handoff_state.publish(root, path, expected, draft)
+            self.assertEqual(expected, handoff_state.version(path))
+
+    def test_stale_consumer_cannot_delete_a_republished_handoff(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = self.repo(directory)
+            path = self.write_handoff(root, handoff_state.snapshot(root))
+            expected = hashlib.sha256(path.read_bytes()).hexdigest()
+            draft = root / ".scratch" / "tmp" / "handoff-draft.md"
+            draft.parent.mkdir(parents=True)
+            draft.write_bytes(path.read_bytes())
+            command = [sys.executable, str(Path(handoff_state.__file__))]
+            published = subprocess.run(command + ["publish", str(root), str(path),
+                "--expected", expected, "--source", str(draft)], capture_output=True, text=True)
+            self.assertEqual(0, published.returncode, published.stderr)
+            version = json.loads(published.stdout)["version"]
+            self.assertNotEqual(expected, version)
+            stale = subprocess.run(command + ["consume", str(root), str(path),
+                "--expected", expected], capture_output=True, text=True)
+            self.assertNotEqual(0, stale.returncode)
+            self.assertTrue(path.exists())
+            consumed = subprocess.run(command + ["consume", str(root), str(path),
+                "--expected", version], capture_output=True, text=True)
+            self.assertEqual(0, consumed.returncode, consumed.stderr)
+            self.assertFalse(path.exists())
+
     def repo(self, directory):
         root = Path(directory)
         git(root, "init", "-q")
@@ -101,6 +140,17 @@ class HandoffStateTests(unittest.TestCase):
             self.write_handoff(root, saved, "first")
             second = self.write_handoff(root, saved, "second")
             self.assertEqual(str(second.relative_to(root)), handoff_state.locate(root, "second")["path"])
+
+    def test_ambiguous_handoffs_are_not_selected_by_modification_time(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = self.repo(directory)
+            saved = handoff_state.snapshot(root)
+            self.write_handoff(root, saved, "first")
+            self.write_handoff(root, saved, "second")
+            result = handoff_state.locate(root)
+            self.assertEqual("ambiguous", result["status"])
+            self.assertIsNone(result["path"])
+            self.assertEqual(2, len(result["candidates"]))
 
 
 if __name__ == "__main__":

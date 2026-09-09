@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
-"""Read feature state without materializing a second source of truth."""
+"""Project tracked issue state, not the product's complete behavior or user objective."""
 
 import argparse
 import hashlib
+import importlib.util
+import io
 import json
 import os
 import re
 import sys
 from pathlib import Path
+from contextlib import redirect_stdout, redirect_stderr
 
 ENGINEERING_ROOT = Path(__file__).resolve().parent
 if str(ENGINEERING_ROOT) not in sys.path:
@@ -17,6 +20,10 @@ from workflow_contract import (
     issue_contract_digest,
     load_verifier_profile,
     validate_v3_completion,
+)
+from workflow_runtime import (
+    assignment, check_contract, load_baseline, reading, read_text, require_settled,
+    transaction, write_state,
 )
 
 
@@ -191,7 +198,7 @@ def issue_paths(root, feature):
 
 
 def issue_state(root, feature, path):
-    raw = path.read_text(encoding="utf-8-sig")
+    raw = read_text(path, encoding="utf-8-sig")
     data = frontmatter_rich(raw, path)
     if data.get("type") != "issue" or data.get("feature") != feature:
         raise ValueError("%s: issue identity does not match feature '%s'" % (path, feature))
@@ -220,6 +227,7 @@ def slug_order(slug):
     return (int(match.group(1)) if match else -1, slug)
 
 
+@reading
 def inspect_feature(root, feature):
     root = Path(root).resolve()
     records = []
@@ -356,6 +364,7 @@ def _issue_packet(root, feature, slug, path, raw, issue_data, profile=_PROFILE_U
     return packet
 
 
+@reading
 def issue_packet(root, feature, slug):
     root = Path(root).resolve()
     path = find_issue(root, feature, slug)
@@ -363,12 +372,14 @@ def issue_packet(root, feature, slug):
     return _issue_packet(root, feature, slug, path, raw, issue_data)
 
 
-def current_dispatch(root, feature, states):
+def current_dispatch(root, feature, states, payload=None):
+    require_settled(root)
     ledger = root / ".scratch" / feature / "wave-ledger.json"
-    try:
-        payload = json.loads(ledger.read_text(encoding="utf-8"))
-    except (OSError, ValueError) as exc:
-        raise ValueError("packets require one current open dispatch") from exc
+    if payload is None:
+        try:
+            payload = json.loads(ledger.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            raise ValueError("packets require one current open dispatch") from exc
     waves = [
         wave
         for wave in payload.get("waves", [])
@@ -386,39 +397,16 @@ def current_dispatch(root, feature, states):
         )
     baseline = wave.get("baseline_sha256")
     contracts = wave.get("contracts")
-    if not isinstance(baseline, str) or not re.fullmatch(r"[0-9a-f]{64}", baseline):
-        raise ValueError("current open dispatch has no valid baseline binding")
-    baseline_path = root / ".scratch" / "wave-baselines" / (baseline + ".json")
-    if baseline_path.is_file():
-        try:
-            baseline_raw = baseline_path.read_bytes()
-        except OSError as exc:
-            raise ValueError("current open dispatch baseline cannot be read") from exc
-        if hashlib.sha256(baseline_raw).hexdigest() != baseline:
-            raise ValueError("current open dispatch baseline changed after dispatch")
-        try:
-            baseline_data = json.loads(baseline_raw.decode("utf-8"))
-        except (UnicodeError, ValueError) as exc:
-            raise ValueError("current open dispatch baseline is invalid") from exc
-        if (
-            not isinstance(baseline_data, dict)
-            or baseline_data.get("schema_version") != 2
-            or baseline_data.get("kind") not in ("git", "filesystem")
-        ):
-            raise ValueError("current open dispatch baseline is invalid")
-    elif not (
-        isinstance(payload.get("baselines"), dict)
-        and baseline in payload["baselines"]
-    ):
-        raise ValueError("current open dispatch baseline artifact is missing")
+    load_baseline(root, baseline, payload.get("baselines"))
     if not isinstance(contracts, dict):
         raise ValueError("current open dispatch has no contract bindings")
     for slug, _, raw, _ in states:
         if contracts.get(slug) != issue_contract_digest(raw):
             raise ValueError("issue '%s' changed after dispatch; reconcile before execution" % slug)
-    return {"wave": wave.get("wave"), "baseline_sha256": baseline}
+    return wave
 
 
+@reading
 def issue_packets(root, feature, slugs):
     """Project one wave without repeated process startup or persistent output."""
     slugs = list(slugs)
@@ -433,23 +421,34 @@ def issue_packets(root, feature, slugs):
         path = find_issue(root, feature, slug)
         raw, issue_data = issue_state(root, feature, path)
         states.append((slug, path, raw, issue_data))
-    dispatch = current_dispatch(root, feature, states)
+    return _packets(root, feature, states)
+
+
+def _packets(root, feature, states, payload=None):
+    binding = current_dispatch(root, feature, states, payload)
+    dispatch = {"wave": binding.get("wave"), "baseline_sha256": binding["baseline_sha256"]}
+    if binding.get("execution"):
+        dispatch["execution"] = binding["execution"]
     profile = (
         load_verifier_profile(root, feature)
         if any(str(data.get("contract_version", "")) == "3" for _, _, _, data in states)
         else _PROFILE_UNSET
     )
+    packets = [_issue_packet(root, feature, slug, path, raw, data, profile)
+               for slug, path, raw, data in states]
+    for packet in packets:
+        if binding.get("execution") and "effective_verifier" in packet:
+            if binding.get("verifier_sha256", {}).get(packet["slug"]) != packet["effective_verifier"]["effective_sha256"]:
+                raise ValueError("verifier profile changed after dispatch; reconcile before execution")
     return {
         "schema_version": 1,
         "dispatch": dispatch,
-        "packets": [
-            _issue_packet(root, feature, slug, path, raw, data, profile)
-            for slug, path, raw, data in states
-        ],
+        "packets": packets,
     }
 
 
-def worker_briefs(root, feature, slugs=()):
+@reading
+def worker_briefs(root, feature, slugs=(), compact=False):
     """Render the mechanical half of each open-wave worker brief.
 
     One brief per outstanding slug: the packet projection, the receipt-hit
@@ -484,16 +483,22 @@ def worker_briefs(root, feature, slugs=()):
     if not isinstance(consumers, dict):
         consumers = {}
     tests_so_far = []
+    states = {}
     for path in issue_paths(root, feature):
-        _, data = issue_state(root, feature, path)
+        raw, data = issue_state(root, feature, path)
+        if path.parent.name != "archive" and path.stem in outstanding:
+            states[path.stem] = (path.stem, path, raw, data)
         if data.get("status") != "done":
             continue
         for item in data.get("test_paths", []) or []:
             if item not in tests_so_far:
                 tests_so_far.append(item)
-    projected = issue_packets(root, feature, outstanding)
+    missing = set(outstanding) - set(states)
+    if missing:
+        raise ValueError("dispatched issue(s) missing: %s" % ", ".join(sorted(missing)))
+    projected = _packets(root, feature, [states[slug] for slug in outstanding], payload)
     by_slug = {item["slug"]: item for item in projected["packets"]}
-    return {
+    result = {
         "schema_version": 1,
         "dispatch": projected["dispatch"],
         "brief_rules": "tdd/DRAIN.md — worker brief contract",
@@ -511,12 +516,67 @@ def worker_briefs(root, feature, slugs=()):
             for slug in selected
         ],
     }
+    if compact:
+        shared = {
+            "brief_rules": result.pop("brief_rules"),
+            "tests_so_far": sorted(tests_so_far),
+        }
+        for brief in result["briefs"]:
+            brief.pop("tests_so_far")
+            brief.pop("slug")
+            brief["shared_ref"] = "#/shared"
+        return {"schema_version": 2, "shared": shared,
+                "dispatch": result["dispatch"], "briefs": result["briefs"]}
+    return result
 
 
-def close_issue(root, feature, slug):
+def close_issue(root, feature, slug, execution=None):
+    with transaction(root):
+        path = find_issue(Path(root).resolve(), feature, slug)
+        current = assignment(root, feature, slug, execution)
+        raw, data = issue_state(Path(root).resolve(), feature, path)
+        check_contract(current, slug, raw, data, root=root, feature=feature)
+        result = _close_issue(root, feature, slug, path, raw, data)
+        if current and current.get("mode") == "direct":
+            output = io.StringIO()
+            with redirect_stdout(output), redirect_stderr(output):
+                code = _wave_driver().cmd_collect(str(root), [slug + "=green"], execution, feature=feature)
+            if code:
+                raise ValueError(output.getvalue().strip())
+        return result
+
+
+def _wave_driver():
+    spec = importlib.util.spec_from_file_location("workflow_wave", ENGINEERING_ROOT / "tdd/scripts/drain-wave.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def start_issue(root, feature, slug):
     root = Path(root).resolve()
     path = find_issue(root, feature, slug)
-    raw, data = issue_state(root, feature, path)
+    output = io.StringIO()
+    with transaction(root):
+        raw, data = issue_state(root, feature, path)
+        packet = _issue_packet(root, feature, slug, path, raw, data)
+        with redirect_stdout(output), redirect_stderr(output):
+            code = _wave_driver().cmd_dispatch(str(root), [slug], direct=True, feature=feature)
+        if code:
+            raise ValueError(output.getvalue().strip())
+        execution = next(line.removeprefix("execution: ") for line in output.getvalue().splitlines()
+                         if line.startswith("execution: "))
+        current = assignment(root, feature, slug, execution)
+        check_contract(current, slug, raw, data, root=root, feature=feature)
+        if ("effective_verifier" in packet and current.get("verifier_sha256", {}).get(slug)
+                != packet["effective_verifier"]["effective_sha256"]):
+            raise ValueError("verifier profile changed while preparing the direct input")
+        return {"packet": packet,
+                "execution": current["execution"], "baseline_sha256": current["baseline_sha256"]}
+
+
+def _close_issue(root, feature, slug, path, raw, data):
+    root = Path(root).resolve()
     if data.get("status") != "ready":
         raise ValueError(
             "issue '%s' is '%s'; close requires status: ready" % (slug, data.get("status"))
@@ -545,10 +605,7 @@ def close_issue(root, feature, slug):
         updated.append(line)
     if not replaced:
         raise ValueError("issue '%s' frontmatter has no status field" % slug)
-    temporary = path.with_name(path.name + ".tmp.%d" % os.getpid())
-    with temporary.open("w", encoding="utf-8", newline="") as stream:
-        stream.write("".join(updated))
-    os.replace(temporary, path)
+    write_state(root, path, "".join(updated))
     result = {
         "feature": feature,
         "slug": slug,
@@ -570,6 +627,7 @@ def percentile(values, fraction):
     return round(ordered[index], 6)
 
 
+@reading
 def stats(root):
     root = Path(root).resolve()
     durations = {}
@@ -611,7 +669,7 @@ def stats(root):
 
 def render_human(state):
     lines = [
-        "# %s — 现状: 已交付 %d · 来源 digest %s"
+        "# %s — 已追踪交付记录: %d · 来源 digest %s"
         % (state["feature"], state["source_count"], state["source_digest"])
     ]
     if not state["delivered"]:
@@ -622,6 +680,7 @@ def render_human(state):
     return "\n".join(lines)
 
 
+@reading
 def feature_frontier(root, feature):
     root = Path(root).resolve()
     issue_dir = feature_issue_dir(root, feature)
@@ -657,8 +716,8 @@ def feature_frontier(root, feature):
     if ledger.is_file():
         try:
             payload = json.loads(ledger.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            payload = {}
+        except (OSError, ValueError) as exc:
+            raise ValueError("cannot determine active executions from unreadable ledger: %s" % ledger) from exc
         for wave in payload.get("waves", []):
             for slug in sorted(set(wave.get("dispatched", [])) - set(wave.get("closed", {}))):
                 zombies.append({"slug": slug, "wave": wave.get("wave")})
@@ -774,6 +833,15 @@ def released_baseline_artifacts(root, removed_ledger):
 
 
 def gc_feature(root, feature, apply=False):
+    if apply:
+        with transaction(root):
+            return _gc_feature(root, feature, apply=True)
+    require_settled(root)
+    return _gc_feature(root, feature)
+
+
+@reading
+def _gc_feature(root, feature, apply=False):
     root = Path(root).resolve()
     feature_dir = root / ".scratch" / feature
     ready = False
@@ -828,6 +896,10 @@ def parser():
     packet.add_argument("root")
     packet.add_argument("feature")
     packet.add_argument("slug")
+    start = sub.add_parser("start")
+    start.add_argument("root")
+    start.add_argument("feature")
+    start.add_argument("slug")
     packets = sub.add_parser("packets")
     packets.add_argument("root")
     packets.add_argument("feature")
@@ -836,13 +908,21 @@ def parser():
     briefs.add_argument("root")
     briefs.add_argument("feature")
     briefs.add_argument("slugs", nargs="*")
+    briefs.add_argument("--compact", action="store_true")
     close = sub.add_parser("close")
     close.add_argument("root")
     close.add_argument("feature")
     close.add_argument("slug")
+    close.add_argument("--execution")
     stats_cmd = sub.add_parser("stats")
     stats_cmd.add_argument("root")
     return command
+
+
+@reading
+def survey_states(root, history=False):
+    project = inspect_feature if history else feature_frontier
+    return [project(root, feature) for feature in feature_names(root)]
 
 
 def main(argv=None):
@@ -859,10 +939,7 @@ def main(argv=None):
             state = inspect_feature(args.root, args.feature)
             output = json.dumps(state, ensure_ascii=False, indent=2) if args.format == "json" else render_human(state)
         elif args.command == "survey":
-            if args.history:
-                states = [inspect_feature(args.root, feature) for feature in feature_names(args.root)]
-            else:
-                states = [feature_frontier(args.root, feature) for feature in feature_names(args.root)]
+            states = survey_states(args.root, args.history)
             if args.format == "json":
                 output = json.dumps(states, ensure_ascii=False, indent=2)
             else:
@@ -877,6 +954,8 @@ def main(argv=None):
                 ensure_ascii=False,
                 separators=(",", ":"),
             )
+        elif args.command == "start":
+            output = json.dumps(start_issue(args.root, args.feature, args.slug), ensure_ascii=False, separators=(",", ":"))
         elif args.command == "packets":
             output = json.dumps(
                 issue_packets(args.root, args.feature, args.slugs),
@@ -885,13 +964,13 @@ def main(argv=None):
             )
         elif args.command == "briefs":
             output = json.dumps(
-                worker_briefs(args.root, args.feature, args.slugs),
+                worker_briefs(args.root, args.feature, args.slugs, compact=args.compact),
                 ensure_ascii=False,
-                indent=2,
+                separators=(",", ":"),
             )
         elif args.command == "close":
             output = json.dumps(
-                close_issue(args.root, args.feature, args.slug), ensure_ascii=False, indent=2
+                close_issue(args.root, args.feature, args.slug, args.execution), ensure_ascii=False, indent=2
             )
         elif args.command == "stats":
             output = json.dumps(stats(args.root), ensure_ascii=False, indent=2)

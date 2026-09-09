@@ -4,7 +4,7 @@ import io
 import json
 import tempfile
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stdout, redirect_stderr
 from pathlib import Path
 from unittest import mock
 
@@ -68,6 +68,142 @@ def plant_wave_baseline(root):
 
 
 class WorkflowStateTests(unittest.TestCase):
+    def test_profile_drift_is_rejected_before_issuing_worker_inputs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_issue(root, "01-one", status="ready")
+            card = root / ".scratch/demo/issues/01-one.md"
+            raw = card.read_text().replace("type: issue", "type: issue\ncontract_version: 3")
+            raw = raw.replace("## Comments", "## 验收标准\n- [ ] Deliver.\n\n## 验证设计\n- profile: verifier.json\n- #1 → `profile:scoped`\n\n## Comments")
+            card.write_text(raw, encoding="utf-8")
+            profile = card.parent.parent / "verifier.json"
+            data = {"schema_version": 1, "cwd": ".",
+                    "fingerprint": "git=abc; lock=none; runtime=py; tools=unittest; services=none",
+                    "prerequisites": "fixtures=ready; services=none; permissions=local; network=off", "prepare": "none",
+                    "commands": {"scoped": "python -m unittest"}, "completion_commands": ["scoped"]}
+            profile.write_text(json.dumps(data), encoding="utf-8")
+            driver = workflow_state._wave_driver()
+            dispatch = driver.cmd_dispatch
+            def change_profile_before_dispatch(*args, **kwargs):
+                changed = dict(data, prepare="changed preparation")
+                profile.write_text(json.dumps(changed), encoding="utf-8")
+                return dispatch(*args, **kwargs)
+            with mock.patch.object(driver, "cmd_dispatch", side_effect=change_profile_before_dispatch), mock.patch.object(workflow_state, "_wave_driver", return_value=driver):
+                with self.assertRaisesRegex(ValueError, "verifier profile"):
+                    workflow_state.start_issue(root, "demo", "01-one")
+            self.assertFalse((profile.parent / "wave-ledger.json").exists())
+            profile.write_text(json.dumps(data), encoding="utf-8")
+            started = workflow_state.start_issue(root, "demo", "01-one")
+            workflow_state.worker_briefs(root, "demo", compact=True)
+            data["commands"]["scoped"] = "python -m different_tests"
+            profile.write_text(json.dumps(data), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "verifier profile"):
+                workflow_state.worker_briefs(root, "demo", compact=True)
+            with self.assertRaisesRegex(ValueError, "verifier profile"):
+                workflow_state.close_issue(root, "demo", "01-one", started["execution"])
+
+    def test_execution_allows_only_additive_tests_inside_admitted_paths(self):
+        cases = [
+            ("test_paths: [pkg/tests/old.py, pkg/tests/new.py]", None),
+            ("test_paths: [pkg/tests/old.py, sibling/test.py]", "outside admitted"),
+            ("test_paths: [pkg/tests/old.py, PKG/tests/new.py]", "outside admitted"),
+            ("test_paths: []", "cannot shrink"),
+            ("test_paths: [pkg/tests/old.py]\nblocked_by: [new-dependency]", "behavior contract"),
+        ]
+        for replacement, error in cases:
+            with self.subTest(replacement=replacement), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                plant_issue(root, "01-one", status="ready")
+                path = root / ".scratch/demo/issues/01-one.md"
+                original = path.read_text().replace("status: ready", "status: ready\ntouches: [pkg]\ntest_paths: [pkg/tests/old.py]")
+                path.write_text(original, encoding="utf-8")
+                started = workflow_state.start_issue(root, "demo", "01-one")
+                path.write_text(original.replace("test_paths: [pkg/tests/old.py]", replacement), encoding="utf-8")
+                if error:
+                    with self.assertRaisesRegex(ValueError, error):
+                        workflow_state.close_issue(root, "demo", "01-one", started["execution"])
+                else:
+                    self.assertEqual("done", workflow_state.close_issue(root, "demo", "01-one", started["execution"])["status"])
+
+    def test_close_preserves_comments_written_after_its_initial_read(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_issue(root, "01-one", status="ready")
+            path = root / ".scratch/demo/issues/01-one.md"
+            initial = path.read_text()
+            write = workflow_state.write_state
+            def concurrent_edit(repo, target, content):
+                if target == path.resolve():
+                    path.write_text(initial + "\nConcurrent owner note\n", encoding="utf-8")
+                return write(repo, target, content)
+            with mock.patch.object(workflow_state, "write_state", side_effect=concurrent_edit):
+                with self.assertRaisesRegex(ValueError, "conflicts"):
+                    workflow_state.close_issue(root, "demo", "01-one")
+            self.assertIn("Concurrent owner note", path.read_text())
+            self.assertIn("status: ready", path.read_text())
+
+    def test_direct_entry_scopes_duplicate_slugs_to_the_named_feature(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for feature in ("one", "two"):
+                plant_issue(root, "01-setup", status="ready", feature=feature)
+            started = workflow_state.start_issue(root, "one", "01-setup")
+            closed = workflow_state.close_issue(root, "one", "01-setup", started["execution"])
+            self.assertEqual("done", closed["status"])
+            self.assertIn("status: ready", (root / ".scratch/two/issues/01-setup.md").read_text())
+
+    def test_direct_start_admits_once_and_close_publishes_card_with_ledger(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_issue(root, "01-one", status="ready")
+            plant_issue(root, "02-two", status="ready")
+            started = workflow_state.start_issue(root, "demo", "01-one")
+            with self.assertRaisesRegex(ValueError, "open wave"):
+                workflow_state.start_issue(root, "demo", "02-two")
+            with mock.patch.object(workflow_state, "_wave_driver") as driver:
+                driver.return_value.cmd_collect.return_value = 1
+                with self.assertRaises(ValueError):
+                    workflow_state.close_issue(root, "demo", "01-one", started["execution"])
+            path = root / ".scratch/demo/issues/01-one.md"
+            self.assertIn("status: ready", path.read_text())
+            closed = workflow_state.close_issue(root, "demo", "01-one", started["execution"])
+            self.assertEqual("done", closed["status"])
+            ledger = json.loads((root / ".scratch/demo/wave-ledger.json").read_text())
+            self.assertEqual({"01-one": "green"}, ledger["waves"][-1]["closed"])
+
+    def test_close_rejects_a_stale_execution(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_issue(root, "01-one", status="ready")
+            ledger = root / ".scratch" / "demo" / "wave-ledger.json"
+            ledger.write_text(json.dumps({"waves": [{"wave": 1, "execution": "current",
+                "dispatched": ["01-one"], "closed": {}}]}), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "execution"):
+                workflow_state.close_issue(root, "demo", "01-one", execution="stale")
+            self.assertIn("status: ready", (ledger.parent / "issues" / "01-one.md").read_text())
+
+    def test_survey_refuses_an_interrupted_publication(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_issue(root, "01-one", status="ready")
+            (root / ".scratch" / ".workflow-pending.json").write_text("{}", encoding="utf-8")
+            output = io.StringIO()
+            with redirect_stdout(output), redirect_stderr(output):
+                code = workflow_state.main(["workflow-state.py", "survey", str(root)])
+            self.assertEqual(1, code, output.getvalue())
+            self.assertIn("interrupted", output.getvalue())
+
+    def test_survey_does_not_treat_an_unreadable_ledger_as_idle(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_issue(root, "01-one", status="ready")
+            (root / ".scratch/demo/wave-ledger.json").write_text("{", encoding="utf-8")
+            output = io.StringIO()
+            with redirect_stdout(output), redirect_stderr(output):
+                code = workflow_state.main(["workflow-state.py", "survey", str(root)])
+            self.assertEqual(1, code, output.getvalue())
+            self.assertIn("cannot determine", output.getvalue())
+
     def test_inspect_folds_done_redo_across_live_and_archive(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -406,7 +542,9 @@ class WorkflowStateTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            result = workflow_state.worker_briefs(root, "demo")
+            with mock.patch.object(workflow_state, "issue_state", wraps=workflow_state.issue_state) as read:
+                result = workflow_state.worker_briefs(root, "demo")
+            self.assertEqual(3, read.call_count)
 
             self.assertEqual(["01-one", "02-two"], [b["slug"] for b in result["briefs"]])
             by_slug = {b["slug"]: b for b in result["briefs"]}
@@ -423,6 +561,14 @@ class WorkflowStateTests(unittest.TestCase):
                 {"wave": 7, "baseline_sha256": baseline}, result["dispatch"]
             )
             self.assertIn("DRAIN.md", result["brief_rules"])
+
+            compact = workflow_state.worker_briefs(root, "demo", compact=True)
+            encoded = json.dumps(compact, ensure_ascii=False)
+            self.assertEqual(1, encoded.count("tests/done_a.py"))
+            self.assertEqual(["tests/done_a.py", "tests/done_b.py"], compact["shared"]["tests_so_far"])
+            self.assertEqual("#/shared", compact["briefs"][0]["shared_ref"])
+            self.assertLess(len(encoded), len(json.dumps(result, ensure_ascii=False)))
+            self.assertEqual(compact, workflow_state.worker_briefs(root, "demo", compact=True))
 
             selected = workflow_state.worker_briefs(root, "demo", ["02-two"])
             self.assertEqual(["02-two"], [b["slug"] for b in selected["briefs"]])

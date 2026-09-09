@@ -73,7 +73,13 @@ artifact keeps a live consumer or is deleted; a live consumer is a caller, a tes
 
 Start from named files or issue pointers. Load relevant map/glossary sections and ADR titles when
 navigation needs them; expand only for discovered dependencies. Keep settled decisions across phases.
-Use issues for multi-slice/delegated work; a small local task can plan and verify inline. `done`
+Keep unchanged instructions, tool definitions, and shared inputs in stable order; append new work
+within the native session. Let the host replay original message/tool/reasoning blocks. Do not replace
+history with a fresh summary each round, pad prompts, or add warm-up calls to chase cache hits.
+Store shared facts once and use pointers; supply a worker the referenced text only when its next
+action needs it and the host has not already provided it. Cached input still occupies context.
+Use issues for a durable queue, delegation, dependency, or contract-history consumer. Settled work
+can execute inline regardless of file count; preserve any requested plan-review checkpoint. `done`
 issues preserve history; only the active batch's documented failed-verification recovery may reopen
 one. Later requirement changes create redo issues. Superseded ADR bodies are immutable.
 

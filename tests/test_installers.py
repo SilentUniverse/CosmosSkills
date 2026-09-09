@@ -82,6 +82,13 @@ class InstallerTests(unittest.TestCase):
             )
             self.assertEqual(0, result.returncode, result.stderr)
             self.assertNotIn("(agents)", result.stdout)
+            imported = subprocess.run(
+                [sys.executable, "-B", "-c", "import workflow_runtime, process_tree"],
+                cwd=target,
+                env={key: value for key, value in os.environ.items() if key != "PYTHONPATH"},
+                text=True, capture_output=True, check=False,
+            )
+            self.assertEqual(0, imported.returncode, imported.stderr)
             for script in ("eval.py", "eval_campaign.py", "workflow-state.py"):
                 with self.subTest(script=script):
                     command = subprocess.run(

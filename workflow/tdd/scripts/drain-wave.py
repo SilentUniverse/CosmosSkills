@@ -9,15 +9,15 @@
 #
 #   drain-wave.py next <repo-root> [<feat>]     propose the next wave (read-only)
 #   drain-wave.py dispatch <repo-root> <slug>...                record intent + baseline
-#   drain-wave.py collect <repo-root> <slug>=<result>[,<slug>=<result>...]
+#   drain-wave.py collect <repo-root> <slug>=<result>[,...] --execution <id> [--feature <feat>]
 #                         result: green|red|blocked|aborted|conflict@evidence.json
-#   drain-wave.py audit <repo-root> [<feat>]    test files no issue claims
+#   drain-wave.py audit <repo-root> [<feat>] [--execution <id> ...]    changed test ownership
 #   drain-wave.py dismiss-conflict <repo-root> <feat> <slug> <evidence.json>
 #   drain-wave.py selftest                       gate the gate: parse substrate +
 #                                               refusal branches (tempdir fixtures)
 #
 # --- structure map (order locked by tests/test_workflow_contracts.py) ---
-# now_iso — UTC timestamp for ledger rows
+# now_iso — local timestamp for ledger rows
 # PreflightHelperMissing — exit-5 signal: shared preflight helper absent
 # preflight_api — bridge into preflight-receipt.py without a subprocess
 # read_lines — splitlines access
@@ -39,9 +39,10 @@
 # active_conflicts — unresolved conflict barriers
 # report_conflicts — render barriers for the driver
 # cmd_dismiss_conflict — reviewed-noise dismissal with identity checks
+# _dismiss_conflict — apply a reviewed dismissal inside the state transaction
 # file_sha256 — content digest for baselines
-# filesystem_baseline — git-tracked dirty-path manifest
-# workspace_baseline — serialized undeclared-card fallback manifest
+# filesystem_baseline — content identity under declared paths without Git
+# workspace_baseline — compact Git dirty-path identity or filesystem fallback
 # store_baseline — persist one shared baseline for the wave
 # issues_touch — declared write paths of a slug
 # issues_tests — declared test ownership of a slug
@@ -55,11 +56,20 @@
 # cmd_next — propose the collision-free wave (read-only)
 # cmd_step — next action + exact command for the driver
 # dispatch_receipt_hits — shared preflight tuples to receipt keys
+# _mutate — publish command output only after state publication
 # cmd_dispatch — record intent, baseline, receipts before any worker starts
+# _dispatch — validate admission and stage the wave
 # cmd_collect — close a fully terminal wave atomically
-# cmd_audit — every test file under touches has an owning issue
+# _collect — validate execution results and stage complete reconciliation
+# git_test_delta — compare tracked and pre-existing dirty test identities
+# audit_path — canonical repository path identity for scope comparisons
+# audit_baselines — reuse batch baselines without capturing more state
+# changed_test — distinguish batch test edits from unchanged history
+# is_test_file — supported test filename conventions
+# cmd_audit — changed test ownership under admitted paths
 # cmd_selftest — gate-the-gate fixtures over parse + refusals
 # main — argv routing and exit codes
+# _main — parse argv and route commands
 # --- end structure map ---
 # Exit: 0 ok, 1 violation, 2 usage, 3 zombies (recovery first), 4 nothing ready,
 # 5 shared preflight receipt must be prepared before dispatch, 6 receipt conflict
@@ -73,6 +83,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import uuid
 from contextlib import redirect_stderr, redirect_stdout
 from datetime import datetime
 from pathlib import Path
@@ -80,7 +91,11 @@ from pathlib import Path
 ENGINEERING_ROOT = Path(__file__).resolve().parents[2]
 if str(ENGINEERING_ROOT) not in sys.path:
     sys.path.insert(0, str(ENGINEERING_ROOT))
-from workflow_contract import issue_contract_digest, validate_v3_completion
+from workflow_contract import (
+    issue_contract_digest, execution_contract_digest, validate_v3_completion,
+    effective_verifier, load_verifier_profile,
+)
+from workflow_runtime import load_baseline, reading, read_text
 
 RESULTS = ("green", "red", "blocked", "conflict", "aborted")
 MAX_IN_FLIGHT = 4
@@ -126,8 +141,7 @@ def preflight_api():
 
 
 def read_lines(path):
-    with open(path, "rb") as f:
-        return f.read().decode("utf-8-sig", errors="replace").splitlines()
+    return read_text(path, encoding="utf-8-sig").splitlines()
 
 
 def get_frontmatter(path):
@@ -180,13 +194,16 @@ def as_list(val):
 
 
 def norm_path(p):
-    return p.replace("\\", "/").strip("/").lower()
+    return os.path.normpath(p.replace("\\", "/")).replace("\\", "/").strip("/").casefold()
 
 
 def path_overlap(a, b):
     """True when two declared paths share a component prefix (dir contains file/subdir)."""
-    ca = norm_path(a).split("/")
-    cb = norm_path(b).split("/")
+    a, b = norm_path(a), norm_path(b)
+    if a in ("", ".") or b in ("", "."):
+        return True
+    ca = a.split("/")
+    cb = b.split("/")
     n = min(len(ca), len(cb))
     return ca[:n] == cb[:n]
 
@@ -295,6 +312,9 @@ def ledger_path(root, feat):
 
 
 def load_ledger(root, feat):
+    from workflow_runtime import require_settled
+
+    require_settled(root)
     p = ledger_path(root, feat)
     if not os.path.isfile(p):
         return {"waves": []}
@@ -323,13 +343,9 @@ def load_ledger(root, feat):
 
 
 def save_ledger(root, feat, data):
-    p = ledger_path(root, feat)
-    os.makedirs(os.path.dirname(p), exist_ok=True)
-    tmp = p + ".tmp.%d" % os.getpid()
-    with open(tmp, "w", encoding="utf-8", newline="\n") as f:
-        json.dump(data, f, ensure_ascii=False, indent=1)
-        f.write("\n")
-    os.replace(tmp, p)
+    from workflow_runtime import write_state
+
+    write_state(root, ledger_path(root, feat), json.dumps(data, ensure_ascii=False, indent=1) + "\n")
 
 
 def contract_sha256(path):
@@ -467,6 +483,10 @@ def report_conflicts(conflicts):
 
 
 def cmd_dismiss_conflict(root, feat, slug, evidence):
+    return _mutate(root, _dismiss_conflict, feat, slug, evidence)
+
+
+def _dismiss_conflict(root, feat, slug, evidence):
     """Correct one closed false-positive report without changing the issue contract."""
     try:
         if not feat or feat in (".", "..") or "/" in feat or "\\" in feat:
@@ -692,12 +712,8 @@ def declared(fm):
 
 
 def collides(issues, a, b):
-    for x in issues_touch(issues, a):
-        for y in issues_touch(issues, b):
-            if path_overlap(x, y):
-                return True
-    for x in issues_tests(issues, a):
-        for y in issues_tests(issues, b):
+    for x in issues_touch(issues, a) + issues_tests(issues, a):
+        for y in issues_touch(issues, b) + issues_tests(issues, b):
             if path_overlap(x, y):
                 return True
     return bool(
@@ -754,7 +770,7 @@ def chain_depths(issues):
     return depth
 
 
-def plan_waves(issues, archived_done):
+def plan_waves(issues, archived_done, parallel=True):
     done = {
         s for s, (_, _, fm) in issues.items() if fm.get("status") == "done"
     } | archived_done
@@ -772,6 +788,15 @@ def plan_waves(issues, archived_done):
     # dependency chain so capacity and collision deferrals unlock work early.
     depth = chain_depths(issues)
     eligible.sort(key=lambda s: (-depth.get(s, 1), s))
+    if not parallel:
+        first = next((s for s in eligible if declared(issues[s][2])), None)
+        return {
+            "done": done,
+            "ready": ready,
+            "blocked": blocked,
+            "wave": [first] if first else [],
+            "solo_now": eligible[0] if eligible and first is None else None,
+        }
     undeclared = [s for s in eligible if not declared(issues[s][2])]
     packable = [s for s in eligible if s not in undeclared]
     wave = []
@@ -797,6 +822,7 @@ def plan_waves(issues, archived_done):
     }
 
 
+@reading
 def cmd_next(root, feat):
     issues = load_issues(root, feat)
     if issues is None:
@@ -842,6 +868,7 @@ def cmd_next(root, feat):
     return 0
 
 
+@reading
 def cmd_step(root, feat, parallel=False):
     issues = load_issues(root, feat)
     if issues is None:
@@ -867,11 +894,11 @@ def cmd_step(root, feat, parallel=False):
     if not issues:
         print("action: none - no issues found under .scratch/%s" % (feat or "*/issues"))
         return 4
-    plan = plan_waves(issues, archived_done)
+    plan = plan_waves(issues, archived_done, parallel=parallel)
     if not plan["ready"]:
         print("action: close - nothing ready (%d done)" % len(plan["done"]))
         print(
-            "run: drain-wave.py audit <repo-root> %s; close per FULL-SUITE.md via"
+            "run: drain-wave.py audit <repo-root> %s --execution <batch-id> [...]; close per FULL-SUITE.md via"
             " test-supervisor.py; then workflow-state.py gc <repo-root> <feat> --apply"
             % (feat or "<feat>")
         )
@@ -879,7 +906,7 @@ def cmd_step(root, feat, parallel=False):
     if plan["solo_now"]:
         wave = [plan["solo_now"]]
     else:
-        wave = plan["wave"] if parallel else plan["wave"][:1]
+        wave = plan["wave"]
     if wave:
         print("action: dispatch %s" % " ".join(wave))
         print("run: drain-wave.py dispatch <repo-root> %s" % " ".join(wave))
@@ -998,11 +1025,29 @@ def dispatch_receipt_hits(root, issues, slugs, ledgers):
     return {slug: sorted(set(keys)) for slug, keys in hits.items() if keys}, []
 
 
-def cmd_dispatch(root, slugs):
-    issues = load_issues(root, None)
+def _mutate(root, action, *args):
+    from workflow_runtime import transaction
+
+    output = io.StringIO()
+    try:
+        with redirect_stdout(output), transaction(root):
+            result = action(root, *args)
+    except (OSError, ValueError) as exc:
+        print("drain-wave: %s" % exc, file=sys.stderr)
+        return 1
+    print(output.getvalue(), end="")
+    return result
+
+
+def cmd_dispatch(root, slugs, direct=False, feature=None):
+    return _mutate(root, _dispatch, slugs, direct, feature)
+
+
+def _dispatch(root, slugs, direct=False, feature=None):
+    issues = load_issues(root, feature if direct else None)
     if issues is None:
         return 1
-    archived_done = load_archived_done(root, None)
+    archived_done = load_archived_done(root, feature if direct else None)
     if archived_done is None:
         return 1
     if not slugs:
@@ -1088,7 +1133,7 @@ def cmd_dispatch(root, slugs):
     for feat in by_feat:
         ledgers[feat] = load_ledger(root, feat)
     try:
-        receipt_hits, misses = dispatch_receipt_hits(root, issues, slugs, ledgers)
+        receipt_hits, misses = ({}, []) if direct else dispatch_receipt_hits(root, issues, slugs, ledgers)
     except PreflightHelperMissing as exc:
         print("drain-wave: preflight helper unusable: %s" % exc, file=sys.stderr)
         return 1
@@ -1122,22 +1167,41 @@ def cmd_dispatch(root, slugs):
     except (OSError, ValueError) as exc:
         print("drain-wave: cannot capture reliable wave baseline: %s" % exc, file=sys.stderr)
         return 1
+    execution = uuid.uuid4().hex
+    contracts = {slug: read_text(issues[slug][1], encoding="utf-8-sig") for slug in slugs}
+    profiles = {}
+    verifiers = {}
+    for slug in slugs:
+        feat, _, data = issues[slug]
+        if str(data.get("contract_version", "")) == "3":
+            if feat not in profiles:
+                profiles[feat] = load_verifier_profile(Path(root), feat)
+            verifiers[slug] = effective_verifier(Path(root), feat, contracts[slug], profiles[feat])["effective_sha256"]
     for feat, group in sorted(by_feat.items()):
         data = ledgers[feat]
         num = max((w["wave"] for w in data["waves"]), default=0) + 1
         data["waves"].append(
             {
                 "wave": num,
+                "execution": execution,
+                "mode": "direct" if direct else "wave",
                 "at": now_iso(),
                 "dispatched": sorted(group),
                 "baseline_sha256": baseline_sha256,
                 "contracts": {
-                    slug: dispatch_contract_sha256(issues[slug][1])
+                    slug: issue_contract_digest(contracts[slug])
                     for slug in sorted(group)
                 },
+                "behavior_contracts": {
+                    slug: execution_contract_digest(contracts[slug])
+                    for slug in sorted(group)
+                },
+                "test_paths": {slug: issues_tests(issues, slug) for slug in sorted(group)},
                 "closed": {},
             }
         )
+        if any(slug in verifiers for slug in group):
+            data["waves"][-1]["verifier_sha256"] = {slug: verifiers[slug] for slug in group if slug in verifiers}
         save_ledger(root, feat, data)
         print("drain-wave: wave %d dispatched (%s) -> .scratch/%s/wave-ledger.json" % (num, ", ".join(sorted(group)), feat))
     if receipt_hits:
@@ -1149,12 +1213,17 @@ def cmd_dispatch(root, slugs):
             "briefs: %s"
             % json.dumps(briefs, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
         )
+    print("execution: %s" % execution)
     print("baseline recorded; execution may start")
     return 0
 
 
-def cmd_collect(root, pairs):
-    issues = load_issues(root, None)
+def cmd_collect(root, pairs, execution=None, feature=None):
+    return _mutate(root, _collect, pairs, execution, feature)
+
+
+def _collect(root, pairs, execution=None, feature=None):
+    issues = load_issues(root, feature)
     if issues is None:
         return 1
     plan = []  # (feat, slug, result, conflict evidence); validate, then one write pass
@@ -1197,7 +1266,7 @@ def cmd_collect(root, pairs):
             return 1
         if result == "green" and str(issues[slug][2].get("contract_version", "")) == "3":
             try:
-                validate_v3_completion(Path(root), Path(issues[slug][1]))
+                validate_v3_completion(Path(root), Path(issues[slug][1]), read_text(issues[slug][1], encoding="utf-8-sig"))
             except (OSError, UnicodeError, ValueError) as exc:
                 print(
                     "drain-wave: %s has invalid completion evidence: %s" % (slug, exc),
@@ -1229,7 +1298,8 @@ def cmd_collect(root, pairs):
                 hit = w
                 break
         if hit is None:
-            if any(slug in w.get("closed", {}) for w in data["waves"]):
+            if any(slug in w.get("closed", {}) and w["closed"][slug] == result
+                   and w.get("execution") == execution for w in data["waves"]):
                 # A prior collect run recorded this slug and closed its wave before
                 # dying; re-running the same reconciliation must not refuse on it.
                 replayed.add(slug)
@@ -1239,6 +1309,12 @@ def cmd_collect(root, pairs):
                 file=sys.stderr,
             )
             return 1
+        if hit.get("execution") != execution:
+            print("drain-wave: execution does not match current dispatch for %s" % slug, file=sys.stderr)
+            return 1
+        if result == "green":
+            from workflow_runtime import check_contract
+            check_contract(hit, slug, read_text(issues[slug][1], encoding="utf-8-sig"), issues[slug][2], root=root, feature=feat)
         if slug in hit.get("closed", {}):
             print("drain-wave: %s was already collected in its open wave" % slug, file=sys.stderr)
             return 1
@@ -1286,22 +1362,156 @@ def cmd_collect(root, pairs):
     return 0
 
 
-def cmd_audit(root, feat):
+def git_test_delta(root, baseline):
+    head = baseline.get("head")
+    if head != "unborn" and (not isinstance(head, str) or not re.fullmatch(r"[0-9a-f]{40,64}", head)):
+        raise ValueError("invalid audit baseline Git head")
+    paths = ["--", ".", ":(exclude).scratch", ":(exclude).scratch/**"]
+    commands = [["ls-files", "--others", "--exclude-standard", "-z"]]
+    if head == "unborn":
+        commands.append(["ls-files", "--cached", "-z"])
+    else:
+        commands.append(["diff", "--name-only", "--no-renames", "--no-ext-diff", "-z", head])
+    changed = set()
+    for command in commands:
+        result = subprocess.run(["git"] + command + paths, cwd=root, capture_output=True)
+        if result.returncode:
+            raise ValueError("cannot compare audit baseline: " + result.stderr.decode("utf-8", errors="replace")[:200])
+        changed.update(os.fsdecode(path) for path in result.stdout.split(b"\0") if path)
+    for relative, before in baseline["dirty_paths"].items():
+        if not is_test_file(relative):
+            continue
+        path = Path(root) / relative
+        if path.is_symlink():
+            current = "symlink:" + hashlib.sha256(os.fsencode(os.readlink(path))).hexdigest()
+        else:
+            current = file_sha256(path) if path.is_file() else "directory" if path.exists() else "missing"
+        if current == before:
+            changed.discard(relative)
+        else:
+            changed.add(relative)
+    return {path for path in changed if is_test_file(path)}
+
+
+def audit_path(root, value, names):
+    base = Path(root).resolve()
+    relative = (base / str(value).replace("\\", "/")).resolve().relative_to(base)
+    parent = base
+    parts = []
+    for part in relative.parts:
+        if parent.is_dir() and (parent / part).exists():
+            if parent not in names:
+                names[parent] = os.listdir(parent)
+            if part not in names[parent]:
+                matches = [name for name in names[parent] if name.casefold() == part.casefold()
+                           and (parent / name).samefile(parent / part)]
+                if len(matches) != 1:
+                    raise ValueError("ambiguous audit path spelling: %s" % value)
+                part = matches[0]
+        parts.append(part)
+        parent = parent / part
+    return "/".join(parts) or "."
+
+
+def audit_baselines(root, issues, feat, executions, normalize):
+    snapshots = []
+    loaded = {}
+    assigned = set()
+    ledgers = [(os.path.basename(directory), load_ledger(root, os.path.basename(directory)))
+               for directory in feature_dirs(root, feat)]
+    entries = [entry for _, ledger in ledgers for entry in ledger["waves"]]
+    retained = {entry.get("execution") for entry in entries}
+    selected = set(executions or [])
+    if selected - retained:
+        raise ValueError("requested audit execution is absent from this scope")
+    if not selected and (len(retained) > 1 or sum(not entry.get("execution") for entry in entries) > 1):
+        raise ValueError("audit needs this batch's --execution IDs; retained history cannot define a batch")
+    for feature, ledger in ledgers:
+        for entry in ledger["waves"]:
+            if selected and entry.get("execution") not in selected:
+                continue
+            if set(entry["dispatched"]) - set(entry.get("closed", {})):
+                raise ValueError("collect the open execution before the closing audit")
+            digest = entry.get("baseline_sha256")
+            if digest not in loaded:
+                loaded[digest] = load_baseline(root, digest, ledger.get("baselines"))
+                if loaded[digest] and loaded[digest]["kind"] == "git":
+                    loaded[digest]["audit_changes"] = {normalize(path) for path in git_test_delta(root, loaded[digest])}
+                elif loaded[digest]:
+                    loaded[digest]["files"] = {normalize(path): identity for path, identity in loaded[digest]["files"].items()}
+            scopes = []
+            for slug in entry["dispatched"]:
+                if slug not in issues or issues[slug][0] != feature:
+                    raise ValueError("audit cannot resolve dispatched issue %s/%s" % (feature, slug))
+                assigned.add((feature, slug))
+                scopes.extend(issues_touch(issues, slug) + issues_tests(issues, slug) or ["."])
+            snapshots.append((loaded[digest], [normalize(p) for p in scopes]))
+    return snapshots, assigned
+
+
+def changed_test(root, relative, snapshots):
+    covered = False
+    for baseline, scopes in snapshots:
+        if not any(scope == "." or relative == scope or relative.startswith(scope + "/") for scope in scopes):
+            continue
+        covered = True
+        if baseline is None:
+            return True
+        if baseline["kind"] == "git":
+            if relative in baseline["audit_changes"]:
+                return True
+            continue
+        path = Path(root) / relative
+        current = file_sha256(path) if path.is_file() else None
+        if current != baseline["files"].get(relative):
+            return True
+    return not covered
+
+
+def is_test_file(path):
+    name = Path(path).name
+    return bool(TEST_FILE.search(name)) and Path(name).suffix in {
+        ".py", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".go", ".rs",
+        ".java", ".cs", ".rb", ".php", ".kt", ".swift",
+    }
+
+
+@reading
+def cmd_audit(root, feat, executions=None):
     issues = load_issues(root, feat)
     if issues is None:
         return 1
+    names = {}
+    normalize = lambda value: audit_path(root, value, names)
+    try:
+        snapshots, assigned = audit_baselines(root, issues, feat, executions, normalize)
+    except (OSError, UnicodeError, ValueError) as exc:
+        print("drain-wave: cannot establish audit baseline: %s" % exc, file=sys.stderr)
+        return 1
     owned = set()
-    scan_dirs = set()
-    for _, _, fm in issues.values():
+    scan_dirs = {scope for _, scopes in snapshots for scope in scopes}
+    for slug, (feature, _, fm) in issues.items():
+        if snapshots and (feature, slug) not in assigned:
+            continue
         for p in as_list(fm.get("test_paths")):
             if p:
-                owned.add(norm_path(p))
-        for p in as_list(fm.get("touches")):
+                owned.add(normalize(p))
+        for p in as_list(fm.get("touches")) + as_list(fm.get("test_paths")):
             if p:
-                scan_dirs.add(norm_path(p))
-    unowned = []
-    for d in sorted(scan_dirs):
+                scan_dirs.add(normalize(p))
+    if not snapshots or any(baseline is None for baseline, _ in snapshots):
+        print("drain-wave: no comparable batch baseline for some scopes; checking their full test inventory")
+    candidates = {path for baseline, _ in snapshots if baseline and baseline["kind"] == "filesystem"
+                  for path in baseline["files"] if is_test_file(path)}
+    candidates.update(path for baseline, _ in snapshots if baseline and baseline["kind"] == "git"
+                      for path in baseline["audit_changes"])
+    needs_scan = not snapshots or any(baseline is None or baseline["kind"] == "filesystem" for baseline, _ in snapshots)
+    for d in sorted(scan_dirs) if needs_scan else []:
         base = os.path.join(root, d.replace("/", os.sep))
+        if os.path.isfile(base):
+            if is_test_file(base):
+                candidates.add(d)
+            continue
         stack = [base]
         while stack:
             cur = stack.pop()
@@ -1316,21 +1526,31 @@ def cmd_audit(root, feat):
                 except OSError:
                     continue
                 if is_dir:
-                    if n in SKIP_DIRS:
+                    if n in SKIP_DIRS or os.path.islink(p):
                         continue
                     stack.append(p)
-                elif TEST_FILE.search(n) and any(n.endswith(ext) for ext in (".py", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".go", ".rs", ".java", ".cs", ".rb", ".php", ".kt", ".swift")):
-                    rel = norm_path(os.path.relpath(p, root))
-                    if rel not in owned:
-                        unowned.append(rel)
+                elif is_test_file(n):
+                    rel = Path(os.path.relpath(p, root)).as_posix()
+                    candidates.add(rel)
+    candidates = {normalize(rel) for rel in candidates}
+    for rel in candidates:
+        for scope in scan_dirs:
+            exact = rel == scope or rel.startswith(scope + "/")
+            folded = rel.casefold() == scope.casefold() or rel.casefold().startswith(scope.casefold() + "/")
+            if not exact and folded and not (Path(root) / scope).exists():
+                print("drain-wave: missing audit scope has ambiguous path spelling: %s / %s" % (scope, rel), file=sys.stderr)
+                return 1
+    candidates = {rel for rel in candidates
+                  if any(scope == "." or rel == scope or rel.startswith(scope + "/") for scope in scan_dirs)}
+    unowned = [rel for rel in candidates if rel not in owned and changed_test(root, rel, snapshots)]
     if unowned:
         print("drain-wave: %d test file(s) claimed by no issue's test_paths:" % len(unowned))
         for rel in sorted(set(unowned)):
             print("  %s" % rel)
-        print("assign each to an issue (sanctioned test_paths append) or open a cleanup issue")
+        print("reconcile actual batch ownership; never attribute unrelated history just to pass")
         print("before the closing review - unreviewed tests must not ride the batch.")
         return 1
-    print("drain-wave: audit clean - every test file under touches is claimed")
+    print("drain-wave: audit clean - changed tests under touches are claimed")
     return 0
 
 
@@ -1345,6 +1565,8 @@ def cmd_selftest():
             bad.append(name)
 
     def run_silent(fn, *args):
+        if fn is cmd_collect:
+            args += (load_ledger(args[0], "sf")["waves"][-1]["execution"],)
         with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
             return fn(*args)
 
@@ -1507,6 +1729,14 @@ def cmd_selftest():
 
 
 def main(argv):
+    try:
+        return _main(argv)
+    except (OSError, ValueError) as exc:
+        print("drain-wave: %s" % exc, file=sys.stderr)
+        return 1
+
+
+def _main(argv):
     for stream in (sys.stdout, sys.stderr):
         try:
             stream.reconfigure(encoding="utf-8", errors="replace")
@@ -1546,19 +1776,37 @@ def main(argv):
     if cmd == "dispatch":
         return cmd_dispatch(root, argv[3:])
     if cmd == "collect":
-        pairs = [p.strip() for arg in argv[3:] for p in arg.split(",") if p.strip()]
-        return cmd_collect(root, pairs)
+        arguments = list(argv[3:])
+        options = {}
+        for flag in ("--execution", "--feature"):
+            if flag in arguments:
+                index = arguments.index(flag)
+                if index + 1 >= len(arguments) or arguments[index + 1].startswith("--"):
+                    print(usage, file=sys.stderr)
+                    return 2
+                options[flag] = arguments[index + 1]
+                del arguments[index:index + 2]
+        pairs = [p.strip() for arg in arguments for p in arg.split(",") if p.strip()]
+        return cmd_collect(root, pairs, options.get("--execution"), options.get("--feature"))
     if cmd == "dismiss-conflict":
         if len(argv) != 6:
             print(usage, file=sys.stderr)
             return 2
         return cmd_dismiss_conflict(root, argv[3], argv[4], argv[5])
     if cmd == "audit":
-        feat = argv[3] if len(argv) == 4 else None
-        if len(argv) > 4:
+        arguments = list(argv[3:])
+        executions = []
+        while "--execution" in arguments:
+            index = arguments.index("--execution")
+            if index + 1 >= len(arguments):
+                print(usage, file=sys.stderr)
+                return 2
+            executions.append(arguments.pop(index + 1))
+            arguments.pop(index)
+        if len(arguments) > 1:
             print(usage, file=sys.stderr)
             return 2
-        return cmd_audit(root, feat)
+        return cmd_audit(root, arguments[0] if arguments else None, executions)
     print(usage, file=sys.stderr)
     return 2
 

@@ -1,8 +1,8 @@
 ---
 name: resume
 description: >-
-  Use when continuing interrupted work from a Cosmos handoff. Locates the newest active bridge, checks Git and worktree drift, loads only named inputs, resumes the objective, and consumes the bridge after completion.
-argument-hint: "Feature slug (optional)"
+  Use when continuing interrupted work from a Cosmos handoff. Selects the matching active bridge, checks Git and worktree drift, loads only named inputs, resumes the objective, and consumes that version after completion.
+argument-hint: "Feature slug or exact handoff path (optional)"
 ---
 
 # Resume
@@ -18,11 +18,13 @@ python <handoff-skill-dir>/scripts/handoff-state.py locate <repo-root> [<feature
 ```
 
 Use `python3` only when `python` is absent. The helper checks only `.scratch/handoff.md` and
-`.scratch/*/handoff.md`, selects the newest active
-packet, and compares both committed and uncommitted baselines.
+`.scratch/*/handoff.md` and compares both committed and uncommitted baselines. Retain the returned
+path and `version` for consumption. Use `--path <exact-handoff>` when a pointer names the bridge.
 
 - `none` → report no active handoff; continue an objective supplied by the user from available
   context, or report that no objective can be recovered.
+- `ambiguous` → choose from explicit task/feature pointers, then locate that path. If available
+  context cannot distinguish the remaining objectives, ask which to resume. Dates and mtimes do not select an owner.
 - `match` → proceed without rereading repository orientation.
 - `worktree-diverged` or `head-diverged` → inspect compact `git status --short`, relevant diff stat,
   and overlapping named paths. Continue autonomously if changes are disjoint and decisions remain
@@ -58,6 +60,14 @@ For feature work, query live cards only when the next action needs dispatch:
 
 ## 3. Consume
 
-Delete the handoff only when the objective it bridges is complete or explicitly abandoned. A long
-continuation needing another boundary overwrites it through `/handoff`; never keep two active packets
-for one feature. Report the resumed action and current evidence, not a second summary of the packet.
+Consume the selected version only when its objective is complete or explicitly abandoned:
+
+```text
+python <handoff-skill-dir>/scripts/handoff-state.py consume <repo-root> <handoff-path> --expected <version>
+```
+
+A mismatch preserves newer work; inspect and reconcile it without blind deletion or hash refresh.
+Check the whole remaining user goal and transfer reusable knowledge before consumption; an empty
+issue queue or a successful first Continue command does not establish completion.
+A long continuation needing another boundary publishes through `/handoff`; never keep two active
+packets for one feature. Report the resumed action and current evidence, not a second summary.

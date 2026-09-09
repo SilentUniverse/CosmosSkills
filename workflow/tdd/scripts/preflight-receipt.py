@@ -20,7 +20,6 @@ import json
 import os
 import re
 import sys
-import time
 from pathlib import Path
 from contextlib import contextmanager
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
@@ -34,6 +33,9 @@ from workflow_contract import (
     load_verifier_profile,
     resolve_action,
 )
+
+
+from workflow_runtime import file_lock
 
 
 SCHEMA_VERSION = 1
@@ -176,48 +178,8 @@ def _save(path: Path, data: Dict[str, Any]) -> None:
 
 @contextmanager
 def _exclusive_writer(path: Path):
-    """Cross-platform single-writer lock for the orchestrator receipt.
-
-    A writer that crashed between O_EXCL and unlink would strand the lock forever,
-    so a lock older than STALE_LOCK_SECONDS is treated as dead and taken over."""
-    stale_after = 30
-    path.parent.mkdir(parents=True, exist_ok=True)
-    lock = path.with_name(path.name + ".lock")
-    deadline = time.monotonic() + 5
-    descriptor = None
-    token = "%d:%d" % (os.getpid(), time.monotonic_ns())
-    while descriptor is None:
-        try:
-            descriptor = os.open(str(lock), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-        except FileExistsError:
-            try:
-                age = time.time() - lock.stat().st_mtime
-            except FileNotFoundError:
-                continue
-            if age > stale_after:
-                try:
-                    lock.unlink()
-                except FileNotFoundError:
-                    pass
-                continue
-            if time.monotonic() >= deadline:
-                raise ValueError(f"{path}: timed out waiting for receipt writer lock")
-            time.sleep(0.02)
-    try:
-        os.write(descriptor, token.encode("ascii"))
-        os.close(descriptor)
-        descriptor = None
+    with file_lock(path.with_name(path.name + ".lock")):
         yield
-    finally:
-        if descriptor is not None:
-            os.close(descriptor)
-        # Only remove a lock this writer still owns; a stolen-then-recreated lock
-        # belongs to whoever took over.
-        try:
-            if lock.read_text(encoding="ascii") == token:
-                lock.unlink()
-        except (FileNotFoundError, OSError, UnicodeDecodeError):
-            pass
 
 
 def _resolve_action(receipt: Path, action: str) -> Tuple[str, bool]:
@@ -490,6 +452,7 @@ def run_planned(
     *,
     timeout: float = 600.0,
     grace: float = 5.0,
+    keys: Optional[List[str]] = None,
 ) -> Mapping[str, Any]:
     """Execute every duplicate-plan cache miss serially and record passing runs.
 
@@ -501,7 +464,13 @@ def run_planned(
     root = repo_root.resolve()
     supervisor_run = _supervisor_run_command()
     verdicts: List[Dict[str, Any]] = []
-    for miss in duplicate_plan(root, feature)["duplicates"]:
+    duplicates = duplicate_plan(root, feature)["duplicates"]
+    if keys is not None:
+        missing = set(keys) - {row["key"] for row in duplicates}
+        if missing:
+            raise ValueError("requested preflight tuple changed; retry dispatch before execution")
+        duplicates = [row for row in duplicates if row["key"] in keys]
+    for miss in duplicates:
         if miss["status"] != "miss":
             verdicts.append(
                 {
@@ -520,7 +489,7 @@ def run_planned(
             root / ".scratch" / miss["feature"] / "receipts"
             / ("preflight-%s.json" % miss["key"][:16])
         )
-        log = root / ".scratch" / "tmp" / ("preflight-%s.log" % miss["key"][:16])
+        log = root / ".scratch" / "tmp" / ("preflight-%s-%s.log" % (miss["feature"], miss["key"][:16]))
         result, _ = supervisor_run(
             command_argv(miss["action"], "windows" if os.name == "nt" else "posix"),
             cwd=cwd,
@@ -584,6 +553,7 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("feature", nargs="?")
     run.add_argument("--timeout", type=float, default=600.0)
     run.add_argument("--grace", type=float, default=5.0)
+    run.add_argument("--key", action="append", help="run only these dispatch-requested tuple keys")
     return parser
 
 
@@ -595,7 +565,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             return 0
         if args.command == "run":
             report = run_planned(
-                args.repo_root, args.feature, timeout=args.timeout, grace=args.grace
+                args.repo_root, args.feature, timeout=args.timeout, grace=args.grace, keys=args.key
             )
             print(json.dumps(report, ensure_ascii=False, indent=2))
             return 0 if report["failed"] == 0 else 1

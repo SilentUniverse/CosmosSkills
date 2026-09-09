@@ -184,7 +184,7 @@ copy_file() {
 echo
 copy_file "$ROOT/workflow/ARTIFACT-FORMAT.md" "$TARGET/ARTIFACT-FORMAT.md" "Contract: ARTIFACT-FORMAT.md"
 copy_file "$ROOT/workflow/REPORT-FORMAT.md" "$TARGET/REPORT-FORMAT.md" "Contract: REPORT-FORMAT.md"
-for gate in verify-artifacts.py workflow-state.py workflow_contract.py; do
+for gate in verify-artifacts.py workflow-state.py workflow_contract.py workflow_runtime.py process_tree.py; do
   copy_file "$ROOT/workflow/$gate" "$TARGET/$gate" "Gate: $gate"
 done
 for helper in eval.py eval_campaign.py eval_metrics.py; do
@@ -276,6 +276,9 @@ mirror_shared_root() {
   copy_file "$ROOT/workflow/verify-artifacts.py" "$skills_root/verify-artifacts.py" "Gate: verify-artifacts.py ($label)"
   copy_file "$ROOT/workflow/workflow-state.py" "$skills_root/workflow-state.py" "State: workflow-state.py ($label)"
   copy_file "$ROOT/workflow/workflow_contract.py" "$skills_root/workflow_contract.py" "Contract: workflow_contract.py ($label)"
+  for helper in workflow_runtime.py process_tree.py; do
+    copy_file "$ROOT/workflow/$helper" "$skills_root/$helper" "Runtime: $helper ($label)"
+  done
 
   for i in "${!NAMES[@]}"; do
     name="${NAMES[$i]}"

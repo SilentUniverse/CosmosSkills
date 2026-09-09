@@ -11,19 +11,18 @@ exact `exclusive_resources` IDs serialize, and missing path declarations run alo
 root/config paths explicitly. SPEC names exclusive devices, databases, build outputs, and constrained
 runners on every card that uses them; do not rely on a prose warning the driver cannot enforce.
 
-## Generate wave packets and briefs
+## Generate wave inputs
 
-After dispatch, generate all wave packets in one read-only call per feature:
+After dispatch, generate briefs in one read-only call per feature:
 
 ```text
-python3 <skills-root>/workflow-state.py packets <repo-root> <feat> <slug>...
+python3 <skills-root>/workflow-state.py briefs <repo-root> <feat> --compact
 ```
 
-This avoids repeated process/profile reads and persists nothing. `packets` requires exactly the
-feature's outstanding open-wave slugs, checks every card against its dispatch-time contract hash,
-and returns one shared wave/baseline binding. It refuses undispatched, partial, or changed input.
-The brief contract and its emission command are single-sourced in [DRAIN.md](DRAIN.md); copy each
-listed `receipt-hit:<key>` token verbatim into every listed worker brief.
+This validates outstanding assignments and the dispatch binding, includes their packets, and emits
+one shared manifest with per-worker references. It persists nothing. `packets` remains available for
+packet-only inspection; do not call it before `briefs`. Assemble each worker's necessary inputs once
+using DRAIN's brief contract; a JSON pointer alone does not give a separate agent the referenced text.
 
 ## Assign, launch, and supervise
 
@@ -35,7 +34,8 @@ reconciliation. The orchestrator's issue follows the same ownership and evidence
 
 Until every worker closes, repeat a bounded supervision loop:
 
-1. Keep one cursor per worker. Consume one compact event snapshot at the first meaningful RED/GREEN
+1. Keep one cursor per worker. Use host completion/attention events when available. Otherwise consume
+   one compact event snapshot at the first meaningful RED/GREEN
    boundary after at least about 30 seconds since the previous status call; if no boundary arrives,
    check by about one minute. Consume an explicit attention/final event immediately without an
    extra status call. Check events against the packet, declared paths, first test, and verifier;
@@ -55,8 +55,9 @@ Until every worker closes, repeat a bounded supervision loop:
 
 ## Orchestrator write scope and the open-wave barrier
 
-While workers remain, the orchestrator may write only its assigned issue's declared paths and
-`.scratch`; outside that scope, only read-only inspection is allowed. Do not launch the batch suite
+While workers remain, the orchestrator may write only its assigned issue's declared paths and its
+own workflow artifacts. Shared state changes go through the owning script; `.scratch` is not an
+unrestricted shared write area. Outside that scope, only read-only inspection is allowed. Do not launch the batch suite
 or shared-cache preflight. Unassigned activity drifts fingerprints and blurs path ownership. Do not
 materialize next-wave packets, briefs, or manifests while the wave is open; they would be stale by
 construction. After reconciliation rerun `step` and generate the next wave's inputs once. Do not
