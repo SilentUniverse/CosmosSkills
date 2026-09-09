@@ -14,8 +14,8 @@ conversation summary. Preserve decisions and exact replay strings; discard explo
 
 - Feature work → `.scratch/<feat>/handoff.md`.
 - Cross-feature work → `.scratch/handoff.md`.
-- Interactive work writes when requested or when unfinished state must cross a real session boundary;
-  unattended batches may overwrite at wave close.
+- Write when requested or when unfinished state must cross a real session boundary, including an
+  unattended runner that cannot continue its native session.
 - Finished work gets no handoff. Never use an OS temp directory.
 
 ## Input budget
@@ -23,10 +23,13 @@ conversation summary. Preserve decisions and exact replay strings; discard explo
 Use session context to preserve the objective, authorization, and unresolved work. Read current
 `git status --short`, the active issue/plan, and artifacts required by the next action. Reopen
 earlier context only to recover a missing decision; reference supporting logs and diffs by path.
+Without an issue, retain the remaining goal, acceptance checks, current authority, minimal code
+relationships, and validation pointers here. Transfer verified reusable knowledge to its existing
+retrieval surface before consuming the handoff; completed exploration has no place in the bridge.
 
-Run `python <handoff-skill-dir>/scripts/handoff-state.py snapshot <repo-root>` once
-(`python3` only when `python` is absent). Copy its
-`git_base` and `worktree_digest` exactly into frontmatter. The digest tracks product drift only:
+Run `python <handoff-skill-dir>/scripts/handoff-state.py snapshot <repo-root> --path <handoff-path>`
+once (`python3` only when `python` is absent). Retain its `version` (`absent` for creation); copy
+`git_base` and `worktree_digest` exactly into the draft frontmatter. The digest tracks product drift only:
 it excludes handoff files and workflow-internal writes (preflight cache, wave ledger, execution
 receipts). Evidence integrity is the artifact gate's job, not the digest's; overwriting this
 bridge or replaying a preflight does not invalidate the baseline.
@@ -80,11 +83,20 @@ remaining objective; finishing its first action does not complete that objective
 
 ## Rolling update
 
-Update only fields that moved: restamp both baselines, replace `Continue`, advance the one-line
+Update only fields that moved: snapshot both baselines, replace `Continue`, advance the one-line
 `State`, and add only new non-derivable decisions or failed paths. Do not append history.
+Write the draft under `.scratch/tmp/`, then publish it through the version check:
+
+```text
+python <handoff-skill-dir>/scripts/handoff-state.py publish <repo-root> <handoff-path> --expected <version> --source <draft-path>
+```
+
+The helper verifies the draft baseline, stamps a new generation, and atomically replaces only the
+observed handoff version. A changed version or baseline requires reconciliation; never retry by
+blindly copying the new hash. Remove the consumed draft. Do not overwrite the target directly.
 
 ## Safety and done
 
 Preserve paths, commands, errors, identifiers, and signatures byte-for-byte. Remove secrets and PII.
 Before returning, confirm `Continue` has a READ/RUN/CONFIRM chain and the snapshot values match the
-written frontmatter. Report only path, `git_base`, and the first action.
+published frontmatter. Report only path, `git_base`, and the first action.

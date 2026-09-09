@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,31 +26,7 @@ class OvernightTests(unittest.TestCase):
 
         self.assertEqual(payload, overnight.parse_preflight_required(output))
 
-    def test_dispatch_receipt_tokens_are_parsed_for_issue_briefs(self):
-        key = "a" * 64
-        output = "\n".join(
-            [
-                "drain-wave: wave 1 dispatched (01-one, 02-two)",
-                f"brief: 01-one receipt-hit:{key}",
-                f"brief: 02-two receipt-hit:{key}",
-                "baseline recorded; subagents may start",
-            ]
-        )
-        self.assertEqual(
-            {
-                "01-one": [f"receipt-hit:{key}"],
-                "02-two": [f"receipt-hit:{key}"],
-            },
-            overnight.parse_receipt_hits(output),
-        )
-
-        structured = 'briefs: {"receipt-hit:%s":["01-one"]}' % key
-        self.assertEqual(
-            {"01-one": [f"receipt-hit:{key}"]},
-            overnight.parse_receipt_hits(structured),
-        )
-
-    def test_session_cap_is_incomplete_not_success(self):
+    def test_unowned_open_execution_is_not_adopted(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             issues = root / ".scratch" / "demo" / "issues"
@@ -65,14 +41,70 @@ class OvernightTests(unittest.TestCase):
                 patch.object(overnight, "MAX_SESSIONS", 2),
                 patch.object(overnight.shutil, "which", return_value="claude"),
                 patch.object(overnight, "run_tool", side_effect=tool),
-                patch.object(overnight, "launch", return_value=0),
+                patch.object(overnight, "launch", return_value=0) as launch,
                 redirect_stdout(output),
                 redirect_stderr(output),
             ):
                 code = overnight.main(["overnight.py", "demo", str(root)])
 
             self.assertEqual(3, code)
-            self.assertIn("reached 2-session cap before batch completion", output.getvalue())
+            launch.assert_not_called()
+            self.assertIn("no verified stopped owner", output.getvalue())
+
+    def test_launch_reuses_only_its_explicit_native_session(self):
+        with tempfile.TemporaryDirectory() as directory:
+            tree = Mock()
+            tree.process.wait.return_value = 0
+            tree.alive.return_value = False
+            session = {"id": "fixed-session", "started": False}
+            token = overnight._session.set(session)
+            try:
+                with patch.object(overnight, "ProcessTree", return_value=tree) as start, redirect_stdout(io.StringIO()):
+                    log = str(Path(directory) / "turn.log")
+                    overnight.launch("claude", directory, log, "first")
+                    overnight.launch("claude", directory, log, "second")
+                    independent = overnight._session.set(None)
+                    try:
+                        overnight.launch("claude", directory, log, "blind review")
+                    finally:
+                        overnight._session.reset(independent)
+                    overnight.launch("claude", directory, log, "third")
+                commands = [call.args[0] for call in start.call_args_list]
+                self.assertEqual(["--session-id", "fixed-session", "first"], commands[0][-3:])
+                self.assertEqual(["--resume", "fixed-session", "second"], commands[1][-3:])
+                self.assertNotIn("fixed-session", commands[2])
+                self.assertEqual(["--resume", "fixed-session", "third"], commands[3][-3:])
+            finally:
+                overnight._session.reset(token)
+
+    def test_session_cap_is_incomplete_not_success(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / ".scratch/demo/issues").mkdir(parents=True)
+            def tool(_script, args):
+                return {"selftest": (0, "ok"), "next": (0, "wave: 01-open"),
+                        "dispatch": (0, "execution: current")}[args[0]]
+            output = io.StringIO()
+            with (
+                patch.object(overnight, "MAX_SESSIONS", 1),
+                patch.object(overnight.shutil, "which", return_value="claude"),
+                patch.object(overnight, "run_tool", side_effect=tool),
+                patch.object(overnight, "launch", return_value=0),
+                redirect_stdout(output), redirect_stderr(output),
+            ):
+                code = overnight.main(["overnight.py", "demo", str(root)])
+            self.assertEqual(3, code)
+            self.assertIn("reached 1-session cap before batch completion", output.getvalue())
+
+    def test_recovery_requires_the_same_open_execution(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            ledger = root / ".scratch/demo/wave-ledger.json"
+            ledger.parent.mkdir(parents=True)
+            ledger.write_text(json.dumps({"waves": [{"execution": "new-owner",
+                "dispatched": ["01-one"], "closed": {}}]}), encoding="utf-8")
+            self.assertFalse(overnight.owns_open_wave(root, "previous-owner"))
+            self.assertTrue(overnight.owns_open_wave(root, "new-owner"))
 
     def test_conflict_gets_one_independent_review_then_stops_if_unchanged(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -122,7 +154,7 @@ class OvernightTests(unittest.TestCase):
                         else (4, "complete")
                     )
                 if args[0] == "dispatch":
-                    return 0, "baseline recorded; execution may start"
+                    return 0, "execution: current\nbaseline recorded; execution may start"
                 if args[0] == "audit":
                     return 0, "audit clean"
                 raise AssertionError(args)
@@ -151,7 +183,7 @@ class OvernightTests(unittest.TestCase):
             normalized = launches[0].replace(str(ROOT), "<skills-root>").replace(str(root), "<repo>")
             self.assertLess(len(normalized), 700)
 
-    def test_preflight_prompt_requires_supervised_execution_receipt(self):
+    def test_preflight_miss_uses_the_script_without_a_preparation_model_turn(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             issues = root / ".scratch" / "demo" / "issues"
@@ -160,11 +192,13 @@ class OvernightTests(unittest.TestCase):
                 "---\nstatus: ready\n---\n", encoding="utf-8"
             )
             launches = []
+            preparation = []
             next_calls = dispatch_calls = 0
             required = {
                 "duplicates": [
                     {
                         "feature": "demo",
+                        "key": "a" * 64,
                         "receipt": ".scratch/demo/preflight-receipt.json",
                         "cwd": ".",
                         "action": "pytest -q",
@@ -177,6 +211,9 @@ class OvernightTests(unittest.TestCase):
                 nonlocal next_calls, dispatch_calls
                 if args == ["selftest"]:
                     return 0, "selftest ok"
+                if args[0] == "run":
+                    preparation.append((_script, args))
+                    return 0, '{"recorded":1,"failed":0,"hit":0}'
                 if args[0] == "next":
                     next_calls += 1
                     return (0, "wave: 01-head") if next_calls == 1 else (4, "complete")
@@ -184,7 +221,7 @@ class OvernightTests(unittest.TestCase):
                     dispatch_calls += 1
                     if dispatch_calls == 1:
                         return 5, "preflight-required: " + json.dumps(required)
-                    return 0, "baseline recorded; execution may start"
+                    return 0, "execution: current\nbaseline recorded; execution may start"
                 if args[0] == "audit":
                     return 0, "audit clean"
                 raise AssertionError(args)
@@ -195,17 +232,19 @@ class OvernightTests(unittest.TestCase):
 
             with (
                 patch.object(overnight.shutil, "which", return_value="claude"),
+                patch.object(overnight.os, "getcwd", return_value=str(root)),
                 patch.object(overnight, "run_tool", side_effect=tool),
                 patch.object(overnight, "launch", side_effect=launch),
                 redirect_stdout(io.StringIO()),
                 redirect_stderr(io.StringIO()),
             ):
-                code = overnight.main(["overnight.py", "demo", str(root)])
+                code = overnight.main(["overnight.py"])
 
             self.assertEqual(0, code)
-            self.assertIn("test-supervisor.py", launches[0])
-            self.assertIn("--execution-receipt", launches[0])
-            self.assertIn("feature receipts", launches[0])
+            self.assertEqual(2, len(launches))  # implementation and close-out
+            self.assertEqual(1, len(preparation))
+            self.assertTrue(preparation[0][0].endswith("preflight-receipt.py"))
+            self.assertEqual(["run", str(root), "demo", "--key", "a" * 64], preparation[0][1])
 
     def test_stuck_guard_runs_before_another_dispatch(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -224,7 +263,7 @@ class OvernightTests(unittest.TestCase):
                     return 0, "wave: 01-open"
                 if args[0] == "dispatch":
                     dispatches += 1
-                    return 0, "baseline recorded; execution may start"
+                    return 0, "execution: current\nbaseline recorded; execution may start"
                 raise AssertionError(args)
 
             def launch(*_args):

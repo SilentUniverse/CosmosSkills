@@ -31,8 +31,8 @@ when a declaration disagrees with the tree. Missing declarations serialize; they
 inventing a write set or asking the user to schedule routine work.
 
 Use cards as durable inputs and compact results as retained context. Serial work continues in the
-current session. Rotate only at a real host/context boundary with a resumable packet, or when an
-external runner owns continuation. Card count, slow commands, and output size are not rotation or
+current session. Rotate only at a real host/context boundary with a resumable packet.
+Card count, slow commands, and output size are not rotation or
 delegation triggers. If subagents are unavailable, run serially and disclose the concurrency limit.
 
 ## Preflight receipts
@@ -83,6 +83,8 @@ covers readiness only; RED/GREEN and final behavior evidence are not cached.
 
 Serial mode runs one issue at a time through [SKILL.md](SKILL.md)'s autonomous loop. Use the same
 per-issue evidence and recovery rules as parallel work; no subagent or worktree is required.
+After serial dispatch, call `workflow-state.py packets <repo-root> <feat> <slug>` once and execute
+that bound packet with its execution ID. Do not invoke `start` again or load parallel brief rules.
 
 For `-p`, load [DRAIN-PARALLEL.md](DRAIN-PARALLEL.md) for collision-free waves, packet and brief
 generation, worker launch, supervision, and the open-wave barrier; this file stays loaded alongside it.
@@ -93,8 +95,9 @@ Before execution record:
 python3 <tdd-skill-dir>/scripts/drain-wave.py dispatch <repo-root> <slug>...
 ```
 
-Dispatch writes `.scratch/<feat>/wave-ledger.json` with issue assignments and only a baseline
-digest. The referenced `.scratch/wave-baselines/<sha256>.json` is written once for the whole wave
+Dispatch returns one execution ID and writes `.scratch/<feat>/wave-ledger.json` with bound issue
+assignments and a baseline digest. Carry that ID to every worker's `close` and the final `collect`.
+The referenced `.scratch/wave-baselines/<sha256>.json` is written once for the whole wave
 and contains compact content identity rather than source or diff text: Git HEAD, index/worktree
 diff hashes, and one hash/marker per pre-existing dirty path (or declared-path file hashes outside Git, falling back to
 the workspace for one serialized undeclared card). It excludes
@@ -111,7 +114,7 @@ follow host branch naming (Codex: `codex/`). Merge in dependency order, resolve 
 
 ## Worker brief contract (`-p`)
 
-`python3 <skills-root>/workflow-state.py briefs <repo-root> <feat>` renders the mechanical half of
+`python3 <skills-root>/workflow-state.py briefs <repo-root> <feat> --compact` renders the mechanical half of
 every outstanding worker brief: packet, receipt-hit token(s) when the ledger recorded them, and the
 derived tests-so-far manifest (done cards' `test_paths`, archived history included, derived per
 call). Generation, launch, and supervision live in [DRAIN-PARALLEL.md](DRAIN-PARALLEL.md). The
@@ -120,13 +123,13 @@ delegated workers from these immutable inputs before beginning the orchestrator'
 worker receives a self-contained brief:
 
 - Run `/tdd <issue-path>` with inherited `-log`, not drain mode. No nested agents.
-- Supply that issue's compact projection from `workflow-state.py packets` and exact receipt-hit token, if
+- Supply that issue's compact packet from `briefs` and exact receipt-hit token, if
   any. The worker uses the caller-supplied packet directly; do not regenerate it or paste the full
   card/prior Comments. A stale source/status/hash is an attention event, not permission to refresh
   the contract silently.
 - Supply only constraints absent from the packet and batch-level commands the issue cannot derive.
   Reuse settled decisions; only new consequential choices return to the caller.
-- Derive prior green cards' relevant `test_paths` once as the tests-so-far manifest. Do not persist a
+- Use the shared tests-so-far manifest derived once from prior green cards' `test_paths`. Do not persist a
   standalone copy. Use the packet's `context` pointers first and expand only for a discovered dependency.
 - Require one compact attention event before guessing beyond the packet or changing declared scope.
 - Require evidence pointers and changed-file ownership deltas. Commands, tallies, and declared paths
@@ -165,15 +168,15 @@ user/concurrent work and `.scratch/**` history. An ambiguous baseline is a reaso
 After every worker is terminal, verify the union of touched modules and reconcile changed paths
 against the baseline and reported owners, excluding `.scratch/**`. Reuse current per-issue results
 only where sibling edits and integration cannot invalidate them; run the remaining scopes once on
-the reconciled tree. Append undeclared test
-ownership to `test_paths`; record an unexpected production path in the issue's completion note.
+the reconciled tree. Append new tests within admitted ownership to `test_paths` before final receipts;
+scope expansion follows [COMPLETION-RECORD.md](COMPLETION-RECORD.md), before writing outside that scope.
 Two workers claiming one path, unowned changes, dependency/lock drift, a nonexistent assigned
 issue, a contradictory test manifest, or broken base build is wave-level failure.
 
 Only after clean reconciliation, commit every outstanding result with one `collect` invocation:
 
 ```text
-python3 <tdd-skill-dir>/scripts/drain-wave.py collect <repo-root> <slug>=<result|conflict@evidence.json>[,...]
+python3 <tdd-skill-dir>/scripts/drain-wave.py collect <repo-root> --execution <id> <slug>=<result|conflict@evidence.json>[,...]
 ```
 
 Supported results: `green|red|blocked|aborted`, or `conflict@<receipt.json>`. Disk and report must
@@ -182,7 +185,9 @@ a `done` card with valid completion evidence; a non-green result cannot leave an
 card. For an oddly formatted report, inspect disk evidence and the relevant scoped check before
 rejecting otherwise valid work. Completion records are evidence, not an agent confidence statement.
 `collect` rejects a partial outstanding wave, so the dispatch barrier stays open through
-reconciliation and the ledger is rewritten once. A legacy partially collected wave commits all of
+reconciliation. A shared OS lock serializes short state transactions; multi-file publication is
+journaled and read projections refuse an interrupted publication until a mutator recovers it.
+Never delete the lock file or infer ownership from its age. A legacy partially collected wave commits all of
 its remaining assignments together.
 
 On wave failure, pause scheduling, determine ownership, and repair or restore only attributable
@@ -221,27 +226,39 @@ and inconclusive classifications. The caller verifies the review's substantive e
 script validates its identity and shape, not the truth of a model's claim. Other conflicts remain.
 
 After a clean collection, derive the next tests-so-far view from green cards and recompute eligibility.
-Use a rolling handoff only for unattended continuation or a real session boundary, with pointers
+Use a rolling handoff only for a real session boundary, with pointers
 to the ledger/cards and non-derivable decisions. Do not copy expanded test/evidence inventories or
 rewrite a handoff after every interactive wave.
 
 ## External runner
 
 With `scripts/overnight.py`, the runner owns scheduling and dispatches before launching the
-session. Execute only its assigned wave, collect, and write a resumable Continue chain pointing to
-the ledger/cards rather than restating completed work. The session
+session. Execute only its assigned wave and collect. The same explicit native session
 then returns to the runner, which continues the batch; this is not completion of the user's task.
-A zombie recovery session only adopts/reverts, reconciles, and collects the whole outstanding wave.
-A separate session performs close-out.
-Exit 5 permits a preparation-only session to replay/record the named P# tuples, with no product
-edit, dependency install, or dispatch; the runner then retries with the emitted receipt keys.
+A recovery turn handles only this invocation's execution after its process group has stopped;
+unknown owners stop for host reconciliation. External workers also need observed terminal state.
+Close-out continues the same session. Independent conflict review uses a separate session.
+Only an actual context boundary writes a handoff through `/handoff`. When changing a host/session
+adapter, use [SESSION-REUSE.md](SESSION-REUSE.md).
+Exit 5 runs the existing supervised `preflight-receipt.py run --key <key>` path for only the named
+tuples, with no model preparation turn. A missing or changed tuple refuses execution; a failed
+preflight stops the runner. Passing receipts allow dispatch to retry.
 Interactive sessions schedule their own waves and do not require external session rotation.
 
 ## Close the batch
 
 When no dispatchable work remains, account for failed/deferred issues before claiming success.
-Run `drain-wave.py audit <repo-root> [<feat>]`: test files under `touches` must have issue ownership.
-Assign proven ownership or resolve the gap; do not attribute unrelated tests just to pass the gate.
+Run `drain-wave.py audit <repo-root> [<feat>] --execution <id>` (repeat the flag for this batch's
+executions): reuse the dispatch baselines to check added, modified,
+and deleted tests under admitted paths against this batch's issue ownership. Unchanged historical
+tests need no attribution; an undispatched historical card cannot own a new edit. Git comparison
+preserves pre-existing dirty/untracked content; the filesystem fallback covers captured scopes.
+Missing or corrupt referenced baselines refuse audit; legacy scopes without comparable content
+fall back to a visibly labelled full inventory. Resolve actual gaps without inventing ownership.
+This test audit does not replace wave-level reconciliation of all changed files or integrated checks.
+The runner supplies its dispatch IDs automatically; an interactive caller carries those pointers
+through a handoff when needed. More than one retained execution requires explicit membership;
+ledger age, optional GC, and archived history cannot determine the current batch.
 
 Run the full suite plus applicable build once via [FULL-SUITE.md](FULL-SUITE.md). For `-log`,
 replay each shipped issue's recorded log command and predicate instead. Resolve each feature's live
@@ -272,7 +289,7 @@ Report one screen, omitting empty blocks, per [REPORT-FORMAT.md](../REPORT-FORMA
 5. 详文: completion/evidence paths. Handoff only when a later session must continue.
 
 Account for every dispatched issue, integrate every task worktree, and collect every worker.
-Delete a rolling handoff only when its remaining objective is complete. After all waves close and
+Consume a rolling handoff through `/resume` only when its remaining objective is complete. After all waves close and
 the batch ships with no active conflict barrier, `workflow-state.py gc <repo-root> <feat>` may remove
 closed ledger/preflight caches;
 it also removes unreferenced shared baseline manifests, and never moves issues/tests, deletes

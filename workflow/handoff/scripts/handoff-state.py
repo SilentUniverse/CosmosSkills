@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Snapshot git state and locate the newest active handoff without rereading the tree."""
+"""Select, publish, and consume an integrity-bound continuation."""
 
 from __future__ import annotations
 
@@ -7,10 +7,17 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
+import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence
+
+WORKFLOW_ROOT = Path(__file__).resolve().parents[2]
+if str(WORKFLOW_ROOT) not in sys.path:
+    sys.path.insert(0, str(WORKFLOW_ROOT))
+from workflow_runtime import reading, transaction, write_state
 
 
 def _git(root: Path, args: Sequence[str]) -> bytes:
@@ -33,12 +40,14 @@ def _is_handoff(path: str) -> bool:
 def _is_transient_cache(path: str) -> bool:
     parts = Path(path).parts
     return len(parts) >= 2 and parts[0] == ".scratch" and (
-        parts[-1] in {"preflight-receipt.json", "wave-ledger.json"}
+        parts[1] == "tmp" or parts[1].startswith(".workflow")
+        or parts[-1] in {"preflight-receipt.json", "preflight-receipt.json.lock", "wave-ledger.json"}
         or (len(parts) >= 3 and parts[-2] == "receipts" and parts[-1].endswith(".json"))
     )
 
 
-def snapshot(root: Path) -> Mapping[str, Any]:
+@reading
+def snapshot(root: Path, handoff: Optional[Path] = None) -> Mapping[str, Any]:
     repo = root.resolve()
     head = _git(repo, ["rev-parse", "--short", "HEAD"]).decode("ascii").strip()
     tracked = _git(
@@ -84,20 +93,82 @@ def snapshot(root: Path) -> Mapping[str, Any]:
             continue
         tracked_dirty.append(relative)
     paths = sorted(set(tracked_dirty + dirty_paths))
-    return {
+    result = {
         "git_base": head,
         "worktree_digest": digest.hexdigest(),
         "dirty": bool(tracked or dirty_paths),
         "dirty_count": len(paths),
         "dirty_paths": paths,
     }
+    if handoff is not None:
+        path = target_path(repo, handoff)
+        result.update(path=path.relative_to(repo).as_posix(), version=version(path))
+    return result
+
+
+def target_path(root, reference):
+    root = Path(root).resolve()
+    path = (root / reference).resolve()
+    parts = path.relative_to(root).parts
+    if not (len(parts) in (2, 3) and parts[0] == ".scratch" and parts[-1] == "handoff.md"):
+        raise ValueError("target must be .scratch/[feature/]handoff.md")
+    return path
+
+
+def version(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else "absent"
+
+
+def publish(root, reference, expected, source):
+    root = Path(root).resolve()
+    path = target_path(root, reference)
+    with transaction(root):
+        if version(path) != expected:
+            raise ValueError("handoff changed; preserve it and reconcile before publishing")
+        raw = Path(source).read_text(encoding="utf-8-sig")
+        fm = _frontmatter(Path(source), raw)
+        if fm.get("type") != "handoff" or fm.get("status") != "active":
+            raise ValueError("source must be an active handoff")
+        if fm.get("capsule", "active-work") not in CAPSULES:
+            raise ValueError("unknown handoff capsule")
+        expected_feature = path.parent.name if path.parent != root / ".scratch" else "null"
+        if fm.get("feature") != expected_feature:
+            raise ValueError("handoff feature does not match its target")
+        end = raw.find("\n---", 4)
+        if end < 0:
+            raise ValueError("handoff frontmatter is not closed")
+        head, body = raw[:end], raw[end:]
+        state = snapshot(root)
+        if any(fm.get(key) != state[key] for key in ("git_base", "worktree_digest")):
+            raise ValueError("handoff baseline changed while drafting; reconcile and snapshot again")
+        for key, value in {"generation": uuid.uuid4().hex,
+                           "git_base": state["git_base"],
+                           "worktree_digest": state["worktree_digest"]}.items():
+            line = "%s: %s" % (key, value)
+            if re.search(r"(?m)^" + key + r":.*$", head):
+                head = re.sub(r"(?m)^" + key + r":.*$", line, head)
+            else:
+                head += "\n" + line
+        content = head + body
+        write_state(root, path, content)
+    return {"path": path.relative_to(root).as_posix(), "version": hashlib.sha256(content.encode("utf-8")).hexdigest()}
+
+
+def consume(root, reference, expected):
+    root = Path(root).resolve()
+    path = target_path(root, reference)
+    with transaction(root):
+        if expected == "absent" or version(path) != expected:
+            raise ValueError("handoff changed; the selected version cannot be consumed")
+        write_state(root, path, None)
+    return {"path": path.relative_to(root).as_posix(), "status": "consumed"}
 
 
 CAPSULES = ("active-work", "awaiting-alignment", "external-pending")
 
 
-def _frontmatter(path: Path) -> Dict[str, str]:
-    lines = path.read_text(encoding="utf-8-sig").splitlines()
+def _frontmatter(path: Path, raw: Optional[str] = None) -> Dict[str, str]:
+    lines = (path.read_text(encoding="utf-8-sig") if raw is None else raw).splitlines()
     if not lines or lines[0].strip() != "---":
         return {}
     result: Dict[str, str] = {}
@@ -110,9 +181,14 @@ def _frontmatter(path: Path) -> Dict[str, str]:
     return result
 
 
-def locate(root: Path, feature: Optional[str] = None) -> Mapping[str, Any]:
+@reading
+def locate(root: Path, feature: Optional[str] = None, reference: Optional[Path] = None) -> Mapping[str, Any]:
     repo = root.resolve()
-    if feature:
+    if reference is not None:
+        candidates = [target_path(repo, reference)]
+    elif feature:
+        if Path(feature).name != feature or feature in (".", "..") or "\\" in feature:
+            raise ValueError("feature must be a single directory name")
         candidates = [repo / ".scratch" / feature / "handoff.md"]
     else:
         candidates = [repo / ".scratch" / "handoff.md"]
@@ -126,7 +202,15 @@ def locate(root: Path, feature: Optional[str] = None) -> Mapping[str, Any]:
             active.append((frontmatter.get("date", ""), path.stat().st_mtime_ns, path, frontmatter))
     if not active:
         return {"status": "none", "path": None}
-    _, _, path, frontmatter = max(active, key=lambda row: (row[0], row[1]))
+    if len(active) > 1:
+        return {
+            "status": "ambiguous", "path": None,
+            "candidates": [
+                {"path": row[2].relative_to(repo).as_posix(), "feature": row[3].get("feature")}
+                for row in active
+            ],
+        }
+    _, _, path, frontmatter = active[0]
     capsule = frontmatter.get("capsule") or "active-work"
     if capsule not in CAPSULES:
         raise ValueError(
@@ -152,6 +236,7 @@ def locate(root: Path, feature: Optional[str] = None) -> Mapping[str, Any]:
     return {
         "status": "active",
         "path": str(path.relative_to(repo)),
+        "version": version(path),
         "feature": frontmatter.get("feature"),
         "capsule": capsule,
         "date": frontmatter.get("date"),
@@ -169,23 +254,37 @@ def build_parser() -> argparse.ArgumentParser:
     commands = parser.add_subparsers(dest="command", required=True)
     snap = commands.add_parser("snapshot")
     snap.add_argument("repo_root", type=Path)
+    snap.add_argument("--path", type=Path)
     find = commands.add_parser("locate")
     find.add_argument("repo_root", type=Path)
     find.add_argument("feature", nargs="?")
+    find.add_argument("--path", type=Path)
+    for name in ("publish", "consume"):
+        change = commands.add_parser(name)
+        change.add_argument("repo_root", type=Path)
+        change.add_argument("path", type=Path)
+        change.add_argument("--expected", required=True)
+        if name == "publish":
+            change.add_argument("--source", type=Path, required=True)
     return parser
 
 
 def main(argv: Optional[List[str]] = None) -> int:
     args = build_parser().parse_args(argv)
     try:
-        data = snapshot(args.repo_root) if args.command == "snapshot" else locate(
-            args.repo_root, args.feature
-        )
+        if args.command == "snapshot":
+            data = snapshot(args.repo_root, args.path)
+        elif args.command == "locate":
+            data = locate(args.repo_root, args.feature, args.path)
+        elif args.command == "publish":
+            data = publish(args.repo_root, args.path, args.expected, args.source)
+        else:
+            data = consume(args.repo_root, args.path, args.expected)
     except (OSError, ValueError) as exc:
         print("handoff-state: %s" % exc, file=sys.stderr)
         return 1
     print(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True))
-    return 3 if args.command == "locate" and data["status"] == "none" else 0
+    return {"none": 3, "ambiguous": 4}.get(data.get("status"), 0)
 
 
 if __name__ == "__main__":

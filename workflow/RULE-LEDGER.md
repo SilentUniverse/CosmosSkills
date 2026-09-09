@@ -81,7 +81,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 
 | 定位 | 要旨 | 性质 | 层级 | 防什么失败 · 出处 / 探针 |
 |---|---|---|---|---|
-| Invocation | 小需求 inline；复杂需求经 spec review 后接续；ready 不等于接受 | 过程 | 流程 | routing-requirement-to-spec（origin: routing） |
+| Invocation | 有持久消费者才建卡；显式方案/新实质选择经 spec review；ready 不等于接受 | 过程 | 流程 | routing-requirement-to-spec（origin: routing） |
 | §2–3 | 一次一测试、先红后绿、不预写未来 ◆ | 过程 | 流程 | TDD 方法论（无事故出处）/ tdd-holds-red-under-pressure |
 | §1 | 预检声明：先重算指纹、重放 P#、报 2–3 行 | 过程 | 机器+流程 | 7be5338（preflight receipts）、0bf346b（executable spec validation）/ spec-verifier-preflight |
 | §1 | 行为波次暂停后由 caller 恢复声明环境，真实新授权才问 | 产物 | 流程 | 46a7646（execution contracts 加固） |
@@ -92,7 +92,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 
 | 定位 | 要旨 | 性质 | 层级 | 防什么失败 · 出处 / 探针 |
 |---|---|---|---|---|
-| Driver and inputs | driver 统一派生待执行项与依赖；worker 复用已派发 packet | 过程·经济 | 机器+流程 | drain-wave step + workflow-state packets |
+| Driver and inputs | driver 统一派生待执行项与依赖；worker 复用已派发 packet | 过程·经济 | 机器+流程 | drain-wave step + workflow-state briefs --compact |
 | Shared·预算 | 精简证据；仅真实宿主/上下文边界轮换 | 过程·经济 | 流程 | 7 卡批尾实测 ~550k token/请求（7be5338） |
 | Shared·blocked | 具体缺失条件和证据；独立完成，已知无权限不空重试 | 产物 | 流程 | b369e40（blocked gate） |
 | Serial | 基线加 diff 确定归属；只恢复自身改动，保留并发工作 | 产物 | 流程 | f7cc4db（baseline reverts） |
@@ -101,7 +101,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | Issue·依赖 | `blocked_by` 是唯一依赖源；正文不维护同义列表，packet 直接投影 frontmatter | 产物 | 机器+流程 | ARTIFACT-FORMAT blocked_by + workflow-state.py packet |
 | Parallel·报告 | 固定四值；长度与证据形状由 DRAIN 单点定义，不重抄卡片/回执 | 接口+过程 | 机器+流程 | DRAIN worker result + drain-wave.py collect |
 | Parallel·收波 | 全 worker 终态 → 联合 scoped 验证/归属核对 → 一次 collect 全部 outstanding；partial 拒绝 | 过程·质量·经济 | 机器+流程 | ARTIFACT-FORMAT wave ledger + drain-wave.py collect |
-| Parallel→overnight | 过夜 runner 拥有调度，会话轮换 | 过程·经济 | 机器 | e926a87（overnight driver）、f7cc4db（persisted state）/ resume-cold-start |
+| Parallel→overnight | runner 拥有调度，连续运行复用指定原生会话，真实边界才交接 | 过程·经济 | 机器 | scripts/overnight.py + tdd/SESSION-REUSE.md / resume-cold-start |
 
 ## E. commit — workflow/commit/SKILL.md（每次提交付费）
 

@@ -7,7 +7,10 @@ record; execution receipts and tests hold machine evidence. Do not narrate the i
 
 1. Trace this issue's owned diff hunks to AC. Remove only this issue's own out-of-scope edits;
    preserve user changes and other workers' hunks even when they appear in the same working tree.
-2. Append newly written test files to frontmatter `test_paths:`.
+2. Append newly written test files to frontmatter `test_paths:` within admitted `touches` or original
+   test ownership. An execution cannot shrink ownership or change its behavior/profile contract.
+   A needed expansion outside those paths is attention before writing: stop affected workers,
+   reconcile/close the old execution, update the contract, then admit the revised work.
 3. Cover chosen failure modes: empty/boundary/error and relevant concurrency/timeout behavior.
 4. Reuse project verification commands; cache a reusable adapter in `CODEBASE.md` only when
    project configuration cannot cheaply supply it.
@@ -37,12 +40,16 @@ Append the record to `## Comments` first, then flip the card mechanically:
 Then flip the card mechanically:
 
 ```text
-python <skills-root>/workflow-state.py close <repo-root> <feat> <slug>
+python <skills-root>/workflow-state.py close <repo-root> <feat> <slug> --execution <id>
 ```
 
 Use `python3` only when `python` is absent. `close` refuses a card without its `### 完成` record or
-one that is not `ready`, and flips `status: done` atomically. Outside an open wave it also prints
-available transient-GC candidates; an active drain computes them once at batch close.
+one that is not `ready`. It validates the assigned execution and contract before flipping status;
+a direct `start` execution closes its ledger in the same transaction. Batch assignments remain open
+until wave reconciliation and `collect`. Legacy cards without an execution may omit the flag.
+Outside an open wave it also prints available transient-GC candidates; an active drain computes them
+once at batch close. A non-green direct run records its attempt and calls
+`drain-wave.py collect <repo-root> --feature <feat> --execution <id> <slug>=<result>`.
 
 For `contract_version: 3` cards the record is the receipt-reference form:
 

@@ -138,7 +138,7 @@ function Install-SharedSkillRoot {
         else { New-Item -ItemType Directory -Path $SkillsRoot -Force | Out-Null }
     }
 
-    foreach ($shared in @("ARTIFACT-FORMAT.md", "REPORT-FORMAT.md", "verify-artifacts.py", "workflow-state.py", "workflow_contract.py")) {
+    foreach ($shared in @("ARTIFACT-FORMAT.md", "REPORT-FORMAT.md", "verify-artifacts.py", "workflow-state.py", "workflow_contract.py", "workflow_runtime.py", "process_tree.py")) {
         $sharedSrc = Join-Path $root "workflow/$shared"
         if (-not (Test-Path -LiteralPath $sharedSrc)) { continue }
         $sharedDst = Join-Path $SkillsRoot $shared
@@ -339,7 +339,7 @@ if (Test-Path -LiteralPath $rfSource) {
 }
 
 # --- Ship the artifact gate scripts next to ARTIFACT-FORMAT.md (same distribution reason). ---
-foreach ($gate in @("verify-artifacts.py", "workflow-state.py", "workflow_contract.py")) {
+foreach ($gate in @("verify-artifacts.py", "workflow-state.py", "workflow_contract.py", "workflow_runtime.py", "process_tree.py")) {
     $gSrc = Join-Path $root "workflow/$gate"
     if (-not (Test-Path -LiteralPath $gSrc)) { continue }
     $gTarget = Join-Path $Target $gate

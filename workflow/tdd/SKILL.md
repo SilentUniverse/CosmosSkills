@@ -10,20 +10,24 @@ argument-hint: "Issue path, feature slug, -p, -all, -log, or nothing to drain al
 ## Invocation
 
 - `/tdd <issue-path>` — run only that issue. Read frontmatter `status:` and obey the guard below.
-  Use a caller-supplied packet directly. Otherwise obtain the compact contract with
-  `python <skills-root>/workflow-state.py packet <repo-root> <feat> <slug>`; use `python3` when
-  `python` is absent. It includes required inputs and the newest retry, omitting prior Comments.
-  If source/status/hash is observed stale, pause writes and return one attention event.
+  Use a caller-supplied packet and execution ID directly. Otherwise, after the status/review guard,
+  run `python <skills-root>/workflow-state.py start <repo-root> <feat> <slug>` (`python3` when
+  `python` is absent). This admits the single card and returns its packet, execution ID, and baseline
+  digest together. `packet` remains a read-only inspection command. If source/status/hash is observed
+  stale, pause writes and return one attention event; never redispatch or refresh a worker's input silently.
 - Explicit bare `/tdd` — **drain (serial)**: every `ready` issue across `.scratch/`, one at a time,
   in dependency order. A caller or natural-language implementation request inherits only its named
   task; absence of an issue path does not authorize a repository-wide drain.
 - `/tdd <feat>` — drain scoped to one feature's `issues/` directory.
-- `/tdd -p [<feat>]` — **drain (parallel)**: up to four concurrent issues including the main agent's. The main agent normally owns the highest-priority issue, delegates the rest, and supervises the wave. Delegated output stays isolated while the critical slice remains visible. Declared collisions serialize; undeclared issues run alone. Worktree only on explicit request, and runner-driven session rotation: [DRAIN.md](DRAIN.md) plus [DRAIN-PARALLEL.md](DRAIN-PARALLEL.md).
+- `/tdd -p [<feat>]` — **drain (parallel)**: up to four concurrent issues including the main agent's. The main agent normally owns the highest-priority issue, delegates the rest, and supervises the wave. Declared collisions serialize; undeclared issues run alone. Execution and isolation rules: [DRAIN.md](DRAIN.md) plus [DRAIN-PARALLEL.md](DRAIN-PARALLEL.md).
 - `/tdd -all` — run build + the whole suite now (§5); combines with any form above.
 - `/tdd -log` — the verdict is a command's log file, not test runs: [LOG.md](LOG.md). Same mode when the user says this run drives a device and the result lands in a log file. Combines with any form above.
-- Task-scoped entry without an issue: for one settled local behavior, keep outcome, constraints, and evidence inline
-  and execute this loop without issue artifacts. Multi-slice or unresolved product work uses `/spec`
-  first, then resumes here after its user-review checkpoint is satisfied. Unknown failures use `/diagnose`.
+- Task-scoped entry without an issue: keep a settled outcome, constraints, authorization, and proof
+  inline when no queue, delegation, dependency, or contract-history consumer needs a card. File count
+  does not decide this. A requested plan or consequential unresolved choice uses `/spec`, then resumes
+  after its user-review checkpoint is satisfied. Unknown failures use `/diagnose`.
+  Before editing, inspect relevant ready work and open assignments through `workflow-state.py survey`;
+  use the existing card when it owns the work, and coordinate any active execution before touching its scope.
 
 ### Drain mode
 
@@ -31,6 +35,7 @@ Load [DRAIN.md](DRAIN.md) only for an explicit batch; `-p` additionally loads
 [DRAIN-PARALLEL.md](DRAIN-PARALLEL.md). Its driver owns enumeration, dependency order,
 wave packets, receipts, recovery, and batch close. Serial is the default; `-p` enables independent
 worker waves. Keep conversation summaries out of subsequent issue briefs.
+When changing an external runner or provider adapter, load [SESSION-REUSE.md](SESSION-REUSE.md).
 
 ### Status guard (issue-driven invocation)
 
@@ -104,7 +109,12 @@ receipt conflict takes the batch barrier in [DRAIN.md](DRAIN.md). A contract-pre
 
 ### 4. Refactor
 
-After all tests pass: [refactoring.md](refactoring.md). Unexpected red exposing an `rg`-invisible invariant (hidden constraint/coupling) → persist it to the area's `CODEBASE.md` block (two-axis test per `/map`); no `CODEBASE.md` yet → note in `### 完成`. Run tests after each refactor step. **Never refactor while RED.**
+After all tests pass: [refactoring.md](refactoring.md). Persist a verified, hard-to-recover invariant
+to the relevant existing knowledge surface under `/map`'s two-axis test; link its code/test evidence.
+Knowledge retention does not require an issue completion. If no such surface exists, establish only
+the needed entry with a retrieval path; do not inventory the whole repository to retain one fact.
+Keep transient hypotheses in the current task or handoff. Run affected tests after refactoring;
+**never refactor while RED**.
 
 ### 5. Full-suite check
 

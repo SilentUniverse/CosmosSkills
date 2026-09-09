@@ -363,7 +363,7 @@ created: 2026-08-30
             self.assertEqual("hit", preflight.duplicate_plan(root)["duplicates"][0]["status"])
 
 
-    def test_stale_writer_lock_is_taken_over(self):
+    def test_lock_age_cannot_displace_an_active_writer(self):
         import os
         import time
 
@@ -376,15 +376,20 @@ created: 2026-08-30
             lock.write_text("12345", encoding="ascii")
             ancient = time.time() - 600
             os.utime(lock, (ancient, ancient))
+            execution = passing_execution(root, action)
+            with preflight.file_lock(lock):
+                with self.assertRaisesRegex(ValueError, "busy"):
+                    preflight.record(path, cwd=str(root), action=action,
+                                     fingerprint="git=abc; lock=none", execution_receipt=execution)
             preflight.record(
                 path,
                 cwd=str(root),
                 action=action,
                 fingerprint="git=abc; lock=none",
-                execution_receipt=passing_execution(root, action),
+                execution_receipt=execution,
             )
             self.assertTrue(path.exists())
-            self.assertFalse(lock.exists())
+            self.assertTrue(lock.exists())
 
     def test_duplicate_plan_accepts_precalculated_rows(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -405,6 +410,23 @@ created: 2026-08-30
                 preflight.duplicate_plan(root),
                 preflight.duplicate_plan(root, rows=scanned),
             )
+
+    def test_equal_tuples_in_two_features_keep_valid_execution_logs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            action = shlex.join([sys.executable, "-c", "import time; print(time.time_ns())"])
+            for feature in ("one", "two"):
+                issues = root / ".scratch" / feature / "issues"
+                issues.mkdir(parents=True)
+                for number in (1, 2):
+                    (issues / ("0%d-card.md" % number)).write_text(
+                        "---\nstatus: ready\n---\n## 验证设计\n"
+                        "- 工作目录：`.`\n- 环境指纹：`git=abc; lock=none`\n"
+                        "- P1 预检：`%s` → passed\n" % action, encoding="utf-8")
+            report = preflight.run_planned(root)
+            self.assertEqual(2, report["recorded"])
+            self.assertEqual(2, len({item["log"] for item in report["verdicts"]}))
+            self.assertEqual(["hit", "hit"], [item["status"] for item in preflight.duplicate_plan(root)["duplicates"]])
 
     def test_run_records_passing_misses_and_reports_failures(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -450,6 +472,11 @@ created: 2026-08-30
             self.assertEqual(0, rerun["recorded"])
             self.assertEqual(1, rerun["hit"])
             self.assertEqual(1, rerun["failed"])
+            bad_key = by_action[bad]["key"]
+            selected = preflight.run_planned(root, keys=[bad_key])
+            self.assertEqual([bad_key], [item["key"] for item in selected["verdicts"]])
+            with self.assertRaisesRegex(ValueError, "tuple changed"):
+                preflight.run_planned(root, keys=["unavailable-tuple"])
 
     def test_run_exit_code_marks_failures(self):
         import io

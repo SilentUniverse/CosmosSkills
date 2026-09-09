@@ -24,6 +24,17 @@ SPEC.loader.exec_module(supervisor)
 
 
 class TestSupervisorTests(unittest.TestCase):
+    def test_parent_exit_does_not_leave_a_background_writer(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            sentinel = root / "child-finished"
+            child = "import pathlib,time; time.sleep(.6); pathlib.Path(%r).write_text('bad')" % str(sentinel)
+            parent = "import subprocess,sys; subprocess.Popen([sys.executable,'-c',%r])" % child
+            result, exit_code, _, _ = self.run_case(root, [sys.executable, "-c", parent])
+            time.sleep(0.8)
+            self.assertFalse(sentinel.exists(), "receipt was published while a child could still write")
+            self.assertNotEqual(0, exit_code)
+
     def run_case(self, root, command, timeout=2.0, scope="targeted"):
         receipt = root / "receipt.json"
         log = root / "run.log"

@@ -123,6 +123,26 @@ def issue_contract_digest(raw: str) -> str:
     return hashlib.sha256("".join(lines).encode("utf-8")).hexdigest()
 
 
+def execution_contract_digest(raw: str) -> str:
+    """Separate appendable test ownership from the immutable behavior contract."""
+    lines = raw.replace("\r\n", "\n").replace("\r", "\n").splitlines(keepends=True)
+    result = []
+    in_frontmatter, tests = False, False
+    for index, line in enumerate(lines):
+        if line.strip() == "---":
+            in_frontmatter = index == 0
+            tests = False
+        elif in_frontmatter and line.startswith("test_paths:"):
+            tests = True
+            continue
+        elif tests:
+            if line[:1].isspace():
+                continue
+            tests = False
+        result.append(line)
+    return issue_contract_digest("".join(result))
+
+
 def _pairs(value: str, label: str) -> Dict[str, str]:
     result: Dict[str, str] = {}
     for item in re.split(r"[;；]", value):

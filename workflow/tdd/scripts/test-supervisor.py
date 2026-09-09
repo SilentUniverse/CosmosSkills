@@ -9,7 +9,6 @@ import json
 import os
 import platform
 import re
-import signal
 import subprocess
 import sys
 import time
@@ -21,6 +20,7 @@ ENGINEERING_ROOT = Path(__file__).resolve().parents[2]
 if str(ENGINEERING_ROOT) not in sys.path:
     sys.path.insert(0, str(ENGINEERING_ROOT))
 from workflow_contract import command_argv, effective_verifier, issue_binding, parse_ac_spec
+from process_tree import ProcessTree
 
 
 SCHEMA_VERSION = 1
@@ -155,35 +155,6 @@ def _git_state(cwd: Path) -> Mapping[str, Any]:
     }
 
 
-def _soft_stop(process: subprocess.Popen) -> str:
-    if os.name == "nt":
-        try:
-            process.send_signal(signal.CTRL_BREAK_EVENT)
-            return "ctrl-break"
-        except (AttributeError, OSError):
-            process.terminate()
-            return "terminate"
-    os.killpg(process.pid, signal.SIGTERM)
-    return "sigterm"
-
-
-def _hard_stop(process: subprocess.Popen) -> str:
-    if os.name == "nt":
-        try:
-            subprocess.run(
-                ["taskkill", "/PID", str(process.pid), "/T", "/F"],
-                check=False,
-                capture_output=True,
-                timeout=10,
-            )
-            return "taskkill"
-        except (OSError, subprocess.TimeoutExpired):
-            process.kill()
-            return "kill"
-    os.killpg(process.pid, signal.SIGKILL)
-    return "sigkill"
-
-
 def run_command(
     argv: Sequence[str],
     *,
@@ -222,44 +193,40 @@ def run_command(
     timed_out = False
     termination = "none"
 
-    creation_flags = 0
-    popen_options: Dict[str, Any] = {}
-    if os.name == "nt":
-        creation_flags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
-    else:
-        popen_options["start_new_session"] = True
-
+    orphaned = False
     raw_descriptor = os.open(raw_log_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(raw_descriptor, "wb") as output:
         try:
-            process = subprocess.Popen(
+            tree = ProcessTree(
                 list(argv),
                 cwd=str(working_dir),
                 env=effective_env,
                 stdout=output,
                 stderr=subprocess.STDOUT,
-                creationflags=creation_flags,
-                **popen_options,
             )
         except OSError as exc:
             launch_error = "%s: %s" % (type(exc).__name__, exc)
             output.write((launch_error + "\n").encode("utf-8", errors="replace"))
         else:
+            process = tree.process
             try:
                 return_code = process.wait(timeout=timeout)
             except subprocess.TimeoutExpired:
                 timed_out = True
-                termination = _soft_stop(process)
+                termination = tree.stop(grace)
+                return_code = process.returncode
+            finally:
                 try:
-                    return_code = process.wait(timeout=grace)
-                except subprocess.TimeoutExpired:
-                    termination += "+" + _hard_stop(process)
-                    return_code = process.wait()
+                    if tree.alive():
+                        orphaned = True
+                        termination = tree.stop(grace)
+                finally:
+                    tree.close()
 
     _sanitize_log(raw_log_path, log_path, secrets)
 
     duration = time.monotonic() - started
-    if launch_error is not None:
+    if launch_error is not None or orphaned or (os.name == "nt" and return_code == 125 and not timed_out):
         outcome, supervisor_exit = "crash", 125
     elif timed_out:
         outcome, supervisor_exit = "timeout", 124
@@ -389,7 +356,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             binding=binding,
             repo_root=repo_root if binding is not None else None,
         )
-    except ValueError as exc:
+    except (OSError, ValueError) as exc:
         print("test-supervisor: %s" % exc, file=sys.stderr)
         return 2
     print(

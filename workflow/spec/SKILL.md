@@ -1,7 +1,7 @@
 ---
 name: spec
 description: >-
-  Use when the user explicitly asks for a plan or specification, or when work needs multiple verifiable slices, a durable handoff, or consequential product-boundary decisions. Produces a reviewable, execution-ready plan and waits for user review before implementation; tdd owns implementation.
+  Use when the user explicitly asks for a plan or specification, or when a durable work queue or consequential product-boundary decision needs planning. Produces a reviewable, execution-ready plan and waits for user review before implementation; tdd owns implementation.
 argument-hint: "The need — anything from one line to a full design"
 disable-model-invocation: true
 ---
@@ -39,9 +39,11 @@ opt into an agent-runnable experience contract; non-graphical work creates no ex
 Named `<feat>` → `rg` that feature only; else 3–5 keywords over `.scratch/**/PRD*.md` and
 `.scratch/**/issues/*.md`.
 
-- No hit → new work. Use [PRD-TEMPLATE.md](PRD-TEMPLATE.md) when shared scenarios/decisions need
+- No hit → inspect the related code and live contracts before classifying it as new work; absence
+  from the issue queue does not establish absence from the product. Use [PRD-TEMPLATE.md](PRD-TEMPLATE.md) when shared scenarios/decisions need
   a durable owner across slices. Multi-module reach or card count alone does not require a PRD.
-  Use [CARD-TEST.md](CARD-TEST.md) for a queue or handoff; a small settled plan can stay inline.
+  Use [CARD-TEST.md](CARD-TEST.md) for work needing tracked slices. A settled plan can stay inline;
+  a session boundary alone uses `/handoff` without creating a queue.
 - Hit in the target feature: read the live PRD's 实现决策 (if any) and the hit issue's AC/`status`.
   - Nothing recorded goes false → [ADDITIVE.md](ADDITIVE.md).
   - A recorded AC or decision goes false → [SUPERSEDE.md](SUPERSEDE.md).
@@ -63,11 +65,11 @@ A proposed coverage, size, or timing bar →
 
 ## 3. Prepare and write
 
-A small settled plan can remain inline with its outcome, constraints, and verification route.
+A settled plan can remain inline with its outcome, constraints, authorization, and verification route.
 Run the deletion test on the plan's structure: every proposed boundary, interface, artifact kind,
 PRD, or verifier profile names its consuming card, AC, test, or recorded decision; anything unnamed
 leaves the plan.
-For a queue or handoff, read [CARD-TEST.md](CARD-TEST.md) to choose independently executable slices,
+For a queue or delegated work, read [CARD-TEST.md](CARD-TEST.md) to choose independently executable slices,
 [VERIFICATION-DESIGN.md](VERIFICATION-DESIGN.md) to prepare each verifier, and
 [ISSUE-TEMPLATE.md](ISSUE-TEMPLATE.md) plus the relevant
 [issue schema](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd) when writing cards.
