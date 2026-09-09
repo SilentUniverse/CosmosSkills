@@ -27,6 +27,8 @@ if "%FEAT%"=="" (
 :restore
 if not "%REPO%"=="" popd
 :end
-rem keep the window open when started by double-click / drag-drop
-if /i "%cmdcmdline:~0,6%"=="cmd /c" pause
+rem keep the window open when started by double-click / drag-drop: those launch
+rem cmd.exe with a full quoted path plus /c, so substring-test cmdcmdline (the
+rem old ~0,6 prefix compare could never match the quoted full path).
+echo(%cmdcmdline% | findstr /i /c:" /c" >nul && pause
 endlocal

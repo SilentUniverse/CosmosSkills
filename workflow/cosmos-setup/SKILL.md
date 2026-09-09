@@ -43,9 +43,10 @@ ARTIFACT-FORMAT stub), then remove `domain.md` only when nothing non-template re
 otherwise rename it `domain.md.bak`. Detail: [MIGRATION.md](MIGRATION.md).
 
 **Case 3 — Legacy states or tracker change.** Issue files use deprecated states (`needs-triage`,
-`needs-info`, `wontfix`, `inbox`, `blocked`, `doing`, `shelved`), or the user requests a tracker
-switch. An existing `gh` / `glab` tracker alone is not a migration trigger. Preserve it unless
-the user chose a replacement. Procedure: [MIGRATION.md](MIGRATION.md).
+`needs-info`, `wontfix`, `inbox`, `blocked`, `doing`, `shelved`, `ready-for-human`,
+`ready-for-agent`), or the user requests a tracker switch. An existing `gh` / `glab` tracker alone
+is not a migration trigger. Preserve it unless the user chose a replacement. Procedure:
+[MIGRATION.md](MIGRATION.md).
 
 **Case 4 — PRD/issue-like files at non-default paths.** Surface the paths and their consumers.
 The bundled Python workflow tools use `.scratch/`; a path declaration alone does not retarget them.

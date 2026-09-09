@@ -41,7 +41,7 @@ SOLID、Clean Code 是下游经验——告诉 AI 该写成什么样，规则一
 | 3 | Parsimony | 还能删掉什么？ | 选型阶梯逐级下行；对抗自审问「想象未来的抽象」；spec §3 计划时对每个抽象点名消费者；完成时删除无消费者的新增，深审 `/atk` |
 | 4 | Locality | 影响能否限制在这里？ | 切卡算推理半径；两轴测试进 `CODEBASE.md` |
 | 5 | Provability | 为什么确信它对？ | 等价设计选正确性论证更短者 |
-| 6 | Adversarial Review | 怎么把它打爆？ | 高风险 spec 收尾 `/atk`；完成记录必填审查 |
+| 6 | Adversarial Review | 怎么把它打爆？ | 高风险 spec 收尾 `/atk`；完成时双轴审查，有具体发现才落 `审查` 字段 |
 | 7 | Empiricism | 现实数据怎么说？ | 观测压倒推理；性能主张必须带测量 |
 | 8 | Reversibility | 错了能回来吗？ | 单向门单独标出吃最重审查；`PRD-v2` 对账 |
 | 9 | Evolution | 最小正确下一步是什么？ | 首卡 = 最小可工作核心；宽重构 expand→contract |
@@ -70,8 +70,14 @@ bash scripts/install.sh
 curl -fsSL https://raw.githubusercontent.com/SilentUniverse/CosmosSkills/main/claude/CLAUDE.md -o ~/.claude/CLAUDE.md
 ```
 
+Windows（PowerShell）等价命令；`curl` 裸名在 PS 5.1 是 `Invoke-WebRequest` 别名，必须用 `curl.exe`：
+
+```powershell
+curl.exe -fsSL https://raw.githubusercontent.com/SilentUniverse/CosmosSkills/main/claude/CLAUDE.md -o "$env:USERPROFILE\.claude\CLAUDE.md"
+```
+
 Codex 在本仓库通过根 [AGENTS.md](AGENTS.md) 读取共享策略 [CLAUDE.md](claude/CLAUDE.md)，避免维护两份正文。
-安装器分发 Claude Code/ZCode 配置，并把技能镜像到 `~/.agents/skills` 与 `~/.zcode/skills`；不会修改全局 `~/.codex/AGENTS.md`。
+安装器分发 Claude Code/ZCode 配置，并把技能镜像到 `~/.agents/skills`，ZCode 也从该根发现技能。`~/.zcode/skills` 里指向本仓库的镜像链接会在重装时移除，避免每个技能驻留加载两份。不会修改全局 `~/.codex/AGENTS.md`。
 显式指定安装目标或 ClaudeRoot 时，不镜像到用户级 ZCode / agents 目录；隔离安装需同时指定这两个路径。
 在其他 Codex 项目使用这套常驻策略时，将共享文件的实际路径加入相应 AGENTS.md，并保留原有项目规则。
 
@@ -163,7 +169,7 @@ flowchart LR
 | 车机 / 设备，验收在 log 里 | `/tdd -log` |
 | 过夜无人值守跑批 | Windows：双击仓库根的 [overnight.cmd](overnight.cmd) 后输入项目路径，可建桌面快捷方式或将项目文件夹拖到脚本上；终端 `overnight.cmd [repo] [feat]`；macOS / Linux：`python scripts/overnight.py` |
 | 上一 session 留了 handoff | `/resume` |
-| 做到哪了 | `python3 <skills-root>/workflow-state.py survey . --format human`；默认只看 ready/blocked/zombie，`--history` 列已交付历史 |
+| 做到哪了 | `python <skills-root>/workflow-state.py survey . --format human`；默认只看 ready/blocked/zombie，`--history` 列已交付历史 |
 | 想听 AI 逐条讲它改了什么 | `/atk` 默认讲上一轮增量；`-all` 讲全部未提交 |
 | 只要对抗审查，不允许改文件 | `/atk -r <目标>`（可省略目标，或用 `-all`） |
 | 快速检查 workflow 改动 | `/eval smoke <skill>`（筛回归，不能声称更好） |
@@ -209,7 +215,7 @@ flowchart LR
 rg '^status: ready' -g '**/issues/*.md' .scratch
 ```
 
-单字段：`yq --front-matter=extract '.status' <file>`。已追踪交付记录：`python3 <skills-root>/workflow-state.py inspect <repo> <feat> --format human`。`SUMMARY.md` 仅用于遗留迁移；`issues/archive/` 保存已归档完成卡，仍参与依赖与历史测试查询。
+单字段：`yq --front-matter=extract '.status' <file>`。已追踪交付记录：`python <skills-root>/workflow-state.py inspect <repo> <feat> --format human`。`SUMMARY.md` 仅用于遗留迁移；`issues/archive/` 保存已归档完成卡，仍参与依赖与历史测试查询。
 
 ---
 
@@ -343,13 +349,13 @@ git_base: 7af387c
 |---|---|
 | 改完 CLAUDE.md / references / hooks | Windows 再双击 `install.cmd` |
 | 全局规则源 | 只改 [`claude/CLAUDE.md`](claude/CLAUDE.md)；安装器复制到 Claude / ZCode 目标 |
-| 改 skill | 改仓库即可（junction）；先跑 `python3 scripts/validate-skills.py`，想验证或上游前手动 `/eval`，再做 previous RED → candidate GREEN → 全回归 |
+| 改 skill | 改仓库即可（junction）；先跑 `python scripts/validate-skills.py`，想验证或上游前手动 `/eval`，再做 previous RED → candidate GREEN → 全回归 |
 | 加 / 改 / 退役流程规则 | 先登记 [RULE-LEDGER.md](workflow/RULE-LEDGER.md)（防什么失败 · 出处 · 探针）；需要测量模型代际差异时，显式 `/eval full` 跑对应探针；普通规则修复先做确定性检查 |
 | SKILL.md | 按 [write-skill](workflow/write-skill/SKILL.md) 做披露测试；行数只提示复查，不是拆分门槛；最终范围跑一次 `/atk` + `/lint` + `wc -l`，行为 eval 仅显式开启 |
 | 改 hook | 先跑 `test-block-legacy-cli.ps1` / `test-block-dangerous-git.ps1` |
-| 改 verify-artifacts | 跨平台先跑 `python3 -m unittest discover -s tests -v`；Windows 再跑 `test-verify-codebase.ps1` 全集 |
+| 改 verify-artifacts | 跨平台先跑 `python -m unittest discover -s tests -v`；Windows 再跑 `test-verify-codebase.ps1` 全集 |
 | 跑大测试 | 用 `tdd/scripts/test-supervisor.py` 指定 scope、timeout、log、receipt；不要因慢而委派 |
-| 改 eval 协议 | `python3 scripts/eval.py validate-cases evals/cases` + `python3 scripts/eval_campaign.py --help` + `python3 -m unittest discover -s tests -v` |
+| 改 eval 协议 | `python scripts/eval.py validate-cases evals/cases` + `python scripts/eval_campaign.py --help` + `python -m unittest discover -s tests -v` |
 | 契约 | [ARTIFACT-FORMAT.md](workflow/ARTIFACT-FORMAT.md) |
 
 每个文件有读者；每个状态有闭环；每个入口有守门。

@@ -39,7 +39,9 @@ def _git(
     repo: Path, args: Sequence[str], *, check: bool = True
 ) -> subprocess.CompletedProcess:
     process = subprocess.run(
-        ["git", "-C", str(repo), *args], capture_output=True, text=True, check=False
+        ["git", "-C", str(repo), *args],
+        capture_output=True, text=True, check=False,
+        encoding="utf-8", errors="replace",
     )
     if check and process.returncode != 0:
         detail = (process.stderr or "").strip() or (process.stdout or "").strip()
@@ -49,7 +51,8 @@ def _git(
 
 def _gh(args: Sequence[str]) -> subprocess.CompletedProcess:
     return subprocess.run(
-        ["gh", *args], capture_output=True, text=True, check=False, timeout=60
+        ["gh", *args], capture_output=True, text=True, check=False, timeout=60,
+        encoding="utf-8", errors="replace",
     )
 
 
@@ -300,6 +303,8 @@ def _cleanup_remote_topic(
 
 
 def _run_verify_command(worktree: Path, command: str, timeout: float) -> None:
+    # The command string runs under the platform shell: /bin/sh on Unix,
+    # cmd.exe on Windows — POSIX-only syntax like `VAR=x cmd` fails there.
     try:
         process = subprocess.run(
             command,
@@ -446,6 +451,11 @@ def _advance_local_base(
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("repo_root", type=Path)
     parser.add_argument("--branch")

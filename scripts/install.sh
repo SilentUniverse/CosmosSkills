@@ -259,11 +259,12 @@ if [[ "$DRY_RUN" -eq 0 && "$copied_hooks" -gt 0 ]]; then
 fi
 
 # --- Distribute the ZCode side. ZCode auto-loads ~/.zcode/AGENTS.md the way
-#     Claude Code loads ~/.claude/CLAUDE.md. Skills mirror into the shared roots
-#     hosts discover from: ~/.agents/skills (cross-tool root) and ~/.zcode/skills
-#     (ZCode's own root); one live link per skill name serves every host. Real
-#     entries and foreign links are never touched: only links resolving into this
-#     repo are recreated. Contract files land first: linked skills resolve
+#     Claude Code loads ~/.claude/CLAUDE.md. Skills mirror into the cross-tool
+#     root hosts discover from: ~/.agents/skills — ZCode reads it too, so a
+#     second mirror in ~/.zcode/skills would resident-load every skill twice.
+#     Links into this repo that remain there are removed. Real entries and
+#     foreign links are never touched: only links resolving into this repo are
+#     recreated or removed. Contract files land first: linked skills resolve
 #     ../ARTIFACT-FORMAT.md textually inside the skills root, as in ~/.claude/skills. ---
 mirror_shared_root() {
   local skills_root="$1"
@@ -333,6 +334,25 @@ mirror_shared_root() {
   done
 }
 
+# ~/.zcode/skills must not hold links into this repo: the mirror above is the
+# one root. Only repo links are removed; real entries and foreign links stay.
+retire_zcode_mirror() {
+  local zcode_skills="${HOME}/.zcode/skills"
+  [[ -d "$zcode_skills" ]] || return 0
+  local entry
+  for entry in "$zcode_skills"/*; do
+    [[ -e "$entry" || -L "$entry" ]] || continue
+    [[ -L "$entry" ]] || continue
+    link_points_into_repo "$entry" || continue
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      echo "[DryRun] Remove zcode mirror link: $entry"
+    else
+      rm -f "$entry"
+      echo "Removed zcode mirror link: $entry"
+    fi
+  done
+}
+
 agents_deployed=0
 if [[ "$SHARED_INSTALL" -eq 1 && -d "${HOME}/.zcode" ]]; then
   copy_file "$ROOT/claude/CLAUDE.md" "${HOME}/.zcode/AGENTS.md" "Guidelines: AGENTS.md (ZCode)"
@@ -343,9 +363,7 @@ if [[ "$SHARED_INSTALL" -eq 1 ]]; then
   if [[ -d "$agents_skills" || -d "${HOME}/.zcode" ]]; then
     mirror_shared_root "$agents_skills" "agents"
   fi
-  if [[ -d "${HOME}/.zcode" ]]; then
-    mirror_shared_root "${HOME}/.zcode/skills" "zcode"
-  fi
+  retire_zcode_mirror
 fi
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
@@ -357,10 +375,6 @@ else
   fi
   echo "Use /<name> in Claude Code. cosmos-setup only handles repos that deviate from the defaults; default repos need no bootstrap."
   if [[ "$agents_deployed" -eq 1 ]]; then
-    if [[ -d "${HOME}/.zcode" ]]; then
-      echo "ZCode: skills + contract files in ~/.agents/skills and ~/.zcode/skills, AGENTS.md in ~/.zcode. Restart ZCode to load."
-    else
-      echo "Agents hosts: skills + contract files in ~/.agents/skills."
-    fi
+    echo "Agents hosts: skills + contract files in ~/.agents/skills."
   fi
 fi

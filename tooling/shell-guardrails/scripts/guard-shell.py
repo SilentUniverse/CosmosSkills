@@ -26,6 +26,10 @@ Execution-domain model (bash semantics):
     grep|find) echo y;; esac` allows, `case $x in a) grep y f;; esac` blocks;
   - comments (word-start #) are dropped to end of line;
   - heredoc bodies are stripped before matching (<<- tab terminators included);
+  - tokens match in execution view: quote characters are dropped before
+    matching ('re"se"t' == reset), destructive long options also match their
+    prefixes (--ha blocks like --hard), whole-repo pathspecs (:/) count as
+    '.', and on MSYS/Windows tier heads fold case (GIT == git);
   - command position = the command word of a segment (basename-normalized, so
     /usr/bin/git counts), reachable through a prefix chain of keywords /
     wrappers / VAR=val / wrapper flag+value pairs. 'echo sudo git clean' and
@@ -62,6 +66,10 @@ HEREDOC_RE = re.compile(
 # heads strip the suffix via basename(), so without it those forms never parse.
 GIT_RE = re.compile(r'(?<![\w.-])git(?:\.[eE][xX][eE])?(?![\w.-])')
 LEGACY_RE = re.compile(r'(?<![\w.-])(grep|find|sed)(?:\.[eE][xX][eE])?(?![\w.-])')
+# Case-folded twins used when FOLD is on: MSYS/Windows resolves executable
+# names insensitively, so GIT/reset-invoking-GIT must reach the parser.
+GIT_RE_I = re.compile(GIT_RE.pattern, re.I)
+LEGACY_RE_I = re.compile(LEGACY_RE.pattern, re.I)
 POSIX_PRE_RE = re.compile(r'(^|[\s"\'(=|;&])/[A-Za-z]+([/\s"\'|)&;]|$)')
 FORCE_RE = re.compile(r'(?m)^\s*#\s*force-legacy')
 
@@ -100,6 +108,35 @@ def basename(w):
     return b
 
 
+def pair_strip(tok):
+    """Boundary-quote strip for tier 2: MSYS path-converts argv words whose
+    execution view starts with `/`. A phrase split across naive whitespace
+    (`'log /tmp'` -> tokens `'log`, `/tmp'`) keeps its stray quote, so the
+    embedded slash-word is not treated as a path."""
+    for q in '\'"':
+        if len(tok) >= 2 and tok[0] == q and tok[-1] == q:
+            return tok[1:-1]
+    return tok
+
+
+# Set in main(): on MSYS/Windows the executable lookup is case-insensitive
+# (GIT and Git.exe reach git.exe), so tier heads and wrapper words fold case;
+# POSIX executable names are case-sensitive and must not.
+FOLD = False
+
+
+def fold(word):
+    return word.lower() if FOLD else word
+
+
+def exec_word(tok):
+    """Execution view of one whitespace-split token: bash word boundaries
+    ignore in-word quotes, so quote characters never shield a match
+    ('re"se"t' executes as reset, '".' discards the worktree). Only quotes
+    are dropped — git subcommands and flags stay case-sensitive."""
+    return tok.replace('"', '').replace("'", '')
+
+
 def command_word_index(tokens):
     """Index of the command word, or -1. A prefix chain must start at the
     segment head, so a git/grep behind adb/ssh/echo never reaches command
@@ -113,7 +150,13 @@ def command_word_index(tokens):
         if VARVAL_RE.match(w):
             continue
         b = basename(w)
-        if b in PREFIX_KEYWORDS or b in PREFIX_WRAPPERS:
+        # Executable wrapper names fold on MSYS/Windows (CreateProcess is
+        # case-insensitive); shell keywords are syntax and stay exact.
+        bf = fold(b)
+        if bf in PREFIX_WRAPPERS:
+            prev = bf
+            continue
+        if b in PREFIX_KEYWORDS:
             prev = b
             continue
         if prev:
@@ -394,13 +437,18 @@ SQ_SPAN_RE = re.compile(r"'[^']*'")
 LOCAL_SHELLS = {'bash', 'sh', 'zsh', 'dash', 'ksh'}
 
 
+# pathspec spellings whose discard scope equals `.` or the whole repository;
+# git's parse-options also accepts unambiguous long-option prefixes (--ha).
+DISCARD_PATHSPECS = {'.', './', ':/', ':/*'}
+
+
 def dangerous_git_hit(segments):
     for seg in segments:
-        toks = seg.strip().split()
+        toks = [exec_word(t) for t in seg.strip().split()]
         if not toks:
             continue
         ci = command_word_index(toks)
-        if ci < 0 or basename(toks[ci]) != 'git':
+        if ci < 0 or fold(basename(toks[ci])) != 'git':
             continue
         # Value-taking flags drop themselves AND their value, so neither is
         # mistaken for the subcommand or a path operand (git -C . checkout x).
@@ -415,16 +463,18 @@ def dangerous_git_hit(segments):
         sub = next((t for t in after if not t.startswith('-')), None)
         if not sub:
             continue
-        if sub == 'reset' and '--hard' in after:
+        if sub == 'reset' and any(
+                len(t) > 2 and t.startswith('--') and '--hard'.startswith(t)
+                for t in after):
             return 'git reset --hard'
         if sub == 'clean':
             f = [t for t in after
                  if len(t) > 1 and t.startswith('-') and 'f' in t.lstrip('-')]
             if f:
                 return 'git clean (%s)' % f[0]
-        if sub == 'checkout' and '.' in after:
+        if sub == 'checkout' and DISCARD_PATHSPECS.intersection(after):
             return 'git checkout .'
-        if sub == 'restore' and '.' in after:
+        if sub == 'restore' and DISCARD_PATHSPECS.intersection(after):
             return 'git restore .'
     return None
 
@@ -436,13 +486,13 @@ def winpath_hits(segments):
     Quoted spans after adb are the device command — data, not argv — and a
     MSYS_NO_PATHCONV prefix disables path conversion, so both stay allowed."""
     for seg in segments:
-        toks = seg.strip().split()
+        toks = [pair_strip(t) for t in seg.strip().split()]
         if not toks:
             continue
         ci = command_word_index(toks)
         if ci < 0:
             continue
-        head = basename(toks[ci])
+        head = fold(basename(toks[ci]))
         if head in ADB_HEADS:
             if any(NO_PATHCONV_RE.match(t) for t in toks[:ci]):
                 continue
@@ -471,14 +521,15 @@ def winpath_hits(segments):
 
 def legacy_cli_hit(segments):
     for seg in segments:
-        toks = seg.strip().split()
+        toks = [exec_word(t) for t in seg.strip().split()]
         if not toks:
             continue
         ci = command_word_index(toks)
         if ci < 0:
             continue
-        if basename(toks[ci]) in ('grep', 'find', 'sed'):
-            return basename(toks[ci])
+        head = basename(toks[ci])
+        if fold(head) in ('grep', 'find', 'sed'):
+            return fold(head)
     return None
 
 
@@ -495,9 +546,9 @@ def payload_segments(segments, depth, want_path=False):
         ci = command_word_index(toks)
         if ci < 0:
             continue
-        head = basename(toks[ci])
+        head = fold(basename(exec_word(toks[ci])))
         args = toks[ci + 1:]
-        if head in LOCAL_SHELLS and len(args) >= 2 and args[0] == '-c':
+        if head in LOCAL_SHELLS and len(args) >= 2 and exec_word(args[0]) == '-c':
             payload = ' '.join(args[1:])
         elif head == 'eval' and args:
             payload = ' '.join(args)
@@ -506,7 +557,9 @@ def payload_segments(segments, depth, want_path=False):
         payload = payload.strip()
         if len(payload) >= 2 and payload[0] == payload[-1] and payload[0] in '\'"':
             payload = payload[1:-1]
-        if not (GIT_RE.search(payload) or LEGACY_RE.search(payload)
+        preflight = payload.replace('"', '').replace("'", '')
+        if not ((GIT_RE_I if FOLD else GIT_RE).search(preflight)
+                or (LEGACY_RE_I if FOLD else LEGACY_RE).search(preflight)
                 or (want_path and POSIX_PRE_RE.search(payload))):
             continue
         inner = split_segments(payload)
@@ -518,7 +571,7 @@ def payload_segments(segments, depth, want_path=False):
 # ---------------------------------------------------------------------- main
 
 MSG_GIT = ("BLOCKED: destructive git operation ({why}). The user has reserved "
-           "these operations for themselves — use the /commit workflow or ask "
+           "these operations for themselves; use the /commit workflow or ask "
            "the user to run it by hand.")
 MSG_PATH = ("BLOCKED: POSIX path '{tok}' handed to a native Windows "
             "executable. Native processes only understand Windows absolute "
@@ -566,11 +619,19 @@ def main():
         is_msys = sys.platform in ('win32', 'cygwin', 'msys')
     if os.environ.get('GUARD_SHELL_FORCE_MSYS') == '1':
         is_msys = True
+    global FOLD
+    FOLD = is_msys
 
     try:
         stripped = HEREDOC_RE.sub('\n', command)
-        need_git = bool(GIT_RE.search(stripped))
-        need_legacy = (not escape) and bool(LEGACY_RE.search(stripped))
+        # Prefilters run on the de-quoted text: `"g"it` contains no literal
+        # `git`, yet bash concatenates the quotes away and executes git. A
+        # de-quote false hit only costs one parser pass — the tiers still
+        # match at command position on real tokens.
+        preflight = stripped.replace('"', '').replace("'", '')
+        need_git = bool((GIT_RE_I if FOLD else GIT_RE).search(preflight))
+        need_legacy = ((not escape)
+                       and bool((LEGACY_RE_I if FOLD else LEGACY_RE).search(preflight)))
         need_path = is_msys and bool(POSIX_PRE_RE.search(stripped))
         if not (need_git or need_legacy or need_path):
             sys.exit(0)

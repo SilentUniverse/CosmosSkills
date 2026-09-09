@@ -15,7 +15,7 @@ push-blocking behavior without adding catalog entries.
   prioritized tiers (destructive git > POSIX-path-to-native-exe > legacy CLI),
   decided once. Stdlib-only Python 3.6+, same file on Windows (`python`) and
   Unix (`python3`).
-- `cases.jsonl` — 167-case source corpus (166 apply on MSYS, 145 on Unix): `id, command,
+- `cases.jsonl` — 194-case source corpus (192 apply on MSYS, 165 on Unix): `id, command,
   expect(block|allow), tier(git|winpath|legacy|none), platform(any|unix|msys)`.
   Written against bash semantics, not against any one implementation: the
   legacy `.sh`/`.ps1` carriers score 17+9 misses and 5+2 false blocks against
@@ -33,9 +33,12 @@ Any change to the engine or the policy tables keeps the corpus green on both
 platform profiles:
 
 ```bash
-python3 run_corpus.py scripts/guard-shell.py
-GUARD_SHELL_FORCE_MSYS=1 python3 run_corpus.py scripts/guard-shell.py --platform msys
+python run_corpus.py scripts/guard-shell.py
+GUARD_SHELL_FORCE_MSYS=1 python run_corpus.py scripts/guard-shell.py --platform msys
 ```
+
+These lines run unchanged under Git Bash on Windows. Use `python`; on Unix substitute
+`python3`.
 
 Tier 2 (POSIX paths to native executables) is Windows/MSYS only — an msys/
 cygwin `OSTYPE` enables it, any other `OSTYPE` (WSL included) disables it,

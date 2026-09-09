@@ -226,6 +226,11 @@ def run_command(
     _sanitize_log(raw_log_path, log_path, secrets)
 
     duration = time.monotonic() - started
+    # 125 is this repo's own termination code (process_tree job-kill uses
+    # TerminateJobObject(handle, 125); POSIX reports it as returncode < 0),
+    # so nt rc==125 without a timeout is a tree the supervisor tore down.
+    # Caveat: a validator that itself wraps `docker run` also exits 125 on
+    # daemon errors — check its log before reading "crash" as our kill.
     if launch_error is not None or orphaned or (os.name == "nt" and return_code == 125 and not timed_out):
         outcome, supervisor_exit = "crash", 125
     elif timed_out:

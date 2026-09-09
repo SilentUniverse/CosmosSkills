@@ -34,10 +34,11 @@ duration and cost read [`../../evals/adapters/zcode.md`](../../evals/adapters/zc
 
 Resolve scope from changed skill(s), the real failure reproducer, or an explicit case. Show selected
 case IDs and expected cost before launching agents. Reuse the approved mode/budget; ask only for
-unsettled material cost or scope. Create a local ignored session:
+unsettled material cost or scope. Create a local ignored session. Run `python`; on Unix without a
+`python` alias use `python3`, and on Windows `python3` is a Store alias that fails:
 
 ```bash
-python3 scripts/eval.py start-session .eval-runs/<name> --cases evals/cases \
+python scripts/eval.py start-session .eval-runs/<name> --cases evals/cases \
   --profile <smoke|full> --skill <name> [--case <id>]
 ```
 
@@ -63,10 +64,10 @@ Never substitute inline self-grading for a blind executor/judge or score an unru
 ## Decide
 
 ```bash
-python3 scripts/eval.py session-status .eval-runs/<name>
-python3 scripts/eval.py session-report .eval-runs/<name> --output .eval-runs/<name>/report.md
+python scripts/eval.py session-status .eval-runs/<name>
+python scripts/eval.py session-report .eval-runs/<name> --output .eval-runs/<name>/report.md
 # full only, when making an upstream improvement claim:
-python3 scripts/eval.py session-report .eval-runs/<name> --require-improvement \
+python scripts/eval.py session-report .eval-runs/<name> --require-improvement \
   --output .eval-runs/<name>/report.md
 ```
 
@@ -87,7 +88,7 @@ fresh fixture for every claimable case. Choose `policy-only` only when all harne
 paired; otherwise label the result `whole-system`.
 
 ```bash
-python3 scripts/eval_campaign.py export .eval-campaigns/<name> --cases evals/cases \
+python scripts/eval_campaign.py export .eval-campaigns/<name> --cases evals/cases \
   --profile full --comparison <policy-only|whole-system> --case <id> \
   --fixture <id>=<prepared-fixture>
 ```

@@ -3,8 +3,10 @@ import importlib.util
 import io
 import json
 import os
+import shutil
 import stat
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -44,7 +46,7 @@ if [ "$1" = pr ]; then
         "$head" "$sha" > "$STATE/pr.json"
       echo "http://example/pr/7"; exit 0;;
     merge)
-      python3 -c "
+      "$FAKE_GH_PYTHON" -c "
 import json, os
 path = os.path.join(os.environ['FAKE_GH_STATE'], 'pr.json')
 data = json.load(open(path))
@@ -204,24 +206,55 @@ class NativeLandingTests(LandFixture):
 
 class GhLandingTests(LandFixture):
     def setUp(self):
+        # Bash must be checked before any state mutation: skipTest in setUp
+        # skips tearDown, so PATH/env/tempdirs set here would leak.
+        bash = shutil.which("bash") if os.name == "nt" else None
+        if os.name == "nt" and bash is None:
+            self.skipTest("bash unavailable: Windows cannot exec a PATH script stub")
         self._bindir = Path(tempfile.mkdtemp(prefix="fake-gh-"))
         self._state = Path(tempfile.mkdtemp(prefix="gh-state-"))
         fake = self._bindir / "gh"
-        fake.write_text(FAKE_GH, encoding="utf-8")
+        # LF bytes on every platform: a CRLF stub breaks backslash
+        # continuations on bash builds without the Git-for-Windows CR patch.
+        fake.write_bytes(FAKE_GH.encode("utf-8"))
         fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
         self._old_path = os.environ["PATH"]
         self._old_state = os.environ.get("FAKE_GH_STATE")
-        os.environ["PATH"] = "%s:%s" % (self._bindir, self._old_path)
+        # The stub interpreter must exist everywhere: Unix distros ship
+        # python3 without python, Windows the reverse (and Git Bash needs
+        # the Windows-style path).
+        self._old_python = os.environ.get("FAKE_GH_PYTHON")
+        os.environ["FAKE_GH_PYTHON"] = (
+            sys.executable if os.name == "nt" else "python3"
+        )
+        os.environ["PATH"] = str(self._bindir) + os.pathsep + self._old_path
         os.environ["FAKE_GH_STATE"] = str(self._state)
+        self._patched_gh = None
+        if os.name == "nt":
+            # CreateProcess resolves only .exe on PATH, so interception through
+            # PATH is impossible; route every _gh call through bash explicitly.
+            real_gh = land._gh
+
+            def via_bash(args):
+                return subprocess.run(
+                    [bash, str(fake), *args],
+                    capture_output=True, text=True, check=False, timeout=60,
+                )
+
+            land._gh = via_bash
+            self._patched_gh = real_gh
 
     def tearDown(self):
+        if self._patched_gh is not None:
+            land._gh = self._patched_gh
         os.environ["PATH"] = self._old_path
-        if self._old_state is None:
-            os.environ.pop("FAKE_GH_STATE", None)
-        else:
-            os.environ["FAKE_GH_STATE"] = self._old_state
+        for key, old in (("FAKE_GH_STATE", self._old_state), ("FAKE_GH_PYTHON", self._old_python)):
+            if old is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = old
         for path in (self._bindir, self._state):
-            subprocess.run(["rm", "-rf", str(path)], check=False)
+            shutil.rmtree(path, ignore_errors=True)
 
     def make_github_repo(self, directory: Path) -> Path:
         return self.make_repo(

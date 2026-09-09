@@ -323,7 +323,8 @@ class ValidateSkillsTests(unittest.TestCase):
             root = Path(tmp)
             skill_file = self.write_skill(root, "fixture-skill")
             (root / "claude").mkdir()
-            (root / "claude" / "CLAUDE.md").write_text("# Policy\n", encoding="utf-8")
+            # LF bytes on every platform: the budget counts file bytes.
+            (root / "claude" / "CLAUDE.md").write_bytes(b"# Policy\n")
             errors, summary = validate_skills.resident_budget([skill_file], root)
             self.assertEqual([], errors)
             self.assertIn("1 descriptions", summary)
@@ -347,7 +348,7 @@ class ValidateSkillsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / "claude").mkdir()
-            (root / "claude" / "CLAUDE.md").write_text("# Policy\n", encoding="utf-8")
+            (root / "claude" / "CLAUDE.md").write_bytes(b"# Policy\n")
             original = validate_skills.RESIDENT_POLICY_BUDGET_BYTES
             validate_skills.RESIDENT_POLICY_BUDGET_BYTES = 1
             try:

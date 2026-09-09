@@ -46,7 +46,7 @@ manifest 与内容一起被替换。
 准备每个 case 的可直接复制 fixture；完整评测不接受“到运行时再装环境”的描述性 fixture：
 
 ```bash
-python3 scripts/eval_campaign.py export .eval-campaigns/history-search-v1 \
+python scripts/eval_campaign.py export .eval-campaigns/history-search-v1 \
   --cases evals/cases --profile full --comparison whole-system \
   --case typescript-ui-verification \
   --fixture typescript-ui-verification=/absolute/path/to/prepared-fixture
@@ -60,13 +60,13 @@ python3 scripts/eval_campaign.py export .eval-campaigns/history-search-v1 \
 触发条件出现时喂下一条。每一边独立运行：
 
 ```bash
-python3 campaign.py verify .
-python3 campaign.py init-submission . /tmp/arm-a \
+python campaign.py verify .
+python campaign.py init-submission . /tmp/arm-a \
   --arm-id arm-a --system-name '<hidden until report>' --system-version '<version>' \
   --policy-revision '<revision>' --runner '<runner>'
 # 按 user-script.jsonl 在每个 slot 的 fresh fixture 上执行；填写 observations.jsonl 和 artifacts/
-python3 campaign.py seal . /tmp/arm-a
-python3 campaign.py validate-submission . /tmp/arm-a
+python campaign.py seal . /tmp/arm-a
+python campaign.py validate-submission . /tmp/arm-a
 ```
 
 提交中只有 runner 观察：终态、控制变量、可为空的真实 metric、以及逐条 requirement evidence。
@@ -90,18 +90,18 @@ grader 与 assessment 模板的本地盲评包；artifact 自己泄漏宿主时�
 合并判卷：
 
 ```bash
-python3 scripts/eval_campaign.py validate-submission .eval-campaigns/history-search-v1 /tmp/arm-a
-python3 scripts/eval_campaign.py prepare-judging .eval-campaigns/history-search-v1 \
+python scripts/eval_campaign.py validate-submission .eval-campaigns/history-search-v1 /tmp/arm-a
+python scripts/eval_campaign.py prepare-judging .eval-campaigns/history-search-v1 \
   /tmp/arm-a /tmp/blind-packet-a
 # 独立 judge 只读取 /tmp/blind-packet-a，填写其中的 assessment.jsonl
-python3 scripts/eval_campaign.py judge .eval-campaigns/history-search-v1 /tmp/arm-a \
+python scripts/eval_campaign.py judge .eval-campaigns/history-search-v1 /tmp/arm-a \
   --assessments /tmp/blind-packet-a/assessment.jsonl --output /tmp/arm-a-judged.jsonl
 ```
 
 所有 arm 判完后才揭示名字并生成 Markdown + JSON：
 
 ```bash
-python3 scripts/eval_campaign.py report .eval-campaigns/history-search-v1 \
+python scripts/eval_campaign.py report .eval-campaigns/history-search-v1 \
   /tmp/arm-a-judged.jsonl /tmp/arm-b-judged.jsonl /tmp/arm-c-judged.jsonl \
   --reference arm-a \
   --label 'arm-a=Cosmos candidate' --label 'arm-b=Native' --label 'arm-c=Other harness' \

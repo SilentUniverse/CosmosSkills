@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 import sys
 import tempfile
 import unittest
@@ -73,6 +74,39 @@ class WorkflowRuntimeTests(unittest.TestCase):
             with runtime.read_snapshot(root):
                 pass
             self.assertEqual([], list(root.iterdir()))
+
+    @unittest.skipUnless(os.name == "nt", "msvcrt lock path")
+    def test_shared_lock_retries_until_the_holder_releases(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / ".scratch/.workflow.lock"
+            path.parent.mkdir()
+            path.touch()
+            calls = []
+
+            def busy_twice(fd, mode):
+                calls.append(mode)
+                if len(calls) <= 2:
+                    raise OSError("busy")
+
+            sleeps = []
+            with patch.object(runtime, "_nt_lock", side_effect=busy_twice), \
+                    patch.object(runtime.time, "sleep", sleeps.append):
+                with runtime.file_lock(path, shared=True):
+                    pass
+            self.assertGreaterEqual(len(calls), 3)
+            self.assertTrue(sleeps)
+
+    @unittest.skipUnless(os.name == "nt", "msvcrt lock path")
+    def test_shared_lock_reports_busy_after_the_bounded_retries(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / ".scratch/.workflow.lock"
+            path.parent.mkdir()
+            path.touch()
+            with patch.object(runtime, "_nt_lock", side_effect=OSError("busy")), \
+                    patch.object(runtime.time, "sleep", lambda _s: None):
+                with self.assertRaisesRegex(ValueError, "busy after"), \
+                        runtime.file_lock(path, shared=True):
+                    self.fail("acquired an always-busy lock")
 
 
 if __name__ == "__main__":

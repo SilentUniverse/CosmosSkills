@@ -28,8 +28,8 @@ Record each run with the repository's `scripts/eval.py` JSONL contract (installe
 the installer's target root, e.g. `~/.claude/skills/eval.py`). Compare `previous`, `candidate`, and `no-skill`/`upstream`:
 
 ```bash
-python3 scripts/eval.py validate-runs results.jsonl --cases evals/cases
-python3 scripts/eval.py compare results.jsonl --cases evals/cases \
+python scripts/eval.py validate-runs results.jsonl --cases evals/cases
+python scripts/eval.py compare results.jsonl --cases evals/cases \
   --baseline previous --candidate candidate --require-improvement
 ```
 

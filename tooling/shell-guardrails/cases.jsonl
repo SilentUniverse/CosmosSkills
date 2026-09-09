@@ -168,3 +168,27 @@
 {"id": "legacy-grep-exe", "command": "grep.exe -n x f", "expect": "block", "tier": "legacy", "note": "same: .exe form of a legacy tool"}
 {"id": "heredoc-stdin-legacy", "command": "grep -q foo <<EOF\nfoo\nEOF", "expect": "block", "tier": "legacy", "note": "heredoc feeds stdin to grep; the opener-line command must stay live"}
 {"id": "heredoc-then-posixpath", "command": "cd \"$TEMP/g\" && python - <<'EOF'\nprint(1)\nEOF\ncd /d/Code && python y.py", "expect": "allow", "tier": "winpath", "platform": "msys", "note": "post-EOF text must not glue onto the opener line (gluing forges a python - cd /d/... phantom segment)"}
+{"id": "git-quoted-sub", "command": "git \"reset\" --hard", "expect": "block", "tier": "git", "note": "quotes never shield a match: bash word boundaries ignore them"}
+{"id": "git-quoted-head", "command": "\"git\" reset --hard", "expect": "block", "tier": "git", "note": "quoted executable name still executes"}
+{"id": "git-quoted-inline", "command": "git re\"set\" --hard", "expect": "block", "tier": "git", "note": "in-word quotes glue back to reset"}
+{"id": "legacy-quoted-head", "command": "\"grep\" -r foo .", "expect": "block", "tier": "legacy", "note": "quoted legacy CLI still executes"}
+{"id": "git-abbrev-ha", "command": "git reset --ha", "expect": "block", "tier": "git", "note": "parse-options unambiguous prefix of --hard"}
+{"id": "git-abbrev-h", "command": "git reset --h", "expect": "block", "tier": "git", "note": "single-letter long-option abbreviation"}
+{"id": "git-unknown-abbrev", "command": "git reset --harder", "expect": "allow", "tier": "git", "note": "not an abbreviation of --hard; git rejects it, nothing destructive runs"}
+{"id": "git-pathspec-dot-slash", "command": "git restore ./", "expect": "block", "tier": "git", "note": "./ discard scope equals ."}
+{"id": "git-pathspec-root", "command": "git checkout :/", "expect": "block", "tier": "git", "note": ":/ is whole-repo discard, broader than ."}
+{"id": "git-pathspec-root-quoted", "command": "git checkout \":/\"", "expect": "block", "tier": "git", "note": "quoted whole-repo pathspec"}
+{"id": "git-pathspec-after-rev", "command": "git checkout HEAD -- ./", "expect": "block", "tier": "git", "note": "pathspec after the -- separator"}
+{"id": "git-uppercase-sub", "command": "git RESET --hard", "expect": "allow", "tier": "git", "note": "git subcommands are case-sensitive; RESET is invalid"}
+{"id": "msys-case-git", "command": "GIT reset --hard", "expect": "block", "tier": "git", "platform": "msys", "note": "Windows exec lookup is case-insensitive"}
+{"id": "msys-case-legacy", "command": "GREP -r foo .", "expect": "block", "tier": "legacy", "platform": "msys", "note": "MSYS resolves GREP to grep"}
+{"id": "unix-case-git", "command": "GIT reset --hard", "expect": "allow", "tier": "git", "platform": "unix", "note": "no executable named GIT on POSIX hosts"}
+{"id": "git-quoted-letters", "command": "\"g\"it reset --hard", "expect": "block", "tier": "git", "note": "bash concatenates quoted letters into git; the prefilter must de-quote"}
+{"id": "legacy-quoted-letters", "command": "\"gr\"ep -r foo .", "expect": "block", "tier": "legacy", "note": "same prefilter de-quote for legacy heads"}
+{"id": "git-quoted-letters-data", "command": "echo \"g\"it --help", "expect": "allow", "tier": "none", "note": "de-quoted prefilter may hit, but command position is echo"}
+{"id": "git-reset-separator", "command": "git reset -- src/app.py", "expect": "allow", "tier": "git", "note": "-- is the end-of-options separator, not an abbreviated option; mixed reset never touches the worktree"}
+{"id": "git-reset-separator-soft", "command": "git reset --soft -- file", "expect": "allow", "tier": "git", "note": "soft reset after separator stays out of --hard prefix matching"}
+{"id": "git-reset-separator-bare", "command": "git reset --", "expect": "allow", "tier": "git", "note": "bare separator"}
+{"id": "msys-quoted-prose-path", "command": "python x.py 'log /tmp'", "expect": "allow", "tier": "winpath", "platform": "msys", "note": "quoted prose with an embedded slash-word is one argv word that does not start with /"}
+{"id": "msys-quoted-real-path", "command": "python \"/tmp/f\"", "expect": "block", "tier": "winpath", "platform": "msys", "note": "MSYS converts fully-quoted POSIX paths too"}
+{"id": "git-xargs-i", "command": "xargs -i git reset --hard", "expect": "block", "tier": "git", "note": "-i is xargs' own synonym flag, not a value flag hiding git"}
