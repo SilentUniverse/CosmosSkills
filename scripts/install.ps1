@@ -488,6 +488,20 @@ if ($sharedInstall) {
                 Write-Host ("Removed zcode mirror link: {0}" -f $_.FullName) -ForegroundColor Yellow
             }
         } | Out-Null
+        # The old installer also copied contract files here as real files, which
+        # the link filter above never sees; remove those exact known names.
+        foreach ($shared in @("ARTIFACT-FORMAT.md", "REPORT-FORMAT.md", "verify-artifacts.py", "workflow-state.py", "workflow_contract.py", "workflow_runtime.py", "process_tree.py")) {
+            $copy = Join-Path $zcodeSkills $shared
+            if (Test-Path -LiteralPath $copy -PathType Leaf) {
+                if ($DryRun) {
+                    Write-Host ("[DryRun] Remove zcode contract copy: {0}" -f $copy) -ForegroundColor Yellow
+                }
+                else {
+                    Remove-Item -LiteralPath $copy -Force
+                    Write-Host ("Removed zcode contract copy: {0}" -f $copy) -ForegroundColor Yellow
+                }
+            }
+        }
     }
 }
 
