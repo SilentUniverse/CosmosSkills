@@ -73,7 +73,7 @@ class WorkflowStateTests(unittest.TestCase):
             root = Path(directory)
             plant_issue(root, "01-one", status="ready")
             card = root / ".scratch/demo/issues/01-one.md"
-            raw = card.read_text().replace("type: issue", "type: issue\ncontract_version: 3")
+            raw = card.read_text(encoding="utf-8").replace("type: issue", "type: issue\ncontract_version: 3")
             raw = raw.replace("## Comments", "## 验收标准\n- [ ] Deliver.\n\n## 验证设计\n- profile: verifier.json\n- #1 → `profile:scoped`\n\n## Comments")
             card.write_text(raw, encoding="utf-8")
             profile = card.parent.parent / "verifier.json"
@@ -115,7 +115,7 @@ class WorkflowStateTests(unittest.TestCase):
                 root = Path(directory)
                 plant_issue(root, "01-one", status="ready")
                 path = root / ".scratch/demo/issues/01-one.md"
-                original = path.read_text().replace("status: ready", "status: ready\ntouches: [pkg]\ntest_paths: [pkg/tests/old.py]")
+                original = path.read_text(encoding="utf-8").replace("status: ready", "status: ready\ntouches: [pkg]\ntest_paths: [pkg/tests/old.py]")
                 path.write_text(original, encoding="utf-8")
                 started = workflow_state.start_issue(root, "demo", "01-one")
                 path.write_text(original.replace("test_paths: [pkg/tests/old.py]", replacement), encoding="utf-8")
@@ -130,7 +130,7 @@ class WorkflowStateTests(unittest.TestCase):
             root = Path(directory)
             plant_issue(root, "01-one", status="ready")
             path = root / ".scratch/demo/issues/01-one.md"
-            initial = path.read_text()
+            initial = path.read_text(encoding="utf-8")
             write = workflow_state.write_state
             def concurrent_edit(repo, target, content):
                 if target == path.resolve():
@@ -139,8 +139,8 @@ class WorkflowStateTests(unittest.TestCase):
             with mock.patch.object(workflow_state, "write_state", side_effect=concurrent_edit):
                 with self.assertRaisesRegex(ValueError, "conflicts"):
                     workflow_state.close_issue(root, "demo", "01-one")
-            self.assertIn("Concurrent owner note", path.read_text())
-            self.assertIn("status: ready", path.read_text())
+            self.assertIn("Concurrent owner note", path.read_text(encoding="utf-8"))
+            self.assertIn("status: ready", path.read_text(encoding="utf-8"))
 
     def test_direct_entry_scopes_duplicate_slugs_to_the_named_feature(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -150,7 +150,7 @@ class WorkflowStateTests(unittest.TestCase):
             started = workflow_state.start_issue(root, "one", "01-setup")
             closed = workflow_state.close_issue(root, "one", "01-setup", started["execution"])
             self.assertEqual("done", closed["status"])
-            self.assertIn("status: ready", (root / ".scratch/two/issues/01-setup.md").read_text())
+            self.assertIn("status: ready", (root / ".scratch/two/issues/01-setup.md").read_text(encoding="utf-8"))
 
     def test_direct_start_admits_once_and_close_publishes_card_with_ledger(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -165,10 +165,10 @@ class WorkflowStateTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     workflow_state.close_issue(root, "demo", "01-one", started["execution"])
             path = root / ".scratch/demo/issues/01-one.md"
-            self.assertIn("status: ready", path.read_text())
+            self.assertIn("status: ready", path.read_text(encoding="utf-8"))
             closed = workflow_state.close_issue(root, "demo", "01-one", started["execution"])
             self.assertEqual("done", closed["status"])
-            ledger = json.loads((root / ".scratch/demo/wave-ledger.json").read_text())
+            ledger = json.loads((root / ".scratch/demo/wave-ledger.json").read_text(encoding="utf-8"))
             self.assertEqual({"01-one": "green"}, ledger["waves"][-1]["closed"])
 
     def test_close_rejects_a_stale_execution(self):
@@ -180,7 +180,7 @@ class WorkflowStateTests(unittest.TestCase):
                 "dispatched": ["01-one"], "closed": {}}]}), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "execution"):
                 workflow_state.close_issue(root, "demo", "01-one", execution="stale")
-            self.assertIn("status: ready", (ledger.parent / "issues" / "01-one.md").read_text())
+            self.assertIn("status: ready", (ledger.parent / "issues" / "01-one.md").read_text(encoding="utf-8"))
 
     def test_survey_refuses_an_interrupted_publication(self):
         with tempfile.TemporaryDirectory() as directory:
