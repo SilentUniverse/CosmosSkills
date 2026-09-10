@@ -36,6 +36,39 @@ class HandoffStateTests(unittest.TestCase):
                 handoff_state.publish(root, path, expected, draft)
             self.assertEqual(expected, handoff_state.version(path))
 
+    def test_new_stamps_a_publishable_draft(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = self.repo(directory)
+            draft = root / ".scratch" / "tmp" / "draft.md"
+            result = handoff_state.new(root, draft, feature="demo")
+            self.assertEqual(".scratch/demo/handoff.md", result["target"])
+            self.assertEqual("absent", result["expected"])
+            body = draft.read_text(encoding="utf-8")
+            self.assertIn("feature: demo", body)
+            self.assertIn("capsule: active-work", body)
+            self.assertIn("status: active", body)
+            self.assertIn("## Continue", body)
+            published = handoff_state.publish(
+                root, ".scratch/demo/handoff.md", result["expected"], draft
+            )
+            self.assertIn("version", published)
+            target = root / ".scratch" / "demo" / "handoff.md"
+            self.assertIn(
+                "git_base: %s" % result["git_base"], target.read_text(encoding="utf-8")
+            )
+
+    def test_new_refuses_existing_draft_and_unknown_capsule(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = self.repo(directory)
+            draft = root / ".scratch" / "tmp" / "draft.md"
+            handoff_state.new(root, draft, feature="demo")
+            with self.assertRaisesRegex(ValueError, "already exists"):
+                handoff_state.new(root, draft, feature="demo")
+            with self.assertRaisesRegex(ValueError, "capsule"):
+                handoff_state.new(
+                    root, ".scratch/tmp/other.md", feature="demo", capsule="bogus"
+                )
+
     def test_stale_consumer_cannot_delete_a_republished_handoff(self):
         with tempfile.TemporaryDirectory() as directory:
             root = self.repo(directory)

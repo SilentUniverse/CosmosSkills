@@ -11,6 +11,7 @@ import re
 import subprocess
 import sys
 import uuid
+from datetime import date
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
@@ -117,6 +118,50 @@ def target_path(root, reference):
 
 def version(path):
     return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else "absent"
+
+
+def new(root, draft, feature=None, capsule="active-work"):
+    root = Path(root).resolve()
+    path = (root / draft).resolve()
+    if capsule not in CAPSULES:
+        raise ValueError("unknown handoff capsule")
+    if path.exists():
+        raise ValueError("draft already exists: %s" % draft)
+    state = snapshot(root)
+    slug = feature if feature not in (None, "", "null") else "null"
+    target = ".scratch/handoff.md" if slug == "null" else ".scratch/%s/handoff.md" % slug
+    content = (
+        "---\n"
+        "schema_version: 2\n"
+        "type: handoff\n"
+        "feature: %s\n"
+        "capsule: %s\n"
+        "git_base: %s\n"
+        "worktree_digest: %s\n"
+        "status: active\n"
+        "date: %s\n"
+        "---\n\n"
+        "# Handoff: <topic>\n\n"
+        "## Continue\n"
+        "1. READ `<minimum exact paths>`\n"
+        "2. RUN `<exact bounded command>`\n"
+        "3. CONFIRM `<observable predicate>`; THEN `<next edit/decision>`\n\n"
+        "## State\n"
+        "<objective still owed + current node + pointers to authoritative artifacts/evidence>\n\n"
+        "## Decisions\n"
+        "- <decision, authorization, or invariant> — <scope and constraint a future agent must preserve>\n\n"
+        "## Avoid\n"
+        "- <failed or rejected path> — <evidence>\n"
+        % (slug, capsule, state["git_base"], state["worktree_digest"], date.today().isoformat())
+    )
+    write_state(root, path, content)
+    return {
+        "path": path.relative_to(root).as_posix(),
+        "target": target,
+        "expected": version(target_path(root, target)),
+        "git_base": state["git_base"],
+        "version": version(path),
+    }
 
 
 def publish(root, reference, expected, source):
@@ -259,6 +304,11 @@ def build_parser() -> argparse.ArgumentParser:
     find.add_argument("repo_root", type=Path)
     find.add_argument("feature", nargs="?")
     find.add_argument("--path", type=Path)
+    make = commands.add_parser("new")
+    make.add_argument("repo_root", type=Path)
+    make.add_argument("draft", type=Path)
+    make.add_argument("--feature", default=None)
+    make.add_argument("--capsule", default="active-work", choices=CAPSULES)
     for name in ("publish", "consume"):
         change = commands.add_parser(name)
         change.add_argument("repo_root", type=Path)
@@ -281,6 +331,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             data = snapshot(args.repo_root, args.path)
         elif args.command == "locate":
             data = locate(args.repo_root, args.feature, args.path)
+        elif args.command == "new":
+            data = new(args.repo_root, args.draft, args.feature, args.capsule)
         elif args.command == "publish":
             data = publish(args.repo_root, args.path, args.expected, args.source)
         else:
