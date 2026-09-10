@@ -8,7 +8,10 @@ the PowerShell engine (.ps1 via pwsh), so the same corpus drives macOS,
 Linux, and the Windows carrier.
 
 Usage:
-  run_corpus.py <path-to-hook> [--platform unix|msys|all] [--bench] [-v]
+  run_corpus.py <path-to-hook> [--platform unix|msys] [--bench] [-v]
+
+--platform forces the hook's own platform gate to that profile, so either
+profile scores on any host; the default is the host's own profile.
 
 Exit code 0 = every applicable case matched; 1 = mismatches or errors.
 """
@@ -23,10 +26,13 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 CORPUS = os.path.join(HERE, "cases.jsonl")
 
-# Set once main() resolves the platform: scoring the msys profile must force
-# the hook's Windows-only tiers on regardless of the host, via the hook's own
-# test switch (otherwise --platform msys on a Unix box reports false misses).
-FORCE_MSYS = False
+# Set once main() resolves the platform: a scored profile must force the
+# hook's own gating to match it regardless of the host, via the hook's own
+# test switch (otherwise --platform msys on a Unix box, or --platform unix on
+# Windows, scores against the host default and reports false misses). None
+# when the scored profile is the host's own — leaving the switch unset keeps
+# the hook's real platform detection under test.
+FORCE_ENV = None
 
 
 def platform_default():
@@ -63,7 +69,8 @@ def effective_command(case):
 
 
 def run_hook(argv, command):
-    env = dict(os.environ, GUARD_SHELL_FORCE_MSYS="1") if FORCE_MSYS else None
+    env = None if FORCE_ENV is None else dict(
+        os.environ, GUARD_SHELL_FORCE_MSYS=FORCE_ENV)
     p = subprocess.run(argv, input=payload(command), capture_output=True, env=env)
     return p.returncode, p.stderr.decode("utf-8", "replace").strip()
 
@@ -71,7 +78,7 @@ def run_hook(argv, command):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("hook")
-    ap.add_argument("--platform", choices=["unix", "msys", "all"], default=None)
+    ap.add_argument("--platform", choices=["unix", "msys"], default=None)
     ap.add_argument("--tiers", default=None,
                     help="comma list; only score cases whose tier is listed (tier 'none' always scores)")
     ap.add_argument("--bench", action="store_true", help="also report latency p50/p95")
@@ -79,8 +86,9 @@ def main():
     args = ap.parse_args()
 
     plat = args.platform or platform_default()
-    global FORCE_MSYS
-    FORCE_MSYS = (plat == "msys")
+    global FORCE_ENV
+    FORCE_ENV = None if plat == platform_default() else (
+        "1" if plat == "msys" else "0")
     argv = hook_argv(args.hook)
 
     cases = []

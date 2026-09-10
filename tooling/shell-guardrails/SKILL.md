@@ -41,11 +41,11 @@ The engine evaluates the first matching tier:
 Branch deletion is deliberately allowed: squash-merged topic branches need `branch -D` for cleanup,
 and a dropped ref stays reflog-recoverable. Quoted remote commands are data; host pipelines and command
 substitutions are executable host code.
-The parser recognizes shell control flow, wrappers, assignments, subshells, static `-c` or `eval`
-payloads, comments, heredocs, arrays, tests, case patterns, and redirects. Dynamic command words and
+The parser recognizes shell control flow, wrappers, assignments, subshells, static `-c`, `cmd /c`, or
+`eval` payloads, comments, heredocs, arrays, tests, case patterns, and redirects. Dynamic command words and
 dynamic payloads pass because static analysis cannot judge them reliably.
 
-The path tier activates only for MSYS or Cygwin, or `GUARD_SHELL_FORCE_MSYS=1` in tests. WSL,
+The path tier activates only for MSYS or Cygwin, or `GUARD_SHELL_FORCE_MSYS=1`/`=0` in tests. WSL,
 macOS, and Linux keep valid POSIX paths. When changing parsing or policy, load the complete
 [execution-domain model](references/execution-domain.md). Measurements and retained parser gaps live
 in [README.md](README.md).
@@ -64,11 +64,11 @@ in [README.md](README.md).
 For an engine or policy change, run both non-executing corpus profiles:
 
 ```bash
-python tooling/shell-guardrails/run_corpus.py tooling/shell-guardrails/scripts/guard-shell.py
-GUARD_SHELL_FORCE_MSYS=1 python tooling/shell-guardrails/run_corpus.py tooling/shell-guardrails/scripts/guard-shell.py --platform msys
+python tooling/shell-guardrails/run_corpus.py tooling/shell-guardrails/scripts/guard-shell.py --platform unix
+python tooling/shell-guardrails/run_corpus.py tooling/shell-guardrails/scripts/guard-shell.py --platform msys
 ```
 
-Use `python` (`python3` on Unix); on Windows Git Bash the POSIX env prefix above works unchanged.
+Use `python` (`python3` on Unix); these lines run unchanged under Git Bash on Windows.
 
 For wiring-only work, verify the deployed copy, parsed settings, one blocked payload, and one allowed
 payload. A block exits 2 with an ASCII message on stderr; an allow exits 0 silently. Never execute a
