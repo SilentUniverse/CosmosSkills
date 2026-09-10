@@ -27,9 +27,12 @@ Without an issue, retain the remaining goal, acceptance checks, current authorit
 relationships, and validation pointers here. Transfer verified reusable knowledge to its existing
 retrieval surface before consuming the handoff; completed exploration has no place in the bridge.
 
-Run `python <handoff-skill-dir>/scripts/handoff-state.py snapshot <repo-root> --path <handoff-path>`
-once (`python3` only when `python` is absent). Retain its `version` (`absent` for creation); copy
-`git_base` and `worktree_digest` exactly into the draft frontmatter. The digest tracks product drift only:
+For creation, run
+`python <handoff-skill-dir>/scripts/handoff-state.py new <repo-root> <draft-path> --feature <slug> [--capsule <type>]`
+once (`python3` only when `python` is absent). It writes the draft skeleton below with the current
+`git_base` and `worktree_digest` already stamped and reports the `target` and the version to pass as
+`--expected`; fill the body only and never hand-copy hashes. For a rolling update, snapshot both
+baselines before editing the draft. The digest tracks product drift only:
 it excludes handoff files and workflow-internal writes (preflight cache, wave ledger, execution
 receipts). Evidence integrity is the artifact gate's job, not the digest's; overwriting this
 bridge or replaying a preflight does not invalidate the baseline.
@@ -98,5 +101,6 @@ blindly copying the new hash. Remove the consumed draft. Do not overwrite the ta
 ## Safety and done
 
 Preserve paths, commands, errors, identifiers, and signatures byte-for-byte. Remove secrets and PII.
-Before returning, confirm `Continue` has a READ/RUN/CONFIRM chain and the snapshot values match the
-published frontmatter. Report only path, `git_base`, and the first action.
+Before returning, confirm `Continue` has a READ/RUN/CONFIRM chain. `publish` already stamped the
+baseline into the frontmatter, so do not re-verify it by hand. Report only path, `git_base`, and the
+first action.
