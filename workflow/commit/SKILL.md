@@ -66,8 +66,9 @@ the installed gh supports it); any other remote lands natively in an isolated cl
 default branch after an optional `--verify-command`. It pins the verified head on both engines
 (PR head/base identity; ancestry plus per-path content checks), verifies `state: MERGED` or the
 published result before reporting landed, is idempotent on a re-run after a mid-sequence
-failure, never stages or scopes (the validated commit is its only input), and leaves the
-caller's checked-out branch untouched; `--mode/--remote/--base/--verify-command` override its
+failure, never stages or scopes (the validated commit is its only input), leaves the
+caller's checked-out branch untouched, and advances the local default branch to the published
+one by fast-forward only; `--mode/--remote/--base/--verify-command` override its
 resolutions. Pass integration checks as `--verify-command` on the native engine and run them
 before landing on the gh engine.
 
