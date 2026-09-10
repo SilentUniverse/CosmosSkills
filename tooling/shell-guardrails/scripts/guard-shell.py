@@ -34,8 +34,9 @@ Execution-domain model (bash semantics):
     /usr/bin/git counts), reachable through a prefix chain of keywords /
     wrappers / VAR=val / wrapper flag+value pairs. 'echo sudo git clean' and
     'adb shell sudo git clean' are never calls; 'command -v grep' only prints.
-  - static quoted payloads of bash/sh/zsh -c and eval run on the host and are
-    re-scanned (depth-capped); dynamic payloads (`eval "$cmd"`) stay fail-open.
+  - static quoted payloads of bash/sh/zsh -c, cmd /c, and eval run on the host
+    and are re-scanned (depth-capped); dynamic payloads (`eval "$cmd"`) stay
+    fail-open.
 
 Perf contract: necessary-condition prefilters run first — commands containing
 no git / grep|find|sed / (on Windows/MSYS) POSIX-path token never reach the
@@ -110,13 +111,47 @@ def basename(w):
 
 def pair_strip(tok):
     """Boundary-quote strip for tier 2: MSYS path-converts argv words whose
-    execution view starts with `/`. A phrase split across naive whitespace
-    (`'log /tmp'` -> tokens `'log`, `/tmp'`) keeps its stray quote, so the
-    embedded slash-word is not treated as a path."""
+    execution view starts with `/`. A word quoted as a whole (`'log /tmp'`)
+    is one word starting with `l`, so the embedded slash stays data."""
     for q in '\'"':
         if len(tok) >= 2 and tok[0] == q and tok[-1] == q:
             return tok[1:-1]
     return tok
+
+
+def split_words(seg):
+    """Bash word splitting, for every tier: only unquoted, unescaped
+    whitespace ends a word, so a quoted or escaped command word carries its
+    spaces ('"C:/Program Files/Git/git.exe"' and
+    'C:/Program\\ Files/Git/git.exe' are one word each). Quote characters and
+    the escape stay in the word for exec_word, basename and pair_strip to
+    normalize."""
+    words, buf, quote, esc = [], [], '', False
+    for c in seg:
+        if esc:
+            buf.append(c)
+            esc = False
+        elif quote:
+            buf.append(c)
+            if c == '\\' and quote == '"':
+                esc = True      # \" does not close a double quote
+            elif c == quote:
+                quote = ''
+        elif c == '\\':
+            buf.append(c)
+            esc = True
+        elif c in '\'"':
+            quote = c
+            buf.append(c)
+        elif c.isspace():
+            if buf:
+                words.append(''.join(buf))
+                del buf[:]
+        else:
+            buf.append(c)
+    if buf:
+        words.append(''.join(buf))
+    return words
 
 
 # Set in main(): on MSYS/Windows the executable lookup is case-insensitive
@@ -130,8 +165,8 @@ def fold(word):
 
 
 def exec_word(tok):
-    """Execution view of one whitespace-split token: bash word boundaries
-    ignore in-word quotes, so quote characters never shield a match
+    """Execution view of one shell word: bash word boundaries ignore in-word
+    quotes, so quote characters never shield a match
     ('re"se"t' executes as reset, '".' discards the worktree). Only quotes
     are dropped — git subcommands and flags stay case-sensitive."""
     return tok.replace('"', '').replace("'", '')
@@ -435,6 +470,12 @@ DQ_SPAN_RE = re.compile(r'"[^"]*"')
 SQ_SPAN_RE = re.compile(r"'[^']*'")
 
 LOCAL_SHELLS = {'bash', 'sh', 'zsh', 'dash', 'ksh'}
+# cmd.exe re-parses its /c string as a command line, so its argument is a
+# nested command line — the Windows analogue of `bash -c`. MSYS also hands
+# bash's `//c` to cmd as `/c`. Both the switch and the `cmd` head fold on
+# every host, WSL interop included: cmd.exe is a native executable whose
+# lookup is case-insensitive, unlike the bare local-shell names FOLD gates.
+CMD_RUN_SWITCHES = {'/c', '//c', '/k', '//k'}
 
 
 # pathspec spellings whose discard scope equals `.` or the whole repository;
@@ -444,7 +485,7 @@ DISCARD_PATHSPECS = {'.', './', ':/', ':/*'}
 
 def dangerous_git_hit(segments):
     for seg in segments:
-        toks = [exec_word(t) for t in seg.strip().split()]
+        toks = [exec_word(t) for t in split_words(seg)]
         if not toks:
             continue
         ci = command_word_index(toks)
@@ -486,7 +527,7 @@ def winpath_hits(segments):
     Quoted spans after adb are the device command — data, not argv — and a
     MSYS_NO_PATHCONV prefix disables path conversion, so both stay allowed."""
     for seg in segments:
-        toks = [pair_strip(t) for t in seg.strip().split()]
+        toks = [pair_strip(t) for t in split_words(seg)]
         if not toks:
             continue
         ci = command_word_index(toks)
@@ -521,7 +562,7 @@ def winpath_hits(segments):
 
 def legacy_cli_hit(segments):
     for seg in segments:
-        toks = [exec_word(t) for t in seg.strip().split()]
+        toks = [exec_word(t) for t in split_words(seg)]
         if not toks:
             continue
         ci = command_word_index(toks)
@@ -534,21 +575,25 @@ def legacy_cli_hit(segments):
 
 
 def payload_segments(segments, depth, want_path=False):
-    """Static quoted payloads of bash/sh/zsh -c and eval run on this host:
-    re-split and re-scan them (depth-capped). Dynamic payloads stay fail-open.
+    """Static quoted payloads of bash/sh/zsh -c, cmd /c, and eval run on this
+    host: re-split and re-scan them (depth-capped). Dynamic payloads stay
+    fail-open.
     want_path keeps tier 2 covered too — without it, `bash -c 'python x.py
     /tmp/f'` would slip past the no-escape path tier."""
     if depth >= 2:
         return []
     extra = []
     for seg in segments:
-        toks = seg.split()
+        toks = split_words(seg)
         ci = command_word_index(toks)
         if ci < 0:
             continue
         head = fold(basename(exec_word(toks[ci])))
         args = toks[ci + 1:]
         if head in LOCAL_SHELLS and len(args) >= 2 and exec_word(args[0]) == '-c':
+            payload = ' '.join(args[1:])
+        elif head.lower() == 'cmd' and len(args) >= 2 and \
+                exec_word(args[0]).lower() in CMD_RUN_SWITCHES:
             payload = ' '.join(args[1:])
         elif head == 'eval' and args:
             payload = ' '.join(args)
@@ -610,15 +655,20 @@ def main():
     # the shell truth (msys/cygwin = Git Bash, anything else = a Unix-domain
     # shell like WSL where /tmp is valid); without OSTYPE — the hook spawns
     # via cmd.exe — sys.platform is the fallback. GUARD_SHELL_FORCE_MSYS
-    # enables it for testing. On macOS/Linux a /tmp argument to python3 is
-    # perfectly valid and must never block.
+    # overrides it for testing in both directions: =1 forces the tier on,
+    # =0 forces it off so the Unix profile stays scorable on a Windows host.
+    # On macOS/Linux a /tmp argument to python3 is perfectly valid and must
+    # never block.
     _ostype = os.environ.get('OSTYPE', '')
     if _ostype:
         is_msys = _ostype.startswith(('msys', 'cygwin'))
     else:
         is_msys = sys.platform in ('win32', 'cygwin', 'msys')
-    if os.environ.get('GUARD_SHELL_FORCE_MSYS') == '1':
+    _force_msys = os.environ.get('GUARD_SHELL_FORCE_MSYS')
+    if _force_msys == '1':
         is_msys = True
+    elif _force_msys == '0':
+        is_msys = False
     global FOLD
     FOLD = is_msys
 

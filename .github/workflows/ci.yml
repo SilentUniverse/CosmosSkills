@@ -21,6 +21,13 @@ jobs:
         run: python -m unittest discover -s tests
       - name: Skill catalog validation (links, frontmatter, resident budget)
         run: python scripts/validate-skills.py
+      - name: Shell guardrails corpus (unix profile)
+        run: python tooling/shell-guardrails/run_corpus.py tooling/shell-guardrails/scripts/guard-shell.py --platform unix
+      # Only this leg forces msys on a Unix host: the other three reach their
+      # profile by host detection or by forcing the gate off.
+      - name: Shell guardrails corpus (msys profile forced on a Unix host)
+        if: runner.os == 'Linux'
+        run: python tooling/shell-guardrails/run_corpus.py tooling/shell-guardrails/scripts/guard-shell.py --platform msys
 
   windows-gate:
     runs-on: windows-latest
@@ -32,10 +39,8 @@ jobs:
       - name: CODEBASE.md regression harness
         shell: powershell
         run: powershell -NoProfile -ExecutionPolicy Bypass -File workflow/test-verify-codebase.ps1
-      - name: Shell guardrails corpus (default + msys profiles)
-        run: |
-          python tooling/shell-guardrails/run_corpus.py tooling/shell-guardrails/scripts/guard-shell.py
-          python tooling/shell-guardrails/run_corpus.py tooling/shell-guardrails/scripts/guard-shell.py --platform msys
+      - name: Shell guardrails corpus (msys profile)
+        run: python tooling/shell-guardrails/run_corpus.py tooling/shell-guardrails/scripts/guard-shell.py --platform msys
 
   runtime-portability:
     strategy:

@@ -25,16 +25,16 @@ shell keywords, variable assignments, grouping, and supported wrappers such as `
 `exec`. Consume each wrapper's value-taking flags before selecting the command word. Text passed to
 `echo` is not a command, and `command -v grep` is an inspection rather than a `grep` invocation.
 
-Static quoted payloads passed to local `bash`, `sh`, or `zsh` with `-c`, and to `eval`, are rescanned
-with a depth cap. Dynamic payloads and dynamic command words pass because the static parser cannot
-classify them reliably.
+Static quoted payloads passed to local `bash`, `sh`, or `zsh` with `-c`, to `cmd` with `/c`, and to
+`eval`, are rescanned with a depth cap. Dynamic payloads and dynamic command words pass because the
+static parser cannot classify them reliably.
 
 ## MSYS path domain
 
 The path tier activates for MSYS or Cygwin. An explicit non-MSYS `OSTYPE`, including WSL, disables
 it; when `OSTYPE` is absent, the hook falls back to the host platform. Tests may force the tier with
-`GUARD_SHELL_FORCE_MSYS=1`. Static local-shell payloads inherit the same tier. macOS and Linux keep
-valid POSIX paths.
+`GUARD_SHELL_FORCE_MSYS=1`, and forced off with `=0` so the Unix profile stays scorable on Windows.
+Static local-shell payloads inherit the same tier. macOS and Linux keep valid POSIX paths.
 
 Block POSIX path arguments passed to native Windows executables because MSYS rewrites them before
 the target sees them. Also block unquoted Android-root `sdcard`, `data`, or `system` paths passed to

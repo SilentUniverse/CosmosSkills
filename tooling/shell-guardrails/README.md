@@ -15,11 +15,12 @@ push-blocking behavior without adding catalog entries.
   prioritized tiers (destructive git > POSIX-path-to-native-exe > legacy CLI),
   decided once. Stdlib-only Python 3.6+, same file on Windows (`python`) and
   Unix (`python3`).
-- `cases.jsonl` — 194-case source corpus (192 apply on MSYS, 165 on Unix): `id, command,
+- `cases.jsonl` — 206-case source corpus (204 apply on MSYS, 176 on Unix): `id, command,
   expect(block|allow), tier(git|winpath|legacy|none), platform(any|unix|msys)`.
   Written against bash semantics, not against any one implementation: the
-  legacy `.sh`/`.ps1` carriers score 17+9 misses and 5+2 false blocks against
-  it, the combined engine scores zero.
+  legacy `.sh`/`.ps1` carriers, each scored on its own tier (`--tiers git` /
+  `--tiers legacy`, msys profile), miss 19 (git) and 22/20 (legacy) with 4-5
+  false blocks; the combined engine scores zero.
 - `run_corpus.py` — runner: feeds payloads to any carrier (`.py` via the
   interpreter running the runner, `.ps1` via pwsh, `.sh` via bash), scores
   per-tier misses and false blocks, optional latency bench. Python 3 stdlib
@@ -33,17 +34,20 @@ Any change to the engine or the policy tables keeps the corpus green on both
 platform profiles:
 
 ```bash
-python run_corpus.py scripts/guard-shell.py
-GUARD_SHELL_FORCE_MSYS=1 python run_corpus.py scripts/guard-shell.py --platform msys
+python run_corpus.py scripts/guard-shell.py --platform unix
+python run_corpus.py scripts/guard-shell.py --platform msys
 ```
 
-These lines run unchanged under Git Bash on Windows. Use `python`; on Unix substitute
-`python3`.
+`--platform` forces the hook's own platform gate, so either profile scores on any host; CI scores
+the unix profile in the `tests` matrix on both OSes (host detection on Linux, gate forced off on
+Windows), the msys profile on a forced Linux leg there, and the msys profile by host detection in
+`windows-gate`. These lines run
+unchanged under Git Bash on Windows. Use `python`; on Unix substitute `python3`.
 
 Tier 2 (POSIX paths to native executables) is Windows/MSYS only — an msys/
 cygwin `OSTYPE` enables it, any other `OSTYPE` (WSL included) disables it,
 and without `OSTYPE` (cmd.exe spawns) `sys.platform` decides;
-`GUARD_SHELL_FORCE_MSYS=1` overrides for testing. Tier 2 also covers Android:
+`GUARD_SHELL_FORCE_MSYS=1`/`=0` overrides for testing in either direction. Tier 2 also covers Android:
 an unquoted device path (`/sdcard/…`) handed to `adb`/`fastboot` fails at
 runtime on Git Bash (MSYS rewrites it), so it blocks with the working forms;
 quoted device commands and `MSYS_NO_PATHCONV=1` prefixes stay allowed.

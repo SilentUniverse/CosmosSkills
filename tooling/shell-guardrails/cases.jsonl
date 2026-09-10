@@ -192,3 +192,15 @@
 {"id": "msys-quoted-prose-path", "command": "python x.py 'log /tmp'", "expect": "allow", "tier": "winpath", "platform": "msys", "note": "quoted prose with an embedded slash-word is one argv word that does not start with /"}
 {"id": "msys-quoted-real-path", "command": "python \"/tmp/f\"", "expect": "block", "tier": "winpath", "platform": "msys", "note": "MSYS converts fully-quoted POSIX paths too"}
 {"id": "git-xargs-i", "command": "xargs -i git reset --hard", "expect": "block", "tier": "git", "note": "-i is xargs' own synonym flag, not a value flag hiding git"}
+{"id": "git-quoted-spaced-cmd", "command": "\"C:/Program Files/Git/git.exe\" reset --hard", "expect": "block", "tier": "git", "note": "a quoted command word may contain spaces; whitespace-splitting it first destroyed the head"}
+{"id": "legacy-quoted-spaced-cmd", "command": "\"C:/Program Files/Git/usr/bin/grep.exe\" -n x f", "expect": "block", "tier": "legacy", "note": "tier 3, same tear: the quoted head is one word"}
+{"id": "winpath-quoted-spaced-cmd", "command": "\"C:/Program Files/nodejs/node.exe\" /tmp/x.js", "expect": "block", "tier": "winpath", "platform": "msys", "note": "tier 2, same tear: native exe named by a spaced path still gets a POSIX arg"}
+{"id": "git-spaced-cmd-as-data", "command": "git status \"C:/Program Files/Git/git.exe\"", "expect": "allow", "tier": "git", "note": "the same spaced word in argument position is data, not a command word"}
+{"id": "git-spaced-shell-head-payload", "command": "\"C:/Program Files/Git/bin/bash.exe\" -c 'git reset --hard'", "expect": "block", "tier": "git", "note": "the payload head may be a spaced quoted path too; tearing it first drops the -c rescan"}
+{"id": "git-escaped-shell-head-payload", "command": "C:/Program\\ Files/Git/bin/bash.exe -c 'git reset --hard'", "expect": "block", "tier": "git", "note": "the same head spelled with an escaped space"}
+{"id": "git-escaped-space-cmd", "command": "C:/Program\\ Files/Git/git.exe reset --hard", "expect": "block", "tier": "git", "note": "an escaped space keeps the command word whole, like a quoted one"}
+{"id": "cmd-c-payload-static", "command": "cmd //c \"git reset --hard\"", "expect": "block", "tier": "git", "note": "cmd re-parses its /c argument as a nested command line"}
+{"id": "cmd-uppercase-switch", "command": "cmd /C \"git reset --hard\"", "expect": "block", "tier": "git", "note": "cmd parses switch letters case-insensitively wherever it is reachable, WSL interop included"}
+{"id": "git-whole-quoted-sub", "command": "git 'reset --hard'", "expect": "allow", "tier": "git", "note": "one argv word: git rejects 'reset --hard' as an unknown subcommand, so nothing is discarded"}
+{"id": "cmd-uppercase-head", "command": "CMD /c \"git reset --hard\"", "expect": "block", "tier": "git", "note": "the cmd head folds like its switches: CreateProcess/interop resolves CMD regardless of case"}
+{"id": "cmd-exe-uppercase-head", "command": "C:/Windows/System32/CMD.exe /c \"git reset --hard\"", "expect": "block", "tier": "git", "note": "uppercase .EXE head, path-qualified: reachable from WSL, unreachable if the head were FOLD-gated"}
