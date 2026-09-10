@@ -130,6 +130,11 @@ def new(root, draft, feature=None, capsule="active-work"):
     state = snapshot(root)
     slug = feature if feature not in (None, "", "null") else "null"
     target = ".scratch/handoff.md" if slug == "null" else ".scratch/%s/handoff.md" % slug
+    target_file = target_path(root, target)
+    if target_file.exists():
+        raise ValueError(
+            "handoff already exists at %s; update it in place instead of creating a draft" % target
+        )
     content = (
         "---\n"
         "schema_version: 2\n"
@@ -158,7 +163,7 @@ def new(root, draft, feature=None, capsule="active-work"):
     return {
         "path": path.relative_to(root).as_posix(),
         "target": target,
-        "expected": version(target_path(root, target)),
+        "expected": version(target_file),
         "git_base": state["git_base"],
         "version": version(path),
     }

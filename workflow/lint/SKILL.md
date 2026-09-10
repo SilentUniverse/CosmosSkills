@@ -78,8 +78,9 @@ calibration or example vocabulary.
 ## Workflow
 
 1. **Scope**: explicit dir / file / glob. Empty → all modified files (tracked + untracked, via
-   `git status --porcelain`; no git repo → ask). Never touch `.git/`, recorded fixtures, or
-   generated artifacts. Fix their source instead.
+   `git status --porcelain`; no git repo → ask). Take the lead line's file and added-line counts
+   from `git diff --numstat` plus the untracked count instead of tallying by hand. Never touch
+   `.git/`, recorded fixtures, or generated artifacts. Fix their source instead.
 2. **Audit read-only**: run the [batteries](references/batteries.md), then judge every hit
    semantically. The batteries are probes, not the definition. Also read the densest prose in
    scope without a pattern in hand; in rule prose, apply Symbol discipline below.

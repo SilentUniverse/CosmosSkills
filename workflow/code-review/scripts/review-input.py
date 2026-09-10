@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 """Pin working-tree review inputs into one bundle for /code-review axes.
 
-Resolves HEAD, captures `git status --short` and `git diff HEAD`, and embeds the
+Resolves HEAD, captures `git status --short` and the review diff, and embeds the
 contents of in-scope untracked files (git diff omits them, so an empty tracked
 diff does not prove an empty review). Scope comes from the reviewer's judgment:
 `--paths` names the directories/files in scope; untracked files outside it are
-listed as excluded rather than silently dropped. Each embedded file is capped at
-`--max-bytes` (default 64 KiB) with a truncation marker, so a stray binary or
-build artifact cannot balloon a subagent brief.
+listed as excluded rather than silently dropped. By default the diff is the
+working tree against HEAD and in-scope untracked files are embedded; `--base <ref>`
+reviews a committed range instead, resolving `<ref>...HEAD` plus the commit list
+(capped at `MAX_COMMITS`) and listing untracked working files as out-of-range.
+Both the diff and each embedded file are capped at `--max-bytes` (default 64 KiB)
+with a truncation marker, so a stray binary, build artifact, or oversized diff
+cannot balloon a subagent brief.
 
 Output: one JSON object on stdout (or --output). Exit codes: 0 ok; 1 not a git
 repository / git failure; 2 usage.
@@ -68,21 +72,53 @@ def _in_scope(path: str, scopes: Sequence[str]) -> bool:
     return False
 
 
+def _cap_text(text: str, max_bytes: int, label: str) -> str:
+    raw = text.encode("utf-8")
+    if len(raw) <= max_bytes:
+        return text
+    return raw[:max_bytes].decode("utf-8", errors="replace") + (
+        "\n[review-input: %s truncated at %d of %d bytes]\n" % (label, max_bytes, len(raw))
+    )
+
+
+MAX_COMMITS = 200
+
+
 def build_bundle(
     repo: Path,
     *,
     scopes: Sequence[str] = (),
     max_bytes: int = 65536,
+    base: Optional[str] = None,
 ) -> Dict[str, Any]:
     repo = repo.resolve()
     head = _git(repo, ["rev-parse", "HEAD"]).strip()
     branch = _git(repo, ["rev-parse", "--abbrev-ref", "HEAD"]).strip()
+    if base:
+        resolved_base: Optional[str] = _git(repo, ["rev-parse", base]).strip()
+        diff = _git(repo, ["diff", "%s...HEAD" % resolved_base])
+        raw_commits = [line for line in _git(
+            repo, ["log", "--oneline", "%s..HEAD" % resolved_base]
+        ).splitlines() if line.strip()]
+        # git log is newest-first; keep the most recent commits and flag the cut.
+        commits = raw_commits[:MAX_COMMITS]
+        commits_truncated = len(raw_commits) > MAX_COMMITS
+    else:
+        resolved_base = None
+        diff = _git(repo, ["diff", "HEAD"])
+        commits = []
+        commits_truncated = False
     entries = _status_entries(repo)
     untracked: List[Dict[str, Any]] = []
     excluded: List[Dict[str, str]] = []
     for entry in entries:
         path = entry["path"]
         if entry["xy"] != "??":
+            continue
+        if base:
+            # A committed-range review judges commits, not the working tree;
+            # embedding stray untracked files would contaminate the axes.
+            excluded.append({"path": path, "reason": "out-of-range"})
             continue
         if not _in_scope(path, scopes):
             excluded.append({"path": path, "reason": "out-of-scope"})
@@ -109,7 +145,10 @@ def build_bundle(
         "branch": branch,
         "head": head,
         "status_short": [entry["xy"] + " " + entry["path"] for entry in entries],
-        "diff_head": _git(repo, ["diff", "HEAD"]),
+        "base": resolved_base,
+        "commits": commits,
+        "commits_truncated": commits_truncated,
+        "diff_head": _cap_text(diff, max_bytes, "diff"),
         "untracked": untracked,
         "excluded": excluded,
     }
@@ -129,6 +168,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         help="comma-separated in-scope directories/files for untracked contents",
     )
     parser.add_argument("--max-bytes", type=int, default=65536)
+    parser.add_argument(
+        "--base",
+        default=None,
+        help="review the committed range <base>...HEAD instead of the working tree",
+    )
     parser.add_argument("--output", type=Path)
     args = parser.parse_args(argv)
 
@@ -140,7 +184,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         print("review-input: not a git repository: %s" % repo, file=sys.stderr)
         return 1
     scopes = [item for item in args.paths.split(",") if item.strip()]
-    bundle = build_bundle(repo, scopes=scopes, max_bytes=args.max_bytes)
+    bundle = build_bundle(
+        repo, scopes=scopes, max_bytes=args.max_bytes, base=args.base
+    )
     payload = json.dumps(bundle, ensure_ascii=False, indent=2)
     if args.output:
         args.output.write_text(payload + "\n", encoding="utf-8")

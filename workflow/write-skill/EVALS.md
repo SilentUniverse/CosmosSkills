@@ -24,8 +24,9 @@ Use skill TDD:
    the corpus when required by the agreed eval scope or cross-skill impact. Keep deterministic constraints in scripts/types/CI; keep judgment and routing
    in the skill. Delete prose a machine gate now owns.
 
-Record each run with the repository's `scripts/eval.py` JSONL contract (installed copies land in
-the installer's target root, e.g. `~/.claude/skills/eval.py`). Compare `previous`, `candidate`, and `no-skill`/`upstream`:
+Record each run through `scripts/eval.py record-run <session> --run <run.json>` when it belongs to a
+session, or the repository's JSONL contract for a standalone run file (installed copies land in the
+installer's target root, e.g. `~/.claude/skills/eval.py`). Compare `previous`, `candidate`, and `no-skill`/`upstream`:
 
 ```bash
 python scripts/eval.py validate-runs results.jsonl --cases evals/cases

@@ -24,31 +24,26 @@ outcome/evidence reporting; keep Fowler smell names in English.
 
 Use the supplied fixed point. Otherwise infer it from the PR target or requested working-tree
 scope (`HEAD`). Inspect branch metadata first; ask only if materially different bases remain.
-
-Capture the diff command once. Default to three-dot (compares against the merge-base):
-
-```powershell
-git diff <fixed-point>...HEAD            # or  git diff HEAD...<branch>  when reviewing a branch
-git log  <fixed-point>..HEAD --oneline   # the commit list
-```
-
 Resolve the ref (`git rev-parse <fixed-point>`) and inspect the diff before dispatch. Report an
 empty diff as no changes in that scope. A bad supplied ref needs correction; gather sources meanwhile.
 
-Working-tree mode: pin the review inputs with
-`python <code-review-skill-dir>/scripts/review-input.py <repo-root> [--paths <scope>]`. The bundle
-resolves HEAD, captures `git status --short` and `git diff HEAD`, and embeds in-scope untracked file
-contents with a per-file size cap; oversized or out-of-scope paths are listed as excluded. Git diff
-omits untracked files, so an empty tracked diff does not prove an empty review; the bundle's excluded
-list is part of the report. Pass the same bundle to every applicable axis. Pin committed refs to
-resolved SHAs and restart affected review only if the reviewed tree changes.
+Pin the review inputs once with
+`python <code-review-skill-dir>/scripts/review-input.py <repo-root> [--base <fixed-point>] [--paths <scope>]`.
+Without `--base` it bundles the working tree against `HEAD`; with `--base` it resolves
+`<fixed-point>...HEAD` (three-dot, against the merge-base) and returns the commit list. The bundle
+carries `git status --short`, the diff (size-capped), and in-scope untracked file contents; oversized
+or out-of-scope paths are listed as excluded. Git diff omits untracked files, so an empty tracked diff
+does not prove an empty review; the excluded list is part of the report. Pass the same bundle object
+to every applicable axis (it already carries the diff); do not regenerate the diff or hand-paste it
+per axis. A truncated diff or commit list is a coverage gap; name it. Pin committed refs to resolved
+SHAs and restart affected review only if the reviewed tree changes.
 
 ### 2. Identify the spec source
 
 Look for the originating spec, in this order:
 
 1. A path the user (or caller) passed as an argument — an issue file or PRD.
-2. The issue referenced by the branch / feature slug: `.scratch/<feat>/issues/NN-*.md`; its `## 验收标准（AC）` block is the spec — read it from
+2. The issue referenced by the branch / feature slug: `.scratch/<feat>/issues/NN-*.md`; its `## 验收标准（AC）` block is the spec. Read it from
    `python <skills-root>/workflow-state.py packet <repo-root> <feat> <slug>` (the packet's `acceptance` field) instead of re-parsing the issue markdown. For a `redo`/`fix` issue, also read the parent named by `refines:`. Review a multi-issue batch per issue; ask only when a requirement cannot be attributed after lookup.
 3. The feature's live PRD: inspect `PRD.md` and `PRD-vN.md` frontmatter and follow `supersedes` to
    the unique live head. Do not default to v1 or guess between multiple heads. If a supplied source

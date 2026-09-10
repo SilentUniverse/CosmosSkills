@@ -52,9 +52,18 @@ not the planner conversation or arm identity.
 ## Execute and grade
 
 Run each `case / arm / trial` slot from `session.json`. Store raw traces and grader artifacts below
-the session's `artifacts/`; append only valid run records to `results.jsonl`. Deterministic product
-gates grade first. AI judges are independent, blind, versioned, and calibrated; humans adjudicate
-only irreducible properties. A model's own success message is never a grader.
+the session's `artifacts/`, then record the run through the validator rather than editing
+`results.jsonl` by hand:
+
+```bash
+python scripts/eval.py record-run .eval-runs/<name> --run <run.json>
+```
+
+It rejects a record that fails the schema, repeats an already-recorded slot, targets a slot the
+session does not expect, or duplicates a `run_id`, and appends one canonical JSON line; `--dry-run`
+validates without writing. Deterministic product gates grade first. AI judges are independent, blind,
+versioned, and calibrated; humans adjudicate only irreducible properties. A model's own success
+message is never a grader.
 
 Use `session-status` between batches. Do not change controls or cases inside an open session; start a
 new one instead. Stop runs on budget exhaustion or unsafe external mutation. A missing fixture or

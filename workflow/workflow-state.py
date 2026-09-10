@@ -888,6 +888,12 @@ def parser():
     survey.add_argument("root")
     survey.add_argument("--format", choices=("json", "human"), default="human")
     survey.add_argument("--history", action="store_true")
+    survey.add_argument(
+        "--feature",
+        action="append",
+        default=None,
+        help="limit the survey to this feature (repeatable); default is every feature",
+    )
     gc = sub.add_parser("gc")
     gc.add_argument("root")
     gc.add_argument("feature")
@@ -920,9 +926,10 @@ def parser():
 
 
 @reading
-def survey_states(root, history=False):
+def survey_states(root, history=False, features=None):
     project = inspect_feature if history else feature_frontier
-    return [project(root, feature) for feature in feature_names(root)]
+    names = list(features) if features else feature_names(root)
+    return [project(root, feature) for feature in names]
 
 
 def main(argv=None):
@@ -939,7 +946,7 @@ def main(argv=None):
             state = inspect_feature(args.root, args.feature)
             output = json.dumps(state, ensure_ascii=False, indent=2) if args.format == "json" else render_human(state)
         elif args.command == "survey":
-            states = survey_states(args.root, args.history)
+            states = survey_states(args.root, args.history, args.feature)
             if args.format == "json":
                 output = json.dumps(states, ensure_ascii=False, indent=2)
             else:

@@ -87,7 +87,9 @@ remaining objective; finishing its first action does not complete that objective
 ## Rolling update
 
 Update only fields that moved: snapshot both baselines, replace `Continue`, advance the one-line
-`State`, and add only new non-derivable decisions or failed paths. Do not append history.
+`State`, and add only new non-derivable decisions or failed paths. Do not append history. Read the
+current version and baselines with
+`python <handoff-skill-dir>/scripts/handoff-state.py snapshot <repo-root> --path <handoff-path>`.
 Write the draft under `.scratch/tmp/`, then publish it through the version check:
 
 ```text
