@@ -3,10 +3,11 @@
 
 Input is an already-validated commit — the current (or --branch) topic branch
 tip. The script never stages, scopes, or edits the caller's worktree; the
-native engine lands through an isolated clean worktree. It is idempotent on
-the verified head SHA: a re-run after a mid-sequence failure detects an
-already merged PR or already published default branch and reports it instead
-of repeating a step.
+native engine lands through an isolated clean worktree. After a verified
+landing it advances the local default branch to the published one, by
+fast-forward only. It is idempotent on the verified head SHA: a re-run after a
+mid-sequence failure detects an already merged PR or already published default
+branch and reports it instead of repeating a step.
 
 Engine `auto` uses gh when authenticated and the remote resolves as GitHub,
 otherwise native. Exit codes: 0 landed (including already landed); 1 bad
@@ -370,7 +371,6 @@ def land_native(
                 landed=True, basis="resume-push", default_published=local_base_sha
             )
             report.setdefault("steps", []).append("pushed previously merged local default")
-            _advance_local_base(repo, base, local_base_sha, report)
             _cleanup_remote_topic(repo, remote, branch, sha, report)
             return
 
@@ -427,8 +427,31 @@ def land_native(
         raise LandError(5, "published default does not contain the scoped change", {})
     report.update(landed=True, basis="native-push", default_published=new_remote)
     report.setdefault("steps", []).append("verified published default")
-    _advance_local_base(repo, base, new_remote, report)
     _cleanup_remote_topic(repo, remote, branch, sha, report)
+
+
+def _reconcile_local_base(
+    repo: Path, remote: str, base: str, report: Dict[str, Any]
+) -> None:
+    """Advance the local default to the published default after a landing.
+
+    Every landed exit owes this, so it runs once for the whole run rather than
+    per engine path. An unfetchable or unresolvable remote default leaves the
+    local ref alone instead of advancing it to a stale remote-tracking ref."""
+    if _git(repo, ["fetch", remote], check=False).returncode != 0:
+        report.setdefault("cleanup", {})["local_base"] = "remote unfetched; not moved"
+        return
+    new_remote = _git(
+        repo,
+        ["rev-parse", "--verify", "refs/remotes/%s/%s" % (remote, base)],
+        check=False,
+    ).stdout.strip()
+    if not new_remote:
+        report.setdefault("cleanup", {})["local_base"] = (
+            "remote default unresolved; not moved"
+        )
+        return
+    _advance_local_base(repo, base, new_remote, report)
 
 
 def _advance_local_base(
@@ -515,6 +538,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 repo, args.remote, branch, sha, base,
                 args.verify_command or "", args.verify_timeout, report,
             )
+        if report.get("landed"):
+            _reconcile_local_base(repo, args.remote, base, report)
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0
     except LandError as exc:

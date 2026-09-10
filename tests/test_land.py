@@ -114,6 +114,27 @@ class LandFixture(unittest.TestCase):
         git(work, "commit", "-qm", "topic change")
         return git_out(work, "rev-parse", "HEAD")
 
+    def publish_remote_default(self, work: Path) -> str:
+        """Add a commit to the remote default, as a squash-merge publisher would.
+
+        Returns the published head, which is the only value the local clone can
+        be compared against: its own remote-tracking ref is a stale cache until
+        something fetches it."""
+        publisher = Path(tempfile.mkdtemp(prefix="publisher-"))
+        self.addCleanup(shutil.rmtree, publisher, ignore_errors=True)
+        url = git_out(work, "remote", "get-url", "origin")
+        subprocess.run(
+            ["git", "clone", "-q", url, str(publisher)],
+            check=True, capture_output=True, text=True,
+        )
+        git(publisher, "config", "user.email", "t@t")
+        git(publisher, "config", "user.name", "t")
+        (publisher / "published.txt").write_text("published", encoding="utf-8")
+        git(publisher, "add", "--", "published.txt")
+        git(publisher, "commit", "-qm", "published default")
+        git(publisher, "push", "-q", "origin", "HEAD:refs/heads/main")
+        return git_out(publisher, "rev-parse", "HEAD")
+
 
 class NativeLandingTests(LandFixture):
     def test_fast_forward_lands_and_leaves_caller_on_topic(self):
@@ -147,10 +168,16 @@ class NativeLandingTests(LandFixture):
             self.assertEqual(0, code)
             self.assertTrue(report["landed"])
             self.assertIn("squash merge + commit", report["steps"])
+            # The default moves on again, so the re-run takes its
+            # already-contained exit with a local default that is now behind.
+            published = self.publish_remote_default(work)
             rerun_code, rerun = run_main(work, "--mode", "native")
             self.assertEqual(0, rerun_code)
             self.assertTrue(rerun["landed"])
             self.assertEqual("already-contained", rerun["basis"])
+            self.assertEqual(
+                published, git_out(work, "rev-parse", "refs/heads/main")
+            )
 
     def test_verify_command_failure_blocks_publish(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -306,6 +333,37 @@ class GhLandingTests(LandFixture):
             self.assertTrue(report["landed"])
             self.assertEqual("merged-pr", report["basis"])
             self.assertNotIn("pr merge", "\n".join(self.calls()))
+
+    def test_merged_pr_advances_local_default_to_published_head(self):
+        with tempfile.TemporaryDirectory() as directory:
+            work = self.make_github_repo(Path(directory))
+            sha = self.topic_commit(work, "change")
+            (self._state / "head").write_text(sha, encoding="utf-8")
+            # The squash merge moves the remote default past the local clone,
+            # which is what makes an unreconciled local default observable.
+            published = self.publish_remote_default(work)
+            (self._state / "pr.json").write_text(
+                json.dumps(
+                    {
+                        "number": 7,
+                        "url": "http://example/pr/7",
+                        "state": "MERGED",
+                        "headRefName": "topic",
+                        "baseRefName": "main",
+                        "headRefOid": sha,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            code, report = run_main(work)
+            self.assertEqual(0, code)
+            self.assertTrue(report["landed"])
+            self.assertEqual(
+                published, git_out(work, "rev-parse", "refs/heads/main")
+            )
+            self.assertEqual(
+                published, git_out(work, "rev-parse", "refs/remotes/origin/main")
+            )
 
     def test_pr_head_mismatch_is_refused(self):
         with tempfile.TemporaryDirectory() as directory:
