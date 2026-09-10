@@ -99,7 +99,8 @@ time 不能混用。wall time 缺失使 whole-system 速度结论 `insufficient-
 
 - `deterministic`：测试、compiler、CLI、trace event、browser/device action。
 - `ai`：只评 deterministic 难以表达的语义/视觉属性；必须 blind、版本化 rubric、有人工标注
-  calibration set，且本次 judge 在该集合上的 accuracy 达到 case 阈值。AI 不能替代本来能跑的测试。
+  calibration set，且本次 judge 在该集合上的 accuracy 达到 case 阈值。calibration 与计分
+  case 不得近似重复，否则 judge 准确率被虚高。AI 不能替代本来能跑的测试。
 - `human`：品味、权限、不可逆决策或 agent 无法访问的外部账号，必须说明为何不能自动化。
 
 runner 输出 JSONL。成功记录至少包含：

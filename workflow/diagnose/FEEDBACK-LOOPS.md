@@ -34,7 +34,9 @@ Stop tuning when the signal can distinguish hypotheses, or a declared cost bound
 
 ## When you genuinely cannot build a loop
 
-List the attempted repros and exact missing evidence. Continue bounded code/trace inspection and
+List the attempted repros and exact missing evidence. Enumerate the states that could produce the
+symptom, rule out the ones you can test yourself, and ask for all remaining states in one question.
+Continue bounded code/trace inspection and
 prepare a local harness; label untested hypotheses explicitly. Ask for the smallest missing access
 or captured artifact, or for production instrumentation only if existing authorization does not cover
 it. Report an unverified diagnosis if no runnable path remains; never label a proposed fix verified.

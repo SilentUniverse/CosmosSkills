@@ -72,6 +72,9 @@ Ask only a new consequential decision. Shape a new seam with `/codebase-design` 
 Existing coverage first: [tests.md](tests.md) §Existing coverage. Inline runs use their stated
 behavior/evidence contract; issue runs use 做什么/AC/验证设计 and the parent extract.
 
+Repeated follow-up patches landing on the same module are a design signal: stop patching and
+re-derive the design from the requirements; propose the re-derivation instead of the next patch.
+
 **Pre-issue statement (autonomous mode).** Before the first edit, recompute the recorded environment
 fingerprint. Replay the issue’s referenced P#; reuse a just-observed identical check in this task if its
 action, cwd, and fingerprint are unchanged. A drain run may reuse an
@@ -95,6 +98,8 @@ For each remaining behavior: RED (write next test, watch it fail) → GREEN (min
 - One test at a time; an import/collection error is not RED
 - Only enough code to pass the current test; don't anticipate future tests
 - Keep tests focused on observable behavior
+- No explanatory comments; place a surviving contract or reason at the interface a human reads,
+  not beside implementation the code already shows
 
 **What to run each cycle.** RED/GREEN runs execute only the test just written (`pytest path/test_x.py::test_y`).
 Run the touched module's tests at slice completion; relevant refactors invalidate that evidence.

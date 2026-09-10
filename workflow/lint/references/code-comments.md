@@ -3,7 +3,12 @@
 Apply only to new or changed source comments.
 
 **Deletion test:** if removing the comment loses no public contract, non-obvious invariant, reason,
-external constraint, or provenance, delete it. Let names, types, structure, and tests carry behavior.
+external constraint, or provenance that the code, its types, and its tests cannot recover, delete
+it. Let names, types, structure, and tests carry behavior.
+
+**Placement:** a human reads the interface, not the implementation. A contract or invariant sits at
+the declaration it constrains; a workaround, measured bound, or suppression reason stays at the site
+it explains.
 
 Keep:
 
