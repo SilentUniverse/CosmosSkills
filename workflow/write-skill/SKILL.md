@@ -48,7 +48,9 @@ Keep the common path and load-bearing rules in `SKILL.md`. Put mutually exclusiv
 details in semantically named references; put deterministic repeated work in `scripts/`; reuse
 assets instead of describing how to recreate them.
 
-Link each optional file directly from `SKILL.md` at the decision point. Avoid reference chains.
+Link each optional file directly from `SKILL.md` at the decision point, stating its load
+condition, the action that needs it. Split on decide versus execute: `SKILL.md` holds what
+chooses an action; references hold what performs it. Avoid reference chains.
 Relative links resolve from the skill directory. Every linked local file must exist.
 
 Length is a diagnostic, not a gate. Around 100 lines, inspect whether branch-only material is being
@@ -62,7 +64,9 @@ Prefer one explicit default over menus of equivalent choices.
 
 State the target behavior positively. Use examples only to disambiguate a rule or encode a boundary.
 Add a rationalization only after a reproduced failure; strengthen the governing rule when that is
-sufficient.
+sufficient. Keep a negative hedge only against a mistake the target model plausibly makes: `Use X,
+not Y` earns its place when Y is a live alternative. `when` and `only when` are different triggers;
+preserve `only` when the false condition must forbid the action.
 
 Unstable facts route to live lookup. Repository facts route to repository inspection. Never freeze a
 fact in a skill merely to avoid one relevant tool call.
@@ -73,6 +77,8 @@ After the final edit:
 
 1. Resolve this skill's source checkout when installed through a link. From that checkout, run
    `python scripts/validate-skills.py <affected-skill-paths>`; external skills use absolute paths.
+   Run it once without arguments as well: the scoped run measures only the named skills, so the
+   resident budget for all descriptions and `claude/CLAUDE.md` appears only unscoped.
    Then run the target repository's checks relevant to changed scripts or contracts.
 2. Run `/atk <scope>` for necessity, semantic consistency, runtime paths, and cost.
    For a large corpus, add one independent read-only review when an agent slot is available.

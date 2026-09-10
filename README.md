@@ -20,7 +20,7 @@ A complete engineering methodology for your coding agent — nine laws, an artif
 
 ## 这是什么
 
-CosmosSkills 是一套给单人开发者的 AI 编程工程方法论：28 个跨宿主技能、九条设计定律、一道工件门和一套按需行为 eval。连续会话复用已核实的上下文，跨会话保留可校验的恢复入口；AI 的自我汇报不能代替证据。定律给方向，机器与可重放证据给结论。所有权衡按字典序处理：产品质量与正确性 > 交付速度 > Token 消耗；后两项不得削弱前一项的证据、安全或可访问性。
+CosmosSkills 是一套给单人开发者的 AI 编程工程方法论：29 个跨宿主技能、九条设计定律、一道工件门和一套按需行为 eval。连续会话复用已核实的上下文，跨会话保留可校验的恢复入口；AI 的自我汇报不能代替证据。定律给方向，机器与可重放证据给结论。所有权衡按字典序处理：产品质量与正确性 > 交付速度 > Token 消耗；后两项不得削弱前一项的证据、安全或可访问性。
 
 - **九条定律**：从 Hoare、Dijkstra、Parnas、Ousterhout 等软件工程经典提炼的九个问题。不给规范，让 AI 自己推导出好代码
 - **机器门**：`verify-artifacts.py` 校验每份工件——完成记录点名的测试文件必须真实存在于磁盘，误删当场红灯；依赖图有环、PRD 版本链多头或缺头、需求记录源哈希漂移都会红灯
@@ -143,7 +143,7 @@ flowchart LR
 
 **只并行真正独立的工作。** 默认 inline。`/tdd -p` 只并行写集和运行资源不冲突的卡；独立盲审保留独立上下文；大量多源研究必须有窄输出且主线程仍有可做工作。单文件、单次搜索、慢命令、大输出、顺序依赖和上下文清理都不是委派理由。全量 suite 由当前会话启动 supervisor；Standards / Spec 独立审查仍可并行。
 
-28 个技能、工件门、按需行为 eval、九个词——目标是**先保证可逐条审查的产品质量，再缩短交付时间，最后降低 Token 消耗**；是否做到由 [evals](evals/README.md) 的真实对照结果回答，不由 README 宣称。
+29 个技能、工件门、按需行为 eval、九个词——目标是**先保证可逐条审查的产品质量，再缩短交付时间，最后降低 Token 消耗**；是否做到由 [evals](evals/README.md) 的真实对照结果回答，不由 README 宣称。
 
 ### 读写控制面
 
@@ -312,6 +312,7 @@ git_base: 7af387c
 | [eval](workflow/eval/SKILL.md) | 手动打开评测；保留项目内 previous/candidate A/B，也可导出独立包与任意外部 workflow 比较；默认关闭 |
 | [atk](workflow/atk/SKILL.md) | 对抗审查自己的产出；工作流只调审查方向，手动默认讲解，`-r` 纯审查且不改文件 |
 | [tdd](workflow/tdd/SKILL.md) | 写代码；`-all` 跑全量，`-log` 读设备 log。[DRAIN.md](workflow/tdd/DRAIN.md) |
+| [cpp-oop-style](workflow/cpp-oop-style/SKILL.md) | 写、改、审 C++/CMake 时覆盖默认风格：抽象类/数据类/值类型、RAII、依赖注入、现代 CMake；源自 [agent-skills](https://github.com/archibate/agent-skills)（CC BY-NC-SA 4.0） |
 | [commit](workflow/commit/SKILL.md) | 只提交本任务已验证路径并落地；`-local` 仅建本地提交 |
 | [tidy](workflow/tidy/SKILL.md) | 派生状态查询 + 已关闭批次安全缓存 GC；不搬 issue / test |
 | [diagnose](workflow/diagnose/SKILL.md) | 硬 bug / 性能回归 |

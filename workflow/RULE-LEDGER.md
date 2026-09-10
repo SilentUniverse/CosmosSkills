@@ -7,7 +7,7 @@
 ## 自身契约
 
 - 运行时零引用：常驻文件、SKILL.md 热路径、hook、脚本都不得加载本文件；引用只允许出现在
-  README（维护入口）与 evals/README（评测节奏）。`rg -l RULE-LEDGER` 可验证。
+  README（维护入口）、evals/README（评测节奏）与同变更的决策记录（docs/）。`rg -l RULE-LEDGER` 可验证。
 - 同一变更维护影响授权、完成条件或验证强度的条目；一般措辞和去重无需逐句登记。
 - 要旨是意图级短语，不复制规则原文；原文活在规则文件里，账本只回答"它为什么配存在"。
 - 无标记 = active。降级在行首加 `↓` 并附 eval session；退役把行移入文末"退役记录"。
@@ -43,10 +43,12 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 
 | 定位 | 要旨 | 性质 | 层级 | 防什么失败 · 出处 / 探针 |
 |---|---|---|---|---|
-| §1·e | 用户没跟上 → 补上下文，不复述同句 | 过程 | 自审 | 未溯源 |
+| §1·c | 用户没跟上 → 补上下文，不发明术语 | 过程 | 自审 | 未溯源 |
+| §1·d | 交付物按用户与已核实内容封闭清单组织，不扩大、逐项一次 | 过程·经济 | 自审 | 注水与模板膨胀；agent-skills artifact-restraint 对标借入；未溯源 |
 | §2·b | 可查事实不问人 | 过程 | 自审 | 未溯源（近邻探针：research-marks-unverified-and-ignores-injection） |
 | §2·c | 结果与约束已定即可推进；实现和验证细节由 agent 补足 | 过程·经济 | 流程 | 仪式性确认税；7be5338 压缩摄入、51a7d4a fast path / spec-alignment-before-write |
 | §2·d | 既有授权在接受范围内继承；spec 默认保留用户 review | 权威 | 流程 | 结果分叉未问人；DESIGN-RECEIPT / spec-holds-alignment-under-pressure |
+| §4·a | 扩展列表/表格/固定格式前先查 2–3 个同类条目并对齐结构 | 过程 | 自审 | 条目格式漂移；agent-skills AGENTS.md 对标借入；未溯源 |
 | §4·b | 回答插问后继续；纠正与行动请求更新当前目标 | 过程 | 流程 | 顺手扩权修改；dev-skills 对标借入（just-ask）；未溯源 |
 | §4·e | 按原始范围完成；已授权提交同任务进入 /commit | 产物 | 流程 | 未经检查的提交；9263475 / commit-holds-scope-under-pressure |
 | §5·a | 字典序优化：质量与正确性 > 交付速度 > token；后两者不得削弱证据、安全、可访问性 | 权威 | 流程 | 用户明确优先级；防止以省时省 token 为由降级产品门 |
@@ -83,9 +85,11 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 |---|---|---|---|---|
 | Invocation | 有持久消费者才建卡；显式方案/新实质选择经 spec review；ready 不等于接受 | 过程 | 流程 | routing-requirement-to-spec（origin: routing） |
 | §2–3 | 一次一测试、先红后绿、不预写未来 ◆ | 过程 | 流程 | TDD 方法论（无事故出处）/ tdd-holds-red-under-pressure |
+| §3 | 不写解释型注释；契约或原因只写在人读的接口处 | 过程 | 自审 | 注释腐烂、复述代码；lint/references/code-comments.md；未溯源 |
 | §1 | 预检声明：先重算指纹、重放 P#、报 2–3 行 | 过程 | 机器+流程 | 7be5338（preflight receipts）、0bf346b（executable spec validation）/ spec-verifier-preflight |
 | §1 | 行为波次暂停后由 caller 恢复声明环境，真实新授权才问 | 产物 | 流程 | 46a7646（execution contracts 加固） |
 | §4 | RED 期禁止重构；意外红 → 固化不变量 | 过程 | 流程 | refactoring.md、6b411d8 |
+| §1 | 同模块反复追加补丁是设计信号 → 停止打补丁，改为从需求重新推导并提案 | 过程 | 流程 | 补丁跑步机致架构衰减；agent-skills AGENTS.md + fresh-arch 对标借入；未溯源 |
 | §5 | 全量批末一次，经 supervisor | 过程·经济 | 机器+流程 | c4e34f2、51a7d4a（test-supervisor） |
 
 ## D. DRAIN — workflow/tdd/DRAIN.md（每批付费；`-p` 另载 DRAIN-PARALLEL.md）

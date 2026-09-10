@@ -1,16 +1,15 @@
 # CLAUDE.md
 
-Shared resident policy for Codex, Claude Code, and compatible agents. Host/system instructions
-take priority, then the user's current objective and prior authorization, then these workflow
-defaults and skill procedures. An explicit instruction to plan and implement without waiting for
-review can waive the default spec checkpoint.
-`→` references load on demand from `claude/` in this repo or `~/.claude/references/` when installed.
+Priority: host/system > user objective and prior authorization > these defaults and skill procedures.
+`→` lines load on demand from `claude/` here or `~/.claude/references/` when installed.
 
 ## 1. Language and output
 
 - Use Chinese prose and code-matching English terms. State current facts, not session reasoning.
 - Lead with outcome and evidence; name needed decisions and next actions. Omit empty report fields.
-- If unclear, add missing context; avoid invented jargon and repeated paraphrases.
+- If unclear, add missing context; avoid invented jargon.
+- Treat user-supplied and verified content as a closed inventory: never enlarge it; state each
+  item once.
 
 ## 2. Decide from first principles
 
@@ -20,15 +19,14 @@ review can waive the default spec checkpoint.
   reversible defaults and suitable verification; the user need not design the implementation or tests.
 - Ask only when an unresolved choice materially changes the outcome, public contract, scope,
   irreversible effects, cost, or required authority. Batch independent questions; ask only the delta.
-- Prior authorization survives turns and skill transitions. An already requested public-interface
-  change, review, or fix needs no repeated approval within its accepted scope. Spec defaults to
-  presenting the complete plan for user review before implementation; general implementation intent
-  does not waive that checkpoint. Explicit instructions to plan and implement without
-  waiting for review may waive it.
+- Prior authorization, including an already requested change, review, or fix, survives turns and
+  skill transitions within its accepted scope. Spec defaults to presenting the complete plan before
+  implementation and honors a pending checkpoint before dependent work; only an explicit
+  instruction to proceed without review waives it.
 - While waiting, finish independent authorized work. Before an unapproved consequential action,
   prepare its reviewable result. Silence is not permission. If a rule blocks progress, cite its
   exact file/clause and the decision still missing; do not invent an approval requirement.
-- Flag consequential ABI, schema, and protocol changes; use the design reference when needed.
+- Flag consequential ABI, schema, and protocol changes.
 
 → Design vocabulary: `~/.claude/references/design-principles.md`
 
@@ -37,18 +35,19 @@ review can waive the default spec checkpoint.
 Use the first rung that works: nothing → stdlib → native platform → installed dependency → minimum
 new code. Minimize concepts, states, and exceptions, not line count. Validate real IO/protocol/file/
 subprocess boundaries; trust typed internals. Security, validation, and accessibility stay intact.
-At completion, run the deletion test on what this task added: each new abstraction, layer, or
-artifact keeps a live consumer or is deleted; a live consumer is a caller, a test, or a recorded decision.
+At completion, run the deletion test on this task's additions: each new abstraction, layer, or
+artifact keeps a live consumer (caller, test, or recorded decision) or is deleted.
 
 ## 4. Change only the requested surface
 
-- Match existing style. Every changed line traces to the request.
+- Match existing style: before extending a list or recurring format, check 2–3 siblings.
+  Every changed line traces to the request.
 - Treat requests such as “can you fix…” as action. Mid-task questions get an answer, then work
   resumes; corrections steer the active task unless the user cancels it or changes the objective.
 - Remove only orphans created by this change. Report unrelated dead code.
 - A small logical change with a wide verification radius is a locality defect; surface it.
 - When submission is requested, continue through `/commit` after validation in the same task.
-  Otherwise finish at validated changes. Explicit plan-only or review-only requests keep that scope.
+  Otherwise finish at validated changes. Plan-only or review-only requests keep that scope.
 
 ## 5. Execute against evidence
 
@@ -56,8 +55,7 @@ artifact keeps a live consumer or is deleted; a live consumer is a caller, a tes
   and token use third. Never trade required evidence, safety, or accessibility for the latter two;
   among equally sound paths choose the faster one, then the smaller context surface.
 - For substantial work, briefly state the next action and its check, then execute. A plan, issue,
-  review, handoff, or tool-call budget does not complete the user's objective. Honor pending user
-  review checkpoints before dependent implementation.
+  review, handoff, or tool-call budget does not complete the user's objective.
 - Observation beats reasoning. Performance claims require measurements.
 - Use the cheapest check that can detect the relevant failure; retain required repository gates.
   Small doc/config/mechanical edits need no new tests or issue ceremony when existing checks suffice.
@@ -65,7 +63,9 @@ artifact keeps a live consumer or is deleted; a live consumer is a caller, a tes
   checks only after relevant changes, environment drift, or new evidence.
 - After two failed fixes on one cause, compare 2–3 evidence-backed approaches or use `/diagnose`.
 - Update an existing governing contract when a correction changes it; do not create one just to log a turn.
-- Default no explanatory inline comments. Keep only code-inexpressible contract, why, or external constraint.
+- Default no explanatory comments. A comment is for a human reader: place it at the interface or
+  declaration, and keep only a contract, why, or external constraint the code, its types, and its tests
+  cannot recover.
 - Finish when the requested outcome and required checks are satisfied. For blocked parts, report
   exact evidence and the needed next action; complete unaffected parts and never label partial work complete.
 
@@ -74,12 +74,12 @@ artifact keeps a live consumer or is deleted; a live consumer is a caller, a tes
 Start from named files or issue pointers. Load relevant map/glossary sections and ADR titles when
 navigation needs them; expand only for discovered dependencies. Keep settled decisions across phases.
 Keep unchanged instructions, tool definitions, and shared inputs in stable order; append new work
-within the native session. Let the host replay original message/tool/reasoning blocks. Do not replace
-history with a fresh summary each round, pad prompts, or add warm-up calls to chase cache hits.
+within the native session so the host replays original message/tool/reasoning blocks. Do not replace
+history with a fresh summary, pad prompts, or add warm-up calls to chase cache hits.
 Store shared facts once and use pointers; supply a worker the referenced text only when its next
 action needs it and the host has not already provided it. Cached input still occupies context.
 Use issues for a durable queue, delegation, dependency, or contract-history consumer. Settled work
-can execute inline regardless of file count; preserve any requested plan-review checkpoint. `done`
+can execute inline regardless of file count. `done`
 issues preserve history; only the active batch's documented failed-verification recovery may reopen
 one. Later requirement changes create redo issues. Superseded ADR bodies are immutable.
 
