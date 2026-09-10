@@ -69,6 +69,17 @@ class HandoffStateTests(unittest.TestCase):
                     root, ".scratch/tmp/other.md", feature="demo", capsule="bogus"
                 )
 
+    def test_new_refuses_when_the_target_handoff_already_exists(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = self.repo(directory)
+            target = root / ".scratch" / "demo" / "handoff.md"
+            target.parent.mkdir(parents=True)
+            target.write_text(
+                "---\ntype: handoff\nfeature: demo\nstatus: active\n---\n", encoding="utf-8"
+            )
+            with self.assertRaisesRegex(ValueError, "handoff already exists"):
+                handoff_state.new(root, ".scratch/tmp/draft.md", feature="demo")
+
     def test_stale_consumer_cannot_delete_a_republished_handoff(self):
         with tempfile.TemporaryDirectory() as directory:
             root = self.repo(directory)

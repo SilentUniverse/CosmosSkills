@@ -770,6 +770,16 @@ status: ready
             self.assertIn("- zombie 02-ready (wave 2)", human)
             self.assertNotIn("01-done —", human)
 
+    def test_survey_feature_filter_limits_the_projection(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_issue(root, "01-ready", status="ready", feature="demo")
+            plant_issue(root, "01-ready", status="ready", feature="other")
+            filtered = workflow_state.survey_states(root, features=["demo"])
+            self.assertEqual(["demo"], [state["feature"] for state in filtered])
+            every = workflow_state.survey_states(root)
+            self.assertEqual(["demo", "other"], sorted(state["feature"] for state in every))
+
     def test_invalid_v3_done_card_cannot_enter_history_or_unblock_dependents(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

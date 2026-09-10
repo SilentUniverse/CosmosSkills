@@ -91,6 +91,38 @@ class ReviewInputTests(unittest.TestCase):
             empty = Path(directory)
             self.assertEqual(1, review_input.main([str(empty)]))
 
+    def test_diff_is_capped_with_truncation_marker(self):
+        with tempfile.TemporaryDirectory() as directory:
+            work = make_repo(Path(directory))
+            (work / "tracked.txt").write_text("changed\n" * 200, encoding="utf-8")
+            bundle = review_input.build_bundle(work, max_bytes=50)
+            self.assertIn("[review-input: diff truncated at 50 of", bundle["diff_head"])
+
+    def test_base_reviews_committed_range_with_commit_list(self):
+        with tempfile.TemporaryDirectory() as directory:
+            work = make_repo(Path(directory))
+            first = git(work, "rev-parse", "HEAD")
+            (work / "tracked.txt").write_text("second change\n", encoding="utf-8")
+            git(work, "add", "--", "tracked.txt")
+            git(work, "commit", "-qm", "second")
+            (work / "stray.txt").write_text("untracked\n", encoding="utf-8")
+            bundle = review_input.build_bundle(work, base=first)
+            self.assertEqual(first, bundle["base"])
+            self.assertIn("+second change", bundle["diff_head"])
+            self.assertTrue(any("second" in line for line in bundle["commits"]))
+            self.assertFalse(bundle["commits_truncated"])
+            self.assertEqual([], bundle["untracked"])
+            self.assertEqual(
+                [{"path": "stray.txt", "reason": "out-of-range"}], bundle["excluded"]
+            )
+
+    def test_working_tree_bundle_has_no_committed_range(self):
+        with tempfile.TemporaryDirectory() as directory:
+            work = make_repo(Path(directory))
+            bundle = review_input.build_bundle(work)
+            self.assertIsNone(bundle["base"])
+            self.assertEqual([], bundle["commits"])
+
     def test_output_flag_writes_bundle_file(self):
         import io
         import contextlib

@@ -476,6 +476,61 @@ def _session_runs(session_dir: Path, manifest: Mapping[str, Any]) -> Tuple[List[
     return runs, sorted(expected - completed)
 
 
+def _read_run_object(source: str) -> Mapping[str, Any]:
+    if source == "-":
+        raw, label = sys.stdin.read(), "<stdin>"
+    else:
+        path = Path(source)
+        try:
+            raw = path.read_text(encoding="utf-8")
+        except OSError as exc:
+            raise EvalError(f"{path}: {exc}") from exc
+        label = str(path)
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise EvalError(f"{label}: {exc}") from exc
+    if isinstance(payload, dict) and "runs" in payload:
+        items = _list(payload["runs"], f"{label}.runs")
+        if len(items) != 1:
+            raise EvalError(f"{label}: expected exactly one run, found {len(items)}")
+        payload = items[0]
+    return _mapping(payload, label)
+
+
+def record_run(session: Path, source: str, *, dry_run: bool = False) -> Mapping[str, Any]:
+    """Validate one run and append it to the session's results.jsonl in canonical form.
+
+    Rejects a record that fails the schema, targets a slot the session does not
+    expect, repeats an already-recorded slot, or duplicates a run_id, so the
+    results file never needs hand editing."""
+    session_dir, manifest = _load_session(session)
+    cases = load_cases(Path(str(manifest["cases_path"])))
+    run = _read_run_object(source)
+    validate_run(run, cases, "run")
+    existing, missing = _session_runs(session_dir, manifest)
+    slot = (str(run["case_id"]), str(run["arm"]), int(run["trial"]))
+    if slot not in missing:
+        raise EvalError("run is not an open session slot: %s" % (slot,))
+    validate_runs(existing + [run], cases)
+    if not dry_run:
+        results_path = session_dir / "results.jsonl"
+        with results_path.open("a", encoding="utf-8") as stream:
+            stream.write(
+                json.dumps(run, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
+            )
+    completed = len(existing) + (0 if dry_run else 1)
+    return {
+        "run_id": run["run_id"],
+        "case_id": slot[0],
+        "arm": slot[1],
+        "trial": slot[2],
+        "recorded": not dry_run,
+        "completed": completed,
+        "remaining": len(missing) - (0 if dry_run else 1),
+    }
+
+
 def print_session_status(path: Path) -> Tuple[Mapping[str, Any], List[Mapping[str, Any]], List[Tuple[str, str, int]]]:
     session_dir, manifest = _load_session(path)
     runs, missing = _session_runs(session_dir, manifest)
@@ -1093,6 +1148,13 @@ def build_parser() -> argparse.ArgumentParser:
     status_parser = subparsers.add_parser("session-status", help="show completed and missing run slots")
     status_parser.add_argument("session", type=Path)
 
+    record_parser = subparsers.add_parser(
+        "record-run", help="validate one run and append it to a session's results.jsonl"
+    )
+    record_parser.add_argument("session", type=Path)
+    record_parser.add_argument("--run", required=True, help="JSON file holding one run object, or - for stdin")
+    record_parser.add_argument("--dry-run", action="store_true")
+
     report_parser = subparsers.add_parser(
         "session-report", help="validate a complete session and print its paired verdict"
     )
@@ -1179,7 +1241,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                     int(ceiling["tool_calls"]),
                 )
             )
-            print("No agent was launched; execute only this session's matrix, then append results.jsonl.")
+            print("No agent was launched; execute only this session's matrix, then record each slot with `record-run`.")
             return 0
         if args.command == "session-status":
             print_session_status(args.session)
@@ -1208,6 +1270,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             ):
                 return 1
             return 1 if args.fail_on_regression and verdict == "regression" else 0
+        if args.command == "record-run":
+            result = record_run(args.session, args.run, dry_run=args.dry_run)
+            print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            return 0
         if args.command in ("validate-cases", "list-cases"):
             cases = load_cases(args.path)
             if args.command == "validate-cases":

@@ -56,8 +56,8 @@ Do not reopen completed issues, broad logs, or the full diff. Confirm live any c
 edit. The handoff is routing plus decisions, not proof.
 
 For feature work, query live cards only when the next action needs dispatch:
-`python <skills-root>/workflow-state.py survey <repo-root> --format human`. It parses frontmatter
-and separates ready from blocked; do not enumerate cards with `rg`.
+`python <skills-root>/workflow-state.py survey <repo-root> --feature <feat> --format human`. It
+parses frontmatter and separates ready from blocked; do not enumerate cards with `rg`.
 
 ## 3. Consume
 

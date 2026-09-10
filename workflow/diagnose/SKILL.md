@@ -19,7 +19,7 @@ Loop construction, tightening, flaky bugs, and missing-environment fallback: **[
 
 ### Completion criterion — a tight loop that goes red
 
-Phase 1 is done when the loop is **tight** and **red-capable**: you can name **one command**, a script path, a test invocation, a curl, that you have **already run at least once** (paste the invocation and its output), and that is:
+Phase 1 is done when the loop is **tight** and **red-capable**. You can name **one command**, a script path, a test invocation, a curl, that you have **already run at least once** and record its invocation with a bounded result; a long log stays at a path you cite. That command is:
 
 - [ ] **Red-capable** — it drives the actual bug code path and asserts the **user's exact symptom**, so it can go red on this bug and green once fixed. Not "runs without erroring". It must be able to _catch this specific bug_.
 - [ ] **Deterministic** — same verdict every run (flaky bugs: a pinned, high reproduction rate).

@@ -186,6 +186,51 @@ class EvalTests(unittest.TestCase):
             self.assertEqual(2, len(missing))
             self.assertIn("progress=0/2", output.getvalue())
 
+    def test_record_run_appends_and_rejects_a_repeat(self):
+        with tempfile.TemporaryDirectory() as directory:
+            cases_dir = self.write_case_fixture(directory)
+            session_dir = Path(directory) / "session"
+            manifest = cosmos_eval.create_eval_session(session_dir, cases_dir, profile="smoke")
+            arm = str(manifest["expected_runs"][0]["arm"])
+            run_file = Path(directory) / "run.json"
+            run_file.write_text(json.dumps(make_run(arm)), encoding="utf-8")
+            result = cosmos_eval.record_run(session_dir, str(run_file))
+            self.assertTrue(result["recorded"])
+            self.assertEqual(1, result["completed"])
+            self.assertEqual(1, result["remaining"])
+            lines = (session_dir / "results.jsonl").read_text(encoding="utf-8").strip().splitlines()
+            self.assertEqual(1, len(lines))
+            with self.assertRaises(cosmos_eval.EvalError):
+                cosmos_eval.record_run(session_dir, str(run_file))
+
+    def test_record_run_dry_run_leaves_the_file_untouched(self):
+        with tempfile.TemporaryDirectory() as directory:
+            cases_dir = self.write_case_fixture(directory)
+            session_dir = Path(directory) / "session"
+            manifest = cosmos_eval.create_eval_session(session_dir, cases_dir, profile="smoke")
+            arm = str(manifest["expected_runs"][0]["arm"])
+            run_file = Path(directory) / "run.json"
+            run_file.write_text(json.dumps(make_run(arm)), encoding="utf-8")
+            result = cosmos_eval.record_run(session_dir, str(run_file), dry_run=True)
+            self.assertFalse(result["recorded"])
+            self.assertEqual("", (session_dir / "results.jsonl").read_text(encoding="utf-8"))
+
+    def test_record_run_rejects_unknown_slot_and_bad_schema(self):
+        with tempfile.TemporaryDirectory() as directory:
+            cases_dir = self.write_case_fixture(directory)
+            session_dir = Path(directory) / "session"
+            cosmos_eval.create_eval_session(session_dir, cases_dir, profile="smoke")
+            unknown = Path(directory) / "unknown.json"
+            unknown.write_text(json.dumps(make_run("bogus-arm")), encoding="utf-8")
+            with self.assertRaises(cosmos_eval.EvalError):
+                cosmos_eval.record_run(session_dir, str(unknown))
+            broken = make_run("previous")
+            del broken["metrics"]["tool_calls"]
+            broken_file = Path(directory) / "broken.json"
+            broken_file.write_text(json.dumps(broken), encoding="utf-8")
+            with self.assertRaises(cosmos_eval.EvalError):
+                cosmos_eval.record_run(session_dir, str(broken_file))
+
     def test_full_session_defaults_to_three_arms_and_trials(self):
         with tempfile.TemporaryDirectory() as directory:
             cases_dir = self.write_case_fixture(directory)
