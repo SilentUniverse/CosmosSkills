@@ -53,8 +53,10 @@ when available; otherwise review inline and disclose the missing independence. B
 target, the single claim to attack, a bounded evidence return, and the contract to attack against, never a
 deleted predecessor. Launch it first and attack inline while it runs. Import its check results
 instead of re-running them; verify each finding against its quote before importing. Small
-target: attack inline. Harness and gate runs: once, after the fixes, scoped to what changed. Under
-`-r`, run only checks guaranteed read-only; skip the rest rather than risk a write.
+target: attack inline. In the tdd blind classifier mode, never review or attack inline; take the
+safe exit in [RECEIPT-CONFLICT.md](RECEIPT-CONFLICT.md). Harness and gate runs: once, after the
+fixes, scoped to what changed. Under `-r`, run only checks guaranteed read-only; skip the rest
+rather than risk a write.
 
 ## Output
 
