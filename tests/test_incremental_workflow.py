@@ -231,7 +231,7 @@ class IncrementalWorkflowTests(unittest.TestCase):
         plan = self.release_plan()
         issue = self.root / '.scratch/demo/issues/01-search.md'
         issue.parent.mkdir(parents=True)
-        issue.write_text('---\ntype: issue\nfeature: demo\nstatus: ready\ntouches: [search]\ntest_paths: [test_search.py]\nblocked_by: []\n---\n## 做什么\nSearch returns results.\n')
+        issue.write_text('---\ntype: issue\nfeature: demo\nstatus: ready\ntouches: [search]\ntest_paths: [test_search.py]\nblocked_by: []\n---\n## 做什么\nSearch returns results.\n', encoding='utf-8')
         plan['members'] = ['demo/01-search']
         plan['jobs']['search'] = {'argv': ['{python}', 'app.py'], 'timeout': 3, 'issue_refs': plan['members'],
                                   'ac_map': {'demo/01-search': ['behavior']}, 'result': {'kind': 'predicate', 'stdout_equals': '42'}}
@@ -253,7 +253,7 @@ class IncrementalWorkflowTests(unittest.TestCase):
         plan = self.simple()
         issue = self.root / '.scratch/demo/issues/01-work.md'
         issue.parent.mkdir(parents=True)
-        issue.write_text('---\ntype: issue\nfeature: demo\nstatus: pending\npending_reason: choose behavior\nblocked_by: []\n---\n## 做什么\nReturn answer.\n')
+        issue.write_text('---\ntype: issue\nfeature: demo\nstatus: pending\npending_reason: choose behavior\nblocked_by: []\n---\n## 做什么\nReturn answer.\n', encoding='utf-8')
         plan['members'] = ['demo/01-work']
         plan['milestones'][0]['members'] = list(plan['members'])
         plan['decisions'] = {'accept': {'kind': 'acceptance', 'version': 1, 'instruction': 'Accept final', 'point': 'final'}}
@@ -266,7 +266,7 @@ class IncrementalWorkflowTests(unittest.TestCase):
         for slug, status, deps in [('01-upstream', 'pending', '[]'), ('02-downstream', 'ready', '[01-upstream]')]:
             path = self.root / '.scratch/demo/issues' / (slug + '.md')
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text('---\ntype: issue\nfeature: demo\nstatus: '+status+'\npending_reason: prepare verifier\nblocked_by: '+deps+'\n---\n## 做什么\nReturn result.\n')
+            path.write_text('---\ntype: issue\nfeature: demo\nstatus: '+status+'\npending_reason: prepare verifier\nblocked_by: '+deps+'\n---\n## 做什么\nReturn result.\n', encoding='utf-8')
         plan['members'] = ['demo/01-upstream', 'demo/02-downstream']
         plan['milestones'][0]['members'] = list(plan['members'])
         plan['jobs']['answer'].update(issue_refs=plan['members'], ac_map={ref:['behavior'] for ref in plan['members']})
@@ -314,7 +314,7 @@ class IncrementalWorkflowTests(unittest.TestCase):
         plan = self.simple()
         path = self.root / '.scratch/demo/issues/01-result.md'
         path.parent.mkdir(parents=True)
-        path.write_text('---\ntype: issue\nfeature: demo\nstatus: done\nblocked_by: []\n---\n## 做什么\nReturn the exact answer.\n')
+        path.write_text('---\ntype: issue\nfeature: demo\nstatus: done\nblocked_by: []\n---\n## 做什么\nReturn the exact answer.\n', encoding='utf-8')
         plan['members'] = ['demo/01-result']
         plan['milestones'][0]['members'] = list(plan['members'])
         plan['jobs']['answer'].update(issue_refs=plan['members'], ac_map={'demo/01-result':['behavior']})
@@ -432,7 +432,7 @@ class IncrementalWorkflowTests(unittest.TestCase):
         self.member = 'demo/01-work'
         self.issue = self.root / '.scratch/demo/issues/01-work.md'
         self.issue.parent.mkdir(parents=True)
-        self.issue.write_text('---\ntype: issue\nfeature: demo\nstatus: '+status+'\ntouches: [app.py]\ntest_paths: [app.py]\nblocked_by: []\n---\n## 做什么\nReturn the declared answer.\n')
+        self.issue.write_text('---\ntype: issue\nfeature: demo\nstatus: '+status+'\ntouches: [app.py]\ntest_paths: [app.py]\nblocked_by: []\n---\n## 做什么\nReturn the declared answer.\n', encoding='utf-8')
         plan['members'] = [self.member]
         plan['milestones'][0]['members'] = [self.member]
         job = plan['jobs']['operate' if human else 'answer']
@@ -466,7 +466,7 @@ class IncrementalWorkflowTests(unittest.TestCase):
         self.assertEqual(context, self.cli('briefs','demo','--compact')['briefs'][0]['packet']['execution_context'])
         self.choose('choice-b','choice-a')
         stale = subprocess.run([sys.executable, '-B', str(ENTRY), 'packet', str(self.root), 'demo', '01-work'],
-                               capture_output=True, text=True, env=self.env, timeout=10)
+                               capture_output=True, text=True, encoding='utf-8', env=self.env, timeout=10)
         self.assertEqual(1, stale.returncode)
         self.assertIn('inputs changed', stale.stderr)
         self.assertEqual('', stale.stdout)
@@ -476,7 +476,7 @@ class IncrementalWorkflowTests(unittest.TestCase):
         fresh = self.cli('start','demo','01-work')['execution']
         self.yield_member(fresh)
         self.assertEqual('closed',self.cli('batch-run','--batch',self.id)['status'])
-        proof = store.read_proof(self.root,self.member,self.state()['member_proofs'][self.member],self.issue.read_text())
+        proof = store.read_proof(self.root,self.member,self.state()['member_proofs'][self.member],self.issue.read_text(encoding='utf-8'))
         self.assertEqual('choice-b',proof['decisions']['mode']['decision_id'])
 
     def test_worker_packet_retains_its_plan_after_independent_revision(self):
@@ -491,11 +491,11 @@ class IncrementalWorkflowTests(unittest.TestCase):
         self.assertNotEqual(original['plan_digest'], self.state()['plan_digest'])
         self.assertEqual(original, self.cli('packet','demo','01-work')['execution_context'])
         retained = self.root / original['plan_source']
-        payload = json.loads(retained.read_text())
+        payload = json.loads(retained.read_text(encoding='utf-8'))
         payload['requirements'][0]['body'] = 'A corrupted prior contract.'
-        retained.write_text(json.dumps(payload))
+        retained.write_text(json.dumps(payload, ensure_ascii=False), encoding='utf-8')
         result = subprocess.run([sys.executable, '-B', str(ENTRY), 'packet', str(self.root), 'demo', '01-work'],
-                                capture_output=True, text=True, env=self.env, timeout=10)
+                                capture_output=True, text=True, encoding='utf-8', env=self.env, timeout=10)
         self.assertEqual(1, result.returncode)
         self.assertIn('immutable execution plan changed', result.stderr)
 
@@ -525,8 +525,8 @@ class IncrementalWorkflowTests(unittest.TestCase):
     def test_portable_proof_retains_external_completed_contract(self):
         plan = self.member_plan()
         parent = self.issue.with_name('00-parent.md')
-        parent.write_text('---\ntype: issue\nfeature: demo\nstatus: done\nblocked_by: []\n---\n## 做什么\nPreserve the original dependency.\n')
-        self.issue.write_text(self.issue.read_text().replace('blocked_by: []','blocked_by: [00-parent]'))
+        parent.write_text('---\ntype: issue\nfeature: demo\nstatus: done\nblocked_by: []\n---\n## 做什么\nPreserve the original dependency.\n', encoding='utf-8')
+        self.issue.write_text(self.issue.read_text(encoding='utf-8').replace('blocked_by: []','blocked_by: [00-parent]'), encoding='utf-8')
         self.open(plan)
         execution = self.cli('start','demo','01-work')['execution']
         self.yield_member(execution)
@@ -540,14 +540,14 @@ class IncrementalWorkflowTests(unittest.TestCase):
         self.assertIsNone(retained['completion'])  # Legacy status does not become machine proof.
         parent.unlink()
         shutil.rmtree(self.root/'.scratch/batches')
-        proof = store.read_proof(self.root,self.member,proof_ref,self.issue.read_text())
+        proof = store.read_proof(self.root,self.member,proof_ref,self.issue.read_text(encoding='utf-8'))
         self.assertIn('demo/00-parent',proof['external_proofs'])
         objects = destination/'objects'
         external_path = objects/'blobs'/retained['contract_ref'][:2]/retained['contract_ref'][2:]
         self.assertTrue(external_path.is_file())
         external_path.write_bytes(b'changed history')
         with self.assertRaises(ValueError):
-            store.read_proof(self.root,self.member,proof_ref,self.issue.read_text())
+            store.read_proof(self.root,self.member,proof_ref,self.issue.read_text(encoding='utf-8'))
 
     def test_portable_proof_copies_managed_dependency_from_prior_goal(self):
         self.assert_external_managed_proof(3)
@@ -565,7 +565,7 @@ class IncrementalWorkflowTests(unittest.TestCase):
         if schema == 2:
             self.assertFalse((self.root/'.scratch/demo/receipts/managed'/(parent_proof+'.json')).exists())
         child = self.issue.with_name('02-child.md')
-        child.write_text('---\ntype: issue\nfeature: demo\nstatus: ready\ntouches: [app.py]\ntest_paths: [app.py]\nblocked_by: [01-work]\n---\n## 做什么\nUse the prior completed behavior.\n')
+        child.write_text('---\ntype: issue\nfeature: demo\nstatus: ready\ntouches: [app.py]\ntest_paths: [app.py]\nblocked_by: [01-work]\n---\n## 做什么\nUse the prior completed behavior.\n', encoding='utf-8')
         self.member = 'demo/02-child'
         plan = self.simple()
         plan['members'] = [self.member]
@@ -606,7 +606,11 @@ class IncrementalWorkflowTests(unittest.TestCase):
         self.assertTrue((directory/'workspace/started').exists())
         self.choose('choice-b','choice-a')
         while time.monotonic()<deadline:
-            run = json.loads((self.root/'.scratch/batches'/self.id/'runs'/(run_id+'.json')).read_text())
+            try:
+                run = json.loads((self.root/'.scratch/batches'/self.id/'runs'/(run_id+'.json')).read_text(encoding='utf-8'))
+            except PermissionError:
+                time.sleep(.03)  # Windows briefly denies reads during the runner's atomic replace.
+                continue
             if run['status']=='terminal':
                 break
             time.sleep(.03)
@@ -621,7 +625,7 @@ class IncrementalWorkflowTests(unittest.TestCase):
     def test_final_close_checks_issue_contract_after_human_wait(self):
         self.open(self.member_plan(status='done',human=True))
         ref = self.cli('batch-run','--batch',self.id)['reviews'][0]['checkpoint_ref']
-        self.issue.write_text(self.issue.read_text().replace('Return the declared answer.','Return another required behavior.'))
+        self.issue.write_text(self.issue.read_text(encoding='utf-8').replace('Return the declared answer.','Return another required behavior.'), encoding='utf-8')
         self.approve(ref,'import','import')
         self.approve(ref,'cancel','cancel')
         result = self.cli('batch-run','--batch',self.id,expected=2)
@@ -751,7 +755,7 @@ class IncrementalWorkflowTests(unittest.TestCase):
         self.assertIn('.scratch/demo/wave-ledger.json',result['removed'])
         self.assertEqual('closed',self.cli('batch-status','--batch',self.id)['status'])
         proof = self.state()['member_proofs'][self.member]
-        self.assertIsNotNone(store.read_proof(self.root,self.member,proof,self.issue.read_text()))
+        self.assertIsNotNone(store.read_proof(self.root,self.member,proof,self.issue.read_text(encoding='utf-8')))
 
     def test_unavailable_host_retains_event_with_backoff(self):
         plan = self.release_plan()

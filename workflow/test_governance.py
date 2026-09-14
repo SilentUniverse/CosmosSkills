@@ -7,6 +7,7 @@ import json
 import math
 import re
 import statistics
+import sys
 from pathlib import Path
 
 
@@ -234,6 +235,13 @@ def compare(report, fixed):
 
 
 def main(argv=None):
+    # Stock Windows consoles default to the ANSI code page; reports carry
+    # non-ASCII commands and measurement contexts.
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding='utf-8', errors='replace')
+        except (AttributeError, ValueError):
+            pass
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest='command', required=True)
     choice = sub.add_parser('select')
