@@ -80,7 +80,7 @@ def _require_under(path: Path, directory: Path, label: str) -> Path:
         # Windows hosts can report a git toplevel whose case/short-path form differs
         # from the process CWD's resolved form; compare case-insensitively there.
         if os.name != "nt" or not str(resolved).lower().startswith(base.lower()):
-            raise ValueError(f"{label} must stay under {directory}") from exc
+            raise ValueError(f"{label} must stay under {directory} (resolved: {resolved})") from exc
     return resolved
 
 
