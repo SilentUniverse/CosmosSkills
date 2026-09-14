@@ -12,6 +12,13 @@ import time
 
 
 def main():
+    # Stock Windows consoles default to the ANSI code page; never let an
+    # un-encodable character kill the check after its result was written.
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--kind", choices=("pyinstaller-onefile", "pyinstaller-onedir", "node-sea"), required=True)

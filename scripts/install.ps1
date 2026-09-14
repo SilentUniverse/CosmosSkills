@@ -388,6 +388,7 @@ foreach ($stale in @("verify-artifacts.ps1", "verify-artifacts.sh")) {
 $claudeRoot = $ClaudeRoot
 $cmSource = Join-Path $root "claude"
 if (Test-Path -LiteralPath $cmSource) {
+    if (-not (Test-Path -LiteralPath $claudeRoot)) { New-Item -ItemType Directory -Path $claudeRoot -Force | Out-Null }
     $cmMain = Join-Path $cmSource "CLAUDE.md"
     if (Test-Path -LiteralPath $cmMain) {
         $cmTarget = Join-Path $claudeRoot "CLAUDE.md"

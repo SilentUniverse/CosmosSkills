@@ -536,7 +536,7 @@ class IncrementalWorkflowTests(unittest.TestCase):
         pointer = json.loads((destination/(proof_ref+'.json')).read_text())
         bundle = json.loads(store.get(destination/'objects',pointer['bundle_ref']))
         retained = json.loads(store.get(destination/'objects',bundle['external_dependencies']['demo/00-parent']))
-        self.assertEqual(parent.read_text(),store.get(destination/'objects',retained['contract_ref']).decode())
+        self.assertEqual(parent.read_bytes(), store.get(destination/'objects',retained['contract_ref']))
         self.assertIsNone(retained['completion'])  # Legacy status does not become machine proof.
         parent.unlink()
         shutil.rmtree(self.root/'.scratch/batches')

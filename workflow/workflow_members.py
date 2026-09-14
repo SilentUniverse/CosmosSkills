@@ -252,7 +252,7 @@ def record_proofs(root, state, plan):
         completed = True
         path = batch.member_path(root, reference)
         raw = read_text(path, encoding="utf-8-sig")
-        raw = re.sub(r"(?m)^status: ready[ \t]*$", "status: done", raw, count=1)
+        raw = re.sub(r"(?m)^status: ready[ \t]*(\r?)$", r"status: done\1", raw, count=1)
         if "\n## Comments" not in raw:
             raw += "\n## Comments\n"
         if "### 完成" not in raw:
@@ -309,7 +309,7 @@ def reopen_failed(root, state, plan):
         raw = read_text(path, encoding="utf-8-sig")
         if execution_contract_digest(raw) != state["members"][reference]["behavior_digest"]:
             raise ValueError("repair scope changed its accepted contract")
-        raw = re.sub(r"(?m)^status: done[ \t]*$", "status: ready", raw, count=1)
+        raw = re.sub(r"(?m)^status: done[ \t]*(\r?)$", r"status: ready\1", raw, count=1)
         write_state(root, path, raw)
         state["member_proofs"].pop(reference, None)
         state["members"][reference]["lane"] = "implement"

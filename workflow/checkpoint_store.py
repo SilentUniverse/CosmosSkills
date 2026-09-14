@@ -263,7 +263,14 @@ def materialize(store, source_digest, destination):
                     raise ValueError("invalid snapshot symlink")
                 resolved = (path.parent / target).resolve()
                 resolved.relative_to(staging)
-                path.symlink_to(target, target_is_directory=resolved.is_dir())
+                try:
+                    path.symlink_to(target, target_is_directory=resolved.is_dir())
+                except OSError as exc:
+                    if os.name == "nt" and getattr(exc, "winerror", None) == 1314:
+                        raise ValueError(
+                            "snapshot contains symlinks; materializing them on Windows needs "
+                            "Developer Mode or an elevated runtime") from exc
+                    raise
         os.rename(staging, destination)
     finally:
         if staging.exists():

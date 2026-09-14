@@ -634,7 +634,7 @@ def resolve_feedback(root, batch_id, payload):
                 if execution_contract_digest(raw) != state["members"][ref]["behavior_digest"]:
                     raise ValueError("changed requirements need a revised plan and detail/redo")
                 import re
-                write_state(root, path, re.sub(r"(?m)^status: done[ \t]*$", "status: ready", raw, count=1))
+                write_state(root, path, re.sub(r"(?m)^status: done[ \t]*(\r?)$", r"status: ready\1", raw, count=1))
                 state["members"][ref]["lane"] = "implement"
             row.update(status="implementing", members=members, diagnosis=payload["diagnosis"])
             state["phase"] = "work"
@@ -812,6 +812,7 @@ def deliver_notifications(root, batch_id):
             managed.save(root, state)
         try:
             completed = subprocess.run(plan['notification']['argv'], input=json.dumps(event), text=True,
+                                       encoding='utf-8', errors='replace',
                                        cwd=Path(root).resolve(), capture_output=True, timeout=30)
             if completed.returncode or json.loads(completed.stdout).get('acknowledged_event_id') != event['id']:
                 raise ValueError('host adapter did not acknowledge this event')
@@ -843,7 +844,12 @@ def drive(root, batch_id, max_steps=100, background=False):
             if background:
                 entry = Path(root).resolve() / state['runtime_entry']
                 log_path = batch._path(root, batch_id) / 'runs' / (run['run_id'] + '.runner.log')
-                options = {'start_new_session': True} if __import__('os').name != 'nt' else {'creationflags': subprocess.CREATE_NEW_PROCESS_GROUP}
+                # POSIX start_new_session detaches the runner from the controlling terminal.
+                # CREATE_NO_WINDOW gives the runner its own hidden console: closing the
+                # caller's console cannot kill it, and children inherit that console instead
+                # of spawning an extra conhost that would linger inside the verifier job.
+                options = {'start_new_session': True} if __import__('os').name != 'nt' else {
+                    'creationflags': subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW}
                 with log_path.open('ab') as stream:
                     subprocess.Popen([sys.executable, str(entry), 'check-run', str(Path(root).resolve()), '--batch', batch_id, '--run', run['run_id']],
                                      cwd=root, stdin=subprocess.DEVNULL, stdout=stream, stderr=subprocess.STDOUT, **options)
@@ -991,5 +997,5 @@ def repair_members(root, state, plan, members=None):
         raw = read_text(path, encoding='utf-8-sig')
         if execution_contract_digest(raw) != state['members'][ref]['behavior_digest']:
             raise ValueError('repair cannot rewrite an accepted contract')
-        write_state(root, path, re.sub(r'(?m)^status: done[ \t]*$', 'status: ready', raw, count=1))
+        write_state(root, path, re.sub(r'(?m)^status: done[ \t]*(\r?)$', r'status: ready\1', raw, count=1))
         state['members'][ref]['lane'] = 'implement'

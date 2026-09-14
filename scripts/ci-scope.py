@@ -25,6 +25,13 @@ def changed_paths(root, base):
 
 
 def main():
+    # Stock Windows consoles default to the ANSI code page; never let an
+    # un-encodable character kill the gate after its decision was made.
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding='utf-8', errors='replace')
+        except (AttributeError, ValueError):
+            pass
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--base', default=os.environ.get('COSMOS_DIFF_BASE', ''))
     parser.add_argument('--full', action='store_true')
