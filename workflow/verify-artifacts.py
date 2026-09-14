@@ -1021,8 +1021,13 @@ def main(argv):
                     err("%s: type '%s' != issue" % (f, fm.get("type", "")))
                 if fm.get("feature") != feat:
                     err("%s: feature '%s' != directory '%s'" % (f, fm.get("feature", ""), feat))
-                if fm.get("status") not in ("ready", "done"):
-                    err("%s: status '%s' not in ready|done" % (f, fm.get("status", "")))
+                if fm.get("status") not in ("pending", "ready", "done"):
+                    err("%s: status '%s' not in pending|ready|done" % (f, fm.get("status", "")))
+                if fm.get("status") == "pending":
+                    if not fm.get("pending_reason") or not h2_section(issue_lines, "做什么"):
+                        err("%s: pending requires pending_reason and a concrete engineering goal" % f)
+                    graph[Path(f).stem] = as_list(fm.get("blocked_by", ""))
+                    continue
                 contract_version = str(fm.get("contract_version", ""))
                 if contract_version == "3":
                     profile_in_use = True

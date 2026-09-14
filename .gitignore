@@ -1,5 +1,8 @@
 /skills
 .scratch/tmp/
+.scratch/batches/
+.scratch/.workflow-verifier.lock
+.scratch/.workflow-operation.lock
 .DS_Store
 __pycache__/
 .eval-runs/

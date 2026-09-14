@@ -7,6 +7,8 @@ argument-hint: "What must the next session continue?"
 
 # Handoff
 
+For an active protocol-2 batch, retain its batch ID, frozen runtime entry and unresolved action as pointers; do not copy its proof history. Resume through [BATCH-FORMAT.md](../tdd/BATCH-FORMAT.md).
+
 Write the smallest state packet from which a cold session can execute the next action. This is not a
 conversation summary. Preserve decisions and exact replay strings; discard exploration and narration.
 

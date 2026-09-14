@@ -2,30 +2,30 @@
 name: tdd
 description: >-
   Use when implementing a named issue or feature test-first, running red-green-refactor, draining ready issues, or recording TDD evidence. Owns implementation and validation; substantial unresolved requirements route through spec, while unknown failures route through diagnose.
-argument-hint: "Issue path, feature slug, -p, -all, -log, or nothing to drain all ready issues"
+argument-hint: "Issue path, feature slug, -p, -all, -log, or nothing to continue the current goal"
 ---
 
 # Test-Driven Development
 
 ## Invocation
 
-- `/tdd <issue-path>` — run only that issue. Read frontmatter `status:` and obey the guard below.
+- `/tdd <issue-path>` — run that issue after the status/review guard.
   Use a caller-supplied packet and execution ID directly. Otherwise, after the status/review guard,
   run `python <skills-root>/workflow-state.py start <repo-root> <feat> <slug>` (`python3` when
-  `python` is absent). This admits the single card and returns its packet, execution ID, and baseline
-  digest together. `packet` remains a read-only inspection command. If source/status/hash is observed
+  `python` is absent). This admits the card and returns its packet, execution ID and baseline
+  digest. `packet` remains a read-only inspection command. If source/status/hash is observed
   stale, pause writes and return one attention event; never redispatch or refresh a worker's input silently.
-- Explicit bare `/tdd` — **drain (serial)**: every `ready` issue across `.scratch/`, one at a time,
-  in dependency order. A caller or natural-language implementation request inherits only its named
-  task; absence of an issue path does not authorize a repository-wide drain.
+- Bare `/tdd` continues the current accepted goal. Without a unique current scope, show the compact
+  candidate scopes before dispatch. Repository-wide drain requires an explicit whole-repository
+  request; missing parameters never enlarge authorization.
 - `/tdd <feat>` — drain scoped to one feature's `issues/` directory.
-- `/tdd -p [<feat>]` — **drain (parallel)**: up to four concurrent issues including the main agent's. The main agent normally owns the highest-priority issue, delegates the rest, and supervises the wave. Declared collisions serialize; undeclared issues run alone. Execution and isolation rules: [DRAIN.md](DRAIN.md) plus [DRAIN-PARALLEL.md](DRAIN-PARALLEL.md).
+- `/tdd -p [<feat>]` — **drain (parallel)**: up to four concurrent issues including the main agent's. The main agent normally owns the highest-priority issue and supervises delegated work. Declared collisions serialize; undeclared issues run alone. Rules: [DRAIN.md](DRAIN.md) plus [DRAIN-PARALLEL.md](DRAIN-PARALLEL.md).
 - `/tdd -all` — run build + the whole suite now (§5); combines with any form above.
-- `/tdd -log` — the verdict is a command's log file, not test runs: [LOG.md](LOG.md). Same mode when the user says this run drives a device and the result lands in a log file. Combines with any form above.
+- `/tdd -log` — the verdict is a command's log file, not test runs: [LOG.md](LOG.md). Also applies to device runs judged by a log; combines with other forms.
 - Task-scoped entry without an issue: keep a settled outcome, constraints, authorization, and proof
   inline when no queue, delegation, dependency, or contract-history consumer needs a card. File count
   does not decide this. A requested plan or consequential unresolved choice uses `/spec`, then resumes
-  after its user-review checkpoint is satisfied. Unknown failures use `/diagnose`.
+  within the existing authorization; only unresolved material choices hold dependent work. Unknown failures use `/diagnose`.
   Before editing, inspect relevant ready work and open assignments through `workflow-state.py survey`;
   use the existing card when it owns the work, and coordinate any active execution before touching its scope.
 
@@ -39,27 +39,33 @@ When changing an external runner or provider adapter, load [SESSION-REUSE.md](SE
 
 ### Status guard (issue-driven invocation)
 
-Apply spec's user-review checkpoint before starting execution. `ready` records technical readiness,
-not user acceptance. A user-issued `/tdd` accepts the targeted plan for implementation; an automatic
-caller must carry acceptance or an explicit instruction to plan and implement without waiting.
+Honor the request's accepted scope and any explicit pending plan review. A user-issued `/tdd`
+accepts its targeted plan; an automatic handoff carries the user's implementation authorization.
+`ready` records engineering readiness, not human product acceptance.
 
 | Status | Action |
 | --- | --- |
 | `ready` | Once the review checkpoint is satisfied, run autonomously without repeated confirmation. |
 | `done` | Verify/report existing completion. A requested behavior change routes to `/spec` for a redo; do not ask the user to edit status. Active-batch recovery follows DRAIN. |
-| anything else | Inspect the invalid state; repair an unambiguous schema typo, otherwise report the exact ambiguity. Do not guess approval from status. |
+| pending | Resolve the recorded engineering readiness gap; keep human decision dependencies separate. |
+
+Unknown statuses are invalid; repair an unambiguous schema typo or report the ambiguity.
 
 Edge cases — prior `### 完成` on a `ready` issue, or `category: redo`/`fix` (parent-test fate): [EDGE-CASES.md](EDGE-CASES.md).
 
 ## Completion record
 
+Managed batches load [BATCH-FORMAT.md](BATCH-FORMAT.md) for dispatch, background checks, versioned review and feedback. Follow its projected action at safe boundaries; independent work can continue during human review.
+
 **Issue-based runs only.** When all AC pass, review this issue's owned diff against its AC, preserve other work, write the completion record, then close to `done`: **[COMPLETION-RECORD.md](COMPLETION-RECORD.md)**.
 
-Submit through `/commit` only when the user requested it; then continue there after validation.
+Use TIDY at delivery boundaries for released temporary files; preserve tests and useful experience.
+Submit through `/commit` only when requested; continue there after validation.
 
 ## Test philosophy
 
-Tests verify behavior through public interfaces, not implementation details; expected values come from an independent spec/example — [tests.md](tests.md), [mocking.md](mocking.md). One test at a time (vertical slices), never batch all tests then all implementation.
+Test public behavior against independent expectations: [tests.md](tests.md), [mocking.md](mocking.md).
+Complete one RED/GREEN slice before writing the next test. Only UI behavior loads [UI-TESTING.md](UI-TESTING.md).
 
 ## Workflow
 
@@ -69,7 +75,7 @@ Start from first principles about the approach. Use the project's domain glossar
 
 Use settled requirements as the contract; infer routine interface and test mechanics from the repo.
 Ask only a new consequential decision. Shape a new seam with `/codebase-design` when needed.
-Existing coverage first: [tests.md](tests.md) §Existing coverage. Inline runs use their stated
+Existing coverage first: [tests.md](tests.md) §Existing evidence. Inline runs use their stated
 behavior/evidence contract; issue runs use 做什么/AC/验证设计 and the parent extract.
 
 Repeated follow-up patches landing on the same module are a design signal: stop patching and
@@ -121,6 +127,12 @@ the needed entry with a retrieval path; do not inventory the whole repository to
 Keep transient hypotheses in the current task or handoff. Run affected tests after refactoring;
 **never refactor while RED**.
 
+When test cost grows or shared checks need scheduling, apply [test policy](../TEST-POLICY.md).
+Review changed tests with [test quality](tests.md); shared checks remain parent-owned.
+
 ### 5. Full-suite check
 
-Scoped per-cycle tests (§3) can't see cross-module regressions. The full suite + build runs **automatically once per batch** (drain's last issue to `done`) and **manually** (`/tdd -all`). Run each command inline through the timeout/log supervisor; load only its compact result into context. Full procedure: **[FULL-SUITE.md](FULL-SUITE.md)**.
+Each delivery candidate needs its required combined checks and applicable suite/build; final evidence
+must match the final candidate. Reuse valid evidence and recheck relevant changes. `/tdd -all` runs
+the whole suite now. Use the timeout/log supervisor, nonblocking long execution and compact output:
+**[FULL-SUITE.md](FULL-SUITE.md)**.

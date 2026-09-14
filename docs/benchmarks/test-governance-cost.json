@@ -1,0 +1,3116 @@
+{
+  "schema_version": 1,
+  "kind": "deterministic_cli_revision_comparison",
+  "measurement_script_sha256": "75c2b7640cb86bc8f622cde6428f05583edec026d35a38ae7d5a9a7bb71e0a7d",
+  "baseline": "/Users/hys/Code/CosmosSkills/.scratch/tmp/test-governance-baseline",
+  "baseline_sha256": {
+    "claude/CLAUDE.md": "b20f2700b6b1b5f957e5c7be73b0c418cab4f58d3276ee4686972a518fe9a4ab",
+    "claude/PHASE-BOUNDARIES.md": "cd437ee205ceb746b030a068df7ab78de6b4d4dce6e1ba00020ba5cb2a70d3db",
+    "claude/android-adb.md": "743fa4ac0ce56b49214e8c33624456d95e3dcab0ebcb9b9c5918f6798c80699c",
+    "claude/cli-tools.md": "016e2c8a01ca109e82e2e27724f51e5f445b78aa701269d9072d241df82169c6",
+    "claude/design-principles.md": "ce73d4572efd9bb5bdcc81638d259b4a0880826116e1cf7c866792c55a0f23a1",
+    "claude/document-layout.md": "d6ac3e355624983a258edd6c163dac8aa3c2bc0aad91e5fe40201692307fd81b",
+    "claude/windows-cli.md": "8c45b150e874920214adbaf58b361f08fff1c15fbf72f3f7b68cc9fd0b0f9645",
+    "scripts/benchmark-checkpoint.py": "75c2b7640cb86bc8f622cde6428f05583edec026d35a38ae7d5a9a7bb71e0a7d",
+    "scripts/benchmark-workflow.py": "fe23b0e72c456bce2bbbe5ff9e6ea32ad86a338395cb6bc658942edd72118b6d",
+    "scripts/check-native-packaging.py": "de3d39293126d26a4a85968445cb92330dea89aff0c0b72bd609f2234521adc9",
+    "scripts/check-ui-fixture.py": "06938849531a7e9d9df423927a77adcb873d252b6e4af8551170c6d718a27d5a",
+    "scripts/demo-checkpoint-release.py": "5720d105b6035533def45bb5e73ebc63af3cfd3f77cb5a96c1d00e83e2335463",
+    "scripts/eval.py": "ee4f7ac7a070797a0b2639fd8720ae81f79663086836c8815f24916b680a091d",
+    "scripts/eval_campaign.py": "65ecd126ef7af935ab8c67021324faf318327bff5641b4b3b0f9553682069fe8",
+    "scripts/eval_metrics.py": "60bb4fbcc611f54e098cbffed7188349f5beac29578b264839848eb481484805",
+    "scripts/install.ps1": "9773e9f9b39eacef78fcc7fcd9c7005d211b74ba5ad610b4dfc7e51120e21566",
+    "scripts/install.sh": "963d7cb0770f3602b14483aac4abec86555063ac9ec575f7616c742e70a14f13",
+    "scripts/overnight.py": "d1e0fb2860e7146332eb677dc37a2478780a1388750ae668f0335fc3cef66504",
+    "scripts/validate-skills.py": "161c89e490225343cca59f70929a750e5abcd5651145d29187d324f8f810b2a3",
+    "scripts/zcode_telemetry.py": "ce03b6ff3e51f19c091bc0e302a50d404acd081871aff45c12f6ef0b84c2ed6c",
+    "tooling/README.md": "897d256c847d670b2acf343ad182f248f77a44c9d346f72dbebf6737a10efde2",
+    "tooling/migrate-to-shoehorn/PATTERNS.md": "3f12e8ba31bf681e2d12c972e5e86b3ca89da118a3c6599ec315740b2cf4eb40",
+    "tooling/migrate-to-shoehorn/SKILL.md": "628a7868860bd7c36ef962844f5bff68503fbbee090470e7191fc3da045fc05e",
+    "tooling/setup-pre-commit/SKILL.md": "9b9246220ff89804785c17845c90a2e230253a29583b076f927d05a874aa4acb",
+    "tooling/shell-guardrails/README.md": "34a5f173d7bd9332f40e5d9d276e277d9991bc8e079868154168fb7263d01e77",
+    "tooling/shell-guardrails/SKILL.md": "bdb16cb1118218a03fc34ae6b6cf52f6df62f8c7b86f3c249fc5aba4fdf44182",
+    "tooling/shell-guardrails/WIRING.md": "e4a42bd85eeb168cd021fdaedd578d82d1dcb42e7dc491226cd48a6cb8b76f17",
+    "tooling/shell-guardrails/cases.jsonl": "4d85cae3e59b69530ab94a4a49e057b576402892331d17c74c549de57d5446ed",
+    "tooling/shell-guardrails/references/execution-domain.md": "8f764ae0fc241213c6b53b1d6ee2326157180873710391332479627c3983edfa",
+    "tooling/shell-guardrails/references/modern-cli-only.md": "fdc52c052b010e11c9ef8053bc4800ebf17207efc223c3fb1ef5d3a4b474ccef",
+    "tooling/shell-guardrails/references/push-blocking.md": "935dc6175998c4b852496a21568f15b1cf7e437e6c379176e86c01a1f22aa30d",
+    "tooling/shell-guardrails/run_corpus.py": "d255691863186988bd5ef7fef0fb2bd1d4b8b1cfe50ae5dbf9d28137eb4a265a",
+    "tooling/shell-guardrails/scripts/block-dangerous-git.ps1": "994daa3012035926b7b6f2c53f331af5e8166aa7f48b86680eb90f4cf2bb7567",
+    "tooling/shell-guardrails/scripts/block-dangerous-git.sh": "3f98c09297e55cb45b4392847f995b3392d29b02725b8c350f7dc336cae9d684",
+    "tooling/shell-guardrails/scripts/block-legacy-cli.ps1": "a7653dc7da76a84a32e6db3bbf7422747b3b6590bb18e91c079afe78dd78c35c",
+    "tooling/shell-guardrails/scripts/block-legacy-cli.sh": "a8d1af4901f2635a508f2285a0912ddb886995eb773b4dc00904e845cffa1829",
+    "tooling/shell-guardrails/scripts/guard-shell.py": "b95f69994dc0fb13cb31063a3502f3ceb1007afa67cd2ff43172a197bcb97dd5",
+    "tooling/shell-guardrails/scripts/test-block-dangerous-git.ps1": "e70fffe996f8cfeb04045b0ea034033a8a076c3d4a3205dfaf09cd76f9602b91",
+    "tooling/shell-guardrails/scripts/test-block-legacy-cli.ps1": "e73b560fc923e5fb76d18a1313f95d74e9483284125da54b0e1869c7013d2f39",
+    "workflow/ARTIFACT-FORMAT.md": "0f859c6fd0e57e99af6ad6a277ff5966eef6e3b38856054f6451cdadd0e3d0b8",
+    "workflow/README.md": "3e61a12004a3601e7fce75010eedbbc779e9947e92e8ecf12ce9866035b69368",
+    "workflow/REPORT-FORMAT.md": "7d03dd19d565549f6cb42d6c73acb163f8b71ff88b42d6dba75b7ae8a7eae8f3",
+    "workflow/RULE-LEDGER.md": "bb66c1d2c691606d6bbbe409654913556e49d0ac5172d40c110505e80a20e6f3",
+    "workflow/atk/RECEIPT-CONFLICT.md": "10e973b7db39f087df7f4011887e20048aeba08dc2e5f2007d60aaa41ff6f61b",
+    "workflow/atk/SKILL.md": "633f4002c1c12c4600b7492da034973b2661b2a380c1017e14718713ebd6eb24",
+    "workflow/brief/SKILL.md": "cda897dd3562353b85c90c6b8b3406cf34cbb515cea45357919fa6941fd80bab",
+    "workflow/checkpoint_store.py": "27c22eedc5ad4bb9dd6e6b85450584a947e236af9b18c098a998f6c2a891094a",
+    "workflow/code-review/EXPERIENCE-RUBRIC.md": "cc73549b3430dc4f688b0e42f20ddcd1e53a7554ea2829b2ac54645bf1da80de",
+    "workflow/code-review/SKILL.md": "4d141a9b9942423101fc03d3c894c1b3b1fe7a842fd61b6a15fdfe5eb44dbff0",
+    "workflow/code-review/SMELL-BASELINE.md": "fbe722f39a2352874be369bb763292ab46129ab2ae59ca48b42424b703ae3958",
+    "workflow/code-review/SUBAGENT-BRIEFS.md": "53e85c48fcca531867d17a2f9af6d6402f9bf5f6241eecca52b84cd7f2f6e071",
+    "workflow/code-review/scripts/review-input.py": "ccdc408a35137f13fb56a327cd3d1399edeabc1a199bc00279e75e34b2d15908",
+    "workflow/codebase-design/DEEP-VS-SHALLOW.md": "6a4edfc786330e7da2926205fba6a9c2bbb5cd56cb95e2b38b7a83f36e5a9e0b",
+    "workflow/codebase-design/DEEPENING.md": "629a3497ccefaa09204c8e24a2c3ccfb622d69ed29c6e6a62218c205f7ad5667",
+    "workflow/codebase-design/DESIGN-IT-TWICE.md": "f632e4dc76785c85b64c9239a29d3cd6a36accf3b08cb26d83b88a994b90ce68",
+    "workflow/codebase-design/SKILL.md": "3cdcf2d5d3a0c4e8790003e8084def21b99582b3392123e6956e19f6fa905d70",
+    "workflow/commit/SKILL.md": "4decdfb9d761593d087fa4a237b827480b281a8e8ce2ac25552048ee90e667ed",
+    "workflow/commit/scripts/land.py": "1f01826f78e086b1369fb030cd6e0183becf013ecbd69ecf6dd1f2e00b713b14",
+    "workflow/conflicts/SKILL.md": "c878f6bf68244f18996b46f6d6cc5f8d3dfc14664c09cdce879da72699ae388e",
+    "workflow/cosmos-setup/DECISIONS.md": "176a8e6cf4f9a9bb101b12c0af43c5e362799dbed72fa0abfe439cff70f59863",
+    "workflow/cosmos-setup/MIGRATION.md": "346836127aa3596d57259f3d98426c6bf3e9207d270426e37ca51ef1d53094db",
+    "workflow/cosmos-setup/SKILL.md": "bc5b7b8a2e2ffcb4bc3c05051eddb1435ce1c9288316fa0047f348dc10aa8df0",
+    "workflow/cpp-oop-style/SKILL.md": "a70493d35ae05927924d0e511b24412714a0d3e96d863cb0fd59e70ca2492abe",
+    "workflow/cpp-oop-style/agents/openai.yaml": "29df22bb4eb96375dc07e35e0f30804fa2178f08e35723c87623fc11f2c0a049",
+    "workflow/cpp-oop-style/references/cmake-first-projects.md": "0ed93f210bcec4748586cab526588f6d044dd15232979612a04ffcf5e4508da3",
+    "workflow/cpp-oop-style/references/debug-harnesses.md": "8ab03cc1958bee26e16aa97078cc7abfc561cfb15e6f1749c5597d00e2c4d134",
+    "workflow/cpp-oop-style/references/debug-instrumentation.md": "ef6a72b648358b9044f2deffa7a50083c49f238ce8106cb5de6570ba70cba347",
+    "workflow/cpp-oop-style/references/decoupled-modules.md": "aa6ac76c44b6c2358694849160342d32322bb096450eacbfe95e511f36138ae8",
+    "workflow/cpp-oop-style/references/dependencies/binary-abi.md": "2fd71c917dc31cd870479875e13a85798a9287ea41bab351cf34a5ee4f1da3fc",
+    "workflow/cpp-oop-style/references/dependencies/installed-and-manual.md": "0c73b71933c8136f1adbceb6dedc3d89d01ca113986ee653d04b27316a6bfc8c",
+    "workflow/cpp-oop-style/references/dependencies/router.md": "d8e31ec03c22ff9f29a858218003d9730c3364797be5f6c0712476767c9d9e78",
+    "workflow/cpp-oop-style/references/dependencies/source-vendoring.md": "b53a57f25b324d640875754c978aea02ad60694d6b45446aabeddc8479333971",
+    "workflow/cpp-oop-style/references/dependencies/string9811.md": "f42f66dcbe4338fc0e8eb431549b100f76783f7ce000d579df4a98f72afd3377",
+    "workflow/cpp-oop-style/references/deployment/cmake-installable-projects.md": "75742fa77a2501afe74ff062dc232b0a4e77b6d1fdce38b3dbdebb2a0267d0c0",
+    "workflow/cpp-oop-style/references/deployment/cpp-app-deployment.md": "ab1fb841b6e8ef34def834101b6b05e9c84289fe451fd98901f65e0187e90f48",
+    "workflow/cpp-oop-style/references/deployment/pybind11-packaging.md": "f6e0c47bb2cb240c2bb93cc6c74259006d16ca32a4271c22009a95c67fbaf081",
+    "workflow/cpp-oop-style/references/deployment/router.md": "6134dd63fbefda64ac5d451359b35c1a6770c81c5e9cf9207852d4b381338b9d",
+    "workflow/cpp-oop-style/references/error-handling.md": "ee1cc1ad925cb86bedcf2344d87d05eb6b9f0f50deeccff355e9872d8c9d7bb5",
+    "workflow/cpp-oop-style/references/functors-callbacks.md": "9ac2dca4eddf6a4f9dcc8734ebf3e936fa2bfcfe3b16930f0a26735064937310",
+    "workflow/cpp-oop-style/references/generics-compile-time.md": "07e37a013b8e5260465934cacb23b4fa89196c4f4e88bb7b6e61f03a5342be96",
+    "workflow/cpp-oop-style/references/ownership-lifetime.md": "59cd4ab06febcd4f0a26cd3c9e16a0f0ae410ddd92785fb66d80dc2c2204ea53",
+    "workflow/cpp-oop-style/references/sources.md": "a4309644aeaf5a38fe99749cdcc0b773439c34235f6404d66a4fadcdd5b38f8b",
+    "workflow/cpp-oop-style/references/text-encoding.md": "ebc22bf120821e744b0c23e499562c8958535299c32fdbb8e6bd3a15c16d2cae",
+    "workflow/cpp-oop-style/references/type-erasure.md": "4607d941129aa13c76c6a49b67fcdc8948b6578252754e827db0f37e96ce8e70",
+    "workflow/cpp-oop-style/references/wrapping-c-resources.md": "8d144e1c7532a0778ad185c5f3bb5c7943d3dd258fe98f1dee4bf423be589095",
+    "workflow/diagnose/FEEDBACK-LOOPS.md": "1d8b1e23b98df393033fbdc5a8ec3e55afe42fbf7443da6a9339575d8d658d09",
+    "workflow/diagnose/SKILL.md": "ef1c1964a0c9d38e5b4b21619dd6cf0710e13f56b8c15c6c5745e731ae046fa1",
+    "workflow/diagnose/scripts/hitl-loop.template.ps1": "162e3f38436061802ab815acf563762489233315f546b10f75356aa25186ed0c",
+    "workflow/diagnose/scripts/hitl-loop.template.sh": "17c2f9cf2dd76f5a4060649e9ac4da95cc172131c1acc5a9042e0696cf505bf3",
+    "workflow/domain-modeling/ADR-FORMAT.md": "885a6d6216db8f412d0e03d164589a2609206e328945fd12d9d4df7909581b25",
+    "workflow/domain-modeling/CONTEXT-FORMAT.md": "1fe2a998d2bd14f0c7d41025f9819ce0f89b3d8cb6a867d2ea740cf5831c3c41",
+    "workflow/domain-modeling/SKILL.md": "e8e28b12f737505833ceb7dbf86eeb5c77373d27f7248b7da6efa3cfcb2dd106",
+    "workflow/eval/SKILL.md": "d583428f3aae1f620072ff53034b708aeec59c466abda8c513376d990f52829e",
+    "workflow/grill/SKILL.md": "1d3ca688d02efb75c9897c6b941bfff43e8bdfd21ba78dc1ee680b52ac348410",
+    "workflow/handoff/SKILL.md": "ae128d4e2413d780a48a5d6a8a10877c1030c6fa553a3e95e48a11986ee9f539",
+    "workflow/handoff/scripts/handoff-state.py": "7baea7ff5deb00a009f7962b868f7aa90d707af27cb61dd81c118409f60a1088",
+    "workflow/improve-arch/HTML-REPORT.md": "6787e05d1360010a57d8e9d58f27707394cee05fb445786a2ee046a9971982f4",
+    "workflow/improve-arch/SKILL.md": "5ef30717b7c2c0d647f5db28478e13cfee34f592a7c0d415f1e95854b2c690e9",
+    "workflow/lint/SKILL.md": "fa7abcd30701fbc17c89f989e5d96973b0782eff192d225f4f5392a050033d0e",
+    "workflow/lint/references/batteries.md": "1445de0730c146ca3cc86464cab7e3ca7787fc82f048ccb53c17570fbe3599f9",
+    "workflow/lint/references/code-comments.md": "e946579bcb23363ec6baf60725ab23e6dbbc8f28eeabbe3643167c4b7ec6431b",
+    "workflow/map/SKILL.md": "b6b42ffe0999c843748061f1253e39cc5dc92a97942b8d1181135b9254d935bb",
+    "workflow/process_tree.py": "93d5f49621058518f7b34af9f3838c4e0c228c961ecd58dd3ed85a0ece23a067",
+    "workflow/prototype/LOGIC.md": "65f5121ffc103bda6bf0fd2121f40d02e633c40c8abcb00e172f9f3a3421e0b5",
+    "workflow/prototype/SKILL.md": "5d0ab6210591117322fbc6acecf17b80041f4231bd4b5edb99f6189512a6a37a",
+    "workflow/prototype/UI.md": "86da15d8509507b467823922f1233426dcf7381851b9636c3fd2d1627d77b048",
+    "workflow/record-gif/SKILL.md": "d06d27500f1095cb47b55110c5d6e7adf821a02e36ada841cbdd0fce16927ce2",
+    "workflow/record-gif/scripts/encode_gif.py": "b79b552eb42ecc793090df5903a6f7b30905bdcc1ef19620cfb6a8728d54940e",
+    "workflow/research/SKILL.md": "8026db4a823e97e869497594dedc31b3b40f68263e4d0addeef0ff7ef0798077",
+    "workflow/resume/SKILL.md": "e401776d7119ebb96953f9a777d7caa1a3171a160698a03c0d518eb612ab3d9f",
+    "workflow/show/SKILL.md": "819a58c253422a6cc4e4b8338057476bc7cfe62a176db69a634192f954432cf0",
+    "workflow/spec/ADDITIVE.md": "efed80b04ce2b12959e14896a7571b484b0b38abc87a7823a3afdcf617e5412c",
+    "workflow/spec/CARD-TEST.md": "50add8e1772407beae729726c1e8bed2bdc900609424ff56214c16cd4f1e44cb",
+    "workflow/spec/DESIGN-RECEIPT.md": "b283cae499c0466fa7ee184612c12b83e3922a7014d684d12a23da6d589cb592",
+    "workflow/spec/ISSUE-TEMPLATE.md": "e9e1caca6ea79ab9110ae79f90eead17d460a2aa743865dadd19c6eac7f28c28",
+    "workflow/spec/NON-FUNCTIONAL-BARS.md": "3dcc30ebdf48171ffb895d51c3b3ddedb1ba6c8cd08f3d3166a00f89e63f6e44",
+    "workflow/spec/PRD-TEMPLATE.md": "58bea29cb4adebcfa1e5d329f1ea038c72d325c7c20a7ec493dc36ae30f92ec0",
+    "workflow/spec/SKILL.md": "a9a0f8708a0f7766408744f7bd27b7435502046a33f509633dab97a7c34ec856",
+    "workflow/spec/SUPERSEDE.md": "4ddbee0453613fa78ab24837f8b6ce12be8d0ce1cd83a504c0d243bdf63e80cc",
+    "workflow/spec/VERIFICATION-DESIGN.md": "012f06b062aae9fbff29a666384a67fb703fc879ebf68695ca531d9bac6e635c",
+    "workflow/spec/impact-detection.md": "873341e5d8667d8cddb672d22c43d6f12eb020f0b3ce70f09f2bb9ae2dca726b",
+    "workflow/spec/scripts/pyright-impact.py": "d1db5c5ec3b814b35a7b9932bfc340c1fd7a02579a80f752fb8de2d843ad4de6",
+    "workflow/tdd/BATCH-FORMAT.md": "27dcd7d1edc70dd8a1ff4877cf551ca9f4fbc2f06402af490ee2531b260d16a5",
+    "workflow/tdd/COMPLETION-RECORD.md": "f5e735f25cb671052b1307b20b941d748bf99bf15b28965779c11257e1ab8f22",
+    "workflow/tdd/DRAIN-PARALLEL.md": "c861f454f0963afd32959f1001fd7e17b335c9da243ac2e26829590c15a67572",
+    "workflow/tdd/DRAIN.md": "a18496eb5e85eeb8b8f2f8356e74141e42eff58db2f4ee656863fe4942472ca9",
+    "workflow/tdd/EDGE-CASES.md": "23896761bcf43aa02e0ef8035ffbc66c6e913c821c6afcc9ae19cbc7296509a5",
+    "workflow/tdd/FULL-SUITE.md": "05b91dbb44ef7428550b013b2b0ca0d0389b9348594769d81f0fd4d6c27fe327",
+    "workflow/tdd/LOG.md": "86dc2175b0690d663ee9b24399bba84c7b4f7c242a56144e475e3b2c3931c893",
+    "workflow/tdd/SESSION-REUSE.md": "15ce471a04addd0c36c4b6cda78649cd08f422ee701fc610bde152831edd2822",
+    "workflow/tdd/SKILL.md": "7519016d028a385def5bfd85e700cce7563423a7dca867c93f14b9e7cad959fd",
+    "workflow/tdd/UI-TESTING.md": "0e3b3fa6abf8d39aad8db57e047a4061ef421e08fe36d02326e5795f7d7413c3",
+    "workflow/tdd/mocking.md": "03404c26f94a2e745c23dfa97d386495c94a71e2f99f273c24ba0ba9624621ca",
+    "workflow/tdd/refactoring.md": "4ae2082c75dd35db34adc0c08b4aa172ea38c2d8cacc1bb89b850b326fceca40",
+    "workflow/tdd/scripts/drain-wave.py": "b49a76c33805a2c15d10cc8af5976a3a9807404dd8f1ddfcc4b10eb9d784dc0a",
+    "workflow/tdd/scripts/playwright-reporter.cjs": "72c3a2421e8d77c28db8ae2c7514e91ed21d5854b9bad64d97ec6415afaf24e0",
+    "workflow/tdd/scripts/preflight-receipt.py": "75e699b8347829dec3e48e231bf2a42cf4f43ccf588ba664522566d14baad2e6",
+    "workflow/tdd/scripts/test-supervisor.py": "669bab7cca60666070d47261f3d3f1b335bde4ebfaaad9e3cf8cb5c4ab4af6dd",
+    "workflow/tdd/tests.md": "c39f4392d456cf2c199b1118954cf45e950896f94155b17b2ec439a695ff9896",
+    "workflow/teach/LEARNING-RECORD-FORMAT.md": "6aaf4ee2ca9d3a3e19689804b1ea29caa9b98f0c3f0ab33668979c336266433a",
+    "workflow/teach/MISSION-FORMAT.md": "763958a5afb97eca749a908a1b5457e1ce4cfa3b93c7ce031bc130b22eccba78",
+    "workflow/teach/PEDAGOGY.md": "0e31b3a83f7c0872ab04f2fb30974f06c34c3f2f7f921322aa514129dd23db88",
+    "workflow/teach/RESOURCES-FORMAT.md": "1b66e6060e6fb2c324173f3ebb87936b0bb043619e15547bb4afdc2e1b966c14",
+    "workflow/teach/SKILL.md": "f6fe4486de3cfad8a13905afd707a2905255309d3f31e5db181a7d4a83d74cb4",
+    "workflow/test-verify-codebase.ps1": "97a0c43fc9355e07af511ca47b20cf687ceb8e8e125bdb0ee94393bf25bb735b",
+    "workflow/tidy/SKILL.md": "200a92ae74b1855ea1512cae26b159259711b3a34639a2bdc1389e70bd2c1c31",
+    "workflow/verify-artifacts.py": "095fd801eaf026dd1b58dc4ef63794a916683c4f1b376809ca60eba5517fc4e8",
+    "workflow/workflow-state.py": "b33c7d54372bad122d58f34978e6b2fcf06a3ee7aa344bf6f7d0b6d9b296d4b1",
+    "workflow/workflow_batch.py": "01c189aaa4a0bfb5c0a9524c4eb02430c599d6c9e29f23c73361ffaeeaabae22",
+    "workflow/workflow_contract.py": "66df58b89eb6948366d7d6d09bb14f83a32424a5625f4b5cba17f52661defb6b",
+    "workflow/workflow_incremental.py": "321a46c4c2150923080e68f6cb2a672ed9720c50949fcc5c846ade8ca4bf55a4",
+    "workflow/workflow_jobs.py": "2b0637c5242d75a9456b3b9b52c908ce12432449b67e4d5e6c34ca3a6768931f",
+    "workflow/workflow_managed.py": "cd9eada9982e0f40235a20829fef5c175c1b405fd9e4403f3fdaf4a51c7c6f56",
+    "workflow/workflow_members.py": "63582b15307de12af44be15daa83779d0a429dd5732ac91694adc90a6b17a655",
+    "workflow/workflow_resources.py": "d08e5b237bc5ea185c6aa7bbb8cb983581f6e9f30d7e7733778fd4230d9cd7e2",
+    "workflow/workflow_runtime.py": "765719189de7cb24d79ccd9ada7f602b06833824007471197373191f79217207",
+    "workflow/workflow_ui.py": "b28f5306b5adb356edf2852317832f630f9f4a11a180c12bcd0eda996e402b8b",
+    "workflow/write-skill/EVALS.md": "bad2ffd07ac6af6cdeb828b5d92b719ebd41b78b0677b85bf298115f8b1bbd1d",
+    "workflow/write-skill/NEW-SKILL.md": "da0fc61383c08779d31d17c09c46203429e9a5b4341d5bc868a933498b9557a3",
+    "workflow/write-skill/SKILL.md": "706b19cb0ea76b9d04ba021ef7074cd1cbac1dcb0c837ceb28076d97bd3b198a"
+  },
+  "candidate_sha256": {
+    "claude/CLAUDE.md": "b20f2700b6b1b5f957e5c7be73b0c418cab4f58d3276ee4686972a518fe9a4ab",
+    "claude/PHASE-BOUNDARIES.md": "cd437ee205ceb746b030a068df7ab78de6b4d4dce6e1ba00020ba5cb2a70d3db",
+    "claude/android-adb.md": "743fa4ac0ce56b49214e8c33624456d95e3dcab0ebcb9b9c5918f6798c80699c",
+    "claude/cli-tools.md": "016e2c8a01ca109e82e2e27724f51e5f445b78aa701269d9072d241df82169c6",
+    "claude/design-principles.md": "ce73d4572efd9bb5bdcc81638d259b4a0880826116e1cf7c866792c55a0f23a1",
+    "claude/document-layout.md": "d6ac3e355624983a258edd6c163dac8aa3c2bc0aad91e5fe40201692307fd81b",
+    "claude/windows-cli.md": "8c45b150e874920214adbaf58b361f08fff1c15fbf72f3f7b68cc9fd0b0f9645",
+    "scripts/benchmark-workflow.py": "fe23b0e72c456bce2bbbe5ff9e6ea32ad86a338395cb6bc658942edd72118b6d",
+    "scripts/eval.py": "ee4f7ac7a070797a0b2639fd8720ae81f79663086836c8815f24916b680a091d",
+    "scripts/eval_campaign.py": "65ecd126ef7af935ab8c67021324faf318327bff5641b4b3b0f9553682069fe8",
+    "scripts/eval_metrics.py": "60bb4fbcc611f54e098cbffed7188349f5beac29578b264839848eb481484805",
+    "scripts/install.ps1": "6c2e58bb4c3145091d0db0f4484dca6b9faec22bc6469eefb80e49f69acc790a",
+    "scripts/install.sh": "bd2a1b768c91312cd84d09883cb6c94a9d3a1d4ea003afdadc5ada33ac171b7f",
+    "scripts/overnight.py": "d1e0fb2860e7146332eb677dc37a2478780a1388750ae668f0335fc3cef66504",
+    "scripts/validate-skills.py": "161c89e490225343cca59f70929a750e5abcd5651145d29187d324f8f810b2a3",
+    "scripts/zcode_telemetry.py": "ce03b6ff3e51f19c091bc0e302a50d404acd081871aff45c12f6ef0b84c2ed6c",
+    "tooling/README.md": "897d256c847d670b2acf343ad182f248f77a44c9d346f72dbebf6737a10efde2",
+    "tooling/migrate-to-shoehorn/PATTERNS.md": "3f12e8ba31bf681e2d12c972e5e86b3ca89da118a3c6599ec315740b2cf4eb40",
+    "tooling/migrate-to-shoehorn/SKILL.md": "628a7868860bd7c36ef962844f5bff68503fbbee090470e7191fc3da045fc05e",
+    "tooling/setup-pre-commit/SKILL.md": "9b9246220ff89804785c17845c90a2e230253a29583b076f927d05a874aa4acb",
+    "tooling/shell-guardrails/README.md": "34a5f173d7bd9332f40e5d9d276e277d9991bc8e079868154168fb7263d01e77",
+    "tooling/shell-guardrails/SKILL.md": "bdb16cb1118218a03fc34ae6b6cf52f6df62f8c7b86f3c249fc5aba4fdf44182",
+    "tooling/shell-guardrails/WIRING.md": "e4a42bd85eeb168cd021fdaedd578d82d1dcb42e7dc491226cd48a6cb8b76f17",
+    "tooling/shell-guardrails/cases.jsonl": "4d85cae3e59b69530ab94a4a49e057b576402892331d17c74c549de57d5446ed",
+    "tooling/shell-guardrails/references/execution-domain.md": "8f764ae0fc241213c6b53b1d6ee2326157180873710391332479627c3983edfa",
+    "tooling/shell-guardrails/references/modern-cli-only.md": "fdc52c052b010e11c9ef8053bc4800ebf17207efc223c3fb1ef5d3a4b474ccef",
+    "tooling/shell-guardrails/references/push-blocking.md": "935dc6175998c4b852496a21568f15b1cf7e437e6c379176e86c01a1f22aa30d",
+    "tooling/shell-guardrails/run_corpus.py": "d255691863186988bd5ef7fef0fb2bd1d4b8b1cfe50ae5dbf9d28137eb4a265a",
+    "tooling/shell-guardrails/scripts/block-dangerous-git.ps1": "994daa3012035926b7b6f2c53f331af5e8166aa7f48b86680eb90f4cf2bb7567",
+    "tooling/shell-guardrails/scripts/block-dangerous-git.sh": "3f98c09297e55cb45b4392847f995b3392d29b02725b8c350f7dc336cae9d684",
+    "tooling/shell-guardrails/scripts/block-legacy-cli.ps1": "a7653dc7da76a84a32e6db3bbf7422747b3b6590bb18e91c079afe78dd78c35c",
+    "tooling/shell-guardrails/scripts/block-legacy-cli.sh": "a8d1af4901f2635a508f2285a0912ddb886995eb773b4dc00904e845cffa1829",
+    "tooling/shell-guardrails/scripts/guard-shell.py": "b95f69994dc0fb13cb31063a3502f3ceb1007afa67cd2ff43172a197bcb97dd5",
+    "tooling/shell-guardrails/scripts/test-block-dangerous-git.ps1": "e70fffe996f8cfeb04045b0ea034033a8a076c3d4a3205dfaf09cd76f9602b91",
+    "tooling/shell-guardrails/scripts/test-block-legacy-cli.ps1": "e73b560fc923e5fb76d18a1313f95d74e9483284125da54b0e1869c7013d2f39",
+    "workflow/ARTIFACT-FORMAT.md": "0f859c6fd0e57e99af6ad6a277ff5966eef6e3b38856054f6451cdadd0e3d0b8",
+    "workflow/README.md": "3e61a12004a3601e7fce75010eedbbc779e9947e92e8ecf12ce9866035b69368",
+    "workflow/REPORT-FORMAT.md": "7d03dd19d565549f6cb42d6c73acb163f8b71ff88b42d6dba75b7ae8a7eae8f3",
+    "workflow/RULE-LEDGER.md": "bb66c1d2c691606d6bbbe409654913556e49d0ac5172d40c110505e80a20e6f3",
+    "workflow/atk/RECEIPT-CONFLICT.md": "10e973b7db39f087df7f4011887e20048aeba08dc2e5f2007d60aaa41ff6f61b",
+    "workflow/atk/SKILL.md": "633f4002c1c12c4600b7492da034973b2661b2a380c1017e14718713ebd6eb24",
+    "workflow/brief/SKILL.md": "cda897dd3562353b85c90c6b8b3406cf34cbb515cea45357919fa6941fd80bab",
+    "workflow/checkpoint_store.py": "27c22eedc5ad4bb9dd6e6b85450584a947e236af9b18c098a998f6c2a891094a",
+    "workflow/code-review/EXPERIENCE-RUBRIC.md": "cc73549b3430dc4f688b0e42f20ddcd1e53a7554ea2829b2ac54645bf1da80de",
+    "workflow/code-review/SKILL.md": "0731915e8f36b56f2d204aa10c2bce82b4ffc6967db87766633f876b1e277ab7",
+    "workflow/code-review/SMELL-BASELINE.md": "fbe722f39a2352874be369bb763292ab46129ab2ae59ca48b42424b703ae3958",
+    "workflow/code-review/SUBAGENT-BRIEFS.md": "53e85c48fcca531867d17a2f9af6d6402f9bf5f6241eecca52b84cd7f2f6e071",
+    "workflow/code-review/scripts/review-input.py": "ccdc408a35137f13fb56a327cd3d1399edeabc1a199bc00279e75e34b2d15908",
+    "workflow/codebase-design/DEEP-VS-SHALLOW.md": "6a4edfc786330e7da2926205fba6a9c2bbb5cd56cb95e2b38b7a83f36e5a9e0b",
+    "workflow/codebase-design/DEEPENING.md": "629a3497ccefaa09204c8e24a2c3ccfb622d69ed29c6e6a62218c205f7ad5667",
+    "workflow/codebase-design/DESIGN-IT-TWICE.md": "f632e4dc76785c85b64c9239a29d3cd6a36accf3b08cb26d83b88a994b90ce68",
+    "workflow/codebase-design/SKILL.md": "3cdcf2d5d3a0c4e8790003e8084def21b99582b3392123e6956e19f6fa905d70",
+    "workflow/commit/SKILL.md": "4decdfb9d761593d087fa4a237b827480b281a8e8ce2ac25552048ee90e667ed",
+    "workflow/commit/scripts/land.py": "1f01826f78e086b1369fb030cd6e0183becf013ecbd69ecf6dd1f2e00b713b14",
+    "workflow/conflicts/SKILL.md": "c878f6bf68244f18996b46f6d6cc5f8d3dfc14664c09cdce879da72699ae388e",
+    "workflow/cosmos-setup/DECISIONS.md": "176a8e6cf4f9a9bb101b12c0af43c5e362799dbed72fa0abfe439cff70f59863",
+    "workflow/cosmos-setup/MIGRATION.md": "346836127aa3596d57259f3d98426c6bf3e9207d270426e37ca51ef1d53094db",
+    "workflow/cosmos-setup/SKILL.md": "bc5b7b8a2e2ffcb4bc3c05051eddb1435ce1c9288316fa0047f348dc10aa8df0",
+    "workflow/cpp-oop-style/SKILL.md": "a70493d35ae05927924d0e511b24412714a0d3e96d863cb0fd59e70ca2492abe",
+    "workflow/cpp-oop-style/agents/openai.yaml": "29df22bb4eb96375dc07e35e0f30804fa2178f08e35723c87623fc11f2c0a049",
+    "workflow/cpp-oop-style/references/cmake-first-projects.md": "0ed93f210bcec4748586cab526588f6d044dd15232979612a04ffcf5e4508da3",
+    "workflow/cpp-oop-style/references/debug-harnesses.md": "8ab03cc1958bee26e16aa97078cc7abfc561cfb15e6f1749c5597d00e2c4d134",
+    "workflow/cpp-oop-style/references/debug-instrumentation.md": "ef6a72b648358b9044f2deffa7a50083c49f238ce8106cb5de6570ba70cba347",
+    "workflow/cpp-oop-style/references/decoupled-modules.md": "aa6ac76c44b6c2358694849160342d32322bb096450eacbfe95e511f36138ae8",
+    "workflow/cpp-oop-style/references/dependencies/binary-abi.md": "2fd71c917dc31cd870479875e13a85798a9287ea41bab351cf34a5ee4f1da3fc",
+    "workflow/cpp-oop-style/references/dependencies/installed-and-manual.md": "0c73b71933c8136f1adbceb6dedc3d89d01ca113986ee653d04b27316a6bfc8c",
+    "workflow/cpp-oop-style/references/dependencies/router.md": "d8e31ec03c22ff9f29a858218003d9730c3364797be5f6c0712476767c9d9e78",
+    "workflow/cpp-oop-style/references/dependencies/source-vendoring.md": "b53a57f25b324d640875754c978aea02ad60694d6b45446aabeddc8479333971",
+    "workflow/cpp-oop-style/references/dependencies/string9811.md": "f42f66dcbe4338fc0e8eb431549b100f76783f7ce000d579df4a98f72afd3377",
+    "workflow/cpp-oop-style/references/deployment/cmake-installable-projects.md": "75742fa77a2501afe74ff062dc232b0a4e77b6d1fdce38b3dbdebb2a0267d0c0",
+    "workflow/cpp-oop-style/references/deployment/cpp-app-deployment.md": "ab1fb841b6e8ef34def834101b6b05e9c84289fe451fd98901f65e0187e90f48",
+    "workflow/cpp-oop-style/references/deployment/pybind11-packaging.md": "f6e0c47bb2cb240c2bb93cc6c74259006d16ca32a4271c22009a95c67fbaf081",
+    "workflow/cpp-oop-style/references/deployment/router.md": "6134dd63fbefda64ac5d451359b35c1a6770c81c5e9cf9207852d4b381338b9d",
+    "workflow/cpp-oop-style/references/error-handling.md": "ee1cc1ad925cb86bedcf2344d87d05eb6b9f0f50deeccff355e9872d8c9d7bb5",
+    "workflow/cpp-oop-style/references/functors-callbacks.md": "9ac2dca4eddf6a4f9dcc8734ebf3e936fa2bfcfe3b16930f0a26735064937310",
+    "workflow/cpp-oop-style/references/generics-compile-time.md": "07e37a013b8e5260465934cacb23b4fa89196c4f4e88bb7b6e61f03a5342be96",
+    "workflow/cpp-oop-style/references/ownership-lifetime.md": "59cd4ab06febcd4f0a26cd3c9e16a0f0ae410ddd92785fb66d80dc2c2204ea53",
+    "workflow/cpp-oop-style/references/sources.md": "a4309644aeaf5a38fe99749cdcc0b773439c34235f6404d66a4fadcdd5b38f8b",
+    "workflow/cpp-oop-style/references/text-encoding.md": "ebc22bf120821e744b0c23e499562c8958535299c32fdbb8e6bd3a15c16d2cae",
+    "workflow/cpp-oop-style/references/type-erasure.md": "4607d941129aa13c76c6a49b67fcdc8948b6578252754e827db0f37e96ce8e70",
+    "workflow/cpp-oop-style/references/wrapping-c-resources.md": "8d144e1c7532a0778ad185c5f3bb5c7943d3dd258fe98f1dee4bf423be589095",
+    "workflow/diagnose/FEEDBACK-LOOPS.md": "1d8b1e23b98df393033fbdc5a8ec3e55afe42fbf7443da6a9339575d8d658d09",
+    "workflow/diagnose/SKILL.md": "ef1c1964a0c9d38e5b4b21619dd6cf0710e13f56b8c15c6c5745e731ae046fa1",
+    "workflow/diagnose/scripts/hitl-loop.template.ps1": "162e3f38436061802ab815acf563762489233315f546b10f75356aa25186ed0c",
+    "workflow/diagnose/scripts/hitl-loop.template.sh": "17c2f9cf2dd76f5a4060649e9ac4da95cc172131c1acc5a9042e0696cf505bf3",
+    "workflow/domain-modeling/ADR-FORMAT.md": "885a6d6216db8f412d0e03d164589a2609206e328945fd12d9d4df7909581b25",
+    "workflow/domain-modeling/CONTEXT-FORMAT.md": "1fe2a998d2bd14f0c7d41025f9819ce0f89b3d8cb6a867d2ea740cf5831c3c41",
+    "workflow/domain-modeling/SKILL.md": "e8e28b12f737505833ceb7dbf86eeb5c77373d27f7248b7da6efa3cfcb2dd106",
+    "workflow/eval/SKILL.md": "d583428f3aae1f620072ff53034b708aeec59c466abda8c513376d990f52829e",
+    "workflow/grill/SKILL.md": "1d3ca688d02efb75c9897c6b941bfff43e8bdfd21ba78dc1ee680b52ac348410",
+    "workflow/handoff/SKILL.md": "ae128d4e2413d780a48a5d6a8a10877c1030c6fa553a3e95e48a11986ee9f539",
+    "workflow/handoff/scripts/handoff-state.py": "7baea7ff5deb00a009f7962b868f7aa90d707af27cb61dd81c118409f60a1088",
+    "workflow/improve-arch/HTML-REPORT.md": "6787e05d1360010a57d8e9d58f27707394cee05fb445786a2ee046a9971982f4",
+    "workflow/improve-arch/SKILL.md": "5ef30717b7c2c0d647f5db28478e13cfee34f592a7c0d415f1e95854b2c690e9",
+    "workflow/lint/SKILL.md": "fa7abcd30701fbc17c89f989e5d96973b0782eff192d225f4f5392a050033d0e",
+    "workflow/lint/references/batteries.md": "1445de0730c146ca3cc86464cab7e3ca7787fc82f048ccb53c17570fbe3599f9",
+    "workflow/lint/references/code-comments.md": "e946579bcb23363ec6baf60725ab23e6dbbc8f28eeabbe3643167c4b7ec6431b",
+    "workflow/map/SKILL.md": "b6b42ffe0999c843748061f1253e39cc5dc92a97942b8d1181135b9254d935bb",
+    "workflow/process_tree.py": "93d5f49621058518f7b34af9f3838c4e0c228c961ecd58dd3ed85a0ece23a067",
+    "workflow/prototype/LOGIC.md": "65f5121ffc103bda6bf0fd2121f40d02e633c40c8abcb00e172f9f3a3421e0b5",
+    "workflow/prototype/SKILL.md": "5d0ab6210591117322fbc6acecf17b80041f4231bd4b5edb99f6189512a6a37a",
+    "workflow/prototype/UI.md": "86da15d8509507b467823922f1233426dcf7381851b9636c3fd2d1627d77b048",
+    "workflow/record-gif/SKILL.md": "d06d27500f1095cb47b55110c5d6e7adf821a02e36ada841cbdd0fce16927ce2",
+    "workflow/record-gif/scripts/encode_gif.py": "b79b552eb42ecc793090df5903a6f7b30905bdcc1ef19620cfb6a8728d54940e",
+    "workflow/research/SKILL.md": "8026db4a823e97e869497594dedc31b3b40f68263e4d0addeef0ff7ef0798077",
+    "workflow/resume/SKILL.md": "e401776d7119ebb96953f9a777d7caa1a3171a160698a03c0d518eb612ab3d9f",
+    "workflow/show/SKILL.md": "819a58c253422a6cc4e4b8338057476bc7cfe62a176db69a634192f954432cf0",
+    "workflow/spec/ADDITIVE.md": "efed80b04ce2b12959e14896a7571b484b0b38abc87a7823a3afdcf617e5412c",
+    "workflow/spec/CARD-TEST.md": "50add8e1772407beae729726c1e8bed2bdc900609424ff56214c16cd4f1e44cb",
+    "workflow/spec/DESIGN-RECEIPT.md": "b283cae499c0466fa7ee184612c12b83e3922a7014d684d12a23da6d589cb592",
+    "workflow/spec/ISSUE-TEMPLATE.md": "e9e1caca6ea79ab9110ae79f90eead17d460a2aa743865dadd19c6eac7f28c28",
+    "workflow/spec/NON-FUNCTIONAL-BARS.md": "3dcc30ebdf48171ffb895d51c3b3ddedb1ba6c8cd08f3d3166a00f89e63f6e44",
+    "workflow/spec/PRD-TEMPLATE.md": "58bea29cb4adebcfa1e5d329f1ea038c72d325c7c20a7ec493dc36ae30f92ec0",
+    "workflow/spec/SKILL.md": "cba1147b480c770f91101320ded3af99a736469629137c03841cc6962a83de02",
+    "workflow/spec/SUPERSEDE.md": "4ddbee0453613fa78ab24837f8b6ce12be8d0ce1cd83a504c0d243bdf63e80cc",
+    "workflow/spec/VERIFICATION-DESIGN.md": "be491a97fcfaa1d71abac9304969ddb9d30f4cd15fa341bc719337bcbf9b728d",
+    "workflow/spec/impact-detection.md": "873341e5d8667d8cddb672d22c43d6f12eb020f0b3ce70f09f2bb9ae2dca726b",
+    "workflow/spec/scripts/pyright-impact.py": "d1db5c5ec3b814b35a7b9932bfc340c1fd7a02579a80f752fb8de2d843ad4de6",
+    "workflow/tdd/BATCH-FORMAT.md": "a1446e5719fa9cf1fe2a93beee330aca30cdaf9915a663f6cffb83f8cc025f34",
+    "workflow/tdd/COMPLETION-RECORD.md": "29bb1e9491118079883d91bfab6dcb6d9d7110ebb5a18ab7b9cc7b85df6b8961",
+    "workflow/tdd/DRAIN-PARALLEL.md": "c861f454f0963afd32959f1001fd7e17b335c9da243ac2e26829590c15a67572",
+    "workflow/tdd/DRAIN.md": "a18496eb5e85eeb8b8f2f8356e74141e42eff58db2f4ee656863fe4942472ca9",
+    "workflow/tdd/EDGE-CASES.md": "23896761bcf43aa02e0ef8035ffbc66c6e913c821c6afcc9ae19cbc7296509a5",
+    "workflow/tdd/FULL-SUITE.md": "3301cf96f87a8dbcf3b6967f4fcd599dba430374bba2a38bc1ae3f93147d8ca8",
+    "workflow/tdd/LOG.md": "86dc2175b0690d663ee9b24399bba84c7b4f7c242a56144e475e3b2c3931c893",
+    "workflow/tdd/SESSION-REUSE.md": "15ce471a04addd0c36c4b6cda78649cd08f422ee701fc610bde152831edd2822",
+    "workflow/tdd/SKILL.md": "ffc5ec1b1c70af3256d07ba46ca57edfc662177b641242ba167642f3a97ace19",
+    "workflow/tdd/UI-TESTING.md": "0e3b3fa6abf8d39aad8db57e047a4061ef421e08fe36d02326e5795f7d7413c3",
+    "workflow/tdd/mocking.md": "03404c26f94a2e745c23dfa97d386495c94a71e2f99f273c24ba0ba9624621ca",
+    "workflow/tdd/refactoring.md": "4ae2082c75dd35db34adc0c08b4aa172ea38c2d8cacc1bb89b850b326fceca40",
+    "workflow/tdd/scripts/drain-wave.py": "b49a76c33805a2c15d10cc8af5976a3a9807404dd8f1ddfcc4b10eb9d784dc0a",
+    "workflow/tdd/scripts/playwright-reporter.cjs": "72c3a2421e8d77c28db8ae2c7514e91ed21d5854b9bad64d97ec6415afaf24e0",
+    "workflow/tdd/scripts/preflight-receipt.py": "75e699b8347829dec3e48e231bf2a42cf4f43ccf588ba664522566d14baad2e6",
+    "workflow/tdd/scripts/test-supervisor.py": "dbf3580de32a9cd06fa821f4e19445e743233c3f2f752902fc2e5f98212f1eee",
+    "workflow/tdd/tests.md": "9f07be41f1da9aae34e8e60d14c90ac8f3c8f1670ea6f15cbbeb8dc3c6f2e91e",
+    "workflow/teach/LEARNING-RECORD-FORMAT.md": "6aaf4ee2ca9d3a3e19689804b1ea29caa9b98f0c3f0ab33668979c336266433a",
+    "workflow/teach/MISSION-FORMAT.md": "763958a5afb97eca749a908a1b5457e1ce4cfa3b93c7ce031bc130b22eccba78",
+    "workflow/teach/PEDAGOGY.md": "0e31b3a83f7c0872ab04f2fb30974f06c34c3f2f7f921322aa514129dd23db88",
+    "workflow/teach/RESOURCES-FORMAT.md": "1b66e6060e6fb2c324173f3ebb87936b0bb043619e15547bb4afdc2e1b966c14",
+    "workflow/teach/SKILL.md": "f6fe4486de3cfad8a13905afd707a2905255309d3f31e5db181a7d4a83d74cb4",
+    "workflow/test-governance.py": "5cf864ba675af30035bef605b7afd7d5a2e18515271281da25940bca9332bf28",
+    "workflow/test-verify-codebase.ps1": "97a0c43fc9355e07af511ca47b20cf687ceb8e8e125bdb0ee94393bf25bb735b",
+    "workflow/test_governance.py": "0e0d121fc421e656e73c9402d9d4acde5e6908a345039f6fa5a0456c0cf4d6bf",
+    "workflow/tidy/SKILL.md": "b583b55c95c2f307bd9e6e59972b3cd3f1cfd8af49ddfbdbab592751e499b353",
+    "workflow/verify-artifacts.py": "095fd801eaf026dd1b58dc4ef63794a916683c4f1b376809ca60eba5517fc4e8",
+    "workflow/workflow-state.py": "b33c7d54372bad122d58f34978e6b2fcf06a3ee7aa344bf6f7d0b6d9b296d4b1",
+    "workflow/workflow_batch.py": "fe9f70db934572d6ba521b30af319d86fe716b29219e65d1877769d97b3d3ec8",
+    "workflow/workflow_contract.py": "66df58b89eb6948366d7d6d09bb14f83a32424a5625f4b5cba17f52661defb6b",
+    "workflow/workflow_incremental.py": "db531732fa0c8acfb3164c2cec6fa413e07bab112569d05936fab5ce05032ca0",
+    "workflow/workflow_jobs.py": "14a6beb0be4dd7e5b0adcfceb5909d1438e2aea7a3027f67623ed75740b4b8bb",
+    "workflow/workflow_managed.py": "ccc9a27290855b15a034d0091b5956a870e9c780c1fb211ed8f133ff93587d29",
+    "workflow/workflow_members.py": "63582b15307de12af44be15daa83779d0a429dd5732ac91694adc90a6b17a655",
+    "workflow/workflow_resources.py": "d08e5b237bc5ea185c6aa7bbb8cb983581f6e9f30d7e7733778fd4230d9cd7e2",
+    "workflow/workflow_runtime.py": "796ab842fe5cbce391e7c0157081722a702eb5fb43b9617f5b159f364be2559b",
+    "workflow/workflow_ui.py": "b28f5306b5adb356edf2852317832f630f9f4a11a180c12bcd0eda996e402b8b",
+    "workflow/write-skill/EVALS.md": "bad2ffd07ac6af6cdeb828b5d92b719ebd41b78b0677b85bf298115f8b1bbd1d",
+    "workflow/write-skill/NEW-SKILL.md": "da0fc61383c08779d31d17c09c46203429e9a5b4341d5bc868a933498b9557a3",
+    "workflow/write-skill/SKILL.md": "706b19cb0ea76b9d04ba021ef7074cd1cbac1dcb0c837ceb28076d97bd3b198a"
+  },
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "python": "3.9.6",
+  "encoding": "o200k_base",
+  "samples": 31,
+  "method": "Three warmups, alternating paired order, cold Python CLI per sample; setup excluded; no models.",
+  "fixture": "36 synthetic legacy cards: 4 ready, 32 done, 10 test paths each; no Git product repo or UI",
+  "normalization": "Replace fixture root, 32/64-hex identities and supervisor elapsed field; retain all other output",
+  "inputs": {
+    "resident_policy": {
+      "previous": {
+        "utf8_bytes": 7495,
+        "tokenizer_tokens": 1539
+      },
+      "candidate": {
+        "utf8_bytes": 7495,
+        "tokenizer_tokens": 1539
+      }
+    },
+    "spec_entry": {
+      "previous": {
+        "utf8_bytes": 8376,
+        "tokenizer_tokens": 1769
+      },
+      "candidate": {
+        "utf8_bytes": 8566,
+        "tokenizer_tokens": 1802
+      }
+    },
+    "spec_verification": {
+      "previous": {
+        "utf8_bytes": 7239,
+        "tokenizer_tokens": 1468
+      },
+      "candidate": {
+        "utf8_bytes": 7557,
+        "tokenizer_tokens": 1529
+      }
+    },
+    "tdd_entry": {
+      "previous": {
+        "utf8_bytes": 9249,
+        "tokenizer_tokens": 2019
+      },
+      "candidate": {
+        "utf8_bytes": 9432,
+        "tokenizer_tokens": 2058
+      }
+    },
+    "artifact_reference": {
+      "previous": {
+        "utf8_bytes": 34734,
+        "tokenizer_tokens": 8225
+      },
+      "candidate": {
+        "utf8_bytes": 34734,
+        "tokenizer_tokens": 8225
+      }
+    },
+    "resident_descriptions": {
+      "previous": {
+        "utf8_bytes": 6940,
+        "tokenizer_tokens": 1306
+      },
+      "candidate": {
+        "utf8_bytes": 6940,
+        "tokenizer_tokens": 1306
+      }
+    }
+  },
+  "cli": {
+    "survey": {
+      "normalized_outputs_equal": true,
+      "paired_delta": {
+        "median_ms": 0.11262599999999878,
+        "median_ci95_ms": [
+          -0.23208299999999582,
+          0.38454200000000327
+        ]
+      },
+      "arms": {
+        "previous": {
+          "wall_ms": {
+            "p50": 56.338625,
+            "p95": 59.367042
+          },
+          "stdout_bytes": {
+            "p50": 638,
+            "p95": 638
+          },
+          "normalized_io": {
+            "utf8_bytes": 638,
+            "tokenizer_tokens": 179
+          },
+          "samples": [
+            {
+              "wall_ms": 56.321041,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 56.023833,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 56.488542,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 58.230666,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 57.648792,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 57.297833,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 57.460917,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 56.132208,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 56.18925,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 56.338625,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 56.543584,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 57.178,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 57.01375,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 56.189958,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 56.243958,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 55.88525,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 55.524666,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 59.103125,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 56.840167,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 56.733291,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 58.115959,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 55.538041,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 55.401708,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 55.32875,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 55.431084,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 55.946333,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 55.904167,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 55.466083,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 59.367042,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 59.88975,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 63.987417,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            }
+          ]
+        },
+        "candidate": {
+          "wall_ms": {
+            "p50": 56.356584,
+            "p95": 61.325458
+          },
+          "stdout_bytes": {
+            "p50": 638,
+            "p95": 638
+          },
+          "normalized_io": {
+            "utf8_bytes": 638,
+            "tokenizer_tokens": 179
+          },
+          "samples": [
+            {
+              "wall_ms": 56.970166,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 56.508542,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 57.353833,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 56.834834,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 57.241375,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 56.499834,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 56.515542,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 56.669625,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 56.119417,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 56.298041,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 56.542834,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 56.945917,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 57.048833,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 56.807459,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 56.356584,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 56.230208,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 56.355417,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 55.732459,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 56.104792,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 55.919208,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 56.313208,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 55.966917,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 55.78625,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 55.687833,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 56.316333,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 56.29275,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 55.559875,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 55.641333,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 66.983334,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 61.325458,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 61.334042,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            }
+          ]
+        }
+      },
+      "sample_output": "[\n  {\n    \"feature\": \"demo\",\n    \"counts\": {\n      \"ready\": 4,\n      \"blocked\": 0,\n      \"done\": 32,\n      \"zombie\": 0\n    },\n    \"ready\": [\n      {\n        \"slug\": \"000-card\",\n        \"summary\": \"Deliver behavior 0.\",\n        \"blocked_by\": []\n      },\n      {\n        \"slug\": \"001-card\",\n        \"summary\": \"Deliver behavior 1.\",\n        \"blocked_by\": []\n      },\n      {\n        \"slug\": \"002-card\",\n        \"summary\": \"Deliver behavior 2.\",\n        \"blocked_by\": []\n      },\n      {\n        \"slug\": \"003-card\",\n        \"summary\": \"Deliver behavior 3.\",\n        \"blocked_by\": []\n      }\n    ],\n    \"blocked\": [],\n    \"zombies\": []\n  }\n]\n"
+    },
+    "packet": {
+      "normalized_outputs_equal": true,
+      "paired_delta": {
+        "median_ms": 0.056709000000005005,
+        "median_ci95_ms": [
+          -0.22820899999999966,
+          0.12012500000000159
+        ]
+      },
+      "arms": {
+        "previous": {
+          "wall_ms": {
+            "p50": 52.385333,
+            "p95": 53.881917
+          },
+          "stdout_bytes": {
+            "p50": 664,
+            "p95": 664
+          },
+          "normalized_io": {
+            "utf8_bytes": 608,
+            "tokenizer_tokens": 177
+          },
+          "samples": [
+            {
+              "wall_ms": 52.029916,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 53.117875,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.949625,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.479,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.53875,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 53.881917,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 53.591625,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 51.769417,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.687375,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 53.486916,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 54.683667,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.16625,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.385333,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 51.788667,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 51.994125,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 51.917083,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 51.537041,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.03725,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 51.85425,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.5825,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.570459,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.333167,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.030791,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 51.846125,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 51.890958,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.709166,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 54.775875,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.780584,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.609375,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 51.995583,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.231667,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            }
+          ]
+        },
+        "candidate": {
+          "wall_ms": {
+            "p50": 52.288875,
+            "p95": 54.480917
+          },
+          "stdout_bytes": {
+            "p50": 664,
+            "p95": 664
+          },
+          "normalized_io": {
+            "utf8_bytes": 608,
+            "tokenizer_tokens": 177
+          },
+          "samples": [
+            {
+              "wall_ms": 52.354083,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.785708,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.41525,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.360542,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.288875,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.295375,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.25825,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.275209,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 57.740667,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 59.443417,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.826916,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.286375,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.115417,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 51.861542,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.050834,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 51.985166,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.151708,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.288875,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 54.480917,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 53.885375,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.531584,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 51.995166,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 51.938666,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 51.925208,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 51.874417,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.127958,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 53.212625,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 53.028,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.7025,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.371625,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 52.003458,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            }
+          ]
+        }
+      },
+      "sample_output": "{\"schema_version\":1,\"slug\":\"000-card\",\"feature\":\"demo\",\"status\":\"ready\",\"category\":\"enhancement\",\"refines\":null,\"blocked_by\":[],\"test_paths\":[\"pkg/000/test_00.py\",\"pkg/000/test_01.py\",\"pkg/000/test_02.py\",\"pkg/000/test_03.py\",\"pkg/000/test_04.py\",\"pkg/000/test_05.py\",\"pkg/000/test_06.py\",\"pkg/000/test_07.py\",\"pkg/000/test_08.py\",\"pkg/000/test_09.py\"],\"touches\":[\"pkg/000\"],\"exclusive_resources\":[],\"parent\":[],\"objective\":[\"Deliver behavior 0.\"],\"acceptance\":[\"- [ ] Preserve the declared behavior.\"],\"verification\":[],\"context\":[],\"contract_sha256\":\"<digest>\",\"source\":\".scratch/demo/issues/000-card.md\"}\n"
+    },
+    "start": {
+      "normalized_outputs_equal": true,
+      "paired_delta": {
+        "median_ms": 0.8128750000000053,
+        "median_ci95_ms": [
+          -0.0006659999999953925,
+          1.5124579999999952
+        ]
+      },
+      "arms": {
+        "previous": {
+          "wall_ms": {
+            "p50": 90.13025,
+            "p95": 95.096333
+          },
+          "stdout_bytes": {
+            "p50": 807,
+            "p95": 807
+          },
+          "normalized_io": {
+            "utf8_bytes": 674,
+            "tokenizer_tokens": 194
+          },
+          "samples": [
+            {
+              "wall_ms": 89.211625,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 93.374666,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 94.021334,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 89.038417,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 93.080042,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 95.096333,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 99.859125,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 90.091459,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 90.13025,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 90.489291,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 89.006875,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 90.537625,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 90.359,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 89.713292,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 91.714834,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 89.80975,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 89.25275,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 89.479125,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 92.721583,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 92.373042,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 99.763458,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 89.46525,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 89.730542,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 90.225084,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 90.735167,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 89.93075,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 90.22325,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 89.896958,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 89.398916,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 89.209375,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 89.732041,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            }
+          ]
+        },
+        "candidate": {
+          "wall_ms": {
+            "p50": 91.434083,
+            "p95": 96.047292
+          },
+          "stdout_bytes": {
+            "p50": 807,
+            "p95": 807
+          },
+          "normalized_io": {
+            "utf8_bytes": 674,
+            "tokenizer_tokens": 194
+          },
+          "samples": [
+            {
+              "wall_ms": 90.016083,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 91.873583,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 93.14125,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 90.538833,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 93.1545,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 99.904958,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 93.939167,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 91.603917,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 96.047292,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 102.885375,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 90.68625,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 92.046166,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 91.333459,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 89.043,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 89.948917,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 90.859333,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 93.215083,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 90.292,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 90.071708,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 89.14,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 91.591958,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 93.623083,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 88.837833,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 89.355541,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 92.452708,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 93.0115,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 93.431125,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 91.434083,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 89.39825,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 89.552,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 90.114667,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            }
+          ]
+        }
+      },
+      "sample_output": "{\"packet\":{\"schema_version\":1,\"slug\":\"000-card\",\"feature\":\"demo\",\"status\":\"ready\",\"category\":\"enhancement\",\"refines\":null,\"blocked_by\":[],\"test_paths\":[\"pkg/000/test_00.py\",\"pkg/000/test_01.py\",\"pkg/000/test_02.py\",\"pkg/000/test_03.py\",\"pkg/000/test_04.py\",\"pkg/000/test_05.py\",\"pkg/000/test_06.py\",\"pkg/000/test_07.py\",\"pkg/000/test_08.py\",\"pkg/000/test_09.py\"],\"touches\":[\"pkg/000\"],\"exclusive_resources\":[],\"parent\":[],\"objective\":[\"Deliver behavior 0.\"],\"acceptance\":[\"- [ ] Preserve the declared behavior.\"],\"verification\":[],\"context\":[],\"contract_sha256\":\"<digest>\",\"source\":\".scratch/demo/issues/000-card.md\"},\"execution\":\"<execution>\",\"baseline_sha256\":\"<digest>\"}\n"
+    },
+    "briefs_compact": {
+      "normalized_outputs_equal": true,
+      "paired_delta": {
+        "median_ms": 0.04779200000000117,
+        "median_ci95_ms": [
+          -0.051750000000005514,
+          0.2312079999999952
+        ]
+      },
+      "arms": {
+        "previous": {
+          "wall_ms": {
+            "p50": 56.372917,
+            "p95": 59.149834
+          },
+          "stdout_bytes": {
+            "p50": 9857,
+            "p95": 9857
+          },
+          "normalized_io": {
+            "utf8_bytes": 9556,
+            "tokenizer_tokens": 3368
+          },
+          "samples": [
+            {
+              "wall_ms": 57.194791,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.091916,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 57.6255,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.436042,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.32375,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 57.449917,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 58.91875,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 97.126125,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 59.446083,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.267,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.138166,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.934167,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.6245,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.129834,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.280666,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.351459,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.331333,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.171125,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 59.149834,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.372917,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.225209,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.971584,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.388458,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.61625,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.629458,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.040334,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 55.829166,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 57.203209,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.079583,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.365625,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.214417,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            }
+          ]
+        },
+        "candidate": {
+          "wall_ms": {
+            "p50": 56.405416,
+            "p95": 58.798166
+          },
+          "stdout_bytes": {
+            "p50": 9857,
+            "p95": 9857
+          },
+          "normalized_io": {
+            "utf8_bytes": 9556,
+            "tokenizer_tokens": 3368
+          },
+          "samples": [
+            {
+              "wall_ms": 56.401209,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.139708,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.186458,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.846,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.325375,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.405416,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 108.21125,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 58.798166,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 95.888917,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.21525,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.330083,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.765042,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.104583,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.494125,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.255958,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 57.068208,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.384125,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 57.181333,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.8685,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.343459,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.045208,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 57.092125,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 58.378917,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 57.012458,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.496875,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.271542,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.035584,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.130375,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 57.143792,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.663791,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 56.180792,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            }
+          ]
+        }
+      },
+      "sample_output": "{\"schema_version\":2,\"shared\":{\"brief_rules\":\"tdd/DRAIN.md — worker brief contract\",\"tests_so_far\":[\"pkg/004/test_00.py\",\"pkg/004/test_01.py\",\"pkg/004/test_02.py\",\"pkg/004/test_03.py\",\"pkg/004/test_04.py\",\"pkg/004/test_05.py\",\"pkg/004/test_06.py\",\"pkg/004/test_07.py\",\"pkg/004/test_08.py\",\"pkg/004/test_09.py\",\"pkg/005/test_00.py\",\"pkg/005/test_01.py\",\"pkg/005/test_02.py\",\"pkg/005/test_03.py\",\"pkg/005/test_04.py\",\"pkg/005/test_05.py\",\"pkg/005/test_06.py\",\"pkg/005/test_07.py\",\"pkg/005/test_08.py\",\"pkg/005/test_09.py\",\"pkg/006/test_00.py\",\"pkg/006/test_01.py\",\"pkg/006/test_02.py\",\"pkg/006/test_03.py\",\"pkg/006/test_04.py\",\"pkg/006/test_05.py\",\"pkg/006/test_06.py\",\"pkg/006/test_07.py\",\"pkg/006/test_08.py\",\"pkg/006/test_09.py\",\"pkg/007/test_00.py\",\"pkg/007/test_01.py\",\"pkg/007/test_02.py\",\"pkg/007/test_03.py\",\"pkg/007/test_04.py\",\"pkg/007/test_05.py\",\"pkg/007/test_06.py\",\"pkg/007/test_07.py\",\"pkg/007/test_08.py\",\"pkg/007/test_09.py\",\"pkg/008/test_00.py\",\"pkg/008/test_01.py\",\"pkg/008/test_02.py\",\"pkg/008/test_03.py\",\"pkg/008/test_04.py\",\"pkg/008/test_05.py\",\"pkg/008/test_06.py\",\"pkg/008/test_07.py\",\"pkg/008/test_08.py\",\"pkg/008/test_09.py\",\"pkg/009/test_00.py\",\"pkg/009/test_01.py\",\"pkg/009/test_02.py\",\"pkg/009/test_03.py\",\"pkg/009/test_04.py\",\"pkg/009/test_05.py\",\"pkg/009/test_06.py\",\"pkg/009/test_07.py\",\"pkg/009/test_08.py\",\"pkg/009/test_09.py\",\"pkg/010/test_00.py\",\"pkg/010/test_01.py\",\"pkg/010/test_02.py\",\"pkg/010/test_03.py\",\"pkg/010/test_04.py\",\"pkg/010/test_05.py\",\"pkg/010/test_06.py\",\"pkg/010/test_07.py\",\"pkg/010/test_08.py\",\"pkg/010/test_09.py\",\"pkg/011/test_00.py\",\"pkg/011/test_01.py\",\"pkg/011/test_02.py\",\"pkg/011/test_03.py\",\"pkg/011/test_04.py\",\"pkg/011/test_05.py\",\"pkg/011/test_06.py\",\"pkg/011/test_07.py\",\"pkg/011/test_08.py\",\"pkg/011/test_09.py\",\"pkg/012/test_00.py\",\"pkg/012/test_01.py\",\"pkg/012/test_02.py\",\"pkg/012/test_03.py\",\"pkg/012/test_04.py\",\"pkg/012/test_05.py\",\"pkg/012/test_06.py\",\"pkg/012/test_07.py\",\"pkg/012/test_08.py\",\"pkg/012/test_09.py\",\"pkg/013/test_00.py\",\"pkg/013/test_01.py\",\"pkg/013/test_02.py\",\"pkg/013/test_03.py\",\"pkg/013/test_04.py\",\"pkg/013/test_05.py\",\"pkg/013/test_06.py\",\"pkg/013/test_07.py\",\"pkg/013/test_08.py\",\"pkg/013/test_09.py\",\"pkg/014/test_00.py\",\"pkg/014/test_01.py\",\"pkg/014/test_02.py\",\"pkg/014/test_03.py\",\"pkg/014/test_04.py\",\"pkg/014/test_05.py\",\"pkg/014/test_06.py\",\"pkg/014/test_07.py\",\"pkg/014/test_08.py\",\"pkg/014/test_09.py\",\"pkg/015/test_00.py\",\"pkg/015/test_01.py\",\"pkg/015/test_02.py\",\"pkg/015/test_03.py\",\"pkg/015/test_04.py\",\"pkg/015/test_05.py\",\"pkg/015/test_06.py\",\"pkg/015/test_07.py\",\"pkg/015/test_08.py\",\"pkg/015/test_09.py\",\"pkg/016/test_00.py\",\"pkg/016/test_01.py\",\"pkg/016/test_02.py\",\"pkg/016/test_03.py\",\"pkg/016/test_04.py\",\"pkg/016/test_05.py\",\"pkg/016/test_06.py\",\"pkg/016/test_07.py\",\"pkg/016/test_08.py\",\"pkg/016/test_09.py\",\"pkg/017/test_00.py\",\"pkg/017/test_01.py\",\"pkg/017/test_02.py\",\"pkg/017/test_03.py\",\"pkg/017/test_04.py\",\"pkg/017/test_05.py\",\"pkg/017/test_06.py\",\"pkg/017/test_07.py\",\"pkg/017/test_08.py\",\"pkg/017/test_09.py\",\"pkg/018/test_00.py\",\"pkg/018/test_01.py\",\"pkg/018/test_02.py\",\"pkg/018/test_03.py\",\"pkg/018/test_04.py\",\"pkg/018/test_05.py\",\"pkg/018/test_06.py\",\"pkg/018/test_07.py\",\"pkg/018/test_08.py\",\"pkg/018/test_09.py\",\"pkg/019/test_00.py\",\"pkg/019/test_01.py\",\"pkg/019/test_02.py\",\"pkg/019/test_03.py\",\"pkg/019/test_04.py\",\"pkg/019/test_05.py\",\"pkg/019/test_06.py\",\"pkg/019/test_07.py\",\"pkg/019/test_08.py\",\"pkg/019/test_09.py\",\"pkg/020/test_00.py\",\"pkg/020/test_01.py\",\"pkg/020/test_02.py\",\"pkg/020/test_03.py\",\"pkg/020/test_04.py\",\"pkg/020/test_05.py\",\"pkg/020/test_06.py\",\"pkg/020/test_07.py\",\"pkg/020/test_08.py\",\"pkg/020/test_09.py\",\"pkg/021/test_00.py\",\"pkg/021/test_01.py\",\"pkg/021/test_02.py\",\"pkg/021/test_03.py\",\"pkg/021/test_04.py\",\"pkg/021/test_05.py\",\"pkg/021/test_06.py\",\"pkg/021/test_07.py\",\"pkg/021/test_08.py\",\"pkg/021/test_09.py\",\"pkg/022/test_00.py\",\"pkg/022/test_01.py\",\"pkg/022/test_02.py\",\"pkg/022/test_03.py\",\"pkg/022/test_04.py\",\"pkg/022/test_05.py\",\"pkg/022/test_06.py\",\"pkg/022/test_07.py\",\"pkg/022/test_08.py\",\"pkg/022/test_09.py\",\"pkg/023/test_00.py\",\"pkg/023/test_01.py\",\"pkg/023/test_02.py\",\"pkg/023/test_03.py\",\"pkg/023/test_04.py\",\"pkg/023/test_05.py\",\"pkg/023/test_06.py\",\"pkg/023/test_07.py\",\"pkg/023/test_08.py\",\"pkg/023/test_09.py\",\"pkg/024/test_00.py\",\"pkg/024/test_01.py\",\"pkg/024/test_02.py\",\"pkg/024/test_03.py\",\"pkg/024/test_04.py\",\"pkg/024/test_05.py\",\"pkg/024/test_06.py\",\"pkg/024/test_07.py\",\"pkg/024/test_08.py\",\"pkg/024/test_09.py\",\"pkg/025/test_00.py\",\"pkg/025/test_01.py\",\"pkg/025/test_02.py\",\"pkg/025/test_03.py\",\"pkg/025/test_04.py\",\"pkg/025/test_05.py\",\"pkg/025/test_06.py\",\"pkg/025/test_07.py\",\"pkg/025/test_08.py\",\"pkg/025/test_09.py\",\"pkg/026/test_00.py\",\"pkg/026/test_01.py\",\"pkg/026/test_02.py\",\"pkg/026/test_03.py\",\"pkg/026/test_04.py\",\"pkg/026/test_05.py\",\"pkg/026/test_06.py\",\"pkg/026/test_07.py\",\"pkg/026/test_08.py\",\"pkg/026/test_09.py\",\"pkg/027/test_00.py\",\"pkg/027/test_01.py\",\"pkg/027/test_02.py\",\"pkg/027/test_03.py\",\"pkg/027/test_04.py\",\"pkg/027/test_05.py\",\"pkg/027/test_06.py\",\"pkg/027/test_07.py\",\"pkg/027/test_08.py\",\"pkg/027/test_09.py\",\"pkg/028/test_00.py\",\"pkg/028/test_01.py\",\"pkg/028/test_02.py\",\"pkg/028/test_03.py\",\"pkg/028/test_04.py\",\"pkg/028/test_05.py\",\"pkg/028/test_06.py\",\"pkg/028/test_07.py\",\"pkg/028/test_08.py\",\"pkg/028/test_09.py\",\"pkg/029/test_00.py\",\"pkg/029/test_01.py\",\"pkg/029/test_02.py\",\"pkg/029/test_03.py\",\"pkg/029/test_04.py\",\"pkg/029/test_05.py\",\"pkg/029/test_06.py\",\"pkg/029/test_07.py\",\"pkg/029/test_08.py\",\"pkg/029/test_09.py\",\"pkg/030/test_00.py\",\"pkg/030/test_01.py\",\"pkg/030/test_02.py\",\"pkg/030/test_03.py\",\"pkg/030/test_04.py\",\"pkg/030/test_05.py\",\"pkg/030/test_06.py\",\"pkg/030/test_07.py\",\"pkg/030/test_08.py\",\"pkg/030/test_09.py\",\"pkg/031/test_00.py\",\"pkg/031/test_01.py\",\"pkg/031/test_02.py\",\"pkg/031/test_03.py\",\"pkg/031/test_04.py\",\"pkg/031/test_05.py\",\"pkg/031/test_06.py\",\"pkg/031/test_07.py\",\"pkg/031/test_08.py\",\"pkg/031/test_09.py\",\"pkg/032/test_00.py\",\"pkg/032/test_01.py\",\"pkg/032/test_02.py\",\"pkg/032/test_03.py\",\"pkg/032/test_04.py\",\"pkg/032/test_05.py\",\"pkg/032/test_06.py\",\"pkg/032/test_07.py\",\"pkg/032/test_08.py\",\"pkg/032/test_09.py\",\"pkg/033/test_00.py\",\"pkg/033/test_01.py\",\"pkg/033/test_02.py\",\"pkg/033/test_03.py\",\"pkg/033/test_04.py\",\"pkg/033/test_05.py\",\"pkg/033/test_06.py\",\"pkg/033/test_07.py\",\"pkg/033/test_08.py\",\"pkg/033/test_09.py\",\"pkg/034/test_00.py\",\"pkg/034/test_01.py\",\"pkg/034/test_02.py\",\"pkg/034/test_03.py\",\"pkg/034/test_04.py\",\"pkg/034/test_05.py\",\"pkg/034/test_06.py\",\"pkg/034/test_07.py\",\"pkg/034/test_08.py\",\"pkg/034/test_09.py\",\"pkg/035/test_00.py\",\"pkg/035/test_01.py\",\"pkg/035/test_02.py\",\"pkg/035/test_03.py\",\"pkg/035/test_04.py\",\"pkg/035/test_05.py\",\"pkg/035/test_06.py\",\"pkg/035/test_07.py\",\"pkg/035/test_08.py\",\"pkg/035/test_09.py\"]},\"dispatch\":{\"wave\":1,\"baseline_sha256\":\"<digest>\",\"execution\":\"<execution>\"},\"briefs\":[{\"packet\":{\"schema_version\":1,\"slug\":\"000-card\",\"feature\":\"demo\",\"status\":\"ready\",\"category\":\"enhancement\",\"refines\":null,\"blocked_by\":[],\"test_paths\":[\"pkg/000/test_00.py\",\"pkg/000/test_01.py\",\"pkg/000/test_02.py\",\"pkg/000/test_03.py\",\"pkg/000/test_04.py\",\"pkg/000/test_05.py\",\"pkg/000/test_06.py\",\"pkg/000/test_07.py\",\"pkg/000/test_08.py\",\"pkg/000/test_09.py\"],\"touches\":[\"pkg/000\"],\"exclusive_resources\":[],\"parent\":[],\"objective\":[\"Deliver behavior 0.\"],\"acceptance\":[\"- [ ] Preserve the declared behavior.\"],\"verification\":[],\"context\":[],\"contract_sha256\":\"<digest>\",\"source\":\".scratch/demo/issues/000-card.md\"},\"receipt_hits\":[],\"shared_ref\":\"#/shared\"},{\"packet\":{\"schema_version\":1,\"slug\":\"001-card\",\"feature\":\"demo\",\"status\":\"ready\",\"category\":\"enhancement\",\"refines\":null,\"blocked_by\":[],\"test_paths\":[\"pkg/001/test_00.py\",\"pkg/001/test_01.py\",\"pkg/001/test_02.py\",\"pkg/001/test_03.py\",\"pkg/001/test_04.py\",\"pkg/001/test_05.py\",\"pkg/001/test_06.py\",\"pkg/001/test_07.py\",\"pkg/001/test_08.py\",\"pkg/001/test_09.py\"],\"touches\":[\"pkg/001\"],\"exclusive_resources\":[],\"parent\":[],\"objective\":[\"Deliver behavior 1.\"],\"acceptance\":[\"- [ ] Preserve the declared behavior.\"],\"verification\":[],\"context\":[],\"contract_sha256\":\"<digest>\",\"source\":\".scratch/demo/issues/001-card.md\"},\"receipt_hits\":[],\"shared_ref\":\"#/shared\"},{\"packet\":{\"schema_version\":1,\"slug\":\"002-card\",\"feature\":\"demo\",\"status\":\"ready\",\"category\":\"enhancement\",\"refines\":null,\"blocked_by\":[],\"test_paths\":[\"pkg/002/test_00.py\",\"pkg/002/test_01.py\",\"pkg/002/test_02.py\",\"pkg/002/test_03.py\",\"pkg/002/test_04.py\",\"pkg/002/test_05.py\",\"pkg/002/test_06.py\",\"pkg/002/test_07.py\",\"pkg/002/test_08.py\",\"pkg/002/test_09.py\"],\"touches\":[\"pkg/002\"],\"exclusive_resources\":[],\"parent\":[],\"objective\":[\"Deliver behavior 2.\"],\"acceptance\":[\"- [ ] Preserve the declared behavior.\"],\"verification\":[],\"context\":[],\"contract_sha256\":\"<digest>\",\"source\":\".scratch/demo/issues/002-card.md\"},\"receipt_hits\":[],\"shared_ref\":\"#/shared\"},{\"packet\":{\"schema_version\":1,\"slug\":\"003-card\",\"feature\":\"demo\",\"status\":\"ready\",\"category\":\"enhancement\",\"refines\":null,\"blocked_by\":[],\"test_paths\":[\"pkg/003/test_00.py\",\"pkg/003/test_01.py\",\"pkg/003/test_02.py\",\"pkg/003/test_03.py\",\"pkg/003/test_04.py\",\"pkg/003/test_05.py\",\"pkg/003/test_06.py\",\"pkg/003/test_07.py\",\"pkg/003/test_08.py\",\"pkg/003/test_09.py\"],\"touches\":[\"pkg/003\"],\"exclusive_resources\":[],\"parent\":[],\"objective\":[\"Deliver behavior 3.\"],\"acceptance\":[\"- [ ] Preserve the declared behavior.\"],\"verification\":[],\"context\":[],\"contract_sha256\":\"<digest>\",\"source\":\".scratch/demo/issues/003-card.md\"},\"receipt_hits\":[],\"shared_ref\":\"#/shared\"}]}\n"
+    },
+    "raw_supervisor": {
+      "normalized_outputs_equal": true,
+      "paired_delta": {
+        "median_ms": -0.3241250000000093,
+        "median_ci95_ms": [
+          -0.7427509999999984,
+          0.4302509999999984
+        ]
+      },
+      "arms": {
+        "previous": {
+          "wall_ms": {
+            "p50": 127.254791,
+            "p95": 137.885792
+          },
+          "stdout_bytes": {
+            "p50": 276,
+            "p95": 276
+          },
+          "normalized_io": {
+            "utf8_bytes": 121,
+            "tokenizer_tokens": 31
+          },
+          "samples": [
+            {
+              "wall_ms": 125.763417,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 127.795042,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 133.492875,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 128.760917,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 127.639959,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 126.228542,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 126.392958,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 126.216333,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 126.067084,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 126.683083,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 131.7565,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 126.351042,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 127.254791,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 126.246167,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 124.903917,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 126.136375,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 129.224875,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 129.236875,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 137.716333,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 175.352042,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 127.97825,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 124.248583,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 126.233125,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 125.556041,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 125.1915,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 129.117958,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 137.885792,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 139.359,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 130.032167,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 128.359542,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 126.427667,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            }
+          ]
+        },
+        "candidate": {
+          "wall_ms": {
+            "p50": 126.789584,
+            "p95": 168.317916
+          },
+          "stdout_bytes": {
+            "p50": 276,
+            "p95": 276
+          },
+          "normalized_io": {
+            "utf8_bytes": 121,
+            "tokenizer_tokens": 31
+          },
+          "samples": [
+            {
+              "wall_ms": 125.591875,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 127.052291,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 126.184,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 125.498541,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 133.110834,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 126.142542,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 126.182292,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 125.577625,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 129.250667,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 127.113334,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 128.016708,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 126.026917,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 126.789584,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 125.365584,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 125.406583,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 125.243167,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 254.280166,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 177.297125,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 168.317916,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 131.55075,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 126.020375,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 126.507958,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 125.885875,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 125.221208,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 128.844458,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 126.961708,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 160.834875,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 137.277667,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 126.601208,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 140.227334,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 126.826833,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            }
+          ]
+        }
+      },
+      "sample_output": "pass scope=targeted exit=0 duration=<elapsed> log=<repo>/.scratch/tmp/result.log receipt=<repo>/.scratch/tmp/result.json\n"
+    }
+  },
+  "actual_model_usage": {
+    "input_tokens": null,
+    "cached_input_tokens": null,
+    "output_tokens": null,
+    "generation_tokens_per_second": null
+  },
+  "limitations": [
+    "Local encoding counts selected text, not hidden prompts or billed provider usage",
+    "Not a model-run quality/speed evaluation or a UI measurement",
+    "One host; Linux/Windows runtime performance not measured",
+    "New managed batch API has no equivalent baseline and is excluded"
+  ]
+}

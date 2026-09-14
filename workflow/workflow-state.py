@@ -123,6 +123,9 @@ def safe_segment(value, label):
 def feature_issue_dir(root, feature):
     root = Path(root).resolve()
     feature = safe_segment(feature, "feature")
+    from workflow_batch import CONTROL_DIRS
+    if feature in CONTROL_DIRS:
+        raise ValueError("reserved workflow control directory: %s" % feature)
     scratch = (root / ".scratch").resolve()
     feature_dir = (scratch / feature).resolve()
     issue_dir = (feature_dir / "issues").resolve()
@@ -260,7 +263,7 @@ def inspect_feature(root, feature):
         "%s\0%s\n" % (record["slug"], record["digest"])
         for record in sorted(records, key=lambda item: item["slug"])
     )
-    return {
+    result = {
         "schema_version": 1,
         "feature": feature,
         "source_digest": hashlib.sha256(source_material.encode("utf-8")).hexdigest(),
@@ -268,6 +271,8 @@ def inspect_feature(root, feature):
         "replaced": sorted(suppressed, key=slug_order),
         "delivered": delivered,
     }
+    incremental_view(root, feature, result)
+    return result
 
 
 def find_issue(root, feature, slug):
@@ -369,7 +374,31 @@ def issue_packet(root, feature, slug):
     root = Path(root).resolve()
     path = find_issue(root, feature, slug)
     raw, issue_data = issue_state(root, feature, path)
-    return _issue_packet(root, feature, slug, path, raw, issue_data)
+    packet = _issue_packet(root, feature, slug, path, raw, issue_data)
+    ledger = root / '.scratch' / feature / 'wave-ledger.json'
+    if ledger.is_file():
+        waves = [wave for wave in json.loads(read_text(ledger))['waves']
+                 if slug in wave.get('dispatched', []) and slug not in wave.get('closed', {})]
+        if len(waves) > 1:
+            raise ValueError('multiple open executions for ' + slug)
+        if waves and waves[0].get('batch_id'):
+            check_contract(waves[0], slug, raw, issue_data, root=root, feature=feature)
+            bind_packet_inputs(root, [packet], waves[0])
+    return packet
+
+
+def bind_packet_inputs(root, packets, binding):
+    if not binding.get('batch_id'):
+        return
+    from workflow_batch import load_batch
+    state, plan = load_batch(root, binding['batch_id'])
+    if state['schema_version'] == 3:
+        from workflow_incremental import execution_packets
+        references = [packet['feature'] + '/' + packet['slug'] for packet in packets]
+        inputs = execution_packets(root, state, plan, binding['execution'], references)
+        for packet in packets:
+            reference = packet['feature'] + '/' + packet['slug']
+            packet['execution_context'] = inputs[reference]
 
 
 def current_dispatch(root, feature, states, payload=None):
@@ -429,6 +458,8 @@ def _packets(root, feature, states, payload=None):
     dispatch = {"wave": binding.get("wave"), "baseline_sha256": binding["baseline_sha256"]}
     if binding.get("execution"):
         dispatch["execution"] = binding["execution"]
+    if binding.get("batch_id"):
+        dispatch.update(batch_id=binding["batch_id"], protocol_version=binding["protocol_version"])
     profile = (
         load_verifier_profile(root, feature)
         if any(str(data.get("contract_version", "")) == "3" for _, _, _, data in states)
@@ -440,6 +471,7 @@ def _packets(root, feature, states, payload=None):
         if binding.get("execution") and "effective_verifier" in packet:
             if binding.get("verifier_sha256", {}).get(packet["slug"]) != packet["effective_verifier"]["effective_sha256"]:
                 raise ValueError("verifier profile changed after dispatch; reconcile before execution")
+    bind_packet_inputs(root, packets, binding)
     return {
         "schema_version": 1,
         "dispatch": dispatch,
@@ -532,6 +564,8 @@ def worker_briefs(root, feature, slugs=(), compact=False):
 
 def close_issue(root, feature, slug, execution=None):
     with transaction(root):
+        from workflow_batch import guard_legacy
+        guard_legacy(root, "legacy issue close")
         path = find_issue(Path(root).resolve(), feature, slug)
         current = assignment(root, feature, slug, execution)
         raw, data = issue_state(Path(root).resolve(), feature, path)
@@ -563,7 +597,8 @@ def start_issue(root, feature, slug):
         with redirect_stdout(output), redirect_stderr(output):
             code = _wave_driver().cmd_dispatch(str(root), [slug], direct=True, feature=feature)
         if code:
-            raise ValueError(output.getvalue().strip())
+            from workflow_batch import BatchError
+            raise BatchError("dispatch_rejected", output.getvalue().strip(), code)
         execution = next(line.removeprefix("execution: ") for line in output.getvalue().splitlines()
                          if line.startswith("execution: "))
         current = assignment(root, feature, slug, execution)
@@ -571,8 +606,12 @@ def start_issue(root, feature, slug):
         if ("effective_verifier" in packet and current.get("verifier_sha256", {}).get(slug)
                 != packet["effective_verifier"]["effective_sha256"]):
             raise ValueError("verifier profile changed while preparing the direct input")
-        return {"packet": packet,
-                "execution": current["execution"], "baseline_sha256": current["baseline_sha256"]}
+        bind_packet_inputs(root, [packet], current)
+        result = {"packet": packet,
+                  "execution": current["execution"], "baseline_sha256": current["baseline_sha256"]}
+        if current.get("batch_id"):
+            result.update(batch_id=current["batch_id"], protocol_version=current["protocol_version"])
+        return result
 
 
 def _close_issue(root, feature, slug, path, raw, data):
@@ -677,6 +716,11 @@ def render_human(state):
     for item in state["delivered"]:
         summary = item["summary"] or "（无行为摘要）"
         lines.append("- %s — %s [%s]" % (item["slug"], summary, item["path"]))
+    for review in state.get('reviews', []):
+        lines.append('- review %s %s %s' % (review['point'], review['state'], review['checkpoint_ref']))
+    for feedback in state.get('feedback', []):
+        if feedback['status'] not in ('resolved', 'cancelled'):
+            lines.append('- feedback %s %s' % (feedback['id'], feedback['status']))
     return "\n".join(lines)
 
 
@@ -687,6 +731,10 @@ def feature_frontier(root, feature):
     live = []
     done = set()
     if not issue_dir.is_dir():
+        result = {'feature': feature, 'counts': {'ready': 0, 'blocked': 0, 'done': 0, 'zombie': 0}, 'ready': [], 'blocked': [], 'zombies': []}
+        incremental_view(root, feature, result)
+        if 'action' in result:
+            return result
         raise ValueError("feature '%s' has no issue directory" % feature)
     for path in issue_paths(root, feature):
         raw, data = issue_state(root, feature, path)
@@ -701,6 +749,9 @@ def feature_frontier(root, feature):
     ready = []
     blocked = []
     for path, raw, data in live:
+        if data.get("status") == "pending":
+            blocked.append({"slug": path.stem, "summary": compact_summary(raw), "blocked_by": ["pending: " + str(data.get("pending_reason", "readiness or decision unresolved"))], "status": "pending"})
+            continue
         if data.get("status") != "ready":
             continue
         dependencies = [value for value in data.get("blocked_by", []) if value]
@@ -724,7 +775,7 @@ def feature_frontier(root, feature):
     zombie_slugs = {item["slug"] for item in zombies}
     ready = [item for item in ready if item["slug"] not in zombie_slugs]
     blocked = [item for item in blocked if item["slug"] not in zombie_slugs]
-    return {
+    result = {
         "feature": feature,
         "counts": {
             "ready": len(ready),
@@ -736,6 +787,22 @@ def feature_frontier(root, feature):
         "blocked": blocked,
         "zombies": zombies,
     }
+
+    incremental_view(root, feature, result)
+    return result
+
+
+def incremental_view(root, feature, result):
+    if not (Path(root) / '.scratch/batches/active.json').exists():
+        return
+    import workflow_batch as batch
+    active = batch.active_batch(root)
+    if not active or active['schema_version'] != 3:
+        return
+    owners = {ref.split('/')[0] for ref in active['members']} or {'workflow-runs'}
+    if feature in owners:
+        current = batch.batch_status(root, active['batch_id'])
+        result.update(reviews=current['reviews'], feedback=current['feedback'], action=current['action'])
 
 
 def render_survey(states):
@@ -758,18 +825,27 @@ def render_survey(states):
             lines.append("- ready %s — %s" % (item["slug"], item["summary"] or "（无摘要）"))
         for item in state["blocked"]:
             lines.append("- blocked %s ← %s" % (item["slug"], ", ".join(item["blocked_by"])))
+        for review in state.get("reviews", []):
+            lines.append("- review %s %s %s" % (review["point"], review["state"], review["checkpoint_ref"]))
+        for feedback in state.get("feedback", []):
+            if feedback["status"] not in ("resolved", "cancelled"):
+                lines.append("- feedback %s %s" % (feedback["id"], feedback["status"]))
         for item in state["zombies"]:
             lines.append("- zombie %s (wave %s)" % (item["slug"], item["wave"]))
     return "\n".join(lines)
 
 
 def feature_names(root):
+    from workflow_batch import CONTROL_DIRS, reject_control_feature
     scratch = Path(root) / ".scratch"
     if not scratch.is_dir():
         return []
+    paths = list(scratch.iterdir())
+    for path in paths:
+        reject_control_feature(path)
     return sorted(
-        path.name for path in scratch.iterdir()
-        if path.is_dir() and (path / "issues").is_dir()
+        path.name for path in paths
+        if path.name not in CONTROL_DIRS and path.is_dir() and (path / "issues").is_dir()
     )
 
 
@@ -833,6 +909,19 @@ def released_baseline_artifacts(root, removed_ledger):
 
 
 def gc_feature(root, feature, apply=False):
+    from checkpoint_store import collect_artifacts
+    artifacts = collect_artifacts(root, feature, apply)
+    try:
+        result = legacy_gc_feature(root, feature, apply)
+    except (OSError, ValueError) as exc:
+        result = {"feature": feature, "candidates": [], "removed": [], "legacy_retained": str(exc)}
+    result["candidates"] += artifacts["candidates"]
+    result["removed"] += artifacts["removed"]
+    result.update(removed_bytes=artifacts["removed_bytes"], retained=artifacts["retained"])
+    return result
+
+
+def legacy_gc_feature(root, feature, apply=False):
     if apply:
         with transaction(root):
             return _gc_feature(root, feature, apply=True)
@@ -855,8 +944,10 @@ def _gc_feature(root, feature, apply=False):
     ledger = feature_dir / "wave-ledger.json"
     open_wave = ledger.is_file() and not ledger_closed(ledger)
     active_conflict = ledger.is_file() and ledger_has_active_conflict(ledger)
+    from workflow_batch import retain_feature
+    batch_retained = retain_feature(root, feature)
     candidates = []
-    if not ready and not open_wave and not active_conflict:
+    if not ready and not open_wave and not active_conflict and not batch_retained:
         for path in (feature_dir / "preflight-receipt.json", ledger):
             if path.is_file():
                 candidates.append(path)
@@ -877,9 +968,12 @@ def _gc_feature(root, feature, apply=False):
     }
 
 
-def parser():
+def parser(include_batch=True):
     command = argparse.ArgumentParser(prog="workflow-state.py")
     sub = command.add_subparsers(dest="command", required=True)
+    if include_batch:
+        from workflow_batch import add_cli
+        add_cli(sub)
     inspect = sub.add_parser("inspect")
     inspect.add_argument("root")
     inspect.add_argument("feature")
@@ -894,6 +988,15 @@ def parser():
         default=None,
         help="limit the survey to this feature (repeatable); default is every feature",
     )
+    for command_name in ("artifact-register", "artifact-release"):
+        artifact = sub.add_parser(command_name)
+        artifact.add_argument("root")
+        artifact.add_argument("feature")
+        if command_name == "artifact-register":
+            artifact.add_argument("--record", required=True)
+        else:
+            artifact.add_argument("--owner", required=True)
+            artifact.add_argument("--consumer")
     gc = sub.add_parser("gc")
     gc.add_argument("root")
     gc.add_argument("feature")
@@ -929,6 +1032,11 @@ def parser():
 def survey_states(root, history=False, features=None):
     project = inspect_feature if history else feature_frontier
     names = list(features) if features else feature_names(root)
+    if not features and (Path(root) / '.scratch/batches/active.json').exists():
+        import workflow_batch as batch
+        active = batch.active_batch(root)
+        if active and active['schema_version'] == 3 and not active['members'] and 'workflow-runs' not in names:
+            names.append('workflow-runs')
     return [project(root, feature) for feature in names]
 
 
@@ -940,9 +1048,29 @@ def main(argv=None):
             stream.reconfigure(encoding="utf-8", errors="replace")
         except (AttributeError, ValueError):
             pass
-    args = parser().parse_args((argv or sys.argv)[1:])
+    arguments = (argv or sys.argv)[1:]
+    requested = arguments[0] if arguments else ""
+    include_batch = requested.startswith(("batch-", "checkpoint-", "check-")) or requested in ("", "-h", "--help")
+    args = parser(include_batch=include_batch).parse_args(arguments)
+    if args.command.startswith(("batch-", "checkpoint-", "check-")):
+        from workflow_batch import BatchError, run_cli
+        try:
+            result = run_cli(args)
+        except (OSError, UnicodeError, ValueError, TypeError, KeyError, AttributeError, IndexError) as exc:
+            result = {"protocol_version": 2, "status": "blocked", "action": "blocked",
+                      "batch_id": getattr(args, "batch", None),
+                      "reason_code": exc.reason if isinstance(exc, BatchError) else "invalid_state",
+                      "message": str(exc)}
+            print(json.dumps(result, ensure_ascii=False))
+            return getattr(exc, "exit_code", 2)
+        print(json.dumps(result, ensure_ascii=False))
+        return 0
     try:
-        if args.command == "inspect":
+        if args.command in ("artifact-register", "artifact-release"):
+            from checkpoint_store import register_artifact, release_artifacts
+            result = register_artifact(args.root, args.feature, json.loads(Path(args.record).read_text(encoding="utf-8"))) if args.command == "artifact-register" else release_artifacts(args.root, args.feature, args.owner, args.consumer)
+            output = json.dumps(result, ensure_ascii=False)
+        elif args.command == "inspect":
             state = inspect_feature(args.root, args.feature)
             output = json.dumps(state, ensure_ascii=False, indent=2) if args.format == "json" else render_human(state)
         elif args.command == "survey":
@@ -985,7 +1113,7 @@ def main(argv=None):
             output = json.dumps(gc_feature(args.root, args.feature, args.apply), ensure_ascii=False, indent=2)
     except (OSError, UnicodeError, ValueError) as exc:
         print("workflow-state: %s" % exc, file=sys.stderr)
-        return 1
+        return getattr(exc, "exit_code", 1) if args.command == "start" else 1
     print(output)
     return 0
 

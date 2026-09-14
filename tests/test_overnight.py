@@ -16,6 +16,12 @@ SPEC.loader.exec_module(overnight)
 
 
 class OvernightTests(unittest.TestCase):
+    def test_no_active_goal_does_not_implicitly_dispatch_whole_repository(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(overnight.os, 'getcwd', return_value=directory), patch.object(overnight, 'launch') as launch, redirect_stderr(io.StringIO()):
+                self.assertEqual(2, overnight.main(['overnight.py']))
+            launch.assert_not_called()
+
     def test_preflight_required_parser_drops_repeated_human_output(self):
         payload = {"duplicates": [{"feature": "demo", "action": "pytest -q"}]}
         output = (
@@ -238,7 +244,7 @@ class OvernightTests(unittest.TestCase):
                 redirect_stdout(io.StringIO()),
                 redirect_stderr(io.StringIO()),
             ):
-                code = overnight.main(["overnight.py"])
+                code = overnight.main(["overnight.py", "--repo"])
 
             self.assertEqual(0, code)
             self.assertEqual(2, len(launches))  # implementation and close-out

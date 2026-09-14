@@ -1,0 +1,2951 @@
+{
+  "schema_version": 1,
+  "kind": "deterministic_cli_revision_comparison",
+  "measurement_script_sha256": "db5b0450a49f3e64995f1f178a202b75985b466a1b4f4acf817db48abe7e6d5b",
+  "baseline": "7c4d53edd8e8440fe1252d4417c607b01e0d5d07",
+  "candidate_sha256": {
+    "claude/CLAUDE.md": "1db749086b220ba2d9e6f054f47562ecc32c2dfaab3df7ba97583df82011686b",
+    "claude/PHASE-BOUNDARIES.md": "cd437ee205ceb746b030a068df7ab78de6b4d4dce6e1ba00020ba5cb2a70d3db",
+    "claude/android-adb.md": "743fa4ac0ce56b49214e8c33624456d95e3dcab0ebcb9b9c5918f6798c80699c",
+    "claude/cli-tools.md": "016e2c8a01ca109e82e2e27724f51e5f445b78aa701269d9072d241df82169c6",
+    "claude/design-principles.md": "ce73d4572efd9bb5bdcc81638d259b4a0880826116e1cf7c866792c55a0f23a1",
+    "claude/document-layout.md": "d6ac3e355624983a258edd6c163dac8aa3c2bc0aad91e5fe40201692307fd81b",
+    "claude/windows-cli.md": "8c45b150e874920214adbaf58b361f08fff1c15fbf72f3f7b68cc9fd0b0f9645",
+    "scripts/benchmark-workflow.py": "fe23b0e72c456bce2bbbe5ff9e6ea32ad86a338395cb6bc658942edd72118b6d",
+    "scripts/eval.py": "ee4f7ac7a070797a0b2639fd8720ae81f79663086836c8815f24916b680a091d",
+    "scripts/eval_campaign.py": "65ecd126ef7af935ab8c67021324faf318327bff5641b4b3b0f9553682069fe8",
+    "scripts/eval_metrics.py": "60bb4fbcc611f54e098cbffed7188349f5beac29578b264839848eb481484805",
+    "scripts/install.ps1": "79ca36f7608a4a7de700313cc80df40068315849136ce6eee11bc2ba106f1591",
+    "scripts/install.sh": "766708ae8e5056539003d30f5473406948962c4703ec4c9521e9319ba7f78583",
+    "scripts/overnight.py": "d7763884d500b6c328e7a537792ea284b526ada0f41e6eab212bfb345604e5e2",
+    "scripts/validate-skills.py": "161c89e490225343cca59f70929a750e5abcd5651145d29187d324f8f810b2a3",
+    "scripts/zcode_telemetry.py": "ce03b6ff3e51f19c091bc0e302a50d404acd081871aff45c12f6ef0b84c2ed6c",
+    "tooling/README.md": "897d256c847d670b2acf343ad182f248f77a44c9d346f72dbebf6737a10efde2",
+    "tooling/migrate-to-shoehorn/PATTERNS.md": "3f12e8ba31bf681e2d12c972e5e86b3ca89da118a3c6599ec315740b2cf4eb40",
+    "tooling/migrate-to-shoehorn/SKILL.md": "628a7868860bd7c36ef962844f5bff68503fbbee090470e7191fc3da045fc05e",
+    "tooling/setup-pre-commit/SKILL.md": "9b9246220ff89804785c17845c90a2e230253a29583b076f927d05a874aa4acb",
+    "tooling/shell-guardrails/README.md": "34a5f173d7bd9332f40e5d9d276e277d9991bc8e079868154168fb7263d01e77",
+    "tooling/shell-guardrails/SKILL.md": "bdb16cb1118218a03fc34ae6b6cf52f6df62f8c7b86f3c249fc5aba4fdf44182",
+    "tooling/shell-guardrails/WIRING.md": "e4a42bd85eeb168cd021fdaedd578d82d1dcb42e7dc491226cd48a6cb8b76f17",
+    "tooling/shell-guardrails/cases.jsonl": "4d85cae3e59b69530ab94a4a49e057b576402892331d17c74c549de57d5446ed",
+    "tooling/shell-guardrails/references/execution-domain.md": "8f764ae0fc241213c6b53b1d6ee2326157180873710391332479627c3983edfa",
+    "tooling/shell-guardrails/references/modern-cli-only.md": "fdc52c052b010e11c9ef8053bc4800ebf17207efc223c3fb1ef5d3a4b474ccef",
+    "tooling/shell-guardrails/references/push-blocking.md": "935dc6175998c4b852496a21568f15b1cf7e437e6c379176e86c01a1f22aa30d",
+    "tooling/shell-guardrails/run_corpus.py": "d255691863186988bd5ef7fef0fb2bd1d4b8b1cfe50ae5dbf9d28137eb4a265a",
+    "tooling/shell-guardrails/scripts/block-dangerous-git.ps1": "994daa3012035926b7b6f2c53f331af5e8166aa7f48b86680eb90f4cf2bb7567",
+    "tooling/shell-guardrails/scripts/block-dangerous-git.sh": "3f98c09297e55cb45b4392847f995b3392d29b02725b8c350f7dc336cae9d684",
+    "tooling/shell-guardrails/scripts/block-legacy-cli.ps1": "a7653dc7da76a84a32e6db3bbf7422747b3b6590bb18e91c079afe78dd78c35c",
+    "tooling/shell-guardrails/scripts/block-legacy-cli.sh": "a8d1af4901f2635a508f2285a0912ddb886995eb773b4dc00904e845cffa1829",
+    "tooling/shell-guardrails/scripts/guard-shell.py": "b95f69994dc0fb13cb31063a3502f3ceb1007afa67cd2ff43172a197bcb97dd5",
+    "tooling/shell-guardrails/scripts/test-block-dangerous-git.ps1": "e70fffe996f8cfeb04045b0ea034033a8a076c3d4a3205dfaf09cd76f9602b91",
+    "tooling/shell-guardrails/scripts/test-block-legacy-cli.ps1": "e73b560fc923e5fb76d18a1313f95d74e9483284125da54b0e1869c7013d2f39",
+    "workflow/ARTIFACT-FORMAT.md": "22055b28fa1e8778116139137c5f1e0da5f033a5f02c94b921e459d86c45f18e",
+    "workflow/README.md": "3e61a12004a3601e7fce75010eedbbc779e9947e92e8ecf12ce9866035b69368",
+    "workflow/REPORT-FORMAT.md": "7d03dd19d565549f6cb42d6c73acb163f8b71ff88b42d6dba75b7ae8a7eae8f3",
+    "workflow/RULE-LEDGER.md": "bb66c1d2c691606d6bbbe409654913556e49d0ac5172d40c110505e80a20e6f3",
+    "workflow/atk/RECEIPT-CONFLICT.md": "10e973b7db39f087df7f4011887e20048aeba08dc2e5f2007d60aaa41ff6f61b",
+    "workflow/atk/SKILL.md": "633f4002c1c12c4600b7492da034973b2661b2a380c1017e14718713ebd6eb24",
+    "workflow/brief/SKILL.md": "cda897dd3562353b85c90c6b8b3406cf34cbb515cea45357919fa6941fd80bab",
+    "workflow/checkpoint_store.py": "d9841cf5dc82ad9f51a8ee08f070488ec038f69ab07a69b38ac96257a7325584",
+    "workflow/code-review/EXPERIENCE-RUBRIC.md": "cc73549b3430dc4f688b0e42f20ddcd1e53a7554ea2829b2ac54645bf1da80de",
+    "workflow/code-review/SKILL.md": "4d141a9b9942423101fc03d3c894c1b3b1fe7a842fd61b6a15fdfe5eb44dbff0",
+    "workflow/code-review/SMELL-BASELINE.md": "fbe722f39a2352874be369bb763292ab46129ab2ae59ca48b42424b703ae3958",
+    "workflow/code-review/SUBAGENT-BRIEFS.md": "53e85c48fcca531867d17a2f9af6d6402f9bf5f6241eecca52b84cd7f2f6e071",
+    "workflow/code-review/scripts/review-input.py": "ccdc408a35137f13fb56a327cd3d1399edeabc1a199bc00279e75e34b2d15908",
+    "workflow/codebase-design/DEEP-VS-SHALLOW.md": "6a4edfc786330e7da2926205fba6a9c2bbb5cd56cb95e2b38b7a83f36e5a9e0b",
+    "workflow/codebase-design/DEEPENING.md": "629a3497ccefaa09204c8e24a2c3ccfb622d69ed29c6e6a62218c205f7ad5667",
+    "workflow/codebase-design/DESIGN-IT-TWICE.md": "f632e4dc76785c85b64c9239a29d3cd6a36accf3b08cb26d83b88a994b90ce68",
+    "workflow/codebase-design/SKILL.md": "3cdcf2d5d3a0c4e8790003e8084def21b99582b3392123e6956e19f6fa905d70",
+    "workflow/commit/SKILL.md": "4decdfb9d761593d087fa4a237b827480b281a8e8ce2ac25552048ee90e667ed",
+    "workflow/commit/scripts/land.py": "1f01826f78e086b1369fb030cd6e0183becf013ecbd69ecf6dd1f2e00b713b14",
+    "workflow/conflicts/SKILL.md": "c878f6bf68244f18996b46f6d6cc5f8d3dfc14664c09cdce879da72699ae388e",
+    "workflow/cosmos-setup/DECISIONS.md": "176a8e6cf4f9a9bb101b12c0af43c5e362799dbed72fa0abfe439cff70f59863",
+    "workflow/cosmos-setup/MIGRATION.md": "346836127aa3596d57259f3d98426c6bf3e9207d270426e37ca51ef1d53094db",
+    "workflow/cosmos-setup/SKILL.md": "bc5b7b8a2e2ffcb4bc3c05051eddb1435ce1c9288316fa0047f348dc10aa8df0",
+    "workflow/cpp-oop-style/SKILL.md": "a70493d35ae05927924d0e511b24412714a0d3e96d863cb0fd59e70ca2492abe",
+    "workflow/cpp-oop-style/agents/openai.yaml": "29df22bb4eb96375dc07e35e0f30804fa2178f08e35723c87623fc11f2c0a049",
+    "workflow/cpp-oop-style/references/cmake-first-projects.md": "0ed93f210bcec4748586cab526588f6d044dd15232979612a04ffcf5e4508da3",
+    "workflow/cpp-oop-style/references/debug-harnesses.md": "8ab03cc1958bee26e16aa97078cc7abfc561cfb15e6f1749c5597d00e2c4d134",
+    "workflow/cpp-oop-style/references/debug-instrumentation.md": "ef6a72b648358b9044f2deffa7a50083c49f238ce8106cb5de6570ba70cba347",
+    "workflow/cpp-oop-style/references/decoupled-modules.md": "aa6ac76c44b6c2358694849160342d32322bb096450eacbfe95e511f36138ae8",
+    "workflow/cpp-oop-style/references/dependencies/binary-abi.md": "2fd71c917dc31cd870479875e13a85798a9287ea41bab351cf34a5ee4f1da3fc",
+    "workflow/cpp-oop-style/references/dependencies/installed-and-manual.md": "0c73b71933c8136f1adbceb6dedc3d89d01ca113986ee653d04b27316a6bfc8c",
+    "workflow/cpp-oop-style/references/dependencies/router.md": "d8e31ec03c22ff9f29a858218003d9730c3364797be5f6c0712476767c9d9e78",
+    "workflow/cpp-oop-style/references/dependencies/source-vendoring.md": "b53a57f25b324d640875754c978aea02ad60694d6b45446aabeddc8479333971",
+    "workflow/cpp-oop-style/references/dependencies/string9811.md": "f42f66dcbe4338fc0e8eb431549b100f76783f7ce000d579df4a98f72afd3377",
+    "workflow/cpp-oop-style/references/deployment/cmake-installable-projects.md": "75742fa77a2501afe74ff062dc232b0a4e77b6d1fdce38b3dbdebb2a0267d0c0",
+    "workflow/cpp-oop-style/references/deployment/cpp-app-deployment.md": "ab1fb841b6e8ef34def834101b6b05e9c84289fe451fd98901f65e0187e90f48",
+    "workflow/cpp-oop-style/references/deployment/pybind11-packaging.md": "f6e0c47bb2cb240c2bb93cc6c74259006d16ca32a4271c22009a95c67fbaf081",
+    "workflow/cpp-oop-style/references/deployment/router.md": "6134dd63fbefda64ac5d451359b35c1a6770c81c5e9cf9207852d4b381338b9d",
+    "workflow/cpp-oop-style/references/error-handling.md": "ee1cc1ad925cb86bedcf2344d87d05eb6b9f0f50deeccff355e9872d8c9d7bb5",
+    "workflow/cpp-oop-style/references/functors-callbacks.md": "9ac2dca4eddf6a4f9dcc8734ebf3e936fa2bfcfe3b16930f0a26735064937310",
+    "workflow/cpp-oop-style/references/generics-compile-time.md": "07e37a013b8e5260465934cacb23b4fa89196c4f4e88bb7b6e61f03a5342be96",
+    "workflow/cpp-oop-style/references/ownership-lifetime.md": "59cd4ab06febcd4f0a26cd3c9e16a0f0ae410ddd92785fb66d80dc2c2204ea53",
+    "workflow/cpp-oop-style/references/sources.md": "a4309644aeaf5a38fe99749cdcc0b773439c34235f6404d66a4fadcdd5b38f8b",
+    "workflow/cpp-oop-style/references/text-encoding.md": "ebc22bf120821e744b0c23e499562c8958535299c32fdbb8e6bd3a15c16d2cae",
+    "workflow/cpp-oop-style/references/type-erasure.md": "4607d941129aa13c76c6a49b67fcdc8948b6578252754e827db0f37e96ce8e70",
+    "workflow/cpp-oop-style/references/wrapping-c-resources.md": "8d144e1c7532a0778ad185c5f3bb5c7943d3dd258fe98f1dee4bf423be589095",
+    "workflow/diagnose/FEEDBACK-LOOPS.md": "1d8b1e23b98df393033fbdc5a8ec3e55afe42fbf7443da6a9339575d8d658d09",
+    "workflow/diagnose/SKILL.md": "ef1c1964a0c9d38e5b4b21619dd6cf0710e13f56b8c15c6c5745e731ae046fa1",
+    "workflow/diagnose/scripts/hitl-loop.template.ps1": "162e3f38436061802ab815acf563762489233315f546b10f75356aa25186ed0c",
+    "workflow/diagnose/scripts/hitl-loop.template.sh": "17c2f9cf2dd76f5a4060649e9ac4da95cc172131c1acc5a9042e0696cf505bf3",
+    "workflow/domain-modeling/ADR-FORMAT.md": "885a6d6216db8f412d0e03d164589a2609206e328945fd12d9d4df7909581b25",
+    "workflow/domain-modeling/CONTEXT-FORMAT.md": "1fe2a998d2bd14f0c7d41025f9819ce0f89b3d8cb6a867d2ea740cf5831c3c41",
+    "workflow/domain-modeling/SKILL.md": "e8e28b12f737505833ceb7dbf86eeb5c77373d27f7248b7da6efa3cfcb2dd106",
+    "workflow/eval/SKILL.md": "d583428f3aae1f620072ff53034b708aeec59c466abda8c513376d990f52829e",
+    "workflow/grill/SKILL.md": "1d3ca688d02efb75c9897c6b941bfff43e8bdfd21ba78dc1ee680b52ac348410",
+    "workflow/handoff/SKILL.md": "ae128d4e2413d780a48a5d6a8a10877c1030c6fa553a3e95e48a11986ee9f539",
+    "workflow/handoff/scripts/handoff-state.py": "7baea7ff5deb00a009f7962b868f7aa90d707af27cb61dd81c118409f60a1088",
+    "workflow/improve-arch/HTML-REPORT.md": "6787e05d1360010a57d8e9d58f27707394cee05fb445786a2ee046a9971982f4",
+    "workflow/improve-arch/SKILL.md": "5ef30717b7c2c0d647f5db28478e13cfee34f592a7c0d415f1e95854b2c690e9",
+    "workflow/lint/SKILL.md": "fa7abcd30701fbc17c89f989e5d96973b0782eff192d225f4f5392a050033d0e",
+    "workflow/lint/references/batteries.md": "1445de0730c146ca3cc86464cab7e3ca7787fc82f048ccb53c17570fbe3599f9",
+    "workflow/lint/references/code-comments.md": "e946579bcb23363ec6baf60725ab23e6dbbc8f28eeabbe3643167c4b7ec6431b",
+    "workflow/map/SKILL.md": "b6b42ffe0999c843748061f1253e39cc5dc92a97942b8d1181135b9254d935bb",
+    "workflow/process_tree.py": "93d5f49621058518f7b34af9f3838c4e0c228c961ecd58dd3ed85a0ece23a067",
+    "workflow/prototype/LOGIC.md": "65f5121ffc103bda6bf0fd2121f40d02e633c40c8abcb00e172f9f3a3421e0b5",
+    "workflow/prototype/SKILL.md": "5d0ab6210591117322fbc6acecf17b80041f4231bd4b5edb99f6189512a6a37a",
+    "workflow/prototype/UI.md": "86da15d8509507b467823922f1233426dcf7381851b9636c3fd2d1627d77b048",
+    "workflow/record-gif/SKILL.md": "d06d27500f1095cb47b55110c5d6e7adf821a02e36ada841cbdd0fce16927ce2",
+    "workflow/record-gif/scripts/encode_gif.py": "b79b552eb42ecc793090df5903a6f7b30905bdcc1ef19620cfb6a8728d54940e",
+    "workflow/research/SKILL.md": "8026db4a823e97e869497594dedc31b3b40f68263e4d0addeef0ff7ef0798077",
+    "workflow/resume/SKILL.md": "e401776d7119ebb96953f9a777d7caa1a3171a160698a03c0d518eb612ab3d9f",
+    "workflow/show/SKILL.md": "819a58c253422a6cc4e4b8338057476bc7cfe62a176db69a634192f954432cf0",
+    "workflow/spec/ADDITIVE.md": "a1d6125f18116e7f6bd38fdbbed585d83284ac424d9824cf3518aae0b1368a5e",
+    "workflow/spec/CARD-TEST.md": "2aae362d247874e9224768d349236fc13e93be8de2b6ec55fb99c08d30984479",
+    "workflow/spec/DESIGN-RECEIPT.md": "b283cae499c0466fa7ee184612c12b83e3922a7014d684d12a23da6d589cb592",
+    "workflow/spec/ISSUE-TEMPLATE.md": "4558db487eba1497ac75e10c0d8fcdf5d6ba7caa8769c25caafe3c2a5bd296c1",
+    "workflow/spec/NON-FUNCTIONAL-BARS.md": "3dcc30ebdf48171ffb895d51c3b3ddedb1ba6c8cd08f3d3166a00f89e63f6e44",
+    "workflow/spec/PRD-TEMPLATE.md": "3772ca51b44d94107f99628b17e6559027b03a89e7e75b3a0cb52eb955b6a27c",
+    "workflow/spec/SKILL.md": "38e42785c87ad30433262d4a6bd2cc7597942808350b8b957ec76aa420cdb305",
+    "workflow/spec/SUPERSEDE.md": "63397d3f6d7a6a29d433fa4499d142ed93588a436222e9b411b111530d21503a",
+    "workflow/spec/VERIFICATION-DESIGN.md": "012f06b062aae9fbff29a666384a67fb703fc879ebf68695ca531d9bac6e635c",
+    "workflow/spec/impact-detection.md": "873341e5d8667d8cddb672d22c43d6f12eb020f0b3ce70f09f2bb9ae2dca726b",
+    "workflow/spec/scripts/pyright-impact.py": "d1db5c5ec3b814b35a7b9932bfc340c1fd7a02579a80f752fb8de2d843ad4de6",
+    "workflow/tdd/BATCH-FORMAT.md": "ac7651024d16542d1166f901e7feec1c8d2e8d9e47cf2fb9202269951268b6c2",
+    "workflow/tdd/COMPLETION-RECORD.md": "46154ae70371e47114bca40fbcf6d36c66d6e10d107cfcba2e2620b8c03066d7",
+    "workflow/tdd/DRAIN-PARALLEL.md": "3e5612a99c860f36cbda6ffe9fb812da6c4aae269767f386ed7b6741b7f55c63",
+    "workflow/tdd/DRAIN.md": "2ec7b8ff43be13bb0c7645554e4c99443210bfacf81180ab351a95b1fe75fce3",
+    "workflow/tdd/EDGE-CASES.md": "23896761bcf43aa02e0ef8035ffbc66c6e913c821c6afcc9ae19cbc7296509a5",
+    "workflow/tdd/FULL-SUITE.md": "e8770f8933a96b9227af98ea6e6a535bdbf2e4f0634b5d22e5cc047e2e467d14",
+    "workflow/tdd/LOG.md": "86dc2175b0690d663ee9b24399bba84c7b4f7c242a56144e475e3b2c3931c893",
+    "workflow/tdd/SESSION-REUSE.md": "15ce471a04addd0c36c4b6cda78649cd08f422ee701fc610bde152831edd2822",
+    "workflow/tdd/SKILL.md": "1f46df62a9351e48350e9af07b5c87b78c6f34721970d478b66b74e7ebda9c0f",
+    "workflow/tdd/UI-TESTING.md": "0e3b3fa6abf8d39aad8db57e047a4061ef421e08fe36d02326e5795f7d7413c3",
+    "workflow/tdd/mocking.md": "03404c26f94a2e745c23dfa97d386495c94a71e2f99f273c24ba0ba9624621ca",
+    "workflow/tdd/refactoring.md": "4ae2082c75dd35db34adc0c08b4aa172ea38c2d8cacc1bb89b850b326fceca40",
+    "workflow/tdd/scripts/drain-wave.py": "c09715c4b4d4d7d7b1b583086efa28de5bd5c1c9cab6c7ab5f9641437a964b82",
+    "workflow/tdd/scripts/playwright-reporter.cjs": "72c3a2421e8d77c28db8ae2c7514e91ed21d5854b9bad64d97ec6415afaf24e0",
+    "workflow/tdd/scripts/preflight-receipt.py": "75e699b8347829dec3e48e231bf2a42cf4f43ccf588ba664522566d14baad2e6",
+    "workflow/tdd/scripts/test-supervisor.py": "669bab7cca60666070d47261f3d3f1b335bde4ebfaaad9e3cf8cb5c4ab4af6dd",
+    "workflow/tdd/tests.md": "c39f4392d456cf2c199b1118954cf45e950896f94155b17b2ec439a695ff9896",
+    "workflow/teach/LEARNING-RECORD-FORMAT.md": "6aaf4ee2ca9d3a3e19689804b1ea29caa9b98f0c3f0ab33668979c336266433a",
+    "workflow/teach/MISSION-FORMAT.md": "763958a5afb97eca749a908a1b5457e1ce4cfa3b93c7ce031bc130b22eccba78",
+    "workflow/teach/PEDAGOGY.md": "0e31b3a83f7c0872ab04f2fb30974f06c34c3f2f7f921322aa514129dd23db88",
+    "workflow/teach/RESOURCES-FORMAT.md": "1b66e6060e6fb2c324173f3ebb87936b0bb043619e15547bb4afdc2e1b966c14",
+    "workflow/teach/SKILL.md": "f6fe4486de3cfad8a13905afd707a2905255309d3f31e5db181a7d4a83d74cb4",
+    "workflow/test-verify-codebase.ps1": "97a0c43fc9355e07af511ca47b20cf687ceb8e8e125bdb0ee94393bf25bb735b",
+    "workflow/tidy/SKILL.md": "6fce3511c9bb3d4200b9cc6171c58f339a21ca6c2bdf3ee669852feb3c17acba",
+    "workflow/verify-artifacts.py": "0557c17828ff71a21f2240365bbb4949a887f893cff02584a448f6944eacdd2c",
+    "workflow/workflow-state.py": "01abb9fe3b455f14a84e9beea46950144d736c0e9be93e2dad479b7ec0846bc3",
+    "workflow/workflow_batch.py": "ec30110017ff5e0c107f2a11de313927ee26f7fe769fcae21051f1314736115e",
+    "workflow/workflow_contract.py": "66df58b89eb6948366d7d6d09bb14f83a32424a5625f4b5cba17f52661defb6b",
+    "workflow/workflow_jobs.py": "8337f7e8745eca7264dea8ed390d385869edf9e4e2b541cc4a97eee40a247776",
+    "workflow/workflow_managed.py": "2dca66d898ac379d7b37579d2f837ee41ef068c9f179ac11fe241077322c313b",
+    "workflow/workflow_members.py": "cc05ca2ca2095f238d20f87172b93e171b4f5474083abe7010438af14420e63a",
+    "workflow/workflow_resources.py": "d08e5b237bc5ea185c6aa7bbb8cb983581f6e9f30d7e7733778fd4230d9cd7e2",
+    "workflow/workflow_runtime.py": "765719189de7cb24d79ccd9ada7f602b06833824007471197373191f79217207",
+    "workflow/workflow_ui.py": "b28f5306b5adb356edf2852317832f630f9f4a11a180c12bcd0eda996e402b8b",
+    "workflow/write-skill/EVALS.md": "bad2ffd07ac6af6cdeb828b5d92b719ebd41b78b0677b85bf298115f8b1bbd1d",
+    "workflow/write-skill/NEW-SKILL.md": "da0fc61383c08779d31d17c09c46203429e9a5b4341d5bc868a933498b9557a3",
+    "workflow/write-skill/SKILL.md": "706b19cb0ea76b9d04ba021ef7074cd1cbac1dcb0c837ceb28076d97bd3b198a"
+  },
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "python": "3.9.6",
+  "encoding": "o200k_base",
+  "samples": 31,
+  "method": "Three warmups, alternating paired order, cold Python CLI per sample; setup excluded; no models.",
+  "fixture": "36 synthetic legacy cards: 4 ready, 32 done, 10 test paths each; no Git product repo or UI",
+  "normalization": "Replace fixture root, 32/64-hex identities and supervisor elapsed field; retain all other output",
+  "inputs": {
+    "resident_policy": {
+      "previous": {
+        "utf8_bytes": 7439,
+        "tokenizer_tokens": 1535
+      },
+      "candidate": {
+        "utf8_bytes": 7439,
+        "tokenizer_tokens": 1535
+      }
+    },
+    "spec_entry": {
+      "previous": {
+        "utf8_bytes": 8094,
+        "tokenizer_tokens": 1739
+      },
+      "candidate": {
+        "utf8_bytes": 8049,
+        "tokenizer_tokens": 1735
+      }
+    },
+    "spec_verification": {
+      "previous": {
+        "utf8_bytes": 8384,
+        "tokenizer_tokens": 1696
+      },
+      "candidate": {
+        "utf8_bytes": 7239,
+        "tokenizer_tokens": 1468
+      }
+    },
+    "tdd_entry": {
+      "previous": {
+        "utf8_bytes": 9109,
+        "tokenizer_tokens": 2014
+      },
+      "candidate": {
+        "utf8_bytes": 9061,
+        "tokenizer_tokens": 2011
+      }
+    },
+    "artifact_reference": {
+      "previous": {
+        "utf8_bytes": 34193,
+        "tokenizer_tokens": 8112
+      },
+      "candidate": {
+        "utf8_bytes": 34458,
+        "tokenizer_tokens": 8173
+      }
+    },
+    "resident_descriptions": {
+      "previous": {
+        "utf8_bytes": 6955,
+        "tokenizer_tokens": 1315
+      },
+      "candidate": {
+        "utf8_bytes": 6955,
+        "tokenizer_tokens": 1315
+      }
+    }
+  },
+  "cli": {
+    "survey": {
+      "normalized_outputs_equal": true,
+      "paired_delta": {
+        "median_ms": 1.9299999999999997,
+        "median_ci95_ms": [
+          1.3495830000000026,
+          2.5320000000000036
+        ]
+      },
+      "arms": {
+        "previous": {
+          "wall_ms": {
+            "p50": 60.630791,
+            "p95": 61.615959
+          },
+          "stdout_bytes": {
+            "p50": 638,
+            "p95": 638
+          },
+          "normalized_io": {
+            "utf8_bytes": 638,
+            "tokenizer_tokens": 179
+          },
+          "samples": [
+            {
+              "wall_ms": 60.128458,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 59.812917,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 60.911208,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 60.921875,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 60.438584,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 61.221875,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 60.630791,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 61.241708,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 60.978084,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 60.627667,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 58.704875,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 60.874917,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 61.084709,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 61.179459,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 59.7455,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 60.556334,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 59.533125,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 61.436042,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 60.142167,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 57.60575,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 60.367666,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 61.615959,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 61.231667,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 60.793292,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 62.161916,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 62.265083,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 59.557708,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 59.990292,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 58.926375,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 60.938125,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 59.536167,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            }
+          ]
+        },
+        "candidate": {
+          "wall_ms": {
+            "p50": 62.419208,
+            "p95": 63.345417
+          },
+          "stdout_bytes": {
+            "p50": 638,
+            "p95": 638
+          },
+          "normalized_io": {
+            "utf8_bytes": 638,
+            "tokenizer_tokens": 179
+          },
+          "samples": [
+            {
+              "wall_ms": 61.23075,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 61.832417,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 61.0355,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 62.670625,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 62.321375,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 64.208333,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 60.530458,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 61.498667,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 61.547875,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 62.82175,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 62.213709,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 63.153917,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 62.434292,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 61.999708,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 62.931875,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 62.587125,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 62.065125,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 61.958166,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 61.960833,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 62.419208,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 63.226625,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 63.345417,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 62.129583,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 63.472375,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 62.135375,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 62.102958,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 63.264958,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 62.68175,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 62.469459,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 62.868125,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            },
+            {
+              "wall_ms": 63.179792,
+              "stdout_bytes": 638,
+              "normalized_io": {
+                "utf8_bytes": 638,
+                "tokenizer_tokens": 179
+              }
+            }
+          ]
+        }
+      },
+      "sample_output": "[\n  {\n    \"feature\": \"demo\",\n    \"counts\": {\n      \"ready\": 4,\n      \"blocked\": 0,\n      \"done\": 32,\n      \"zombie\": 0\n    },\n    \"ready\": [\n      {\n        \"slug\": \"000-card\",\n        \"summary\": \"Deliver behavior 0.\",\n        \"blocked_by\": []\n      },\n      {\n        \"slug\": \"001-card\",\n        \"summary\": \"Deliver behavior 1.\",\n        \"blocked_by\": []\n      },\n      {\n        \"slug\": \"002-card\",\n        \"summary\": \"Deliver behavior 2.\",\n        \"blocked_by\": []\n      },\n      {\n        \"slug\": \"003-card\",\n        \"summary\": \"Deliver behavior 3.\",\n        \"blocked_by\": []\n      }\n    ],\n    \"blocked\": [],\n    \"zombies\": []\n  }\n]\n"
+    },
+    "packet": {
+      "normalized_outputs_equal": true,
+      "paired_delta": {
+        "median_ms": 1.7679159999999996,
+        "median_ci95_ms": [
+          1.5433749999999975,
+          2.1911249999999995
+        ]
+      },
+      "arms": {
+        "previous": {
+          "wall_ms": {
+            "p50": 56.043875,
+            "p95": 57.313625
+          },
+          "stdout_bytes": {
+            "p50": 664,
+            "p95": 664
+          },
+          "normalized_io": {
+            "utf8_bytes": 608,
+            "tokenizer_tokens": 177
+          },
+          "samples": [
+            {
+              "wall_ms": 55.944625,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 55.4525,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 55.950333,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 55.752042,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 56.20375,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 57.313625,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 55.586083,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 56.462959,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 58.301916,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 54.447125,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 56.000958,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 55.899375,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 56.903208,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 61.515,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 57.28175,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 56.043875,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 56.377917,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 56.099125,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 55.242834,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 56.18525,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 55.154375,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 54.487917,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 57.012958,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 54.438375,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 55.795375,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 56.075167,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 55.642542,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 55.910708,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 57.117792,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 56.657791,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 56.747625,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            }
+          ]
+        },
+        "candidate": {
+          "wall_ms": {
+            "p50": 57.9075,
+            "p95": 58.910292
+          },
+          "stdout_bytes": {
+            "p50": 664,
+            "p95": 664
+          },
+          "normalized_io": {
+            "utf8_bytes": 608,
+            "tokenizer_tokens": 177
+          },
+          "samples": [
+            {
+              "wall_ms": 58.356667,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 58.520583,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 58.521292,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 57.9075,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 58.910292,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 57.815625,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 57.626916,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 58.21575,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 57.974041,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 56.373625,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 57.121542,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 57.429917,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 58.191292,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 56.449625,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 58.268541,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 57.730458,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 58.65975,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 57.680292,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 57.54875,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 58.865,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 58.913666,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 56.867291,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 59.087791,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 56.6295,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 58.597375,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 57.618542,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 57.410458,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 57.117291,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 57.28975,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 57.937,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            },
+            {
+              "wall_ms": 58.466459,
+              "stdout_bytes": 664,
+              "normalized_io": {
+                "utf8_bytes": 608,
+                "tokenizer_tokens": 177
+              }
+            }
+          ]
+        }
+      },
+      "sample_output": "{\"schema_version\":1,\"slug\":\"000-card\",\"feature\":\"demo\",\"status\":\"ready\",\"category\":\"enhancement\",\"refines\":null,\"blocked_by\":[],\"test_paths\":[\"pkg/000/test_00.py\",\"pkg/000/test_01.py\",\"pkg/000/test_02.py\",\"pkg/000/test_03.py\",\"pkg/000/test_04.py\",\"pkg/000/test_05.py\",\"pkg/000/test_06.py\",\"pkg/000/test_07.py\",\"pkg/000/test_08.py\",\"pkg/000/test_09.py\"],\"touches\":[\"pkg/000\"],\"exclusive_resources\":[],\"parent\":[],\"objective\":[\"Deliver behavior 0.\"],\"acceptance\":[\"- [ ] Preserve the declared behavior.\"],\"verification\":[],\"context\":[],\"contract_sha256\":\"<digest>\",\"source\":\".scratch/demo/issues/000-card.md\"}\n"
+    },
+    "start": {
+      "normalized_outputs_equal": true,
+      "paired_delta": {
+        "median_ms": 5.686374999999998,
+        "median_ci95_ms": [
+          4.7243330000000014,
+          6.6591669999999965
+        ]
+      },
+      "arms": {
+        "previous": {
+          "wall_ms": {
+            "p50": 95.1965,
+            "p95": 100.490125
+          },
+          "stdout_bytes": {
+            "p50": 807,
+            "p95": 807
+          },
+          "normalized_io": {
+            "utf8_bytes": 674,
+            "tokenizer_tokens": 194
+          },
+          "samples": [
+            {
+              "wall_ms": 94.481417,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 99.756625,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 97.292583,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 97.686958,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 100.837,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 95.16325,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 96.17425,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 94.197875,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 93.854041,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 94.373083,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 95.174625,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 95.255916,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 95.620792,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 95.491958,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 100.490125,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 93.352542,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 94.229375,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 95.1965,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 94.952292,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 95.2725,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 95.484834,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 95.881041,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 94.33525,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 95.072542,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 128.57,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 94.428583,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 99.073,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 94.982125,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 94.561834,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 94.23625,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 97.656333,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            }
+          ]
+        },
+        "candidate": {
+          "wall_ms": {
+            "p50": 101.178667,
+            "p95": 104.346125
+          },
+          "stdout_bytes": {
+            "p50": 807,
+            "p95": 807
+          },
+          "normalized_io": {
+            "utf8_bytes": 674,
+            "tokenizer_tokens": 194
+          },
+          "samples": [
+            {
+              "wall_ms": 99.784625,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 101.933666,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 108.054458,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 104.346125,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 108.292166,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 99.887583,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 103.382333,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 103.01575,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 100.547833,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 101.896875,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 101.280708,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 100.405875,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 99.514541,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 101.943125,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 101.833875,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 101.347875,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 98.054958,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 103.118458,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 100.14975,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 101.210375,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 99.955459,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 99.343667,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 101.156083,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 102.884083,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 99.06775,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 100.473917,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 101.178667,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 100.6685,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 99.13025,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 99.800083,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            },
+            {
+              "wall_ms": 101.375417,
+              "stdout_bytes": 807,
+              "normalized_io": {
+                "utf8_bytes": 674,
+                "tokenizer_tokens": 194
+              }
+            }
+          ]
+        }
+      },
+      "sample_output": "{\"packet\":{\"schema_version\":1,\"slug\":\"000-card\",\"feature\":\"demo\",\"status\":\"ready\",\"category\":\"enhancement\",\"refines\":null,\"blocked_by\":[],\"test_paths\":[\"pkg/000/test_00.py\",\"pkg/000/test_01.py\",\"pkg/000/test_02.py\",\"pkg/000/test_03.py\",\"pkg/000/test_04.py\",\"pkg/000/test_05.py\",\"pkg/000/test_06.py\",\"pkg/000/test_07.py\",\"pkg/000/test_08.py\",\"pkg/000/test_09.py\"],\"touches\":[\"pkg/000\"],\"exclusive_resources\":[],\"parent\":[],\"objective\":[\"Deliver behavior 0.\"],\"acceptance\":[\"- [ ] Preserve the declared behavior.\"],\"verification\":[],\"context\":[],\"contract_sha256\":\"<digest>\",\"source\":\".scratch/demo/issues/000-card.md\"},\"execution\":\"<execution>\",\"baseline_sha256\":\"<digest>\"}\n"
+    },
+    "briefs_compact": {
+      "normalized_outputs_equal": true,
+      "paired_delta": {
+        "median_ms": 1.317541999999996,
+        "median_ci95_ms": [
+          1.013500999999998,
+          1.7807919999999982
+        ]
+      },
+      "arms": {
+        "previous": {
+          "wall_ms": {
+            "p50": 60.959208,
+            "p95": 62.251584
+          },
+          "stdout_bytes": {
+            "p50": 9857,
+            "p95": 9857
+          },
+          "normalized_io": {
+            "utf8_bytes": 9556,
+            "tokenizer_tokens": 3368
+          },
+          "samples": [
+            {
+              "wall_ms": 61.034416,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 58.576541,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 60.549625,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 60.569458,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 62.326291,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 60.959208,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 60.962375,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 61.447792,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 62.251584,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 60.971542,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 57.968583,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 62.114417,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 60.421791,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 59.605875,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 60.221166,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 60.662875,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 60.63875,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 61.462458,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 61.41025,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 60.668041,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 60.461083,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 60.266833,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 61.338875,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 60.519291,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 61.525625,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 60.548375,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 62.483084,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 61.622833,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 58.731333,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 61.126959,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 61.805333,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            }
+          ]
+        },
+        "candidate": {
+          "wall_ms": {
+            "p50": 62.390417,
+            "p95": 63.413417
+          },
+          "stdout_bytes": {
+            "p50": 9857,
+            "p95": 9857
+          },
+          "normalized_io": {
+            "utf8_bytes": 9556,
+            "tokenizer_tokens": 3368
+          },
+          "samples": [
+            {
+              "wall_ms": 63.142541,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 63.413417,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 62.349791,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 63.311375,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 63.456167,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 62.831125,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 62.430959,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 62.600625,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 62.068541,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 63.732167,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 61.927334,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 62.390417,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 61.435292,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 61.246334,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 62.915584,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 62.2145,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 62.419542,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 62.422291,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 60.417,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 60.670583,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 61.778625,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 61.509583,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 60.183875,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 63.077833,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 60.759166,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 62.252334,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 62.444041,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 62.132542,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 63.094625,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 61.762209,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            },
+            {
+              "wall_ms": 62.976,
+              "stdout_bytes": 9857,
+              "normalized_io": {
+                "utf8_bytes": 9556,
+                "tokenizer_tokens": 3368
+              }
+            }
+          ]
+        }
+      },
+      "sample_output": "{\"schema_version\":2,\"shared\":{\"brief_rules\":\"tdd/DRAIN.md — worker brief contract\",\"tests_so_far\":[\"pkg/004/test_00.py\",\"pkg/004/test_01.py\",\"pkg/004/test_02.py\",\"pkg/004/test_03.py\",\"pkg/004/test_04.py\",\"pkg/004/test_05.py\",\"pkg/004/test_06.py\",\"pkg/004/test_07.py\",\"pkg/004/test_08.py\",\"pkg/004/test_09.py\",\"pkg/005/test_00.py\",\"pkg/005/test_01.py\",\"pkg/005/test_02.py\",\"pkg/005/test_03.py\",\"pkg/005/test_04.py\",\"pkg/005/test_05.py\",\"pkg/005/test_06.py\",\"pkg/005/test_07.py\",\"pkg/005/test_08.py\",\"pkg/005/test_09.py\",\"pkg/006/test_00.py\",\"pkg/006/test_01.py\",\"pkg/006/test_02.py\",\"pkg/006/test_03.py\",\"pkg/006/test_04.py\",\"pkg/006/test_05.py\",\"pkg/006/test_06.py\",\"pkg/006/test_07.py\",\"pkg/006/test_08.py\",\"pkg/006/test_09.py\",\"pkg/007/test_00.py\",\"pkg/007/test_01.py\",\"pkg/007/test_02.py\",\"pkg/007/test_03.py\",\"pkg/007/test_04.py\",\"pkg/007/test_05.py\",\"pkg/007/test_06.py\",\"pkg/007/test_07.py\",\"pkg/007/test_08.py\",\"pkg/007/test_09.py\",\"pkg/008/test_00.py\",\"pkg/008/test_01.py\",\"pkg/008/test_02.py\",\"pkg/008/test_03.py\",\"pkg/008/test_04.py\",\"pkg/008/test_05.py\",\"pkg/008/test_06.py\",\"pkg/008/test_07.py\",\"pkg/008/test_08.py\",\"pkg/008/test_09.py\",\"pkg/009/test_00.py\",\"pkg/009/test_01.py\",\"pkg/009/test_02.py\",\"pkg/009/test_03.py\",\"pkg/009/test_04.py\",\"pkg/009/test_05.py\",\"pkg/009/test_06.py\",\"pkg/009/test_07.py\",\"pkg/009/test_08.py\",\"pkg/009/test_09.py\",\"pkg/010/test_00.py\",\"pkg/010/test_01.py\",\"pkg/010/test_02.py\",\"pkg/010/test_03.py\",\"pkg/010/test_04.py\",\"pkg/010/test_05.py\",\"pkg/010/test_06.py\",\"pkg/010/test_07.py\",\"pkg/010/test_08.py\",\"pkg/010/test_09.py\",\"pkg/011/test_00.py\",\"pkg/011/test_01.py\",\"pkg/011/test_02.py\",\"pkg/011/test_03.py\",\"pkg/011/test_04.py\",\"pkg/011/test_05.py\",\"pkg/011/test_06.py\",\"pkg/011/test_07.py\",\"pkg/011/test_08.py\",\"pkg/011/test_09.py\",\"pkg/012/test_00.py\",\"pkg/012/test_01.py\",\"pkg/012/test_02.py\",\"pkg/012/test_03.py\",\"pkg/012/test_04.py\",\"pkg/012/test_05.py\",\"pkg/012/test_06.py\",\"pkg/012/test_07.py\",\"pkg/012/test_08.py\",\"pkg/012/test_09.py\",\"pkg/013/test_00.py\",\"pkg/013/test_01.py\",\"pkg/013/test_02.py\",\"pkg/013/test_03.py\",\"pkg/013/test_04.py\",\"pkg/013/test_05.py\",\"pkg/013/test_06.py\",\"pkg/013/test_07.py\",\"pkg/013/test_08.py\",\"pkg/013/test_09.py\",\"pkg/014/test_00.py\",\"pkg/014/test_01.py\",\"pkg/014/test_02.py\",\"pkg/014/test_03.py\",\"pkg/014/test_04.py\",\"pkg/014/test_05.py\",\"pkg/014/test_06.py\",\"pkg/014/test_07.py\",\"pkg/014/test_08.py\",\"pkg/014/test_09.py\",\"pkg/015/test_00.py\",\"pkg/015/test_01.py\",\"pkg/015/test_02.py\",\"pkg/015/test_03.py\",\"pkg/015/test_04.py\",\"pkg/015/test_05.py\",\"pkg/015/test_06.py\",\"pkg/015/test_07.py\",\"pkg/015/test_08.py\",\"pkg/015/test_09.py\",\"pkg/016/test_00.py\",\"pkg/016/test_01.py\",\"pkg/016/test_02.py\",\"pkg/016/test_03.py\",\"pkg/016/test_04.py\",\"pkg/016/test_05.py\",\"pkg/016/test_06.py\",\"pkg/016/test_07.py\",\"pkg/016/test_08.py\",\"pkg/016/test_09.py\",\"pkg/017/test_00.py\",\"pkg/017/test_01.py\",\"pkg/017/test_02.py\",\"pkg/017/test_03.py\",\"pkg/017/test_04.py\",\"pkg/017/test_05.py\",\"pkg/017/test_06.py\",\"pkg/017/test_07.py\",\"pkg/017/test_08.py\",\"pkg/017/test_09.py\",\"pkg/018/test_00.py\",\"pkg/018/test_01.py\",\"pkg/018/test_02.py\",\"pkg/018/test_03.py\",\"pkg/018/test_04.py\",\"pkg/018/test_05.py\",\"pkg/018/test_06.py\",\"pkg/018/test_07.py\",\"pkg/018/test_08.py\",\"pkg/018/test_09.py\",\"pkg/019/test_00.py\",\"pkg/019/test_01.py\",\"pkg/019/test_02.py\",\"pkg/019/test_03.py\",\"pkg/019/test_04.py\",\"pkg/019/test_05.py\",\"pkg/019/test_06.py\",\"pkg/019/test_07.py\",\"pkg/019/test_08.py\",\"pkg/019/test_09.py\",\"pkg/020/test_00.py\",\"pkg/020/test_01.py\",\"pkg/020/test_02.py\",\"pkg/020/test_03.py\",\"pkg/020/test_04.py\",\"pkg/020/test_05.py\",\"pkg/020/test_06.py\",\"pkg/020/test_07.py\",\"pkg/020/test_08.py\",\"pkg/020/test_09.py\",\"pkg/021/test_00.py\",\"pkg/021/test_01.py\",\"pkg/021/test_02.py\",\"pkg/021/test_03.py\",\"pkg/021/test_04.py\",\"pkg/021/test_05.py\",\"pkg/021/test_06.py\",\"pkg/021/test_07.py\",\"pkg/021/test_08.py\",\"pkg/021/test_09.py\",\"pkg/022/test_00.py\",\"pkg/022/test_01.py\",\"pkg/022/test_02.py\",\"pkg/022/test_03.py\",\"pkg/022/test_04.py\",\"pkg/022/test_05.py\",\"pkg/022/test_06.py\",\"pkg/022/test_07.py\",\"pkg/022/test_08.py\",\"pkg/022/test_09.py\",\"pkg/023/test_00.py\",\"pkg/023/test_01.py\",\"pkg/023/test_02.py\",\"pkg/023/test_03.py\",\"pkg/023/test_04.py\",\"pkg/023/test_05.py\",\"pkg/023/test_06.py\",\"pkg/023/test_07.py\",\"pkg/023/test_08.py\",\"pkg/023/test_09.py\",\"pkg/024/test_00.py\",\"pkg/024/test_01.py\",\"pkg/024/test_02.py\",\"pkg/024/test_03.py\",\"pkg/024/test_04.py\",\"pkg/024/test_05.py\",\"pkg/024/test_06.py\",\"pkg/024/test_07.py\",\"pkg/024/test_08.py\",\"pkg/024/test_09.py\",\"pkg/025/test_00.py\",\"pkg/025/test_01.py\",\"pkg/025/test_02.py\",\"pkg/025/test_03.py\",\"pkg/025/test_04.py\",\"pkg/025/test_05.py\",\"pkg/025/test_06.py\",\"pkg/025/test_07.py\",\"pkg/025/test_08.py\",\"pkg/025/test_09.py\",\"pkg/026/test_00.py\",\"pkg/026/test_01.py\",\"pkg/026/test_02.py\",\"pkg/026/test_03.py\",\"pkg/026/test_04.py\",\"pkg/026/test_05.py\",\"pkg/026/test_06.py\",\"pkg/026/test_07.py\",\"pkg/026/test_08.py\",\"pkg/026/test_09.py\",\"pkg/027/test_00.py\",\"pkg/027/test_01.py\",\"pkg/027/test_02.py\",\"pkg/027/test_03.py\",\"pkg/027/test_04.py\",\"pkg/027/test_05.py\",\"pkg/027/test_06.py\",\"pkg/027/test_07.py\",\"pkg/027/test_08.py\",\"pkg/027/test_09.py\",\"pkg/028/test_00.py\",\"pkg/028/test_01.py\",\"pkg/028/test_02.py\",\"pkg/028/test_03.py\",\"pkg/028/test_04.py\",\"pkg/028/test_05.py\",\"pkg/028/test_06.py\",\"pkg/028/test_07.py\",\"pkg/028/test_08.py\",\"pkg/028/test_09.py\",\"pkg/029/test_00.py\",\"pkg/029/test_01.py\",\"pkg/029/test_02.py\",\"pkg/029/test_03.py\",\"pkg/029/test_04.py\",\"pkg/029/test_05.py\",\"pkg/029/test_06.py\",\"pkg/029/test_07.py\",\"pkg/029/test_08.py\",\"pkg/029/test_09.py\",\"pkg/030/test_00.py\",\"pkg/030/test_01.py\",\"pkg/030/test_02.py\",\"pkg/030/test_03.py\",\"pkg/030/test_04.py\",\"pkg/030/test_05.py\",\"pkg/030/test_06.py\",\"pkg/030/test_07.py\",\"pkg/030/test_08.py\",\"pkg/030/test_09.py\",\"pkg/031/test_00.py\",\"pkg/031/test_01.py\",\"pkg/031/test_02.py\",\"pkg/031/test_03.py\",\"pkg/031/test_04.py\",\"pkg/031/test_05.py\",\"pkg/031/test_06.py\",\"pkg/031/test_07.py\",\"pkg/031/test_08.py\",\"pkg/031/test_09.py\",\"pkg/032/test_00.py\",\"pkg/032/test_01.py\",\"pkg/032/test_02.py\",\"pkg/032/test_03.py\",\"pkg/032/test_04.py\",\"pkg/032/test_05.py\",\"pkg/032/test_06.py\",\"pkg/032/test_07.py\",\"pkg/032/test_08.py\",\"pkg/032/test_09.py\",\"pkg/033/test_00.py\",\"pkg/033/test_01.py\",\"pkg/033/test_02.py\",\"pkg/033/test_03.py\",\"pkg/033/test_04.py\",\"pkg/033/test_05.py\",\"pkg/033/test_06.py\",\"pkg/033/test_07.py\",\"pkg/033/test_08.py\",\"pkg/033/test_09.py\",\"pkg/034/test_00.py\",\"pkg/034/test_01.py\",\"pkg/034/test_02.py\",\"pkg/034/test_03.py\",\"pkg/034/test_04.py\",\"pkg/034/test_05.py\",\"pkg/034/test_06.py\",\"pkg/034/test_07.py\",\"pkg/034/test_08.py\",\"pkg/034/test_09.py\",\"pkg/035/test_00.py\",\"pkg/035/test_01.py\",\"pkg/035/test_02.py\",\"pkg/035/test_03.py\",\"pkg/035/test_04.py\",\"pkg/035/test_05.py\",\"pkg/035/test_06.py\",\"pkg/035/test_07.py\",\"pkg/035/test_08.py\",\"pkg/035/test_09.py\"]},\"dispatch\":{\"wave\":1,\"baseline_sha256\":\"<digest>\",\"execution\":\"<execution>\"},\"briefs\":[{\"packet\":{\"schema_version\":1,\"slug\":\"000-card\",\"feature\":\"demo\",\"status\":\"ready\",\"category\":\"enhancement\",\"refines\":null,\"blocked_by\":[],\"test_paths\":[\"pkg/000/test_00.py\",\"pkg/000/test_01.py\",\"pkg/000/test_02.py\",\"pkg/000/test_03.py\",\"pkg/000/test_04.py\",\"pkg/000/test_05.py\",\"pkg/000/test_06.py\",\"pkg/000/test_07.py\",\"pkg/000/test_08.py\",\"pkg/000/test_09.py\"],\"touches\":[\"pkg/000\"],\"exclusive_resources\":[],\"parent\":[],\"objective\":[\"Deliver behavior 0.\"],\"acceptance\":[\"- [ ] Preserve the declared behavior.\"],\"verification\":[],\"context\":[],\"contract_sha256\":\"<digest>\",\"source\":\".scratch/demo/issues/000-card.md\"},\"receipt_hits\":[],\"shared_ref\":\"#/shared\"},{\"packet\":{\"schema_version\":1,\"slug\":\"001-card\",\"feature\":\"demo\",\"status\":\"ready\",\"category\":\"enhancement\",\"refines\":null,\"blocked_by\":[],\"test_paths\":[\"pkg/001/test_00.py\",\"pkg/001/test_01.py\",\"pkg/001/test_02.py\",\"pkg/001/test_03.py\",\"pkg/001/test_04.py\",\"pkg/001/test_05.py\",\"pkg/001/test_06.py\",\"pkg/001/test_07.py\",\"pkg/001/test_08.py\",\"pkg/001/test_09.py\"],\"touches\":[\"pkg/001\"],\"exclusive_resources\":[],\"parent\":[],\"objective\":[\"Deliver behavior 1.\"],\"acceptance\":[\"- [ ] Preserve the declared behavior.\"],\"verification\":[],\"context\":[],\"contract_sha256\":\"<digest>\",\"source\":\".scratch/demo/issues/001-card.md\"},\"receipt_hits\":[],\"shared_ref\":\"#/shared\"},{\"packet\":{\"schema_version\":1,\"slug\":\"002-card\",\"feature\":\"demo\",\"status\":\"ready\",\"category\":\"enhancement\",\"refines\":null,\"blocked_by\":[],\"test_paths\":[\"pkg/002/test_00.py\",\"pkg/002/test_01.py\",\"pkg/002/test_02.py\",\"pkg/002/test_03.py\",\"pkg/002/test_04.py\",\"pkg/002/test_05.py\",\"pkg/002/test_06.py\",\"pkg/002/test_07.py\",\"pkg/002/test_08.py\",\"pkg/002/test_09.py\"],\"touches\":[\"pkg/002\"],\"exclusive_resources\":[],\"parent\":[],\"objective\":[\"Deliver behavior 2.\"],\"acceptance\":[\"- [ ] Preserve the declared behavior.\"],\"verification\":[],\"context\":[],\"contract_sha256\":\"<digest>\",\"source\":\".scratch/demo/issues/002-card.md\"},\"receipt_hits\":[],\"shared_ref\":\"#/shared\"},{\"packet\":{\"schema_version\":1,\"slug\":\"003-card\",\"feature\":\"demo\",\"status\":\"ready\",\"category\":\"enhancement\",\"refines\":null,\"blocked_by\":[],\"test_paths\":[\"pkg/003/test_00.py\",\"pkg/003/test_01.py\",\"pkg/003/test_02.py\",\"pkg/003/test_03.py\",\"pkg/003/test_04.py\",\"pkg/003/test_05.py\",\"pkg/003/test_06.py\",\"pkg/003/test_07.py\",\"pkg/003/test_08.py\",\"pkg/003/test_09.py\"],\"touches\":[\"pkg/003\"],\"exclusive_resources\":[],\"parent\":[],\"objective\":[\"Deliver behavior 3.\"],\"acceptance\":[\"- [ ] Preserve the declared behavior.\"],\"verification\":[],\"context\":[],\"contract_sha256\":\"<digest>\",\"source\":\".scratch/demo/issues/003-card.md\"},\"receipt_hits\":[],\"shared_ref\":\"#/shared\"}]}\n"
+    },
+    "raw_supervisor": {
+      "normalized_outputs_equal": true,
+      "paired_delta": {
+        "median_ms": 4.845665999999994,
+        "median_ci95_ms": [
+          3.993166000000002,
+          5.8952919999999835
+        ]
+      },
+      "arms": {
+        "previous": {
+          "wall_ms": {
+            "p50": 138.948375,
+            "p95": 141.752583
+          },
+          "stdout_bytes": {
+            "p50": 276,
+            "p95": 276
+          },
+          "normalized_io": {
+            "utf8_bytes": 121,
+            "tokenizer_tokens": 31
+          },
+          "samples": [
+            {
+              "wall_ms": 135.53625,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 139.242166,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 138.475541,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 138.948375,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 138.936792,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 133.119708,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 139.46125,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 141.752583,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 143.7395,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 141.106833,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 137.665,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 137.639333,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 139.616167,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 139.825292,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 142.158583,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 141.429958,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 136.715833,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 139.79,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 135.618459,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 139.236625,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 138.050875,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 140.158792,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 138.649625,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 138.5435,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 135.350208,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 136.805292,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 138.976292,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 139.108834,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 139.493291,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 135.087209,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 137.795583,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            }
+          ]
+        },
+        "candidate": {
+          "wall_ms": {
+            "p50": 143.609333,
+            "p95": 146.927375
+          },
+          "stdout_bytes": {
+            "p50": 276,
+            "p95": 276
+          },
+          "normalized_io": {
+            "utf8_bytes": 121,
+            "tokenizer_tokens": 31
+          },
+          "samples": [
+            {
+              "wall_ms": 142.409,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 143.381792,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 144.217792,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 141.934333,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 141.018708,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 140.980375,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 146.927375,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 144.591167,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 144.070667,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 144.545875,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 188.341042,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 143.706291,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 143.609333,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 142.28025,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 144.276875,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 141.728208,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 142.611125,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 137.550291,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 142.733666,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 144.072667,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 142.081791,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 145.004458,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 146.876584,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 145.790834,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 157.878833,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 142.057541,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 144.992334,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 144.821459,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 143.3155,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 139.356542,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            },
+            {
+              "wall_ms": 143.044292,
+              "stdout_bytes": 276,
+              "normalized_io": {
+                "utf8_bytes": 121,
+                "tokenizer_tokens": 31
+              }
+            }
+          ]
+        }
+      },
+      "sample_output": "pass scope=targeted exit=0 duration=<elapsed> log=<repo>/.scratch/tmp/result.log receipt=<repo>/.scratch/tmp/result.json\n"
+    }
+  },
+  "actual_model_usage": {
+    "input_tokens": null,
+    "cached_input_tokens": null,
+    "output_tokens": null,
+    "generation_tokens_per_second": null
+  },
+  "limitations": [
+    "Local encoding counts selected text, not hidden prompts or billed provider usage",
+    "Not a model-run quality/speed evaluation or a UI measurement",
+    "One host; Linux/Windows runtime performance not measured",
+    "New managed batch API has no equivalent baseline and is excluded"
+  ]
+}

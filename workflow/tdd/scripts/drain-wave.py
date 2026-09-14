@@ -53,11 +53,13 @@
 # find_zombies — dispatched issues without ledger closure
 # chain_depths — downstream ready-chain length per slug
 # plan_waves — deterministic eligibility + ranking
+# batch_projection — persistent batch action for managed next/step queries
 # cmd_next — propose the collision-free wave (read-only)
 # cmd_step — next action + exact command for the driver
 # dispatch_receipt_hits — shared preflight tuples to receipt keys
 # _mutate — publish command output only after state publication
 # cmd_dispatch — record intent, baseline, receipts before any worker starts
+# qualified_scope — resolve feature/slug within one shared-tree wave
 # _dispatch — validate admission and stage the wave
 # cmd_collect — close a fully terminal wave atomically
 # _collect — validate execution results and stage complete reconciliation
@@ -216,15 +218,21 @@ def has_done_record(path):
 
 
 def feature_dirs(root, feat):
+    from workflow_batch import CONTROL_DIRS, reject_control_feature
     scratch = os.path.join(root, ".scratch")
     if feat:
+        if feat in CONTROL_DIRS:
+            raise ValueError("reserved workflow control directory: %s" % feat)
         return [os.path.join(scratch, feat)] if os.path.isdir(os.path.join(scratch, feat)) else []
     if not os.path.isdir(scratch):
         return []
+    names = os.listdir(scratch)
+    for name in names:
+        reject_control_feature(os.path.join(scratch, name))
     return sorted(
         os.path.join(scratch, n)
-        for n in os.listdir(scratch)
-        if os.path.isdir(os.path.join(scratch, n))
+        for n in names
+        if n not in CONTROL_DIRS and os.path.isdir(os.path.join(scratch, n))
     )
 
 
@@ -823,7 +831,23 @@ def plan_waves(issues, archived_done, parallel=True):
 
 
 @reading
+def batch_projection(root):
+    from workflow_batch import active_batch, batch_status
+    state = active_batch(root)
+    if state is None:
+        return None
+    result = batch_status(root, state["batch_id"])
+    print(json.dumps(result, ensure_ascii=False))
+    if result["action"] == "reconcile_execution":
+        return 3
+    return 0 if result["action"] == "dispatch_work" else 1
+
+
+@reading
 def cmd_next(root, feat):
+    batch_result = batch_projection(root)
+    if batch_result is not None:
+        return batch_result
     issues = load_issues(root, feat)
     if issues is None:
         return 1
@@ -870,6 +894,9 @@ def cmd_next(root, feat):
 
 @reading
 def cmd_step(root, feat, parallel=False):
+    batch_result = batch_projection(root)
+    if batch_result is not None:
+        return batch_result
     issues = load_issues(root, feat)
     if issues is None:
         return 1
@@ -1034,7 +1061,7 @@ def _mutate(root, action, *args):
             result = action(root, *args)
     except (OSError, ValueError) as exc:
         print("drain-wave: %s" % exc, file=sys.stderr)
-        return 1
+        return getattr(exc, "exit_code", 1)
     print(output.getvalue(), end="")
     return result
 
@@ -1043,11 +1070,24 @@ def cmd_dispatch(root, slugs, direct=False, feature=None):
     return _mutate(root, _dispatch, slugs, direct, feature)
 
 
+def qualified_scope(values, feature=None, pairs=False):
+    references = [value.split("=", 1)[0] if pairs else value for value in values]
+    if not any("/" in reference for reference in references):
+        return values, feature
+    if not all(reference.count("/") == 1 for reference in references):
+        raise ValueError("use feature/slug for every member in a qualified wave")
+    features = {reference.split("/", 1)[0] for reference in references}
+    if len(features) != 1 or (feature is not None and features != {feature}):
+        raise ValueError("qualified waves run one feature at a time; preserve the shared-tree barrier")
+    return [value.split("/", 1)[1] for value in values], features.pop()
+
+
 def _dispatch(root, slugs, direct=False, feature=None):
-    issues = load_issues(root, feature if direct else None)
+    slugs, feature = qualified_scope(slugs, feature)
+    issues = load_issues(root, feature)
     if issues is None:
         return 1
-    archived_done = load_archived_done(root, feature if direct else None)
+    archived_done = load_archived_done(root, feature)
     if archived_done is None:
         return 1
     if not slugs:
@@ -1070,6 +1110,8 @@ def _dispatch(root, slugs, direct=False, feature=None):
     done = {
         s for s, (_, _, fm) in issues.items() if fm.get("status") == "done"
     } | archived_done
+    from workflow_batch import active_batch
+    managed_batch = active_batch(root)
     for s in slugs:
         if s not in issues:
             print("drain-wave: unknown slug '%s'" % s, file=sys.stderr)
@@ -1079,6 +1121,10 @@ def _dispatch(root, slugs, direct=False, feature=None):
             print("drain-wave: %s is '%s', not ready" % (s, fm.get("status")), file=sys.stderr)
             return 1
         missing = [d for d in as_list(fm.get("blocked_by")) if d and d not in done]
+        if managed_batch and managed_batch["schema_version"] in (2, 3):
+            member = managed_batch["members"].get(issues[s][0] + "/" + s, {})
+            missing = [d for d in member.get("blocked_by", [])
+                       if d not in managed_batch["member_proofs"] and d not in member.get("external_done", [])]
         if missing:
             print(
                 "drain-wave: barrier violation - %s blocked by unfinished %s"
@@ -1177,6 +1223,10 @@ def _dispatch(root, slugs, direct=False, feature=None):
             if feat not in profiles:
                 profiles[feat] = load_verifier_profile(Path(root), feat)
             verifiers[slug] = effective_verifier(Path(root), feat, contracts[slug], profiles[feat])["effective_sha256"]
+    from workflow_batch import bind_dispatch
+    batch_id = bind_dispatch(root, execution, {
+        issues[slug][0] + "/" + slug: contracts[slug] for slug in slugs
+    })
     for feat, group in sorted(by_feat.items()):
         data = ledgers[feat]
         num = max((w["wave"] for w in data["waves"]), default=0) + 1
@@ -1202,6 +1252,9 @@ def _dispatch(root, slugs, direct=False, feature=None):
         )
         if any(slug in verifiers for slug in group):
             data["waves"][-1]["verifier_sha256"] = {slug: verifiers[slug] for slug in group if slug in verifiers}
+        if batch_id:
+            data["waves"][-1].update(batch_id=batch_id, protocol_version=2, kind="implementation",
+                                     issue_refs={slug: feat + "/" + slug for slug in group})
         save_ledger(root, feat, data)
         print("drain-wave: wave %d dispatched (%s) -> .scratch/%s/wave-ledger.json" % (num, ", ".join(sorted(group)), feat))
     if receipt_hits:
@@ -1223,6 +1276,7 @@ def cmd_collect(root, pairs, execution=None, feature=None):
 
 
 def _collect(root, pairs, execution=None, feature=None):
+    pairs, feature = qualified_scope(pairs, feature, pairs=True)
     issues = load_issues(root, feature)
     if issues is None:
         return 1
@@ -1343,6 +1397,11 @@ def _collect(root, pairs, execution=None, feature=None):
     if not plan:
         print("drain-wave: reported results were already collected; nothing to do")
         return 0
+    from workflow_batch import collect_batch
+    batch_ids = {hit.get("batch_id") for hit in hits.values()} - {None}
+    for batch_id in batch_ids:
+        collect_batch(root, batch_id, execution, {feat + "/" + slug: result
+                      for feat, slug, result, _ in plan if hits[slug].get("batch_id") == batch_id})
     for feat, data in sorted(ledgers.items()):
         names = ", ".join(slug for f, slug, _, _ in plan if f == feat)
         if not names:

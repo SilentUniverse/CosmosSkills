@@ -184,7 +184,7 @@ copy_file() {
 echo
 copy_file "$ROOT/workflow/ARTIFACT-FORMAT.md" "$TARGET/ARTIFACT-FORMAT.md" "Contract: ARTIFACT-FORMAT.md"
 copy_file "$ROOT/workflow/REPORT-FORMAT.md" "$TARGET/REPORT-FORMAT.md" "Contract: REPORT-FORMAT.md"
-for gate in verify-artifacts.py workflow-state.py workflow_contract.py workflow_runtime.py process_tree.py; do
+for gate in verify-artifacts.py workflow-state.py workflow_contract.py workflow_runtime.py TEST-POLICY.md test_governance.py test-governance.py workflow_batch.py checkpoint_store.py workflow_managed.py workflow_incremental.py workflow_jobs.py workflow_resources.py workflow_ui.py workflow_members.py process_tree.py; do
   copy_file "$ROOT/workflow/$gate" "$TARGET/$gate" "Gate: $gate"
 done
 for helper in eval.py eval_campaign.py eval_metrics.py; do
@@ -277,7 +277,7 @@ mirror_shared_root() {
   copy_file "$ROOT/workflow/verify-artifacts.py" "$skills_root/verify-artifacts.py" "Gate: verify-artifacts.py ($label)"
   copy_file "$ROOT/workflow/workflow-state.py" "$skills_root/workflow-state.py" "State: workflow-state.py ($label)"
   copy_file "$ROOT/workflow/workflow_contract.py" "$skills_root/workflow_contract.py" "Contract: workflow_contract.py ($label)"
-  for helper in workflow_runtime.py process_tree.py; do
+  for helper in workflow_runtime.py TEST-POLICY.md test_governance.py test-governance.py workflow_batch.py checkpoint_store.py workflow_managed.py workflow_incremental.py workflow_jobs.py workflow_resources.py workflow_ui.py workflow_members.py process_tree.py; do
     copy_file "$ROOT/workflow/$helper" "$skills_root/$helper" "Runtime: $helper ($label)"
   done
 
@@ -354,7 +354,7 @@ retire_zcode_mirror() {
   # The old installer also copied contract files here as real files, which
   # the link filter above never sees; remove those exact known names.
   local f
-  for f in ARTIFACT-FORMAT.md REPORT-FORMAT.md verify-artifacts.py workflow-state.py            workflow_contract.py workflow_runtime.py process_tree.py; do
+  for f in ARTIFACT-FORMAT.md REPORT-FORMAT.md verify-artifacts.py workflow-state.py            workflow_contract.py workflow_runtime.py TEST-POLICY.md test_governance.py test-governance.py workflow_batch.py checkpoint_store.py workflow_managed.py workflow_incremental.py workflow_jobs.py workflow_resources.py workflow_ui.py workflow_members.py process_tree.py; do
     [[ -f "$zcode_skills/$f" && ! -L "$zcode_skills/$f" ]] || continue
     if [[ "$DRY_RUN" -eq 1 ]]; then
       echo "[DryRun] Remove zcode contract copy: $zcode_skills/$f"

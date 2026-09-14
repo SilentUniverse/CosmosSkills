@@ -93,3 +93,11 @@ Tighten them or move them to 尚未明确. Equivalent designs: keep the shorter 
 argument; a real tie gets one line in 实现决策 naming the candidates and why the kept one
 argues shorter. Any decision made for an imagined future: justify it or park it. Done
 criterion: every named item rewritten or parked; every real design tie recorded.
+
+## Incremental scenes and human review
+
+Give shared user scenarios stable IDs and independent contract versions. Each review point names the
+scenes to judge, concrete human questions, engineering prerequisites and decision dependencies.
+Review points may cover several issues; PRDs, issues and review points are not one-to-one.
+Prefer the first usable vertical slice. Do not require review after an arbitrary issue count.
+Keep scenario requirements here; executable jobs and runtime state belong to the batch plan.

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "groups": {
+    "catalog": {"purpose": "Validate skill discovery, links and resident budgets", "owner": "workflow"},
+    "regression": {"purpose": "Execute Python behavior and integration regressions on all supported OSes", "owner": "workflow"},
+    "windows": {"purpose": "Run native PowerShell and shell guard contracts", "owner": "tooling"},
+    "ui": {"purpose": "Exercise actual browser failure, repair and fixed delivery", "owner": "workflow UI"},
+    "packaging": {"purpose": "Build and run native fixed artifacts on each target platform", "owner": "workflow delivery"}
+  },
+  "always": ["catalog"],
+  "rules": [
+    {"paths": ["README.md", "docs/*", "LICENSE*", ".gitignore"], "groups": ["catalog"]},
+    {"paths": ["claude/*", "workflow/*/SKILL.md", "workflow/spec/*.md", "workflow/tdd/*.md", "workflow/*.md"], "groups": ["catalog", "regression"]},
+    {"paths": ["workflow/tdd/UI-TESTING.md", "workflow/workflow_ui.py", "workflow/tdd/scripts/playwright-reporter.cjs", "tests/ui_fixture/*", "scripts/check-ui-fixture.py"], "groups": ["regression", "ui"]},
+    {"paths": ["tests/packaging_fixture/*", "scripts/check-native-packaging.py"], "groups": ["regression", "packaging"]},
+    {"paths": ["workflow/process_tree.py", "workflow/checkpoint_store.py", "workflow/workflow_*.py", "workflow/workflow-state.py", "workflow/tdd/scripts/test-supervisor.py", "workflow/tdd/scripts/drain-wave.py"], "groups": ["regression", "ui", "packaging"]},
+    {"paths": ["workflow/test_governance.py", "workflow/test-governance.py", "scripts/run-tests.py", "tests/test_*.py", "scripts/validate-skills.py", "scripts/benchmark-*.py"], "groups": ["regression"]},
+    {"paths": ["scripts/install.*", "install.cmd", "workflow/verify-*", "workflow/test-verify-*", "tooling/*"], "groups": ["catalog", "regression", "windows"]},
+    {"paths": [".github/*", "tests/test-policy.json", "scripts/ci-scope.py", "AGENTS.md"], "groups": ["catalog", "regression", "windows", "ui", "packaging"]}
+  ]
+}

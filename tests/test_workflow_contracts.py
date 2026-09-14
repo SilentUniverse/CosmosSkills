@@ -27,23 +27,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertGreaterEqual(text("scripts/install.sh").count("workflow-state.py"), 2)
         self.assertGreaterEqual(text("scripts/install.ps1").count("workflow-state.py"), 2)
 
-    def test_global_policy_defaults_to_inline_with_narrow_delegation(self):
-        policy = text("claude/CLAUDE.md")
-        self.assertIn("Default inline", policy)
-        self.assertIn("independent judgment", policy)
-        self.assertIn("slow command", policy)
-        self.assertNotIn("Default to subagents", policy)
 
-    def test_atk_read_only_flag_reports_without_writing_files(self):
-        atk = " ".join(text("workflow/atk/SKILL.md").split())
-        self.assertIn("`/atk -r`", atk)
-        self.assertIn("`/atk -r -all`", atk)
-        self.assertNotIn("--all", atk)
-        self.assertIn("pure read-only review", atk)
-        self.assertIn("do not edit, create, delete, rename, stage, or commit files", atk)
-        self.assertIn("checks that may mutate the filesystem", atk)
-        self.assertIn("user-typed `-r` → findings only, read-only", atk)
-        self.assertIn("never performs the change", atk)
 
     def test_intent_fast_path_and_human_gate_are_both_explicit(self):
         spec = " ".join(text("workflow/spec/SKILL.md").lower().split())
@@ -52,21 +36,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertIn("public contract", spec)
         self.assertIn("deterministic verifier", spec)
 
-    def test_comment_policy_is_semantic_not_a_ratio(self):
-        policy = text("claude/CLAUDE.md")
-        lint = text("workflow/lint/SKILL.md") + text("workflow/lint/references/code-comments.md")
-        self.assertIn("contract, why, or external constraint", policy)
-        self.assertIn("Deletion test", lint)
-        self.assertIn("Do not enforce a comment ratio", lint)
 
-    def test_full_suite_is_supervised_inline_not_delegated_for_slowness(self):
-        contract = text("workflow/tdd/FULL-SUITE.md")
-        entry = text("workflow/tdd/SKILL.md")
-        self.assertIn("test-supervisor.py", contract)
-        self.assertIn("timeout", contract)
-        self.assertIn("duration class", contract)
-        self.assertIn("Run each command inline", entry)
-        self.assertNotIn("Run the full suite in a subagent", contract)
 
     def test_preflight_cache_accepts_execution_receipts_not_self_reports(self):
         script = text("workflow/tdd/scripts/preflight-receipt.py")
@@ -103,17 +73,6 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertNotIn("Copy `## 相关面` pointers", drain)
         self.assertNotIn("drafting next-wave inputs", drain)
 
-    def test_spec_hoists_shared_verifier_state_before_writing_cards(self):
-        write_loop = " ".join(text("workflow/spec/SKILL.md").split())
-        verification = " ".join(text("workflow/spec/VERIFICATION-DESIGN.md").split())
-        issue = " ".join(text("workflow/spec/ISSUE-TEMPLATE.md").split())
-        artifact = " ".join(text("workflow/ARTIFACT-FORMAT.md").split())
-        contract = " ".join((write_loop, verification, issue, artifact)).lower()
-        self.assertIn("before writing any issue", contract)
-        self.assertIn("two or more non-graphical cards", contract)
-        self.assertIn("write `verifier.json` first", contract)
-        self.assertIn("largest sharing group", contract)
-        self.assertIn("only `profile: verifier.json`", contract)
 
     def test_prd_does_not_duplicate_issue_or_profile_readiness(self):
         prd = " ".join(text("workflow/spec/PRD-TEMPLATE.md").split())

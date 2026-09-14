@@ -1,21 +1,23 @@
 ---
 name: spec
 description: >-
-  Use when the user explicitly asks for a plan or specification, or when a durable work queue or consequential product-boundary decision needs planning. Produces a reviewable, execution-ready plan and waits for user review before implementation; tdd owns implementation.
+  Use when the user explicitly asks for a plan or specification, or when a durable work queue or consequential product-boundary decision needs planning. Plans requirements and execution readiness; honors plan-only review and continues authorized implementation through tdd.
 argument-hint: "The need — anything from one line to a full design"
-disable-model-invocation: true
 ---
 
 # Spec
 
-Owns planning and execution readiness. By default, deliver the usable plan and wait for user review
-before implementation, including when an implementation task routes here. A general implementation
-request or earlier authorization does not waive this review checkpoint. Continue only when the user
-accepts the presented plan for implementation, invokes `/tdd` for it, or explicitly requests planning
-followed by implementation without waiting. An explicit plan-only request ends with the plan.
-Agent self-review, review-only requests, and `ready` status do not supply user acceptance.
-Acceptance remains valid for an unchanged plan and contract-preserving repairs; changes to outcome,
-scope, or public contract return the affected plan to user review.
+Owns requirements, incremental planning and execution readiness. A plan-only request returns the
+complete reviewable plan. An implementation request authorizes routine planning and implementation
+within its stated scope; hand off to TDD in the same task. Honor an explicitly pending plan review.
+Acceptance follows the agreed outcome, constraints and public contract, including later repairs and
+internal slices. Only a new unresolved material decision holds its dependent work. User-requested
+changes supply their stated authorization; do not ask for the same decision again.
+
+Before modifying or retiring an issue, its verifier or shared setup, inspect current assignments.
+Running issues still have `ready` status. Prepare a revision separately and apply it after affected
+workers return; independent additions continue. Preserve completed contracts and proofs. New details
+use detail issues, changed contracts use redo, and defects after delivery use linked fix issues.
 
 This phase may run declared setup and representative verifier preflights; it does not write product
 behavior. Resolve routine details and finish the reviewable plan before waiting.
@@ -30,9 +32,9 @@ Intent has two paths:
   Ask the remaining decisions together and hold only their dependent work. Missing implementation
   detail, card boundaries, or a previously authorized change does not reopen alignment.
 
-The receipt is conversation state, not a third issue state. Confidence never closes a decision
-frontier. A settled request does because the user already supplied the decision. A graphical UI may
-opt into an agent-runnable experience contract; non-graphical work creates no experience artifact.
+The receipt is conversation state, separate from issue engineering status. Confidence never closes a decision
+frontier. A settled request already supplies the decision. Only graphical UI loads
+[UI verification](../tdd/UI-TESTING.md); experience grading is opt-in.
 
 ## 1. Locate
 
@@ -60,6 +62,9 @@ area's `CODEBASE.md` block (two-axis); don't pause to offer.
 Use `/prototype` only when a concrete unresolved design question is cheaper to answer with a runnable
 experiment. Wide refactors use expand → migrate → contract; each batch stays green.
 
+When choosing verification groups, triggers or test-cost constraints, apply
+[test policy](../TEST-POLICY.md). Preserve required delivery gates and choose conservative influence boundaries.
+
 A proposed coverage, size, or timing bar →
 [NON-FUNCTIONAL-BARS.md](NON-FUNCTIONAL-BARS.md).
 
@@ -75,7 +80,7 @@ For a queue or delegated work, read [CARD-TEST.md](CARD-TEST.md) to choose indep
 [issue schema](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd) when writing cards.
 Load each selected instruction once; reuse it across cards until it changes.
 
-Before writing any issue:
+Before marking an issue ready:
 
 1. Resolve code/environment facts and consequential open decisions. An `UNVERIFIED:` claim cannot
    support an AC or readiness. Continue independent settled units; unresolved required work stays
@@ -83,7 +88,7 @@ Before writing any issue:
 2. Run the representative P# preflights after durable repo-declared setup. Record cwd, prerequisites,
    observed result, evidence, date, and fingerprint per verification design. Reuse an identical
    just-observed action when cwd, prerequisites, preparation, and fingerprint are unchanged.
-   Missing readiness holds the affected cards out of the queue. Ask only about new consequential
+   Known engineering work with a concrete readiness gap stays `pending` with `pending_reason`; vague future work stays in requirements. Ask only about new consequential
    choices or authority; routine setup is part of this phase.
 3. Choose verifier ownership per verification design. Two or more non-graphical cards sharing a
    base use the largest sharing group: write `verifier.json` first, then its v3 cards. Other groups
@@ -105,9 +110,9 @@ recorded preflight; TDD replays it before editing. A new public seam, irreversib
 slice DAG, or uncertain proof calls `/atk` on those artifacts. Fix contract-preserving defects
 directly; reopen only decisions whose outcome, public contract, cost, authority, or proof changes.
 
-Remove an invalid newly written card and its newly written dependents from the active queue into
-`.scratch/tmp/`, preserving diagnostics. Leave unrelated settled cards ready and name the missing
-readiness or decision. Introduce no third issue status.
+Keep valid pending cards visible with their missing readiness. Repair malformed fields separately;
+never manufacture passed preflight for pending work. Ready requires a complete contract and observed
+preflight. Engineering dependencies and manual obligations remain separate from this three-state vocabulary.
 
 After corrections, run `python <skills-root>/verify-artifacts.py <repo-root> --feature <feat>`.
 Here `<skills-root>` contains `ARTIFACT-FORMAT.md`; in this checkout it is `workflow/`. Use `python3`
@@ -115,6 +120,6 @@ only if `python` is missing, never as a retry for a gate failure. Re-run only af
 The whole-tree form remains the batch-close/CI/migration gate.
 
 Return written paths or the inline plan, material assumptions, actual evidence, and unresolved
-decisions. Apply the review checkpoint above before handing the cards or inline contract to TDD.
-While review is pending, end with the complete plan and state that implementation awaits user review.
-After acceptance, continue in the same task without another confirmation or session reset.
+decisions. Honor the request’s planning or execution scope when handing the cards or inline contract to TDD.
+When the user requested plan review, present the complete plan. Otherwise continue authorized work
+in the same task without another confirmation or session reset.

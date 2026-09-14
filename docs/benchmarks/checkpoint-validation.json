@@ -1,0 +1,204 @@
+{
+  "schema_version": 1,
+  "baseline": "7c4d53edd8e8440fe1252d4417c607b01e0d5d07",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "python": "3.9.6",
+  "candidate_sha256": {
+    "tests/test_managed_workflow.py": "2a3ce14de38f0888bcc9585779aac0f5432a613337891e139010890f6cbef7df",
+    "tests/test_test_supervisor.py": "fae2b67769fa39522b553eb84b4d19d871af29a4c3b52fa174467f5e5884151e",
+    "tests/test_workflow_batch.py": "7e4f37dc62c9dd8547a11a763ef257aa853ed7b03f875342154689f6a1291b18",
+    "tests/test_workflow_contracts.py": "9fef5888de2d43bca53a6c08038e4797b3b5a25fad2f79097b428e466aab531d",
+    "tests/test_workflow_resources.py": "8666143f3f15eefd5be7ee89aedf5dfba77ef3083be6049bee1436bf0451ff9b",
+    "tests/test_workflow_runtime.py": "81dbdc857073d5d251d86f26506d57f4ad9eca96b0726ed607b528d335d9e161",
+    "tests/test_workflow_state.py": "394adbd2b8448625714a96be62a72fa1770124cd5647b2df52d4629e3e499fa4",
+    "tests/test_workflow_ui.py": "71153ac0f30e326435be90ae8c76d9c036246507e82c53d54d0e11b3b0766c07",
+    "workflow/checkpoint_store.py": "d9841cf5dc82ad9f51a8ee08f070488ec038f69ab07a69b38ac96257a7325584",
+    "workflow/process_tree.py": "93d5f49621058518f7b34af9f3838c4e0c228c961ecd58dd3ed85a0ece23a067",
+    "workflow/tdd/scripts/drain-wave.py": "c09715c4b4d4d7d7b1b583086efa28de5bd5c1c9cab6c7ab5f9641437a964b82",
+    "workflow/tdd/scripts/preflight-receipt.py": "75e699b8347829dec3e48e231bf2a42cf4f43ccf588ba664522566d14baad2e6",
+    "workflow/tdd/scripts/test-supervisor.py": "669bab7cca60666070d47261f3d3f1b335bde4ebfaaad9e3cf8cb5c4ab4af6dd",
+    "workflow/verify-artifacts.py": "0557c17828ff71a21f2240365bbb4949a887f893cff02584a448f6944eacdd2c",
+    "workflow/workflow-state.py": "01abb9fe3b455f14a84e9beea46950144d736c0e9be93e2dad479b7ec0846bc3",
+    "workflow/workflow_batch.py": "ec30110017ff5e0c107f2a11de313927ee26f7fe769fcae21051f1314736115e",
+    "workflow/workflow_contract.py": "66df58b89eb6948366d7d6d09bb14f83a32424a5625f4b5cba17f52661defb6b",
+    "workflow/workflow_jobs.py": "8337f7e8745eca7264dea8ed390d385869edf9e4e2b541cc4a97eee40a247776",
+    "workflow/workflow_managed.py": "2dca66d898ac379d7b37579d2f837ee41ef068c9f179ac11fe241077322c313b",
+    "workflow/workflow_members.py": "cc05ca2ca2095f238d20f87172b93e171b4f5474083abe7010438af14420e63a",
+    "workflow/workflow_resources.py": "d08e5b237bc5ea185c6aa7bbb8cb983581f6e9f30d7e7733778fd4230d9cd7e2",
+    "workflow/workflow_runtime.py": "765719189de7cb24d79ccd9ada7f602b06833824007471197373191f79217207",
+    "workflow/workflow_ui.py": "b28f5306b5adb356edf2852317832f630f9f4a11a180c12bcd0eda996e402b8b"
+  },
+  "integrated_tests": {
+    "status": "passed",
+    "tests": 398,
+    "skipped": 3,
+    "receipt": {
+      "argv": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests"
+      ],
+      "argv_style": "posix",
+      "cwd": "/Users/hys/Code/CosmosSkills",
+      "duration_class": "normal",
+      "duration_seconds": 57.545245,
+      "ended_at": "2026-09-13T19:22:53.125307+00:00",
+      "exit_code": 0,
+      "git": {
+        "dirty": true,
+        "dirty_digest": "8b5c49efee2132c1f0960a8e3492c6b0f5b3dbd087b8633df60a187a99287dd2",
+        "head": "7c4d53edd8e8440fe1252d4417c607b01e0d5d07"
+      },
+      "log": "/Users/hys/Code/CosmosSkills/.scratch/tmp/checkpoint-integrated.log",
+      "log_sha256": "b3a282b9d3b37bc83afcc536b76fd608366f8228aba3a11af6afe60ac8f0f3cd",
+      "outcome": "pass",
+      "runtime": {
+        "platform": "macOS-26.6.2-arm64-arm-64bit",
+        "python": "3.9.6"
+      },
+      "schema_version": 1,
+      "scope": "full",
+      "started_at": "2026-09-13T19:21:55.579655+00:00",
+      "timeout_seconds": 180.0
+    },
+    "log_path": ".scratch/tmp/checkpoint-integrated.log"
+  },
+  "skill_validation": {
+    "status": "passed",
+    "command": [
+      "python3",
+      "scripts/validate-skills.py"
+    ],
+    "skills": 29,
+    "markdown_files": 127,
+    "description_bytes": 6927,
+    "resident_policy_bytes": 7439
+  },
+  "fixtures": [
+    {
+      "result_path": ".scratch/tmp/native-pyi-final/result.json",
+      "result_sha256": "2857a16a1cc296b3cf8810f80805806b34355e7bb1159b3ff12df75a0672f33d",
+      "result": {
+        "checkpoint_ref": "11be9c3dabc2f9307b4a22def23086ca8dfb435a081552780fe6746363e35e90",
+        "artifact_digest": "2b08238919d4908d8c77a624fa40724d1d764ec0d89ebb8735281ad7b8aff8b7",
+        "directory": "/Users/hys/Code/CosmosSkills/.scratch/tmp/native-pyi-final/release",
+        "behavior_checks": {
+          "native-behavior": "4715fc776f39b2dee164878c32ce3702743e13fa7bfa1bf9d1c30721ffd79a75"
+        },
+        "archive": "/Users/hys/Code/CosmosSkills/.scratch/tmp/native-pyi-final/release.tar.gz",
+        "archive_sha256": "805599a04933203a3c476d2b9f560a1b89158d0e42a30ba4d3fdf1ba437d2784",
+        "kind": "pyinstaller-onefile",
+        "build_verify_seconds": 6.21,
+        "export_extract_run_seconds": 0.877,
+        "platform": "macOS-26.6.2-arm64-arm-64bit",
+        "machine": "arm64",
+        "direct_binary_result": "42"
+      },
+      "scope": "actual macOS fixture execution; retained checkpoint identity, not a cross-platform certification"
+    },
+    {
+      "result_path": ".scratch/tmp/native-pyi-onedir/result.json",
+      "result_sha256": "3684fbbab0bb7024dc74d43bac6a04f27a938a6df1b72161a832234ef5725a9d",
+      "result": {
+        "checkpoint_ref": "70c474d5c466ca0bab28a25df53b0147034d91b6dc3d76c8cc767f3af239865e",
+        "artifact_digest": "326b8e936b98bc6d701d34f80354e88c765969b536b57099d6322daabb3f9e94",
+        "directory": "/Users/hys/Code/CosmosSkills/.scratch/tmp/native-pyi-onedir/release",
+        "behavior_checks": {
+          "native-behavior": "fba81b81635f0ba921efb836122bc8d8f44a2f2ee9f16eac7b24090890417ec7"
+        },
+        "archive": "/Users/hys/Code/CosmosSkills/.scratch/tmp/native-pyi-onedir/release.tar.gz",
+        "archive_sha256": "c7592665437b7523e8b88f0b9a4ec9c08f1fa4d0497b9f214a5c94dc434d5e35",
+        "kind": "pyinstaller-onedir",
+        "build_verify_seconds": 4.482,
+        "export_extract_run_seconds": 1.63,
+        "platform": "macOS-26.6.2-arm64-arm-64bit",
+        "machine": "arm64",
+        "direct_binary_result": "42"
+      },
+      "scope": "actual macOS fixture execution; retained checkpoint identity, not a cross-platform certification"
+    },
+    {
+      "result_path": ".scratch/tmp/native-node-sea/result.json",
+      "result_sha256": "cb7c766c24190dae93eb0948f389d4be13e826c69b51ad8faa37eb8663ddc77a",
+      "result": {
+        "checkpoint_ref": "e58c6c8be26e8b6525f6205c8ab44f73a98bc748ed84e93f7eb9c67a581d6a1f",
+        "artifact_digest": "6877f858d31286978420fd267d3aacef957bec18733b090b2900f1f9e00b2c19",
+        "directory": "/Users/hys/Code/CosmosSkills/.scratch/tmp/native-node-sea/release",
+        "behavior_checks": {
+          "native-behavior": "8e78331365f17a55a3ca485cb29cbd3d8a9e5d283af5f55d1467a7ec39070371"
+        },
+        "archive": "/Users/hys/Code/CosmosSkills/.scratch/tmp/native-node-sea/release.tar.gz",
+        "archive_sha256": "513d8edc721263f96e2ed0e6eb777531286a947659fae0a886f880b3113b0433",
+        "kind": "node-sea",
+        "build_verify_seconds": 12.434,
+        "export_extract_run_seconds": 10.871,
+        "platform": "macOS-26.6.2-arm64-arm-64bit",
+        "machine": "arm64",
+        "direct_binary_result": "42"
+      },
+      "scope": "actual macOS fixture execution; retained checkpoint identity, not a cross-platform certification"
+    },
+    {
+      "result_path": ".scratch/tmp/ui-checkpoint-final-guarded/result.json",
+      "result_sha256": "e8c405b34df4bc5cdf8caaf930c2c58da6815965fae4b909db0eff1f35548303",
+      "result": {
+        "batch_id": "8d493268195a4190a4fe9c0cb181196e",
+        "checkpoint_ref": "4835ca046669f7295d743269a110d20ff7de3b197b2ea4c222e58224bd3e435f",
+        "negative_control": "repair",
+        "final_status": "closed",
+        "project": "/Users/hys/Code/CosmosSkills/.scratch/tmp/ui-checkpoint-final-guarded/project",
+        "proofs": {
+          "browser": {
+            "passed": true,
+            "receipt_ref": "e33ecec9c959f0ace3d7a86793db956ba62114818657b6a2458e1e3a4615c72c",
+            "run_id": "95e0a2fda7755c77ad83b21aa4e26441"
+          },
+          "build": {
+            "passed": true,
+            "receipt_ref": "8f5ca04460fe26bc7b85bc8f69d0a1e3b99957b2697d228f5b7c8e301d88ae4b",
+            "run_id": "c5a41e65d9cc508d9ab7cbd65ba8e1f1"
+          }
+        }
+      },
+      "scope": "actual macOS fixture execution; retained checkpoint identity, not a cross-platform certification"
+    }
+  ],
+  "model_run_evaluation": {
+    "status": "not_run",
+    "input_tokens": null,
+    "output_tokens": null,
+    "generation_tokens_per_second": null
+  },
+  "limits": [
+    "Native Linux and Windows CI configured but not executed in this session.",
+    "No real hardware device or commercial code-signing validation.",
+    "The 144-case traceability inventory distinguishes exact, representative and unexecuted scenarios.",
+    "No measured end-to-end model quality, time or token improvement claim."
+  ],
+  "shell_guardrails": {
+    "status": "passed",
+    "platform": "unix",
+    "cases": 176,
+    "missed": 0,
+    "false_positives": 0,
+    "errors": 0,
+    "command": [
+      "python3",
+      "tooling/shell-guardrails/run_corpus.py",
+      "tooling/shell-guardrails/scripts/guard-shell.py",
+      "--platform",
+      "unix"
+    ]
+  },
+  "final_scoped_review": {
+    "kind": "independent_read_only_atk",
+    "scope": [
+      "workflow/process_tree.py --run-owned SIGTERM handler",
+      "tests/test_test_supervisor.py managed TERM/controller-exit regression"
+    ],
+    "result": "No remaining counterexample identified within this delta; tests were imported from the completed full suite, not repeated by the reviewer."
+  }
+}

@@ -1,6 +1,6 @@
 # tdd — Full-suite check (§5 detail)
 
-Load only for the automatic batch close or `/tdd -all`. Scoped RED/GREEN cycles do not read it.
+Load for required delivery-candidate integration checks, final completion or `/tdd -all`. Scoped RED/GREEN cycles do not read it.
 
 ## Execution contract
 
@@ -18,7 +18,7 @@ evidence a completion record can reference; name them `<owner>-<scope>.json` (is
 single card, feature for batch closes) so batch commands never overwrite an issue's receipt. Logs
 stay under `.scratch/tmp/`. Scopes are `preflight`, `targeted`, `module`, `full`, `build`, or
 `other`. The receipt records exact argv, cwd, git state, outcome, exit code, duration,
-budget-relative duration class, log digest, and timeout/termination details when applicable. Use
+legacy timeout-pressure duration class, independent performance observation, log digest, and timeout/termination details when applicable. Use
 the project's known budget; when none exists, choose one explicit budget from
 recent local or CI evidence and report that assumption.
 
@@ -36,8 +36,8 @@ the environment.
 - Timeout: the receipt carries the log tail (last active test or phase). Rerun once at the
   narrowest scope that still shows the hang — for pytest, the single last active node; a second
   timeout routes to `/diagnose`. Never retry unbounded.
-- `slow` or `near-timeout`: keep the receipt as evidence and classify the next investigation by
-  scope. For pytest, add native `--durations=<N>` on the next bounded run when per-test timing is
+- `slow` or `near-timeout` in the legacy duration class indicates timeout pressure, not a performance regression.
+  Compare a fixed baseline through [test policy](../TEST-POLICY.md); raising timeout cannot change that comparison. For pytest, add native `--durations=<N>` on the next bounded run when per-test timing is
   needed; do not make ordinary runs verbose.
 
 Read the full log only when the bounded summary cannot identify the failure. Receipt and log are
@@ -45,6 +45,6 @@ evidence; agent prose is not.
 
 ## When to run
 
-- Once after the last issue in a drain batch reaches `done`: full suite plus build.
+- At the final combined candidate: full suite plus applicable build. Earlier review candidates run their declared integration checks. Reuse identical valid evidence; relevant changes require reruns.
 - Immediately for `/tdd -all` or an explicit whole-suite request.
 - Never per issue unless that issue's verifier contract requires it.

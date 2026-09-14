@@ -1,6 +1,8 @@
 import hashlib
 import json
 import os
+import socket
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -12,6 +14,51 @@ import workflow_runtime as runtime
 
 
 class WorkflowRuntimeTests(unittest.TestCase):
+    def test_concurrent_readers_exclude_writer_across_processes(self):
+        with tempfile.TemporaryDirectory() as directory, socket.socket() as listener:
+            lock = Path(directory) / "admission.lock"
+            lock.touch()
+            listener.bind(("127.0.0.1", 0))
+            listener.listen(1)
+            listener.settimeout(10)
+            code = (
+                "import socket,sys; from pathlib import Path; "
+                "sys.path.insert(0, sys.argv[1]); import workflow_runtime as r\n"
+                "with r.file_lock(Path(sys.argv[2]), shared=True):\n"
+                " with socket.create_connection(('127.0.0.1', int(sys.argv[3])), timeout=10) as s:\n"
+                "  s.sendall(b'ready'); s.recv(1)\n"
+            )
+            process = subprocess.Popen([sys.executable, "-B", "-c", code,
+                                        str(Path(runtime.__file__).parent), str(lock),
+                                        str(listener.getsockname()[1])], stderr=subprocess.PIPE)
+            try:
+                connection, _ = listener.accept()
+                with connection:
+                    self.assertEqual(b"ready", connection.recv(5))
+                    with runtime.file_lock(lock, shared=True):
+                        with self.assertRaisesRegex(ValueError, "busy"), runtime.file_lock(lock):
+                            self.fail("writer entered while readers were active")
+                    connection.sendall(b"x")
+                _, error = process.communicate(timeout=10)
+                self.assertEqual(0, process.returncode, error)
+                with runtime.file_lock(lock):
+                    pass
+            finally:
+                if process.poll() is None:
+                    process.kill()
+                process.communicate()
+
+    def test_recovery_advice_never_discards_a_partial_publication(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pending = root / ".scratch/.workflow-pending.json"
+            pending.parent.mkdir()
+            pending.write_text("{}", encoding="utf-8")
+            with self.assertRaises(ValueError) as caught:
+                runtime.require_settled(root)
+            self.assertNotIn("or delete", str(caught.exception))
+            self.assertIn("preserve", str(caught.exception))
+
     def test_partial_publication_recovers_before_the_next_mutation(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -75,7 +122,7 @@ class WorkflowRuntimeTests(unittest.TestCase):
                 pass
             self.assertEqual([], list(root.iterdir()))
 
-    @unittest.skipUnless(os.name == "nt", "msvcrt lock path")
+    @unittest.skipUnless(os.name == "nt", "Windows file lock path")
     def test_shared_lock_retries_until_the_holder_releases(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / ".scratch/.workflow.lock"
@@ -96,7 +143,7 @@ class WorkflowRuntimeTests(unittest.TestCase):
             self.assertGreaterEqual(len(calls), 3)
             self.assertTrue(sleeps)
 
-    @unittest.skipUnless(os.name == "nt", "msvcrt lock path")
+    @unittest.skipUnless(os.name == "nt", "Windows file lock path")
     def test_shared_lock_reports_busy_after_the_bounded_retries(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / ".scratch/.workflow.lock"

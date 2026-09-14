@@ -41,7 +41,7 @@ Until every worker closes, repeat a bounded supervision loop:
    extra status call. Check events against the packet, declared paths, first test, and verifier;
    silence alone is not drift.
 2. Between checks, fill the bounded interval with one RED/GREEN action, evidence/ownership review
-   for returned work, reconciliation preparation for this wave, or other read-only close-out work.
+   for returned work, reconciliation preparation for this wave, or immutable-candidate verification/delivery preparation for a managed batch.
    Do not spend a remote call before every short local action.
 3. If no safe work remains, use one cursor-aware wait of up to about one minute. Do not busy-poll,
    reread full worker history, or request periodic prose status.
@@ -57,7 +57,7 @@ Until every worker closes, repeat a bounded supervision loop:
 
 While workers remain, the orchestrator may write only its assigned issue's declared paths and its
 own workflow artifacts. Shared state changes go through the owning script; `.scratch` is not an
-unrestricted shared write area. Outside that scope, only read-only inspection is allowed. Do not launch the batch suite
+unrestricted shared write area. Outside that scope, only read-only inspection or managed checks in an already captured isolated candidate are allowed. Do not launch a live-tree batch suite
 or shared-cache preflight. Unassigned activity drifts fingerprints and blurs path ownership. Do not
 materialize next-wave packets, briefs, or manifests while the wave is open; they would be stale by
 construction. After reconciliation rerun `step` and generate the next wave's inputs once. Do not
@@ -66,3 +66,9 @@ every worker diffs against the same recorded baseline. Dispatch
 the next wave as soon as the ledger closes. This fixed shared-tree barrier may leave a short-lived
 free slot, but prevents a refill from inheriting moving sibling edits and turning ownership review
 into an ambiguous multi-baseline merge.
+
+
+For incremental batches, service `batch-run --background` and pending notification events at safe
+boundaries. Deliveries and checks already bound to an immutable candidate can progress while the
+main agent's implementation task remains unfinished. Request safe return before a new capture;
+never claim the shared working tree is fixed while a wave is still writing.

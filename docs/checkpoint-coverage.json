@@ -1,0 +1,2518 @@
+{
+  "schema_version": 2,
+  "kind": "checkpoint_and_incremental_requirement_traceability",
+  "baseline": "7c4d53edd8e8440fe1252d4417c607b01e0d5d07",
+  "sources": [
+    {
+      "original_path": "docs/cosmos_checkpoint_implementation_v1_1/regression_matrix.json",
+      "sha256": "028b2aba00c383a7c6864f2061d4739160996203e00825161afb0041c39eb850",
+      "disposition": "superseded design input; original case wording retained here"
+    },
+    {
+      "original_path": "docs/cosmos_checkpoint_ui_implementation_plan_v2.md",
+      "sha256": "31e7edebaea297d385494f89e797d6c10c2739bcc78ee1480dc5b8bf89211e6f",
+      "disposition": "superseded design input; original case wording retained here"
+    }
+  ],
+  "count": 144,
+  "status_semantics": {
+    "implemented_protocol": "current runtime protocol exists; this does not claim every exact scenario was executed",
+    "verified": "specific retained deterministic or real-fixture evidence; platform limits still apply",
+    "partial_or_unexecuted_exact_scenario": "representative implementation/test coverage; do not count as passed original case"
+  },
+  "cases": [
+    {
+      "id": "R001",
+      "group": "批次",
+      "scenario": "最后一波 collect 后、全量启动前进程崩溃；无 handoff",
+      "expected": "恢复同一 batch 并执行未完成 final；不得返回成功",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": [
+        "tests/test_managed_workflow.py::test_external_runner_drives_verification_without_a_model_or_nested_lock"
+      ]
+    },
+    {
+      "id": "R002",
+      "group": "批次",
+      "scenario": "run intent 写入后、进程启动确认前崩溃",
+      "expected": "保持 unresolved；核对是否启动，不盲重试或退预算",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": [
+        "tests/test_managed_workflow.py::test_admitted_run_prevents_abort_and_can_be_cancelled_without_launch"
+      ],
+      "verification_limit": "The test admits without launching and verifies recovery; it does not kill a controller in the publication window."
+    },
+    {
+      "id": "R003",
+      "group": "批次",
+      "scenario": "验证通过后、receipt 发布前进程被强制终止",
+      "expected": "不能由临时日志/模型文本推断完成，恢复或重新验证",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": [
+        "tests/test_managed_workflow.py::test_killed_controller_recovers_only_after_observed_process_termination"
+      ]
+    },
+    {
+      "id": "R004",
+      "group": "批次",
+      "scenario": "receipt 已发布、final_proof 尚未提交后重启",
+      "expected": "校验同一证据后幂等完成，不重复副作用",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R005",
+      "group": "批次",
+      "scenario": "关闭已提交但父级未收到响应，再次 close",
+      "expected": "返回既有结论，不重复关闭或扣费",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R006",
+      "group": "批次",
+      "scenario": "队列为空但 requirement 没有建卡且仍未验证",
+      "expected": "保持 outstanding，不能完成",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R007",
+      "group": "批次",
+      "scenario": "模型正常退出，但全量报告缺失或失败",
+      "expected": "runner 返回未完成/失败，不把 exit0 当证明",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R008",
+      "group": "批次",
+      "scenario": "两个 feature 同时拥有 01-init",
+      "expected": "使用 feature/slug 正确分派与归账，无串卡",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R009",
+      "group": "批次",
+      "scenario": "同 workspace 第二协调者启动",
+      "expected": "拒绝同时拥有控制权；不删除旧锁",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R010",
+      "group": "批次",
+      "scenario": "多文件发布完成一半，另一文件被外部修改",
+      "expected": "保留 journal 并报冲突；不提示删日志回滚",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R011",
+      "group": "批次",
+      "scenario": "所有 issue done、仍 await_review 时 GC",
+      "expected": "不删除 batch、版本、决定或 final 依据",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R012",
+      "group": "检查点",
+      "scenario": "A 固定后 live 文件变 B，再查看 A",
+      "expected": "仍显示 A 的字节、diff、hash 和证据",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "verified",
+      "evidence": [
+        "tests/test_managed_workflow.py::test_real_python_check_closes_and_historical_source_survives_later_edit"
+      ]
+    },
+    {
+      "id": "R013",
+      "group": "检查点",
+      "scenario": "相同 git status 下内容 A 改 B",
+      "expected": "source_digest 变化，不复用旧版本证明",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "verified",
+      "evidence": [
+        "tests/test_managed_workflow.py::test_final_source_drift_reopens_repair_without_reusing_old_green"
+      ]
+    },
+    {
+      "id": "R014",
+      "group": "检查点",
+      "scenario": "验证区间尝试 A→B→A 写入",
+      "expected": "受管写入被拒绝；不能仅以末尾 hash 相同通过",
+      "implementation": "policy_boundary",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": [],
+      "disposition": "Cooperative writers are gated; arbitrary same-account ABA writes are outside this filesystem protocol."
+    },
+    {
+      "id": "R015",
+      "group": "检查点",
+      "scenario": "必需 untracked/删除/二进制文件存在",
+      "expected": "正确捕获内容/删除/类型，或明确缺项",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": [
+        "tests/test_checkpoint_store.py::test_dirty_deleted_untracked_bytes_survive_live_edits_without_git_mutation"
+      ]
+    },
+    {
+      "id": "R016",
+      "group": "检查点",
+      "scenario": "路径有空格、中文、CRLF、Windows drive/UNC",
+      "expected": "字节与路径身份正确；拒绝逃逸",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "mac_tested_native_windows_ci_pending",
+      "evidence": []
+    },
+    {
+      "id": "R017",
+      "group": "检查点",
+      "scenario": "symlink/junction 指向仓库外 secret",
+      "expected": "不跟随越界，拒绝/明确排除，不泄漏",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R018",
+      "group": "检查点",
+      "scenario": "dirty submodule/LFS 指针未实体化",
+      "expected": "不伪报完整可复现；按支持能力阻断",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R019",
+      "group": "检查点",
+      "scenario": "capture/seal 中断、对象只有部分写好",
+      "expected": "无可批准半成品；未引用对象可清理",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R020",
+      "group": "检查点",
+      "scenario": "materialize 目标已有 dirty 文件",
+      "expected": "拒绝覆盖，不 reset 用户目录",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R021",
+      "group": "检查点",
+      "scenario": "用户在 wave 运行中请求版本",
+      "expected": "立刻登记请求，停止新写准入，安全收波后固定",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R022",
+      "group": "检查点",
+      "scenario": "当前 worker 无法在上限内停止",
+      "expected": "返回 blocked/不完整诊断，不造稳定版",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R023",
+      "group": "人工",
+      "scenario": "observe checkpoint 发布",
+      "expected": "不要求批准、不自动跑全量；已有授权允许继续",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R024",
+      "group": "人工",
+      "scenario": "required checkpoint 无回复、超时或模型自评可接受",
+      "expected": "持久 await_review；不放行",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R025",
+      "group": "人工",
+      "scenario": "先显示 A，当前待审 B，提交 approve A",
+      "expected": "不能解除 B 的屏障；A 决定可留历史",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R026",
+      "group": "人工",
+      "scenario": "approve 后候选或相关计划改变",
+      "expected": "形成新版本/重新验证，旧批准不覆盖",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R027",
+      "group": "人工",
+      "scenario": "approve 与 request_changes 使用同一 expected revision 并发",
+      "expected": "只有一个合法提交，另一个 conflict",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R028",
+      "group": "人工",
+      "scenario": "模型伪填 actor=human 或把文本文件写成 approved",
+      "expected": "公开模型入口拒绝；强隔离部署验证来源权限",
+      "implementation": "policy_boundary",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": [],
+      "disposition": "Terminal or pinned HMAC host authority; same-account arbitrary adversaries are outside the trust boundary."
+    },
+    {
+      "id": "R029",
+      "group": "人工",
+      "scenario": "只点击已阅或使用 resume",
+      "expected": "不等于接受版本，不越过 required gate",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R030",
+      "group": "人工",
+      "scenario": "人工要求修改",
+      "expected": "同 batch repair，保留原 checkpoint/决定/预算",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R031",
+      "group": "人工",
+      "scenario": "用户评论产生于 A，代码已经 B",
+      "expected": "保存版本/上下文；错位需协调，不自动改 B 对应行",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R032",
+      "group": "人工",
+      "scenario": "await_review 时杀 runner 后重启",
+      "expected": "仍等待同一个版本，不从卡片 done 推断接受",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R033",
+      "group": "人工",
+      "scenario": "等人读报告时另一作业需要设备",
+      "expected": "没有遗留占用；若人工演示持有则明确显示并等待",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R034",
+      "group": "人工",
+      "scenario": "必需人工项未做但提交普通 approve",
+      "expected": "不能虚构人工通过；要求实际检查声明/证据",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "verified",
+      "evidence": [
+        "tests/test_managed_workflow.py::test_manual_obligations_need_actual_version_bound_operator_observations"
+      ]
+    },
+    {
+      "id": "R035",
+      "group": "人工",
+      "scenario": "人工按已封存清单完成操作后批准",
+      "expected": "decision 绑定同候选并记录观察，不修改 checkpoint 再引发审批循环",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "verified",
+      "evidence": [
+        "tests/test_managed_workflow.py::test_manual_obligations_need_actual_version_bound_operator_observations"
+      ]
+    },
+    {
+      "id": "R036",
+      "group": "证据",
+      "scenario": "v2 卡存在 ### 完成 且行为测试 exit1",
+      "expected": "close 拒绝，状态不变",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R037",
+      "group": "证据",
+      "scenario": "v3 profile 正确但 receipt 来自 E1；当前 E2",
+      "expected": "拒绝静默复用",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R038",
+      "group": "证据",
+      "scenario": "不同候选的部分绿色组成完整 AC 集合",
+      "expected": "不能通过 final",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R039",
+      "group": "证据",
+      "scenario": "wrapper exit0，但必需测试没运行/意外 skip",
+      "expected": "覆盖门失败",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "verified",
+      "evidence": [
+        "tests/test_managed_workflow.py::test_zero_tests_cannot_close_an_empty_queue"
+      ]
+    },
+    {
+      "id": "R040",
+      "group": "证据",
+      "scenario": "日志采集成功，但没有实际行为谓词",
+      "expected": "不能关闭行为卡",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R041",
+      "group": "证据",
+      "scenario": "同版本名 APK 实际内容不同",
+      "expected": "安装产物核对失败",
+      "implementation": "project_device_adapter_required",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "real_device_not_run",
+      "evidence": []
+    },
+    {
+      "id": "R042",
+      "group": "证据",
+      "scenario": "两个 full job 使用同一 scope",
+      "expected": "每 run 独立路径，旧失败日志/receipt 不覆盖",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R043",
+      "group": "证据",
+      "scenario": "测试通过但 cleanup 失败",
+      "expected": "保留产品结果且资源待恢复，batch 不完成",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "verified",
+      "evidence": [
+        "tests/test_managed_workflow.py::test_cleanup_failure_requires_observed_recovery_and_keeps_budget"
+      ]
+    },
+    {
+      "id": "R044",
+      "group": "证据",
+      "scenario": "snapshot 只覆盖局部输入的 receipt 被当 final",
+      "expected": "因 input_scope/coverage 不足拒绝",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R045",
+      "group": "证据",
+      "scenario": "旧 schema1 done 在新版本中只读审计",
+      "expected": "历史可读，不自动授予新 execution 完成",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R046",
+      "group": "资源",
+      "scenario": "两个仓库同一宿主同时请求同一设备",
+      "expected": "至多一个操作实际执行",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_resources.py",
+        "workflow/tdd/BATCH-FORMAT.md"
+      ],
+      "verification": "verified",
+      "evidence": [
+        "tests/test_workflow_resources.py::test_cross_workspace_contention_and_persistent_health"
+      ]
+    },
+    {
+      "id": "R047",
+      "group": "资源",
+      "scenario": "两个场景每条命令很短但依赖页面连续性",
+      "expected": "整场景不交错，prepare/cleanup 也独占",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_resources.py",
+        "workflow/tdd/BATCH-FORMAT.md"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R048",
+      "group": "资源",
+      "scenario": "两设备任务申请 A+B 与 B+A",
+      "expected": "有限等待、无持有等待死锁",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_resources.py",
+        "workflow/tdd/BATCH-FORMAT.md"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R049",
+      "group": "资源",
+      "scenario": "父 operation 持 grant，子动作请求相同资源",
+      "expected": "继承成功、不二次锁死",
+      "implementation": "policy_boundary",
+      "implementation_paths": [
+        "workflow/workflow_resources.py",
+        "workflow/tdd/BATCH-FORMAT.md"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": [],
+      "disposition": "One controller owns the entire lifecycle; child stages do not reacquire the resource grant."
+    },
+    {
+      "id": "R050",
+      "group": "资源",
+      "scenario": "子动作借 grant 请求额外设备",
+      "expected": "拒绝，交回重新准入",
+      "implementation": "policy_boundary",
+      "implementation_paths": [
+        "workflow/workflow_resources.py",
+        "workflow/tdd/BATCH-FORMAT.md"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": [],
+      "disposition": "Child stages cannot extend the accepted resource list; a new planned job must acquire the complete set."
+    },
+    {
+      "id": "R051",
+      "group": "资源",
+      "scenario": "设备 online 但已 allocated/recovery_required",
+      "expected": "不能分配",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_resources.py",
+        "workflow/tdd/BATCH-FORMAT.md"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R052",
+      "group": "资源",
+      "scenario": "宿主父进程退出，设备/远端任务仍在跑",
+      "expected": "保持未终止，设备不变 available",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_resources.py",
+        "workflow/tdd/BATCH-FORMAT.md"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R053",
+      "group": "资源",
+      "scenario": "持有者异常退出导致 OS 锁自动释放",
+      "expected": "下一个客户端看到持久 unknown/recovery_required，不直接开始",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_resources.py",
+        "workflow/tdd/BATCH-FORMAT.md"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": [
+        "tests/test_workflow_resources.py::test_cross_workspace_contention_and_persistent_health"
+      ],
+      "verification_limit": "The test releases a grant without confirming recovery; abrupt holder process death is not reproduced in this exact test."
+    },
+    {
+      "id": "R054",
+      "group": "资源",
+      "scenario": "清理命令 exit0 但基线断言失败",
+      "expected": "隔离资源，记录失败，禁止新操作",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_resources.py",
+        "workflow/tdd/BATCH-FORMAT.md"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R055",
+      "group": "资源",
+      "scenario": "review/diagnose/preflight/demo 与 full 同时请求设备",
+      "expected": "都走同一资源调度；不旁路",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_resources.py",
+        "workflow/tdd/BATCH-FORMAT.md"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R056",
+      "group": "资源",
+      "scenario": "两设备独立但共享账号/DB",
+      "expected": "按真实共同资源串行或明确隔离",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_resources.py",
+        "workflow/tdd/BATCH-FORMAT.md"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R057",
+      "group": "资源",
+      "scenario": "一台设备异常，另一台资源确实独立",
+      "expected": "只隔离受影响域；允许另一 batch 合法运行",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_resources.py",
+        "workflow/tdd/BATCH-FORMAT.md"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R058",
+      "group": "资源",
+      "scenario": "资源等待超过配置期限",
+      "expected": "明确 blocked，不计产品缺陷、不无限开卡",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_resources.py",
+        "workflow/tdd/BATCH-FORMAT.md"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R059",
+      "group": "调度修复",
+      "scenario": "worker 想直接启动 full 或嵌套 batch",
+      "expected": "准入拒绝，必须请求主控",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_members.py",
+        "workflow/tdd/BATCH-FORMAT.md"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R060",
+      "group": "调度修复",
+      "scenario": "全量命令被标签伪装为 targeted",
+      "expected": "按规范化 job/argv/选择范围拒绝旁路",
+      "implementation": "policy_boundary",
+      "implementation_paths": [
+        "workflow/workflow_members.py",
+        "workflow/tdd/BATCH-FORMAT.md"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": [],
+      "disposition": "Bounded local diagnostics remain caller-scoped; command semantics cannot be inferred from argv or a scope label."
+    },
+    {
+      "id": "R061",
+      "group": "调度修复",
+      "scenario": "worker yielded 等待 proof，final 等所有 worker terminal",
+      "expected": "wave 先终止收齐，再 verification execution；无循环等待",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_members.py",
+        "workflow/tdd/BATCH-FORMAT.md"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": [
+        "tests/test_managed_workflow.py::test_parallel_bare_slug_dispatch_requires_complete_current_harness_results"
+      ]
+    },
+    {
+      "id": "R062",
+      "group": "调度修复",
+      "scenario": "yielded 卡仍 status ready，被裸 next 扫描",
+      "expected": "不重复实施；batch lane 生效",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_members.py",
+        "workflow/tdd/BATCH-FORMAT.md"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R063",
+      "group": "调度修复",
+      "scenario": "yielded proof 未完成但后续 dependent ready",
+      "expected": "不放行依赖",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_members.py",
+        "workflow/tdd/BATCH-FORMAT.md"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": [
+        "tests/test_managed_workflow.py::test_dependent_work_waits_for_proof_and_final_rechecks_the_combined_candidate"
+      ]
+    },
+    {
+      "id": "R064",
+      "group": "调度修复",
+      "scenario": "写目录不重叠，但一方改另一方测试依赖",
+      "expected": "已知读写冲突保守串行/稳定检查点补证",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_members.py",
+        "workflow/tdd/BATCH-FORMAT.md"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R065",
+      "group": "调度修复",
+      "scenario": "波内一名 worker 结束后试图滚动补位",
+      "expected": "拒绝，全部终态协调后下一波",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_members.py",
+        "workflow/tdd/BATCH-FORMAT.md"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R066",
+      "group": "调度修复",
+      "scenario": "多个局部修复完成时各自触发全量",
+      "expected": "集中到同一候选 episode，不按卡自动全量",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_members.py",
+        "workflow/tdd/BATCH-FORMAT.md"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R067",
+      "group": "调度修复",
+      "scenario": "故障换名、新卡、新 session 后重试",
+      "expected": "根预算与关联历史保留",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R068",
+      "group": "调度修复",
+      "scenario": "代码不变，但有证据的环境恢复后重跑",
+      "expected": "允许受控重跑且计预算；不要求无意义改代码",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "verified",
+      "evidence": [
+        "tests/test_managed_workflow.py::test_cleanup_failure_requires_observed_recovery_and_keeps_budget"
+      ]
+    },
+    {
+      "id": "R069",
+      "group": "调度修复",
+      "scenario": "单独最后 node 通过，但带前置的原场景失败",
+      "expected": "不能宣布修好，保留原因果复现",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R070",
+      "group": "调度修复",
+      "scenario": "预算耗尽但仍失败",
+      "expected": "停止自动运行、保持未完成，不新 batch 归零",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "verified",
+      "evidence": [
+        "tests/test_managed_workflow.py::test_signed_budget_extension_retains_consumed_cost_and_replay_identity"
+      ]
+    },
+    {
+      "id": "R071",
+      "group": "迁移安装",
+      "scenario": "旧 ledger 有开放执行但当前 host 无法证明 owner terminal",
+      "expected": "拒绝自动迁移/接管，保留现场",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R072",
+      "group": "迁移安装",
+      "scenario": "旧卡全部 done 但无可验证批次验收记录",
+      "expected": "不能推定历史批次已通过，需明确采纳/验证范围",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R073",
+      "group": "迁移安装",
+      "scenario": "运行器启动后修改自身 workflow 源码",
+      "expected": "现有 batch 使用固定 runtime revision；不混用新旧实现",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "verified",
+      "evidence": [
+        "tests/test_managed_workflow.py::test_frozen_runtime_continues_after_a_different_installation_changes"
+      ]
+    },
+    {
+      "id": "R074",
+      "group": "迁移安装",
+      "scenario": "仓库外安装目录启动新 batch/checkpoint CLI",
+      "expected": "模块、规则和 helper 全部存在，可 import 和运行 smoke",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "verified",
+      "evidence": [
+        "tests/test_installers.py::InstallerTests.test_native_installed_batch_cli_retains_final_obligation"
+      ]
+    },
+    {
+      "id": "R075",
+      "group": "迁移安装",
+      "scenario": "Windows Python3.9 非 UTF8 控制台与 Unicode 路径",
+      "expected": "无编码失败；锁/进程/receipt 身份一致",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "mac_tested_native_windows_ci_pending",
+      "evidence": []
+    },
+    {
+      "id": "R076",
+      "group": "迁移安装",
+      "scenario": "升级后 rollback 到不懂新活动协议的 runner",
+      "expected": "拒绝使用新 state；保留可恢复记录，不删数据降级",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R077",
+      "group": "迁移安装",
+      "scenario": "GC 在 open run/未审 checkpoint/资源待恢复时执行",
+      "expected": "保护全部引用和恢复依据",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R078",
+      "group": "迁移安装",
+      "scenario": "真实硬件要求只有 fake-device 结果",
+      "expected": "final 不通过，明确 real-device pending",
+      "implementation": "project_device_adapter_required",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "real_device_not_run",
+      "evidence": []
+    },
+    {
+      "id": "R079",
+      "group": "检查点控制",
+      "scenario": "活动 worker 写入时 show/diff 已封存 CP-A",
+      "expected": "仅读取保存内容；无 yield、无设备申请、无 batch 状态更改",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R080",
+      "group": "检查点控制",
+      "scenario": "work 中新 observe，部分 issue 尚未完成",
+      "expected": "安全交回并保存缺项；封存后自动接续原合法工作，不等批准、不全量",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R081",
+      "group": "检查点控制",
+      "scenario": "await_review(CP-R) 时新建 observe CP-O",
+      "expected": "latest 指向 O，pending_review 仍是 R；不得恢复代码写入",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "verified",
+      "evidence": [
+        "tests/test_managed_workflow.py::test_observation_preserves_pending_review_and_a_later_pause"
+      ]
+    },
+    {
+      "id": "R082",
+      "group": "检查点控制",
+      "scenario": "user_pause 状态中保存/查看 observe 后 resume",
+      "expected": "observe 不解除暂停；resume 只解除用户 hold，其他 pending gate 保留",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "verified",
+      "evidence": [
+        "tests/test_managed_workflow.py::test_observation_preserves_pending_review_and_a_later_pause"
+      ]
+    },
+    {
+      "id": "R083",
+      "group": "检查点控制",
+      "scenario": "repair 状态中观察后恢复",
+      "expected": "仍在原 incident/范围/根预算中修复，不切普通任务或重开 SPEC",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R084",
+      "group": "检查点控制",
+      "scenario": "verify episode 正在运行时收到 observe",
+      "expected": "等待当前运行的安全边界，不取消、重复或降级原 review/final 义务",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R085",
+      "group": "检查点控制",
+      "scenario": "worker 在未完成行为/红测试时收到临时观察请求",
+      "expected": "有界交回并如实封存静止红版；不硬做完、不造 done、不创建修复卡",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R086",
+      "group": "检查点控制",
+      "scenario": "observe 后存在 implement 和 awaiting-proof 两类 continuation",
+      "expected": "分别续实现与新验证 execution；原卡/预算不变，不重复实施待证卡",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R087",
+      "group": "阶段准入",
+      "scenario": "M2 卡与 M1 路径独立但 M1 必审尚未接受",
+      "expected": "dispatch 不将 M2 混入当前 wave；不以独立性代替授权",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R088",
+      "group": "阶段准入",
+      "scenario": "当前阶段全部 issue done，但要求的能力检查失败或未运行",
+      "expected": "不得进入可接受门或下一阶段；报告 proof 缺项并保留原批修复",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": [
+        "tests/test_managed_workflow.py::test_zero_tests_cannot_close_an_empty_queue"
+      ]
+    },
+    {
+      "id": "R089",
+      "group": "阶段准入",
+      "scenario": "M1 所需证据齐全，未来 M2 卡仍未完成",
+      "expected": "允许形成 M1 必审版，不要求整个队列 done",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R090",
+      "group": "版本授权",
+      "scenario": "M1 接受后在授权范围正常编辑 M2",
+      "expected": "不反复请求重新接受 M1；最终版本仍独立验收",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R091",
+      "group": "版本授权",
+      "scenario": "M2 改动推翻已接受 M1 的公开行为或权限约束",
+      "expected": "只重开受影响决定并修订计划，不靠旧批准直接推进",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_changed_review_contract_rejects_late_old_approval",
+        "tests/test_incremental_workflow.py::test_plan_revision_preserves_usage_and_old_plan"
+      ],
+      "disposition": "Schema 3 appends immutable plan revisions, withdraws changed review contracts and preserves unaffected engineering and accumulated budgets."
+    },
+    {
+      "id": "R092",
+      "group": "检查点控制",
+      "scenario": "相同 request_id 重发；相同 ID 却修改 mode/target",
+      "expected": "同载荷幂等，不同载荷 conflict；不重复冻结和计费",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": [
+        "tests/test_managed_workflow.py::test_observation_preserves_pending_review_and_a_later_pause"
+      ],
+      "verification_limit": "The mapped test verifies replay identity; the complete changed-payload matrix is not executed by this test."
+    },
+    {
+      "id": "R093",
+      "group": "检查点控制",
+      "scenario": "checkpoint-request 与新 dispatch 并发",
+      "expected": "请求先提交则拒绝 dispatch；dispatch 先提交则纳入收敛；不得漏活动执行",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R094",
+      "group": "检查点控制",
+      "scenario": "observe 封存完成后回复丢失，runner 重启",
+      "expected": "读取原 result 幂等解决请求并重算原合法动作；不重复 capture/清空审批",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "verified",
+      "evidence": [
+        "tests/test_managed_workflow.py::test_observation_preserves_pending_review_and_a_later_pause"
+      ]
+    },
+    {
+      "id": "R095",
+      "group": "人工门",
+      "scenario": "用户临时要求 review，但当前技术门仍有失败/缺项",
+      "expected": "发布固定 preview 并保持停止；不自动修复到绿色，approve 不抹掉失败",
+      "implementation": "policy_boundary",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": [
+        "tests/test_managed_workflow.py::test_red_request_remains_diagnostic_until_fixed_runnable_review"
+      ],
+      "disposition": "User revised policy: incomplete requested versions are diagnostic; only complete runnable releases enter formal human review."
+    },
+    {
+      "id": "R096",
+      "group": "人工门",
+      "scenario": "在临时 review preview 上明确 request_changes",
+      "expected": "在同 batch/预算/契约范围修复，产生新审阅版；不 force-green",
+      "implementation": "policy_boundary",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": [
+        "tests/test_managed_workflow.py::test_red_request_remains_diagnostic_until_fixed_runnable_review"
+      ],
+      "disposition": "Diagnostic feedback guides same-batch repair; no approval event is accepted for an incomplete preview."
+    },
+    {
+      "id": "R097",
+      "group": "资源边界",
+      "scenario": "同一必审等待中，独立 workspace 继续工作",
+      "expected": "独立写入允许；共享设备/账户仍统一排他，不暂停全部仓库",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R098",
+      "group": "资源边界",
+      "scenario": "人工查看旧快照与请求真机演示",
+      "expected": "查看不占设备；演示以固定产物申请完整 operation，结束验证恢复",
+      "implementation": "project_device_adapter_required",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "real_device_not_run",
+      "evidence": []
+    },
+    {
+      "id": "R099",
+      "group": "检查点控制",
+      "scenario": "源码快照完整但相关测试失败；或引用其他输入的旧 pass",
+      "expected": "显示静止与失败/历史参考；不能把 hash 正确或旧绿色当技术通过",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R100",
+      "group": "检查点控制",
+      "scenario": "observe 收敛期间收到新的 pause/review 决定",
+      "expected": "封存后的旧恢复状态不能覆盖新 hold；仍保留当前合法停止义务",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R101",
+      "group": "资源边界",
+      "scenario": "安全交回超时，设备清理失败或远端执行仍未终止",
+      "expected": "blocked + recovery_required，返回旧版本/诊断；不发布可批准稳定新版本",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "R102",
+      "group": "版本授权",
+      "scenario": "对已接受 M1 之后的每次普通编辑要求自动封存与重审",
+      "expected": "不自动生成逐编辑审批循环；仅在计划/用户请求/实质契约变化时封存和开门",
+      "implementation": "implemented_protocol",
+      "implementation_paths": [
+        "workflow/workflow_managed.py",
+        "workflow/tdd/BATCH-FORMAT.md",
+        "workflow/workflow_incremental.py"
+      ],
+      "verification": "partial_or_unexecuted_exact_scenario",
+      "evidence": []
+    },
+    {
+      "id": "U001",
+      "group": "UI契约",
+      "scenario": "UI 新功能只有实现或截图，无执行场景",
+      "expected": "ready 缺场景声明或 harness 就绪则拒绝；close 缺实际运行脚本/行为证明则拒绝",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U002",
+      "group": "UI契约",
+      "scenario": "已有场景真实覆盖当前 UI 改动",
+      "expected": "扩展或引用后实际运行，不强制再造同义测试文件",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U003",
+      "group": "UI契约",
+      "scenario": "纯 Python 配置任务被强制装浏览器",
+      "expected": "走对应非 UI 证明；不新增 Playwright 依赖",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "verified",
+      "evidence": [
+        "tests/test_ui_policy_routing.py::test_non_ui_cli_runs_without_ui_reads_imports_or_processes"
+      ]
+    },
+    {
+      "id": "U004",
+      "group": "UI准备",
+      "scenario": "浏览器缺失、导入失败或运行了错误 localhost 服务",
+      "expected": "记录 readiness/身份失败，不把它当行为 RED",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U005",
+      "group": "UI时序",
+      "scenario": "A 后返回覆盖先完成的 B",
+      "expected": "受控先 B 后 A，在目标旧版本 RED、修复版本 GREEN",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "verified",
+      "evidence": [
+        "scripts/check-ui-fixture.py"
+      ]
+    },
+    {
+      "id": "U006",
+      "group": "UI时序",
+      "scenario": "B 曾正确出现，之后 A 短暂覆盖再恢复 B",
+      "expected": "观察指定区间历史，不因最后状态 B 而遗漏违规",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U007",
+      "group": "UI时序",
+      "scenario": "取消与旧响应提交在边界交错",
+      "expected": "覆盖取消前后变体，无取消后副作用或 busy 残留",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U008",
+      "group": "UI时序",
+      "scenario": "导航/卸载后旧 callback 写入新页面",
+      "expected": "在真实入口重现并断言无旧写入、订阅/任务按期终止",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U009",
+      "group": "UI时序",
+      "scenario": "快速双击产生重复提交",
+      "expected": "真实输入触发；按独立预期断言次数/结果，不用额外 sleep 去除触发",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U010",
+      "group": "UI时序",
+      "scenario": "事件发生后才注册等待",
+      "expected": "测试通过同步 barrier 验证注册先于触发，不依赖概率重跑",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U011",
+      "group": "UI时序",
+      "scenario": "只运行失败尾节点，不包含登录/导航/取消前置",
+      "expected": "不能宣布修复；保留最短原因果链并重放原始场景",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U012",
+      "group": "UI时序",
+      "scenario": "假时钟通过但真实网络/worker 仍不受控",
+      "expected": "声明时钟范围，补真实边界原场景，不夸大可控范围",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U013",
+      "group": "UI断言",
+      "scenario": "DOM/src 存在但图片不可解码，或预期图片全都不存在",
+      "expected": "先核对预期数量，再检查解码/实际可见结果；不得空集合通过",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U014",
+      "group": "UI断言",
+      "scenario": "按钮被遮挡却改为 synthetic/force 点击通过",
+      "expected": "用户交互 proof 拒绝绕过；真实命中路径须通过",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U015",
+      "group": "UI断言",
+      "scenario": "点击发生在 hydration 监听尚未注册时",
+      "expected": "保持用户行为复现，修产品可操作时机，不以测试睡眠掩盖",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U016",
+      "group": "UI断言",
+      "scenario": "同名树节点/旧 iframe 被误选为目标",
+      "expected": "绑定 path/frame/document generation，错误目标不能给绿",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U017",
+      "group": "UI断言",
+      "scenario": "未预期 console/pageerror/CSP 或 HTTP404 被宽泛过滤",
+      "expected": "关联资源/阶段/次数；真实未预期错误阻断",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U018",
+      "group": "UI断言",
+      "scenario": "测试故意注入网络失败并有已声明错误预期",
+      "expected": "只精确允许该错误，仍验证降级 UI/状态及没有其他错误",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U019",
+      "group": "UI断言",
+      "scenario": "mock 直接设置成功或替换被测控制器",
+      "expected": "该结果不满足行为 proof；控制外部输入而保留生产路径",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U020",
+      "group": "UI宿主",
+      "scenario": "picker 替身/裸 Web harness 被当成真实扩展或原生权限通过",
+      "expected": "标明被替代边界；真实宿主/权限要求保持待验",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U021",
+      "group": "UI宿主",
+      "scenario": "构建后仍加载旧 dist/错误 APK/错误浏览器实例",
+      "expected": "产物和运行 surface 身份不一致导致证明拒绝",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U022",
+      "group": "UI报告",
+      "scenario": "脚本存在但未在入口收集，或过滤后 Ran 0 tests",
+      "expected": "mandatory/discovered/executed 校验拒绝空绿",
+      "implementation": "implemented",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U023",
+      "group": "UI报告",
+      "scenario": "使用 only/skip/fixme/expected-failure 隐藏必需场景",
+      "expected": "控制配置与结果均检测；意外缺项不通过",
+      "implementation": "implemented",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U024",
+      "group": "UI报告",
+      "scenario": "首轮失败，runner 自动重试后通过",
+      "expected": "保留 attempts 和 flaky，不关闭当前 verified repair",
+      "implementation": "implemented",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U025",
+      "group": "UI报告",
+      "scenario": "wrapper 吞掉非零退出但 JSON写passed",
+      "expected": "进程、报告和 actual run 校验不一致则失败",
+      "implementation": "implemented",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U026",
+      "group": "UI报告",
+      "scenario": "trace/screenshot 存在但没有行为断言",
+      "expected": "不作为完成证明，trace与assertion结果同时有据",
+      "implementation": "implemented",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U027",
+      "group": "UI报告",
+      "scenario": "模型或脚本删除测试并据 discovery 重建 required 集",
+      "expected": "原计划 required 仍生效；无有效修订不得丢失义务",
+      "implementation": "implemented",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U028",
+      "group": "UI报告",
+      "scenario": "报告截断、未知 schema、重复 case id 或坏路径",
+      "expected": "失败关闭并给可定位错误，不静默猜测通过",
+      "implementation": "implemented",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U029",
+      "group": "UI证据",
+      "scenario": "调试 probe 改变执行时序，移除后 bug 仍在",
+      "expected": "清理或关闭 probe 后重放原始场景；不能只保留带探针绿色",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U030",
+      "group": "UI证据",
+      "scenario": "自动更新全部视觉基线或扩大 mask/tolerance",
+      "expected": "阻止无来源的预期弱化；保留原缺陷和有据差异审查",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U031",
+      "group": "UI证据",
+      "scenario": "为测试通过放宽 CSP/权限或关闭被测 Service Worker",
+      "expected": "原安全/宿主契约仍要求；不能以测试配置替代修复",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U032",
+      "group": "UI资源",
+      "scenario": "多个 Agent 各启动最大 Playwright worker",
+      "expected": "统一 job 并发/资源上限生效，不出现无界乘法",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U033",
+      "group": "UI资源",
+      "scenario": "独立 BrowserContext 共用 account/DB/profile",
+      "expected": "按真实资源隔离或串行；不能靠 context 名称声称独立",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U034",
+      "group": "UI资源",
+      "scenario": "浏览器/测试超时后服务或设备仍在运行",
+      "expected": "保留 unresolved/recovery_required，确认终态与清理后再分配",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U035",
+      "group": "UI资源",
+      "scenario": "auto-wait+retry+Agent repair+repeat 多层嵌套",
+      "expected": "全部 attempts/时长计入根预算，有限恢复、不换卡归零",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U036",
+      "group": "UI自治",
+      "scenario": "milestone/final 配置 human_gate=none 且机器门完整通过",
+      "expected": "自动推进/关闭，无 wait_human/伪造 approve",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U037",
+      "group": "UI自治",
+      "scenario": "配置 none 但当前 UI proof 缺失/失败/flaky",
+      "expected": "不请求用户点通过，也不关闭；同 batch 有界诊断修复",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U038",
+      "group": "UI自治",
+      "scenario": "显式 required 或旧计划必审门仍存在",
+      "expected": "继续等待真实决定；新版默认不取消旧授权边界",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U039",
+      "group": "UI自治",
+      "scenario": "局部 UI 修复或每轮 review 后自动触发整机全量",
+      "expected": "只跑目标场景/因果组/影响集；final 由 controller 调度",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U040",
+      "group": "UI自治",
+      "scenario": "用户从已固定版本看 trace 时新源码已改变",
+      "expected": "历史证据不变，新候选另验；普通查看不冻结全部后续工作",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U041",
+      "group": "UI安装",
+      "scenario": "只有 Python CI 成功，Playwright helper 安装漏失",
+      "expected": "仓库外 adapter与真实 browser smoke 检验缺失；不宣称UI接入完成",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "project_scenario_required",
+      "evidence": []
+    },
+    {
+      "id": "U042",
+      "group": "UI端到端",
+      "scenario": "真实浏览器的旧竞态失败→局部修复→原场景→checkpoint",
+      "expected": "同批次完整执行与记录，无手测、无递归全量、无旧证据采纳；有界失败可恢复",
+      "implementation": "policy_and_adapter",
+      "implementation_paths": [
+        "workflow/tdd/UI-TESTING.md",
+        "workflow/workflow_ui.py",
+        "workflow/tdd/scripts/playwright-reporter.cjs"
+      ],
+      "verification": "verified",
+      "evidence": [
+        "scripts/check-ui-fixture.py"
+      ]
+    }
+  ],
+  "scope": "Retained requirement scenarios with explicit evidence limits; current implementation includes batch schema 3.",
+  "incremental_cases": [
+    {
+      "id": "V01",
+      "scenario": "一个 PRD、多 Issue、多审查点；以及无 PRD 小任务",
+      "expected": "关系可追溯，小任务不新增强制流程",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_uncovered_requirement_is_visible_and_cannot_close"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V02",
+      "scenario": "后端卡 done，但组合 UI 尚不可审",
+      "expected": "卡保持工程完成；未成熟场景不通知假就绪",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_review_wait_does_not_block_an_independent_issue"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V03",
+      "scenario": "所有卡 done，仍有必需人工检查",
+      "expected": "目标不关闭，默认视图显示待审",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_fixed_review_partial_decisions_and_notification_ack"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V04",
+      "scenario": "人审 A；B 无决定依赖，C 依赖 A 接受",
+      "expected": "B 可推进，C 保持等待；写入／资源冲突仍受控",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_upstream_check_proof_precedes_consumer_admission"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V05",
+      "scenario": "AI 已写 B，用户迟到批准 A",
+      "expected": "仅改变 A 对应场景的决定，不接受 B 新内容",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_changed_review_contract_rejects_late_old_approval"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V06",
+      "scenario": "两个独立审查请求，部分场景退回或 A 已撤回",
+      "expected": "不串决定；撤回后的批准拒绝，反馈可保留",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_changed_choice_cannot_rebind_an_old_worker_result"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V07",
+      "scenario": "单个场景反馈，阶段有多个已完成 Issue",
+      "expected": "定位后只修相关卡，无关证明与工作保留",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_final_close_checks_issue_contract_after_human_wait"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V08",
+      "scenario": "旧反馈已在当前版修复／反馈改变原约定",
+      "expected": "分别关联实际修复或场景新版本，不重复返工或改写历史",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_plan_revision_preserves_usage_and_old_plan"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V09",
+      "scenario": "原仓库源码服务启动时 worker 仍在写，并提交无固定请求 ID 的反馈",
+      "expected": "继续运行；反馈可记录并复现，不强绑旧 release；无源码迁移／停写要求，不形成固定版本 credit",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_live_preview_feedback_needs_no_fixed_review_id"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V10",
+      "scenario": "同版重复查看／运行／导出；UI A 误连接正在变化的开发服务 B",
+      "expected": "正常复用不重复构建；错误服务绑定被拒，不只检查前端包哈希",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_changed_artifact_requires_scene_review_of_the_actual_final_package"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V11",
+      "scenario": "场景结论沿用但相关资源、依赖或约定改变",
+      "expected": "沿用被拒；只对需要范围重新验证／审查",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_unmapped_final_scene_check_cannot_produce_green_review"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V12",
+      "scenario": "追加计划、重试、反馈修复、runner 重启；I1→I2→I3 的上游失效且无关 I4 在运行",
+      "expected": "消费累计、旧执行绑定不变；受影响证明重验／协调，无关 I4 继续，未完成义务不消失",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_stale_running_check_can_recover_on_unchanged_source",
+        "tests/test_incremental_workflow.py::test_worker_packet_retains_its_plan_after_independent_revision"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V13",
+      "scenario": "决定依赖和工程依赖形成环",
+      "expected": "执行前明确拒绝，不进入永久等待",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_choice_dependency_cycle_is_rejected_before_execution"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V14",
+      "scenario": "普通克隆／换目录；未提交的 R1@1 已被 R1@2 替换并清理旧运行目录",
+      "expected": "可离线还原旧成功标准与人工步骤并核验历史；不依赖原 inode/batches；活动任务不被错误恢复",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_completion_proof_survives_runtime_and_log_removal",
+        "tests/test_incremental_workflow.py::test_upstream_check_proof_precedes_consumer_admission",
+        "tests/test_incremental_workflow.py::test_portable_proof_retains_external_completed_contract",
+        "tests/test_incremental_workflow.py::test_portable_proof_copies_managed_dependency_from_prior_goal",
+        "tests/test_incremental_workflow.py::test_portable_proof_exports_schema2_dependency_before_cleanup"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V15",
+      "scenario": "持久证据缺文件、摘要不符或迁移中断",
+      "expected": "不伪造完成，保留原证明／缓存并可恢复迁移",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_completion_proof_survives_runtime_and_log_removal"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V16",
+      "scenario": "同一反例在下一张卡再次相关",
+      "expected": "复用已有测试／场景；不重读全部历史或新增重复总结",
+      "implementation": "policy_boundary",
+      "verification": "workflow_policy_requires_model_run_evaluation",
+      "evidence": [],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V17",
+      "scenario": "Issue 产生多种临时文件和一个回归测试",
+      "expected": "临时文件实际删除；测试、必要夹具及经验保留",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_non_ui_final_runs_and_cleans_without_ui_import"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V18",
+      "scenario": "GC 预览后新增引用、产生文件、文件被改或仍被进程占用",
+      "expected": "apply 重查并保留变化对象，不用旧清单误删",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_changed_file_and_active_consumer_survive_gc",
+        "tests/test_incremental_workflow.py::test_feedback_before_producer_registration_protects_material"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V19",
+      "scenario": "目录有隐藏文件、外链、Windows junction、共享消费者",
+      "expected": "不越界；未确认子项保留；最后一个消费者释放后才回收",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_changed_file_and_active_consumer_survive_gc"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V20",
+      "scenario": "GC 在部分删除后崩溃重启",
+      "expected": "重入幂等，报告实际删除，不重复扣状态或丢失保留关系",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_gc_recovers_deletion_when_state_commit_was_interrupted"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V21",
+      "scenario": "待审包／反馈仅由 done Issue 关联；批准后应用仍在运行或手动启动状态未知",
+      "expected": "清理后仍可运行／复现；待人义务和实际运行占用分别保留，不因批准误删资源",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_fixed_review_partial_decisions_and_notification_ack"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V22",
+      "scenario": "包已输出正确结果但异常退出或留下后代／资源",
+      "expected": "继续拒绝完成，不能因新调度放宽既有终态要求",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_managed_workflow.py",
+        "tests/test_test_supervisor.py"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V23",
+      "scenario": "纯非 UI 任务经过普通实施、投影与 TIDY",
+      "expected": "UI 文档读取／导入／探测／安装／进程／重试均为 0",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_ui_policy_routing.py::test_non_ui_cli_runs_without_ui_reads_imports_or_processes"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V24",
+      "scenario": "macOS/Linux/Windows 的基础、UI、打包与 GC",
+      "expected": "各自原生验证；平台跳过不记通过，人工／真机条件单列",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        ".github/workflows/ci.yml",
+        "scripts/check-ui-fixture.py",
+        "scripts/check-native-packaging.py"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V25",
+      "scenario": "主控自己的任务尚未结束，但另一场景已可交付",
+      "expected": "交付准备获得执行机会；支持独立投递的宿主不等待主控模型结束才展示审核卡",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_background_verification_returns_before_long_process",
+        "tests/test_incremental_workflow.py::test_real_host_notification_acknowledges_without_approving"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V26",
+      "scenario": "子 Agent 持续完成并增加无关工作，某审查点的前置条件已经满足",
+      "expected": "审查交付不被饿死；等待封存／构建的时间可见，未验包完成前不通知假就绪",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_upstream_check_proof_precedes_consumer_admission"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V27",
+      "scenario": "就绪提交、通知发送或宿主确认时崩溃",
+      "expected": "同一事件可恢复投递；接收端按 ID 去重；不漏掉待审，不把已发当作已读／批准",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_real_host_notification_acknowledges_without_approving",
+        "tests/test_incremental_workflow.py::test_unavailable_host_retains_event_with_backoff"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V28",
+      "scenario": "通知排队时版本撤回；或宿主不支持后台投递／已经关闭",
+      "expected": "旧批准无效；受限模式如实呈现，恢复后先处理有效待投递事件",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_withdrawal_updates_the_original_notification",
+        "tests/test_incremental_workflow.py::test_unavailable_host_retains_event_with_backoff"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V29",
+      "scenario": "所有子 Agent 忙，主控暂无安全实施任务",
+      "expected": "优先完成实际所需协调；无事则等待事件，无忙轮询、重复实施或额外模型心跳",
+      "implementation": "policy_boundary",
+      "verification": "workflow_policy_requires_model_run_evaluation",
+      "evidence": [],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V30",
+      "scenario": "plan-only、直接实施、接受后追加同约定卡片、明确改变需求",
+      "expected": "按实际授权交接；plan-only 不实施，同范围不重复审批，实质未决只阻塞相关工作",
+      "implementation": "policy_boundary",
+      "verification": "workflow_policy_requires_model_run_evaluation",
+      "evidence": [],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V31",
+      "scenario": "多 feature 下裸 TDD／TIDY、命名范围、只检查和明确全仓请求",
+      "expected": "默认当前目标；缺目标不误派／误删；TIDY 清理确有删除结果；`-all` 仍只控制全量检查",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_real_host_notification_acknowledges_without_approving"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V32",
+      "scenario": "缺少预检的 pending I1；ready I2 依赖 I1；以及 ready 的短暂环境漂移",
+      "expected": "无可派发工作时仍恢复 I1 的既定环境，不因存在受阻 ready 卡永久等待；不丢卡、不伪造通过",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_pending_upstream_remains_visible_and_recoverable"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V33",
+      "scenario": "Spec 要修改／退役一张运行中的 ready 卡或其共享验证输入",
+      "expected": "先协调受影响执行；旧 worker 不消费被悄悄改写的约定；独立工作继续",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_changed_choice_cannot_rebind_an_old_worker_result",
+        "tests/test_incremental_workflow.py::test_requirement_body_revision_waits_for_its_worker"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V34",
+      "scenario": "批次持续追加，已有场景可交付；人工通过后又修代码",
+      "expected": "可审候选先完成要求的组合验证；同候选不机械重复；修复后相关证据重新取得",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_changed_artifact_requires_scene_review_of_the_actual_final_package"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware.",
+      "implementation_note": "Active immutable requests share one run. Completed reuse is opt-in with a declared materialized environment closure; required final checks remain applicable."
+    },
+    {
+      "id": "V35",
+      "scenario": "无关 feature 有坏卡；本任务临时文件可安全删除；另有共享引用不明文件",
+      "expected": "独立安全对象实际清理；不明对象保留；TIDY 无产品全量／浏览器／逐文件模型调用",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_closed_portable_batch_allows_wave_gc_and_remains_readable"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    },
+    {
+      "id": "V36",
+      "scenario": "用户缩小范围；关闭时另有用户正在运行的已交付包",
+      "expected": "追加明确取消记录，不造 done／accepted；完成必要清理，已移交应用及使用引用可持续存在",
+      "implementation": "implemented_protocol",
+      "verification": "representative_deterministic_or_fixture_coverage",
+      "evidence": [
+        "tests/test_incremental_workflow.py::test_explicit_scope_cancellation_is_neither_done_nor_accepted"
+      ],
+      "limit": "Not a claim that every conjunct of this scenario has run on every OS or with real models/hardware."
+    }
+  ],
+  "incremental_count": 36,
+  "test_governance": {
+    "design": "docs/test-governance.zh.md",
+    "policy": "workflow/TEST-POLICY.md",
+    "implementation": [
+      "workflow/test_governance.py",
+      "workflow/workflow_jobs.py",
+      "workflow/workflow_runtime.py",
+      "scripts/ci-scope.py",
+      "scripts/run-tests.py",
+      ".github/workflows/ci.yml"
+    ],
+    "regressions": [
+      "tests/test_test_governance.py",
+      "tests/test_incremental_workflow.py",
+      "tests/test_test_supervisor.py",
+      "tests/test_installers.py"
+    ],
+    "validation": "docs/benchmarks/test-governance-validation.json",
+    "limits": "Original scenario counts are unchanged. This links the test-governance mechanism, not model quality or speed gains; native CI execution and selection miss rates need retained observations."
+  }
+}

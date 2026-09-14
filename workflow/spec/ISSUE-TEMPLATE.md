@@ -9,6 +9,7 @@ Write issues in dependency order (blockers first) so `blocked_by` can reference 
 <issue-template>
 
 ---
+# pending cards add pending_reason and keep the concrete goal; ready/done use the complete verifier contract
 # frontmatter per ARTIFACT-FORMAT.md — contract_version / verifier_schema (v3 schema 2 only) / type / feature / status / category / blocked_by / refines / touches / test_paths / exclusive_resources / created; add experience_review only for graphical UI
 # a fresh slice defaults to status: ready, category: enhancement
 ---

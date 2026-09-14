@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 class WindowsJob:
-    def __init__(self):
+    def __init__(self, name=None):
         import ctypes as c
         from ctypes import wintypes as w
 
@@ -30,7 +30,7 @@ class WindowsJob:
 
         self.c, self.accounting = c, Accounting
         self.api = c.WinDLL("kernel32", use_last_error=True)
-        for name, args, result in [
+        for function_name, args, result in [
             ("CreateJobObjectW", [c.c_void_p, w.LPCWSTR], w.HANDLE),
             ("SetInformationJobObject", [w.HANDLE, c.c_int, c.c_void_p, w.DWORD], w.BOOL),
             ("QueryInformationJobObject", [w.HANDLE, c.c_int, c.c_void_p, w.DWORD, c.c_void_p], w.BOOL),
@@ -39,9 +39,9 @@ class WindowsJob:
             ("OpenProcess", [w.DWORD, w.BOOL, w.DWORD], w.HANDLE),
             ("CloseHandle", [w.HANDLE], w.BOOL),
         ]:
-            function = getattr(self.api, name)
+            function = getattr(self.api, function_name)
             function.argtypes, function.restype = args, result
-        self.handle = self.api.CreateJobObjectW(None, None)
+        self.handle = self.api.CreateJobObjectW(None, name)
         self._check(self.handle)
         limits = Extended()
         limits.basic.flags = 0x2000  # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
@@ -79,16 +79,22 @@ class WindowsJob:
 
 
 class ProcessTree:
-    def __init__(self, argv, **options):
-        self.job = WindowsJob() if os.name == "nt" else None
+    def __init__(self, argv, on_start=None, **options):
+        job_name = "Local\\Cosmos-" + __import__("uuid").uuid4().hex if on_start and os.name == "nt" else None
+        self.job = WindowsJob(job_name) if os.name == "nt" else None
         self.process = None
         try:
-            if self.job:
+            if self.job or on_start:
                 self.process = subprocess.Popen(
-                    [sys.executable, str(Path(__file__).resolve()), "--run"] + list(argv),
-                    stdin=subprocess.PIPE, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+                    [sys.executable, str(Path(__file__).resolve())]
+                    + (["--run-owned", str(os.getpid())] if on_start and os.name != "nt" else ["--run"]) + list(argv),
+                    stdin=subprocess.PIPE,
+                    **({"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if self.job else {"start_new_session": True}),
                     **options)
-                self.job.bind(self.process.pid)
+                if self.job:
+                    self.job.bind(self.process.pid)
+                if on_start:
+                    on_start({"pid": self.process.pid, "platform": os.name, "job_name": job_name})
                 self.process.stdin.write(b"1")
                 self.process.stdin.close()
             else:
@@ -110,14 +116,11 @@ class ProcessTree:
         except PermissionError:
             pass  # Darwin can deny signal probes for a group containing only zombies.
         # Orphan zombies cannot write; some hosts defer reaping them indefinitely.
-        # Minimal containers ship no ps: with the zombie check unavailable,
-        # report not-alive — claiming alive here would flag every run on such
-        # hosts as orphaned (crash) and make stop() wait forever. A real
-        # escaped orphan then goes un-flagged, which the supervisor tolerates.
+        # An unavailable zombie probe cannot prove that a live group is terminal.
         try:
             result = subprocess.run(["ps", "-eo", "pgid=,stat="], capture_output=True, text=True, timeout=5, check=True)
         except (FileNotFoundError, subprocess.SubprocessError):
-            return False
+            return True
         return any(parts[0] == str(self.process.pid) and not parts[1].startswith("Z")
                    for line in result.stdout.splitlines() if len(parts := line.split()) >= 2)
 
@@ -154,12 +157,74 @@ class ProcessTree:
             self.job.close()
 
 
+def observed_terminal(identity):
+    if identity["platform"] != os.name:
+        raise ValueError("process terminal observation must run on its original platform")
+    if os.name != "nt":
+        try:
+            os.killpg(identity["pid"], 0)
+        except ProcessLookupError:
+            return True
+        except PermissionError:
+            pass
+        try:
+            result = subprocess.run(["ps", "-eo", "pgid=,stat="], capture_output=True, text=True, timeout=5, check=True)
+        except (OSError, subprocess.SubprocessError):
+            return False
+        return not any(parts[0] == str(identity["pid"]) and not parts[1].startswith("Z")
+                       for line in result.stdout.splitlines() if len(parts := line.split()) >= 2)
+    import ctypes as c
+    from ctypes import wintypes as w
+    api = c.WinDLL("kernel32", use_last_error=True)
+    api.OpenJobObjectW.argtypes, api.OpenJobObjectW.restype = [w.DWORD, w.BOOL, w.LPCWSTR], w.HANDLE
+    api.QueryInformationJobObject.argtypes = [w.HANDLE, c.c_int, c.c_void_p, w.DWORD, c.c_void_p]
+    api.QueryInformationJobObject.restype = w.BOOL
+    api.CloseHandle.argtypes = [w.HANDLE]
+    handle = api.OpenJobObjectW(4, False, identity["job_name"])
+    if not handle:
+        if c.get_last_error() == 2:
+            return True
+        raise c.WinError(c.get_last_error())
+    class Accounting(c.Structure):
+        _fields_ = [("times", c.c_int64 * 4), ("faults", w.DWORD),
+                    ("total", w.DWORD), ("active", w.DWORD), ("terminated", w.DWORD)]
+    try:
+        info = Accounting()
+        if not api.QueryInformationJobObject(handle, 1, c.byref(info), c.sizeof(info), None):
+            raise c.WinError(c.get_last_error())
+        return info.active == 0
+    finally:
+        api.CloseHandle(handle)
+
+
 if __name__ == "__main__":
     # The target cannot start until its waiting launcher belongs to the Job.
-    if sys.argv[1:2] != ["--run"] or sys.stdin.buffer.read(1) != b"1":
+    if sys.argv[1:2] not in (["--run"], ["--run-owned"]) or sys.stdin.buffer.read(1) != b"1":
         raise SystemExit(125)
+    arguments = sys.argv[2:]
+    if sys.argv[1] == "--run-owned":
+        import threading
+        signal.signal(signal.SIGTERM, lambda signum, frame: None)
+        owner = int(arguments.pop(0))
+        def watch_owner():
+            while os.getppid() == owner:
+                time.sleep(0.1)
+            os.killpg(os.getpgrp(), signal.SIGKILL)
+        threading.Thread(target=watch_owner, daemon=True).start()
     try:
-        raise SystemExit(subprocess.call(sys.argv[2:]))
+        result = subprocess.call(arguments)
+        if sys.argv[1] == "--run-owned":
+            try:
+                probe = subprocess.Popen(["ps", "-eo", "pgid=,pid=,stat="], stdout=subprocess.PIPE, text=True)
+                output, _ = probe.communicate(timeout=5)
+                remaining = probe.returncode != 0 or any(
+                    parts[0] == str(os.getpgrp()) and parts[1] not in (str(os.getpid()), str(probe.pid)) and not parts[2].startswith("Z")
+                    for line in output.splitlines() if len(parts := line.split()) >= 3)
+            except (OSError, subprocess.SubprocessError):
+                remaining = True
+            if remaining:
+                os.killpg(os.getpgrp(), signal.SIGKILL)
+        raise SystemExit(result)
     except OSError as exc:
         print("%s: %s" % (type(exc).__name__, exc), file=sys.stderr)
         raise SystemExit(125)
