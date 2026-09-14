@@ -54,7 +54,7 @@ jobs:
         with:
           python-version: "3.9"
       - name: Behavior and integration regressions
-        run: python workflow/tdd/scripts/test-supervisor.py --cwd . --receipt "$GITHUB_WORKSPACE/.scratch/ci/receipts/regression.json" --log "$GITHUB_WORKSPACE/.scratch/tmp/regression.log" --scope full --timeout 600 --measurement-context "${{ runner.os }}-hosted-py39-default-concurrency" -- python scripts/run-tests.py --durations-file "$GITHUB_WORKSPACE/.scratch/tmp/test-durations.json"
+        run: python workflow/tdd/scripts/test-supervisor.py --cwd . --receipt .scratch/ci/receipts/regression.json --log .scratch/tmp/regression.log --scope full --timeout 600 --measurement-context "${{ runner.os }}-hosted-py39-default-concurrency" -- python scripts/run-tests.py --durations-file .scratch/tmp/test-durations.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:

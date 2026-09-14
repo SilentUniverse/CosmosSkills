@@ -364,11 +364,12 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Optional[List[str]] = None) -> int:
     args = build_parser().parse_args(argv)
     # Relative receipt/log paths resolve against the declared --cwd, not the
-    # caller's process CWD, which a host shell may leave elsewhere.
+    # caller's process CWD. Anchor the base first: resolving a still-relative
+    # path directly can fall back to the drive root on older Windows runtimes.
     for name in ("receipt", "log"):
         value = getattr(args, name)
         if not value.is_absolute():
-            setattr(args, name, args.cwd / value)
+            setattr(args, name, args.cwd.resolve() / value)
     command = args.command[1:] if args.command[:1] == ["--"] else args.command
     try:
         if bool(args.issue) != bool(args.verifier):
