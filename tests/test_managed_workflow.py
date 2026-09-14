@@ -484,7 +484,7 @@ print(action)
                                     "issue_refs": ["demo/01-answer"], "ac_map": {"demo/01-answer": [1]},
                                     "result": {"kind": "unittest"}}}, ["app.py", "test_app.py"], ["demo/01-answer"])
         if v3:
-            issue.write_text(issue.read_text().replace("type: issue", "contract_version: 3\nverifier_schema: 2\ntype: issue") +
+            issue.write_text(issue.read_text(encoding="utf-8").replace("type: issue", "contract_version: 3\nverifier_schema: 2\ntype: issue") +
                              "## 验证设计\n- profile: verifier.json\n- #1 → `profile:unit`\n"
                              "- P1 预检：`profile:preflight` → passed\n", encoding="utf-8")
             (self.root / "preflight.py").write_text("print('ready')\n", encoding="utf-8")
