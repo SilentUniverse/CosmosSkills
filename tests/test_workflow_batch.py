@@ -326,7 +326,7 @@ class WorkflowBatchTests(unittest.TestCase):
         path = self.issue()
         opened = self.open(verification_plan(["demo/01-init"]))
         started = self.cli("start", "demo", "01-init")
-        path.write_text(path.read_text().replace("status: ready", "status: done"), encoding="utf-8")
+        path.write_text(path.read_text(encoding="utf-8").replace("status: ready", "status: done"), encoding="utf-8")
         output = self.collect(started["execution"], "demo/01-init=green", expected=12)
         self.assertIn("cannot supply managed proof", output)
         status = self.cli("batch-status", "--batch", opened["batch_id"])

@@ -362,6 +362,13 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
+    # Stock Windows consoles default to the ANSI code page; receipt/log paths
+    # can legitimately carry non-ASCII (user names, feature slugs).
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
     args = build_parser().parse_args(argv)
     # Relative receipt/log paths resolve against the declared --cwd, not the
     # caller's process CWD. Anchor the base first: resolving a still-relative

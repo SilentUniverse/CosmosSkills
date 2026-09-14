@@ -82,7 +82,7 @@ class ManagedWorkflowTests(unittest.TestCase):
                                     "result": {"kind": "predicate", "stdout_equals": "42"}}}, ["check.py"])
         batch_id = self.open(definition)["batch_id"]
         result = subprocess.run([sys.executable, "-B", str(ROOT / "scripts/overnight.py"), "", str(self.root)],
-                                cwd=self.root, capture_output=True, text=True, timeout=20)
+                                cwd=self.root, capture_output=True, text=True, encoding="utf-8", timeout=20)
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertEqual("closed", self.cli("batch-status", "--batch", batch_id)["status"])
 
@@ -510,7 +510,7 @@ supervisor.run_command([sys.executable,'preflight.py'],cwd=root,receipt=receipt,
 preflight.record(root/row['receipt'],cwd=row['cwd'],action=row['declared_action'],fingerprint=row['fingerprint'],verifier_digest=row['verifier_digest'],readiness_digest=row['readiness_digest'],execution_receipt=receipt)
 """
             result = subprocess.run([sys.executable, "-B", "-c", program, str(ROOT / "workflow")], cwd=self.root,
-                                    capture_output=True, text=True, timeout=15)
+                                    capture_output=True, text=True, encoding="utf-8", timeout=15)
             self.assertEqual(0, result.returncode, result.stdout + result.stderr)
         opened = self.open(definition)
         batch_id = opened["batch_id"]
@@ -529,27 +529,27 @@ preflight.record(root/row['receipt'],cwd=row['cwd'],action=row['declared_action'
                          "--member", "demo/01-answer", "--request-id", "local-green", "--job", local)
         self.assertTrue(green["passed"])
         self.assertEqual("development_check", green["kind"])
-        self.assertIn("status: ready", issue.read_text())
+        self.assertIn("status: ready", issue.read_text(encoding="utf-8"))
         self.cli("batch-prepare", "--batch", batch_id, expected=2)
         event = self.root / "yield.json"
         event.write_text(json.dumps({"source": {"kind": "inline", "reference": "awaited inline tool completion"},
                                      "members": {"demo/01-answer": {"lane": "verify", "reason": "implementation awaits checks"}}}), encoding="utf-8")
         yielded = self.cli("batch-yield", "--batch", batch_id, "--execution", started["execution"], "--continuations", event)
         self.assertEqual("prepare_checkpoint", yielded["action"])
-        self.assertIn("status: ready", issue.read_text())
+        self.assertIn("status: ready", issue.read_text(encoding="utf-8"))
         self.assertEqual(yielded, self.cli("batch-yield", "--batch", batch_id, "--execution", started["execution"], "--continuations", event))
         closed = self.cli("batch-run", "--batch", batch_id)
         self.assertEqual("closed", closed["status"])
-        self.assertIn("status: done", issue.read_text())
-        self.assertIn("managed-proof:", issue.read_text())
+        self.assertIn("status: done", issue.read_text(encoding="utf-8"))
+        self.assertIn("managed-proof:", issue.read_text(encoding="utf-8"))
         if v3:
             program = "import sys; from pathlib import Path; sys.path.insert(0,sys.argv[1]); from workflow_contract import validate_v3_completion; validate_v3_completion(Path.cwd(),Path(sys.argv[2]))"
             result = subprocess.run([sys.executable, "-B", "-c", program, str(ROOT / "workflow"), str(issue)],
-                                    cwd=self.root, capture_output=True, text=True, timeout=10)
+                                    cwd=self.root, capture_output=True, text=True, encoding="utf-8", timeout=10)
             self.assertEqual(0, result.returncode, result.stdout + result.stderr)
-            issue.write_text(issue.read_text().replace("managed-proof:", "managed-proof: corrupt"), encoding="utf-8")
+            issue.write_text(issue.read_text(encoding="utf-8").replace("managed-proof:", "managed-proof: corrupt"), encoding="utf-8")
             invalid = subprocess.run([sys.executable, "-B", "-c", program, str(ROOT / "workflow"), str(issue)],
-                                     cwd=self.root, capture_output=True, text=True, timeout=10)
+                                     cwd=self.root, capture_output=True, text=True, encoding="utf-8", timeout=10)
             self.assertNotEqual(0, invalid.returncode)
 
     def test_parallel_bare_slug_dispatch_requires_complete_current_harness_results(self):
