@@ -33,14 +33,6 @@ owns its negative controls and calibration; they do not add prose fields to ordi
 DOM presence, a non-empty `src`, source snapshots, and an agent's own success report are not
 sufficient when the claim is about what the user receives.
 
-For opted-in graphical UI (`experience_review: runtime|graded`), write one canonical
-`.scratch/<feat>/experience-contract.json`; the receipt displays it and durable artifacts reference
-it. `runtime` uses deterministic assertions for behavior, state capture, media decoding, and
-unexpected runtime failures. `graded` adds an independent rubric review for visual dimensions that
-deterministic assertions cannot express. The default visual rubric is
-[experience-v1](../code-review/EXPERIENCE-RUBRIC.md); formal blind calibration belongs to explicit
-`/eval`, never the normal development gate.
-
 ## SPEC-stage execution readiness
 
 `ready` means a fresh executor can start implementation without designing a verifier, installing a
@@ -87,13 +79,8 @@ representative harness action, or a preflight whose evidence cannot be replayed 
 ## Stack profiles
 
 **TypeScript.** Treat `tsc --noEmit` as strong type-level reachability, then prove behavior at the
-public seam with Vitest/Jest and related-test selection. UI behavior is operated through the real
-browser/CDP at a fixed viewport. Capture the aligned states and fail on unexpected `console.error`,
-uncaught page errors, unexpected failed requests, and CSP violations. Expected events used to drive
-an aligned error state are asserted separately. An image/content claim checks decoded/rendered output (for an
-HTML image, `complete && naturalWidth > 0`), not only element visibility or an attribute. Inspect
-Electron renderer CSP plus main/preload/renderer ownership whenever a renderer loads external
-resources. Static green alone does not prove runtime behavior.
+public seam with Vitest/Jest and related-test selection. Static green alone does not prove runtime
+behavior.
 
 **Python.** Pyright/mypy cover typed boundaries only. For a mutation-based impact probe, compare a
 baseline with the candidate and classify only new diagnostics as typed impact candidates;
@@ -107,6 +94,12 @@ gap.
 **CLI / service / device.** CLI evidence is command + exit + stdout/stderr predicate. Service
 evidence is request + response + durable side effect. Device evidence is the control action plus log
 predicate/trace. The agent launches and operates the system; the human receives the replay recipe.
+
+## Trigger and cost
+
+Assign each verifier to its behavior loop, module, review candidate, final delivery or declared campaign
+boundary using [test policy](../TEST-POLICY.md). Share existing project commands. Keep safety timeouts
+separate from measured performance targets; an unknown impact map expands verification.
 
 ## AC-to-evidence rule
 

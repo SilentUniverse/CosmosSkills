@@ -143,7 +143,7 @@ function Install-SharedSkillRoot {
         else { New-Item -ItemType Directory -Path $SkillsRoot -Force | Out-Null }
     }
 
-    foreach ($shared in @("ARTIFACT-FORMAT.md", "REPORT-FORMAT.md", "verify-artifacts.py", "workflow-state.py", "workflow_contract.py", "workflow_runtime.py", "process_tree.py")) {
+    foreach ($shared in @("ARTIFACT-FORMAT.md", "REPORT-FORMAT.md", "verify-artifacts.py", "workflow-state.py", "workflow_contract.py", "workflow_runtime.py", "TEST-POLICY.md", "test_governance.py", "test-governance.py", "workflow_batch.py", "checkpoint_store.py", "workflow_managed.py", "workflow_incremental.py", "workflow_jobs.py", "workflow_resources.py", "workflow_ui.py", "workflow_members.py", "process_tree.py")) {
         $sharedSrc = Join-Path $root "workflow/$shared"
         if (-not (Test-Path -LiteralPath $sharedSrc)) { continue }
         $sharedDst = Join-Path $SkillsRoot $shared
@@ -344,7 +344,7 @@ if (Test-Path -LiteralPath $rfSource) {
 }
 
 # --- Ship the artifact gate scripts next to ARTIFACT-FORMAT.md (same distribution reason). ---
-foreach ($gate in @("verify-artifacts.py", "workflow-state.py", "workflow_contract.py", "workflow_runtime.py", "process_tree.py")) {
+foreach ($gate in @("verify-artifacts.py", "workflow-state.py", "workflow_contract.py", "workflow_runtime.py", "TEST-POLICY.md", "test_governance.py", "test-governance.py", "workflow_batch.py", "checkpoint_store.py", "workflow_managed.py", "workflow_incremental.py", "workflow_jobs.py", "workflow_resources.py", "workflow_ui.py", "workflow_members.py", "process_tree.py")) {
     $gSrc = Join-Path $root "workflow/$gate"
     if (-not (Test-Path -LiteralPath $gSrc)) { continue }
     $gTarget = Join-Path $Target $gate
@@ -490,7 +490,7 @@ if ($sharedInstall) {
         } | Out-Null
         # The old installer also copied contract files here as real files, which
         # the link filter above never sees; remove those exact known names.
-        foreach ($shared in @("ARTIFACT-FORMAT.md", "REPORT-FORMAT.md", "verify-artifacts.py", "workflow-state.py", "workflow_contract.py", "workflow_runtime.py", "process_tree.py")) {
+        foreach ($shared in @("ARTIFACT-FORMAT.md", "REPORT-FORMAT.md", "verify-artifacts.py", "workflow-state.py", "workflow_contract.py", "workflow_runtime.py", "TEST-POLICY.md", "test_governance.py", "test-governance.py", "workflow_batch.py", "checkpoint_store.py", "workflow_managed.py", "workflow_incremental.py", "workflow_jobs.py", "workflow_resources.py", "workflow_ui.py", "workflow_members.py", "process_tree.py")) {
             $copy = Join-Path $zcodeSkills $shared
             if (Test-Path -LiteralPath $copy -PathType Leaf) {
                 if ($DryRun) {

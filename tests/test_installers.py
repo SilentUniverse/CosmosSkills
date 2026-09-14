@@ -12,6 +12,46 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class InstallerTests(unittest.TestCase):
+    def test_native_installed_batch_cli_retains_final_obligation(self):
+        with tempfile.TemporaryDirectory(prefix="cosmos installed 空格 ") as directory:
+            probe = Path(directory).resolve()
+            target = probe / "skills"
+            if os.name == "nt":
+                command = [shutil.which("pwsh") or "powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
+                           "-File", str(ROOT / "scripts/install.ps1"), "-Target", str(target),
+                           "-ClaudeRoot", str(probe / "claude")]
+            else:
+                command = ["bash", str(ROOT / "scripts/install.sh"), "--target", str(target),
+                           "--claude-root", str(probe / "claude")]
+            installed = subprocess.run(command, cwd=probe, capture_output=True, text=True,
+                                       encoding="utf-8", errors="replace", timeout=60)
+            self.assertEqual(0, installed.returncode, installed.stdout + installed.stderr)
+            self.assertTrue((target / "tdd/UI-TESTING.md").is_file())
+            self.assertTrue((target / "tdd/BATCH-FORMAT.md").is_file())
+            self.assertTrue((target / "TEST-POLICY.md").is_file())
+            report = subprocess.run([sys.executable, '-I', '-B', str(target / 'test-governance.py'), 'report'],
+                                    cwd=probe, capture_output=True, text=True, timeout=10)
+            self.assertEqual(0, report.returncode, report.stdout + report.stderr)
+            self.assertEqual(0, json.loads(report.stdout)['runs'])
+            project = probe / "project"
+            project.mkdir()
+            plan = project / "plan.json"
+            plan.write_text(json.dumps({"schema_version": 1, "members": [], "checks": ["regression"],
+                                       "requirements": [{"id": "R1", "checks": ["regression"]}],
+                                       "milestones": [{"id": "final", "purpose": "final", "members": [], "required_checks": ["regression"]}],
+                                       "budget": {"dispatches": 1}}), encoding="utf-8")
+            env = {key: value for key, value in os.environ.items() if key != "PYTHONPATH"}
+            opened = subprocess.run([sys.executable, "-I", "-B", str(target / "workflow-state.py"),
+                                     "batch-open", str(project), "--plan", str(plan), "--request-id", "installed"],
+                                    cwd=probe, env=env, capture_output=True, text=True, encoding="utf-8", timeout=15)
+            self.assertEqual(0, opened.returncode, opened.stdout + opened.stderr)
+            batch_id = json.loads(opened.stdout)["batch_id"]
+            recovered = subprocess.run([sys.executable, "-I", "-B", str(target / "workflow-state.py"),
+                                        "batch-recover", str(project), "--batch", batch_id],
+                                       cwd=probe, env=env, capture_output=True, text=True, encoding="utf-8", timeout=15)
+            self.assertEqual(0, recovered.returncode, recovered.stdout + recovered.stderr)
+            self.assertEqual("prepare_checkpoint", json.loads(recovered.stdout)["action"])
+
     def require_symlink_privilege(self, directory: Path) -> None:
         # Windows without Developer Mode/admin refuses os.symlink outright.
         probe = directory / ".symlink-probe"

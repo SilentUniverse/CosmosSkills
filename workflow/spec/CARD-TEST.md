@@ -3,7 +3,7 @@
 Loaded on demand by [`/spec`](SKILL.md) when units are being classified and cut — new work and
 additive growth both land here. Issue body and frontmatter: [ISSUE-TEMPLATE.md](ISSUE-TEMPLATE.md).
 
-A unit is an issue iff `## 做什么` + ≥1 agent-runnable AC + an AC→evidence→passed-P# mapping can be
+A ready unit is an issue iff `## 做什么` + ≥1 agent-runnable AC + an AC→evidence→passed-P# mapping can be
 written for an agent that sees nothing else. AC derive from invariants first, examples second, and run
 through a named seam's interface — vocabulary per `/codebase-design`. Pick the seam external
 callers enter; prefer existing seams to new ones; use the fewest that cover the ACs. Evidence
@@ -43,7 +43,7 @@ evidence and a verifier that can fail on the named visual defect is not writable
 Slice order: first card = the smallest correct working core (tracer); later cards grow on it.
 No abstraction for a future the PRD doesn't name.
 
-`status`: `ready` | `done`. Human-only work is never an issue.
+`status`: `pending` | `ready` | `done`. Pending cards retain a concrete engineering goal, constraints and `pending_reason`; they cannot be dispatched or claim passed preflight. Ready cards may still wait for execution authorization, known dependencies or resources. Human-only work is never an issue.
 
 ## Slice review
 

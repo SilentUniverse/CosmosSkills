@@ -518,6 +518,15 @@ def validate_v3_completion(
         if profile is _PROFILE_UNSET
         else effective_verifier(root, feature, raw, profile)
     )
+    managed_refs = _bullet_values(_completion(raw), "managed-proof")
+    if managed_refs:
+        if len(managed_refs) != 1 or not re.fullmatch(r"[0-9a-f]{64}", managed_refs[0]):
+            raise ValueError("managed completion needs exactly one immutable proof reference")
+        from workflow_members import validate_proof
+        proof = validate_proof(root, feature + "/" + slug, managed_refs[0], raw)
+        if set(proof["ac"]) != set(expected_ac):
+            raise ValueError("managed completion does not cover this card's AC")
+        return {"receipts": [proof], "ac": expected_ac}
     receipt_refs = _bullet_values(_completion(raw), "receipt")
     if not receipt_refs:
         raise ValueError(f"issue '{slug}' contract v3 record has no receipt line")

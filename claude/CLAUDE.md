@@ -20,9 +20,9 @@ Priority: host/system > user objective and prior authorization > these defaults 
 - Ask only when an unresolved choice materially changes the outcome, public contract, scope,
   irreversible effects, cost, or required authority. Batch independent questions; ask only the delta.
 - Prior authorization, including an already requested change, review, or fix, survives turns and
-  skill transitions within its accepted scope. Spec defaults to presenting the complete plan before
-  implementation and honors a pending checkpoint before dependent work; only an explicit
-  instruction to proceed without review waives it.
+  skill transitions within its accepted scope. Spec presents a complete plan for plan-only requests and honors explicit pending review.
+  Implementation requests authorize routine planning and execution within their accepted scope;
+  only unresolved material decisions hold their dependent work.
 - While waiting, finish independent authorized work. Before an unapproved consequential action,
   prepare its reviewable result. Silence is not permission. If a rule blocks progress, cite its
   exact file/clause and the decision still missing; do not invent an approval requirement.

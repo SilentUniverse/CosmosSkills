@@ -36,7 +36,13 @@ The essential difference from conventional standards (SOLID, Clean Code, Design 
 
 **Opt-in behavior evals.** The normal development path does not run them. Explicit `/eval smoke|full` sessions retain same-project previous/candidate/no-skill comparisons; `/eval export` creates a standalone public exam for native or arbitrary external harnesses, then grades returned evidence blindly in an N-way report. Reports keep Verified Success, speed, same-scope cost, alignment rounds, and handoff friction separate; raw cross-provider token and tool-call counters are diagnostic only. Without a real full run, the project makes no “faster” or “better” claim.
 
-**A closed loop.** SPEC fixes intent and prepares P#; a Design Receipt appears only when a human decision can change the result. Ready cards flow to TDD execution and proof, then two-axis review and a one-screen report. Delivered state is projected on demand instead of copied into SUMMARY files; tidy only removes closed-batch caches. Handoffs carry HEAD and worktree digests and are consumed once.
+**Incremental collaboration.** Spec maintains requirements, issues and reviewable scenes. TDD
+continues authorized implementation and verification in the same task. Humans review a fixed,
+actually tested release while independent work continues. Feedback returns to its requirements and
+issues; changed completed requirements create linked follow-up work. Tidy deletes released temporary
+files and retains tests, reusable experience, pending releases and portable completion evidence.
+Live source preview runs in the original repository while edits continue. The three entries hand off
+within one task. See the [collaboration design](incremental-collaboration-plan.zh.md).
 
 **A resident constitution.** AGENTS.md routes Codex to the shared CLAUDE.md policy; resident rules stay small; detailed platform and workflow guidance is loaded through pointers. A settled request proceeds using repository evidence and reversible implementation defaults; prior authorization survives skill transitions. Explanatory inline comments are off by default; only code-inexpressible contracts, reasons, and external constraints remain.
 
@@ -44,7 +50,7 @@ The essential difference from conventional standards (SOLID, Clean Code, Design 
 
 ### Lineage and Tailoring
 
-The methodology's prototype comes from mattpocock/skills — an excellent workflow built for team collaboration, deeply integrated with GitHub, in an English-first world. CosmosSkills re-tailored it for the solo local developer: collaboration machinery removed entirely, issues became a local markdown queue (two states, zero external dependencies), a bilingual contract established (English for thinking and code, Chinese for conversation), and legislated against "AI output humans can't read": human-facing reports foreground results, evidence, and pending decisions; detailed logs are read on demand.
+The methodology's prototype comes from mattpocock/skills — an excellent workflow built for team collaboration, deeply integrated with GitHub, in an English-first world. CosmosSkills re-tailored it for the solo local developer: coordination is limited to necessary ownership and review state, with a local markdown queue (pending/ready/done, zero external dependencies), a bilingual contract established (English for thinking and code, Chinese for conversation), and legislated against "AI output humans can't read": human-facing reports foreground results, evidence, and pending decisions; detailed logs are read on demand.
 
 ### The Name
 

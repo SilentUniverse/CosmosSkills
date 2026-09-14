@@ -5,14 +5,15 @@ import functools
 import hashlib
 import json
 import os
-import tempfile
 import threading
 import time
 from pathlib import Path
 
-# msvcrt has no shared mode (LK_NBRLCK is as exclusive as LK_NBLCK), so on
-# Windows concurrent readers serialize behind a bounded retry instead of
-# failing; writers keep the fail-fast contract.
+
+class RuntimeConflict(ValueError):
+    exit_code = 13
+
+# Readers and owned verifier state commits wait briefly; other writers fail fast.
 LOCK_ATTEMPTS = 40
 LOCK_RETRY_SECONDS = 0.025
 
@@ -98,6 +99,7 @@ def _digest(path):
 
 
 def atomic_write(path, content):
+    import tempfile
     path = Path(path)
     if content is None:
         path.unlink(missing_ok=True)
@@ -190,19 +192,40 @@ def write_state(root, path, content):
 
 def require_settled(root):
     if (Path(root) / ".scratch" / ".workflow-pending.json").exists():
-        raise ValueError(
+        raise RuntimeConflict(
             "interrupted workflow publication: .scratch/.workflow-pending.json exists and its "
-            "replay keeps failing; reconcile the conflicting file it names, or delete the "
-            "pending file to discard the interrupted batch, then rerun the mutating operation")
+            "publication is incomplete; preserve the journal and affected files, reconcile "
+            "the conflicting before/after digests, then replay the transaction. Removing "
+            "the journal does not roll back already published files")
 
 
 def _nt_lock(fd, mode):
+    import ctypes
+    from ctypes import wintypes
     import msvcrt
-    msvcrt.locking(fd, mode, 1)
+
+    class Overlapped(ctypes.Structure):
+        _fields_ = [("Internal", ctypes.c_size_t), ("InternalHigh", ctypes.c_size_t),
+                    ("Offset", wintypes.DWORD), ("OffsetHigh", wintypes.DWORD),
+                    ("hEvent", wintypes.HANDLE)]
+
+    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    operation = kernel.UnlockFileEx if mode == msvcrt.LK_UNLCK else kernel.LockFileEx
+    operation.restype = wintypes.BOOL
+    operation.argtypes = [wintypes.HANDLE] + [wintypes.DWORD] * (3 if mode == msvcrt.LK_UNLCK else 4) + [ctypes.POINTER(Overlapped)]
+    handle = wintypes.HANDLE(msvcrt.get_osfhandle(fd))
+    overlap = Overlapped()
+    if mode == msvcrt.LK_UNLCK:
+        success = operation(handle, 0, 1, 0, ctypes.byref(overlap))
+    else:
+        flags = 1 | (0 if mode == msvcrt.LK_NBRLCK else 2)
+        success = operation(handle, flags, 0, 1, 0, ctypes.byref(overlap))
+    if not success:
+        raise ctypes.WinError(ctypes.get_last_error())
 
 
 @contextlib.contextmanager
-def file_lock(path, shared=False):
+def file_lock(path, shared=False, wait=False):
     path = Path(path)
     if shared and not path.exists():
         yield
@@ -213,37 +236,24 @@ def file_lock(path, shared=False):
         path.parent.mkdir(parents=True, exist_ok=True)
     # Keep the inode: unlinking an unlocked file can split simultaneous lockers.
     with path.open("rb" if shared else "a+b") as stream:
-        if not shared and stream.seek(0, os.SEEK_END) == 0:
-            stream.write(b"\0")
-            stream.flush()
         stream.seek(0)
-        try:
-            if os.name == "nt":
-                import msvcrt
-                attempts = LOCK_ATTEMPTS if shared else 1
-                failure = None
-                acquired = False
-                for attempt in range(attempts):
-                    try:
-                        _nt_lock(stream.fileno(), msvcrt.LK_NBLCK)
-                        acquired = True
-                        break
-                    except OSError as exc:
-                        failure = exc
-                        if attempt + 1 < attempts:
-                            time.sleep(LOCK_RETRY_SECONDS)
-                if not acquired:
-                    raise ValueError(
-                        "workflow state is busy after %d lock attempts; another workflow "
-                        "operation is holding it" % attempts) from failure
-            else:
-                import fcntl
-                mode = fcntl.LOCK_SH if shared else fcntl.LOCK_EX
-                fcntl.flock(stream.fileno(), mode | fcntl.LOCK_NB)
-        except ValueError:
-            raise
-        except OSError as exc:
-            raise ValueError("workflow state is busy; retry after the current operation") from exc
+        attempts = LOCK_ATTEMPTS if shared or wait else 1
+        failure = None
+        for attempt in range(attempts):
+            try:
+                if os.name == "nt":
+                    import msvcrt
+                    _nt_lock(stream.fileno(), msvcrt.LK_NBRLCK if shared else msvcrt.LK_NBLCK)
+                else:
+                    import fcntl
+                    mode = fcntl.LOCK_SH if shared else fcntl.LOCK_EX
+                    fcntl.flock(stream.fileno(), mode | fcntl.LOCK_NB)
+                break
+            except OSError as exc:
+                failure = exc
+                if attempt + 1 == attempts:
+                    raise RuntimeConflict("workflow state is busy after %d lock attempts; another workflow operation is holding it" % attempts) from failure
+                time.sleep(LOCK_RETRY_SECONDS)
         try:
             yield
         finally:
@@ -252,6 +262,16 @@ def file_lock(path, shared=False):
                 _nt_lock(stream.fileno(), _NT_UNLCK)
             else:
                 fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
+
+
+@contextlib.contextmanager
+def verifier_state_wait(root):
+    previous = getattr(_held, 'wait_roots', set())
+    _held.wait_roots = previous | {Path(root).resolve()}
+    try:
+        yield
+    finally:
+        _held.wait_roots = previous
 
 
 @contextlib.contextmanager
@@ -268,6 +288,23 @@ def read_snapshot(root):
             yield
         finally:
             _held.readers = readers
+
+
+@contextlib.contextmanager
+def legacy_verifier_session(root):
+    scratch = Path(root).resolve() / ".scratch"
+    if os.path.normcase(str(scratch.resolve())) != os.path.normcase(str(scratch)):
+        raise ValueError("workflow control directory cannot be a symlink or junction")
+    lock = scratch / ".workflow-verifier.lock"
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    with lock.open("ab"):
+        pass
+    with file_lock(lock, shared=True):
+        if (scratch / "batches").exists() or any((scratch / name / leaf).exists()
+                for name in ("tmp", "wave-baselines") for leaf in ("issues", "wave-ledger.json")):
+            from workflow_batch import guard_legacy
+            guard_legacy(root, "raw test supervisor")
+        yield
 
 
 def reading(function):
@@ -288,7 +325,7 @@ def transaction(root):
     if root in getattr(_held, "readers", set()):
         raise ValueError("cannot mutate workflow state during a read-only projection")
     directory = root / ".scratch"
-    with file_lock(directory / ".workflow.lock"):
+    with file_lock(directory / ".workflow.lock", wait=root in getattr(_held, "wait_roots", set())):
         changes = {}
         versions = getattr(_held, "versions", {})
         _held.versions = versions.copy()

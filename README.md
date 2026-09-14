@@ -10,9 +10,9 @@
 <img alt="中文" src="https://img.shields.io/badge/%E5%AF%B9%E8%AF%9D-%E4%B8%AD%E6%96%87-ff80eb?style=flat-square&labelColor=black">
 <img alt="Windows" src="https://img.shields.io/badge/Windows-%E4%BC%98%E5%85%88-369eff?style=flat-square&labelColor=black">
 <img alt=".scratch" src="https://img.shields.io/badge/.scratch-markdown-3fb950?style=flat-square&labelColor=black">
-<img alt="queue" src="https://img.shields.io/badge/queue-ready%20%7C%20done-d29922?style=flat-square&labelColor=black">
+<img alt="queue" src="https://img.shields.io/badge/queue-pending%20%7C%20ready%20%7C%20done-d29922?style=flat-square&labelColor=black">
 
-A complete engineering methodology for your coding agent — nine laws, an artifact gate, opt-in behavior evals, zero zombie states.
+A complete engineering methodology for your coding agent — nine laws, an artifact gate, opt-in behavior evals, explicit execution ownership and recoverable workflow state.
 
 </div>
 
@@ -24,11 +24,14 @@ CosmosSkills 是一套给单人开发者的 AI 编程工程方法论：29 个跨
 
 - **九条定律**：从 Hoare、Dijkstra、Parnas、Ousterhout 等软件工程经典提炼的九个问题。不给规范，让 AI 自己推导出好代码
 - **机器门**：`verify-artifacts.py` 校验每份工件——完成记录点名的测试文件必须真实存在于磁盘，误删当场红灯；依赖图有环、PRD 版本链多头或缺头、需求记录源哈希漂移都会红灯
-- **闭环工作流**：`/spec` 只在真实决策未定时问人，准备验证环境并产出可执行方案 → 用户 review 后同意实现 → `/tdd` 实现和举证 → 双轴审查 + 一屏报告；`/tidy` 只清安全缓存
+- **闭环工作流**：`/spec` 滚动规划需求与验证，`/tdd` 在同一任务中持续实现和举证，`/tidy` 清理有明确归属的临时文件并保留测试经验。计划请求等审核；直接实施请求按已有授权继续
 - **按需行为 eval**：默认关闭；项目内保留 previous / candidate / no-skill 配对实验，跨项目则导出同一份独立公开考卷，比较 Verified Success、速度、同口径成本与交接摩擦
-- **单人本地优先**：本地 markdown 队列（ready | done 两态），零外部服务；中文沟通、沿用代码术语；面向人的输出以结果、证据和待决定事项为主
+- **单人本地优先**：本地 markdown 队列（pending | ready | done），零外部服务；中文沟通、沿用代码术语；面向人的输出以结果、证据和待决定事项为主
 
 完整背景故事与设计出处见 [中文版](docs/introduction.zh.md) · [English](docs/introduction.en.md)。
+
+批次、实时源码预览与固定 release 审核见 [日常使用说明](docs/checkpoint-local-release.zh.md)；
+验证记录与量化方法见 [工作流审查](docs/checkpoint-workflow-review.zh.md)。
 
 ## 九条定律
 
@@ -81,7 +84,7 @@ Codex 在本仓库通过根 [AGENTS.md](AGENTS.md) 读取共享策略 [CLAUDE.md
 显式指定安装目标或 ClaudeRoot 时，不镜像到用户级 ZCode / agents 目录；隔离安装需同时指定这两个路径。
 在其他 Codex 项目使用这套常驻策略时，将共享文件的实际路径加入相应 AGENTS.md，并保留原有项目规则。
 
-新项目直接用 `/spec` 起步即可。`.scratch/` 本地 issue、两态词汇和 `CODEBASE.md`
+新项目直接用 `/spec` 起步即可。`.scratch/` 本地 issue、三态词汇和 `CODEBASE.md`
 验证命令区懒出生都是默认约定，无需 setup。`/cosmos-setup` 只处理偏离：非默认
 tracker/路径、遗留状态、旧 `docs/agents/domain.md` 折叠。
 
@@ -89,45 +92,117 @@ tracker/路径、遗留状态、旧 `docs/agents/domain.md` 折叠。
 
 ## 工作流
 
+**围绕可验证、可试用的用户场景持续交付。AI 在同一目标下推进实现、验证和反馈修复，人在需要判断产品效果或作实质决定时介入。**
+
+Spec、TDD、TIDY 分别负责规划、执行和整理，在同一任务中接续。小而明确的修改直接实施；
+需要持久任务队列时才拆 Issue，需要维护共享产品决定时才写 PRD，需要固定验收或持续批次协调时才启用 managed batch。
+
+工程完成、人工通过和目标完成分别记录：Issue `done` 表示工程证据完整；人工接受绑定实际版本和场景；
+当前目标只有在全部适用的工程、人工和清理义务满足后才完成。PRD、Issue、审查点不一一对应。
+例如，解析文件、复制文件和取消操作三张卡，可以共同组成一个“导入素材”的可审场景。
+
+### 主流程与人工审查
+
+图中的分支允许并行推进：人审固定版本 A 时，TDD 可以继续独立增量 B；依赖审查决定的工作等待该决定。
+普通任务不必经过人工验收节点；明确只要方案时，Spec 交出方案等待审核。
+
 ```mermaid
-%%{init: {"theme": "neutral", "flowchart": {"curve": "basis", "padding": 12}}}%%
-flowchart LR
-  spec["/spec"]
-  tdd["/tdd"]
-  tidy["/tidy"]
-  spec -->|"用户 review 后同意实现；ready 仅表示就绪"| tdd
-  tdd -. "safe cache GC" .-> tidy
+flowchart TD
+  goal["目标、约束与已有授权"]
+  spec["/spec：场景、必要 Issue、验证约定"]
+  plan["方案审核或未决决定"]
+  tdd["/tdd：持续实现与验证"]
+  fixed["固定候选，构建并实测 release"]
+  human["人工审版本 A 的指定场景"]
+  close["最终组合检查与全部适用义务核对"]
+  tidy["/tidy：整理待办，清理临时文件"]
+  done["当前目标完成，历史与资产保留"]
+
+  goal -->|"需求需要规划"| spec
+  goal -->|"修改明确，已授权实施"| tdd
+  spec -->|"仅要方案或存在实质未决选择"| plan
+  plan -->|"需要调整约定"| spec
+  plan -->|"实施获授权，相关决定明确"| tdd
+  spec -->|"已有实施授权，相关约定明确"| tdd
+  tdd -->|"场景前置完成，需要正式人审"| fixed
+  fixed -->|"机器检查、实际入口与交付准备完成"| human
+  fixed -->|"候选已固定，继续独立增量 B"| tdd
+  human -->|"当前版本的场景通过"| tdd
+  human -->|"原约定内缺陷，定向修复"| tdd
+  human -->|"需求改变，关联增量修订"| spec
+  tdd -->|"本轮实现完成"| close
+  close -->|"仍缺实现、验证或人工结论"| tdd
+  close -->|"工程与人工义务满足"| tidy
+  tdd -->|"阶段整理"| tidy
+  tidy -->|"仍有已授权待办"| tdd
+  tidy -->|"全部适用义务满足"| done
 ```
 
-| | 做什么 |
-|---|---|
-| `/spec` | 固定意图与证据，准备验证环境，落档拆 issue。不写产品代码 |
-| `/atk` | 对抗审查。新 public seam、单向门、耦合切片或证据不稳时由 spec 调用；手动敲默认有逐条讲解，`-r` 只报发现且不改文件 |
-| `/tdd` | 红绿，写代码 |
-| `/tidy` | 查询派生状态，清理已关闭批次的显式缓存；不搬 issue / test |
-| `/eval` | 手动打开项目内 A/B 或跨项目 portable campaign；平时关闭 |
+| 入口 | AI 负责 | 你主要提供 |
+|---|---|---|
+| [Spec](workflow/spec/SKILL.md) | 明确成功标准、依赖和验证方式；按需拆卡；需求变化保留原完成历史并关联修订 | 目标、约束、优先场景与必要产品决定 |
+| [TDD](workflow/tdd/SKILL.md) | 实现、验证、协调 worker、准备可审版本、定位并修复反馈 | 实际试用观察和明确版本的场景结论 |
+| [TIDY](workflow/tidy/SKILL.md) | 展示工程与人工待办，清理已释放且无消费者的临时文件；保留测试、经验、交付版本和必要证据 | 查看或清理的目标范围 |
 
-详细执行规则以各技能为准，入口不重复维护第二套流程：
+源码预览直接运行原仓库，使用现有依赖，允许继续写入，适合快速看效果。正式接受绑定已实测 release 的产物哈希。
+构建安排在交付或必要的包验证节点；同一份已交付产物反复查看和导出直接复用。人工主要判断产品行为、体验及必要的真实业务操作，
+AI 负责测试质量和证据关联；构建或检查失败不能靠一次人工批准变成通过。
 
-- [spec](workflow/spec/SKILL.md)：明确结果、依赖和证据。多切片或跨会话工作才写可独立执行的卡；共享决策需要长期维护时才写 PRD。
-- [tdd](workflow/tdd/SKILL.md)：按行为红绿验证；小而明确的需求可直接执行。复杂需求先在同一任务中规划，随后继续实现。
-- [atk](workflow/atk/SKILL.md)：检查承重规则与失败方式；无发现也可通过，不为凑报告制造问题。
-- [tidy](workflow/tidy/SKILL.md)：查询交付状态，清理已关闭批次的显式缓存。
+### 辅助 Skill 的状态切换
 
-技能是阶段工具。要求“实现并验证”时，规划、审查结束后继续工作；明确只要规划或审阅时，完成该范围即可。已授权提交则验证后进入 `/commit`，无需再发一次命令。
+辅助 Skill 在对应问题出现时调用；回到原目标继续工作。图中的状态表示当前职责，人工对固定版本的审核独立记录。
 
-澄清只针对证据仍无法解决、会改变结果的决定。已提供的选择跨阶段保留；一个决定得到回答后，不追加“请回复对齐”。外部发布等行动若仍缺授权，先完成已有授权的准备，再展示可审阅结果。等待期间继续独立工作。
+```mermaid
+stateDiagram-v2
+  direction LR
+  state "/spec 规划" as Spec
+  state "/tdd 实现与验证" as TDD
+  state "/atk 对抗审查" as ATK
+  state "/code-review 代码审查" as Review
+  state "/diagnose 故障诊断" as Diagnose
+  state "/lint 文档与注释整理" as Lint
+  state "/handoff 保存未完工作" as Handoff
+  state "/resume 核对并恢复" as Resume
 
-| 情形 | 执行方式 |
-|---|---|
-| 清晰的文案、配置或局部修复 | 直接修改，用相关现有检查验证；不强制 PRD、卡片、新测试 |
-| 多个可独立交付的行为 | 按结果、证据和依赖拆卡；共享验证配置才提取 profile |
-| 用户已指定公共接口变化 | 检查兼容性并实施；仅新出现的实质选择需要询问 |
-| 真实权限、成本或产品选择缺失 | 提出具体问题，保留已决定部分，继续不受影响的工作 |
-| 活跃批次的集成检查失败 | 保留证据，将相关卡退回 ready 修复；已交付历史行为变化另建 redo |
-| 工具、子代理或会话轮换不可用 | 使用能力等价的可用路径；无法替代的验证明确报告，不能伪报通过 |
+  Spec --> ATK: 高风险决策、公共边界或证据不稳
+  ATK --> Spec: 处理审查发现
+  Spec --> TDD: 约定明确且已授权
+  TDD --> Review: 候选需要代码审查
+  Review --> TDD: 修复发现或继续交付
+  TDD --> Diagnose: 失败原因不明
+  Diagnose --> TDD: 根因明确，继续修复验证
+  TDD --> Lint: 需要整理文档或注释
+  Lint --> TDD: 整理完成，接续目标
+  TDD --> Handoff: 未完成工作必须跨会话
+  Handoff --> Resume: 新会话接续
+  Resume --> TDD: 核对工作区与未完义务后继续
+```
 
-`ready` 仍要求真实的验证器预检。测试仍证明可观察行为；需要的集成检查、公共契约和已启用的 UI 证据门不会因模型更强而取消。
+`/atk` 也可手动审查已有变更；`-r` 只读并返回发现。提交获得授权后，通过验证的修改进入 `/commit`；
+模型行为对照试验使用显式启用的 `/eval`。这两项不会因队列为空自动触发。
+
+### 日常使用怎样减少重复工作
+
+- **一次交代目标、优先场景和实施授权。** “按方案全部做完，导入可完整试用时给我固定版，期间继续独立的搜索功能。”同范围规划、拆卡和修复沿用授权，不逐卡等待确认。
+- **围绕场景反馈。** 说明试用版本、操作、实际现象和期望结果，AI 定位相关 Issue。需求完成后发生变化，追加关联修订；只有活动批次既定的失败恢复路径可以重新打开相关完成卡。
+- **按影响范围验证，在交付边界汇总。** 局部修改跑相关用例，模块完成检查消费者，审查点验证场景与实际产物，最终候选完成全部适用检查。未知影响扩大范围；显式全量绕过筛选。
+- **主控收口共享工作。** worker 只做写集和运行资源独立的工作，主控协调共享验证与交付；受管批次合并相同活动检查，完成证据只在有效性条件满足时复用。没有安全工作就等待事件。
+- **阶段结束整理，同一目标持续接续。** `/tidy inspect 目标` 只查看；`/tidy 目标` 清理确认无用的临时文件。确需跨会话时使用 handoff/resume，保留测试、可复用经验和历史证据。
+
+裸 `/tdd`、`/tidy` 默认当前目标；全仓操作需要明确范围，`/tdd -all` 表示全量检查。
+未决选择只阻塞其消费者；等待期间继续不受影响的工作。外部发布等行动缺授权时，先完成可审阅的准备再请求授权。
+跨会话不可用时采用能力等价的路径，缺失验证如实报告。
+`ready` 要求真实验证器预检，派发还须满足授权、依赖和资源条件；队列空或模型退出不能代替目标完成。
+
+增量批次采用 schema 3，保留原目标的累计预算、失败与计划历史。交付就绪优先处理；有宿主通知适配器时可后台投递，
+默认在主任务下一个安全边界提示，不增加模型轮询 Agent。非 UI 路径不读 UI 专属规则、不启动或安装浏览器。
+
+测试增长时，Spec 约定验证组与触发时机，TDD 审查测试质量，TIDY 从已有回执定位慢项、重复运行和不稳定候选。
+性能基线、进程超时和累计预算分别约束性能、挂死与重复消耗，调大超时不能消除性能回退。具体规则见
+[测试质量与成本治理](docs/test-governance.zh.md)。
+
+完整关系与使用方法见 [协作设计](docs/incremental-collaboration-plan.zh.md)和
+[日常使用说明](docs/checkpoint-local-release.zh.md)；实测收益范围见 [测评](docs/checkpoint-workflow-review.zh.md)。
 
 ---
 
@@ -167,9 +242,9 @@ flowchart LR
 | 排空一个 feature 的 ready | `/tdd <feat>` |
 | 全量测试与构建 | `/tdd -all` |
 | 车机 / 设备，验收在 log 里 | `/tdd -log` |
-| 过夜无人值守跑批 | Windows：双击仓库根的 [overnight.cmd](overnight.cmd) 后输入项目路径，可建桌面快捷方式或将项目文件夹拖到脚本上；终端 `overnight.cmd [repo] [feat]`；macOS / Linux：`python scripts/overnight.py` |
+| 过夜无人值守跑批 | Windows：双击仓库根的 [overnight.cmd](overnight.cmd) 后输入项目路径，可建桌面快捷方式或将项目文件夹拖到脚本上；终端 `overnight.cmd [repo] [feat]`；macOS / Linux：`python scripts/overnight.py [feat]`；省略范围接续活动目标，全仓显式 `--repo` |
 | 上一 session 留了 handoff | `/resume` |
-| 做到哪了 | `python <skills-root>/workflow-state.py survey . --format human`；默认只看 ready/blocked/zombie，`--history` 列已交付历史 |
+| 做到哪了 | `python <skills-root>/workflow-state.py survey . --format human`；默认看 pending、工程/决定阻塞、在途执行、待审和未解决反馈，`--history` 列交付历史 |
 | 想听 AI 逐条讲它改了什么 | `/atk` 默认讲上一轮增量；`-all` 讲全部未提交 |
 | 只要对抗审查，不允许改文件 | `/atk -r <目标>`（可省略目标，或用 `-all`） |
 | 快速检查 workflow 改动 | `/eval smoke <skill>`（筛回归，不能声称更好） |
@@ -186,8 +261,9 @@ flowchart LR
 
 | issue | |
 |---|---|
-| `ready` | 直接改 / 加 / 删文件 |
-| `done` | 不可改。`/spec` 出 redo → `/tdd` |
+| `pending` | 保留具体就绪缺口，先补工程准备 |
+| `ready` | 未派工的卡按已有授权调整；在途卡先协调其 owner，再修订约定 |
+| `done` | 保留已完成约定；需求变化建 detail/redo/fix。活动目标内同约定缺陷走定向受管修复，保留历史证明 |
 
 架构整体反转：先 `/grill` 写新 ADR。
 
@@ -206,8 +282,9 @@ flowchart LR
 
 | | |
 |---|---|
-| `ready` | 已对齐，逐条证据与验证环境都预检通过，可派发 |
-| `done` | 不可改。返工新建 redo |
+| `pending` | 工程就绪有明确缺口，记录 pending_reason，不派发 |
+| `ready` | 技术就绪；已有目标授权后可派发 |
+| `done` | 有完成证明；人工接受另记；后续需求建 detail/redo/fix，活动 batch 可定向修复 |
 
 人手验证（品味、外部账号、人眼）记在 PRD 端到端验证；无 PRD 时记在 issue 的手动验证区。车机 / 设备走 `/tdd -log`。没有 inbox / blocked / shelved。
 
@@ -263,8 +340,8 @@ git_base: 7af387c
 
 ### 不要破坏
 
-1. `done` 不可改 → 新建 `NN-redo-X.md`（唯一例外：`test_paths` 绿灯同步，仅 frontmatter 字段）
-2. 推翻已记录的 AC/决策 → `PRD-v2.md`，旧的不动；纯增量 → detail / 改 `ready`，不动 PRD
+1. 完成约定不覆盖；需求变化用关联新卡。活动目标的同约定缺陷可定向 repair，保留 proof 历史；实际新增且通过的测试可以同步 `test_paths`。
+2. 推翻已记录 AC/决定时追加需求和场景版本；纯增量用 detail 或修订尚未执行的卡。在途约定需先协调，历史保持可读。
 3. AC 只写本切片新行为；前置靠 `blocked_by`。tdd 跑前会跳过已覆盖的 AC
 
 ---
@@ -314,7 +391,7 @@ git_base: 7af387c
 | [tdd](workflow/tdd/SKILL.md) | 写代码；`-all` 跑全量，`-log` 读设备 log。[DRAIN.md](workflow/tdd/DRAIN.md) |
 | [cpp-oop-style](workflow/cpp-oop-style/SKILL.md) | 写、改、审 C++/CMake 时覆盖默认风格：抽象类/数据类/值类型、RAII、依赖注入、现代 CMake；源自 [agent-skills](https://github.com/archibate/agent-skills)（CC BY-NC-SA 4.0） |
 | [commit](workflow/commit/SKILL.md) | 只提交本任务已验证路径并落地；`-local` 仅建本地提交 |
-| [tidy](workflow/tidy/SKILL.md) | 派生状态查询 + 已关闭批次安全缓存 GC；不搬 issue / test |
+| [tidy](workflow/tidy/SKILL.md) | 工程／人工状态查询 + 有归属的临时文件 GC；保留测试、经验、历史证据 |
 | [diagnose](workflow/diagnose/SKILL.md) | 硬 bug / 性能回归 |
 | [conflicts](workflow/conflicts/SKILL.md) | 解决 Git merge / rebase 冲突 |
 | [map](workflow/map/SKILL.md) | 生成/刷新 `CODEBASE.md` 结构地图 |

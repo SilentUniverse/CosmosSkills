@@ -7,6 +7,8 @@ argument-hint: "Fixed point (commit/branch/tag); optional spec path (issue/PRD)"
 
 # Code Review
 
+For a protocol-2 checkpoint, review its fixed source/artifact and executed proof through [BATCH-FORMAT.md](../tdd/BATCH-FORMAT.md). A review finding is not an operator approval event.
+
 Review the diff between `HEAD` (or a named branch) and a pinned fixed point:
 
 - **Standards** — does the code follow this repo's documented coding standards, plus a fixed Fowler smell baseline?
@@ -58,6 +60,10 @@ Look for the originating spec, in this order:
 Anything in the repo documenting how code should be written: `CODING_STANDARDS.md`, `CONTRIBUTING.md`, the domain language in `CONTEXT.md`, and the decisions in `docs/adr/`. A diff that violates an accepted ADR is a Standards finding.
 
 On top of whatever the repo documents, the Standards axis always carries a **smell baseline** — 12 Fowler code smells (_Refactoring_, ch.3), two binding rules (repo overrides; always a judgement call). Full list: **[SMELL-BASELINE.md](SMELL-BASELINE.md)**. The Standards sub-agent reads the file; never paste or duplicate.
+
+When the diff changes tests or shared fixtures, Standards also applies the
+[test quality criteria](../tdd/tests.md); cost/trigger changes use [test policy](../TEST-POLICY.md).
+Review actual failure detection, isolation and distinct coverage before accepting deletion or cheaper checks.
 
 ### 4. Review each applicable axis
 

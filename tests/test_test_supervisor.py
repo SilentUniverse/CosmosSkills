@@ -24,6 +24,103 @@ SPEC.loader.exec_module(supervisor)
 
 
 class TestSupervisorTests(unittest.TestCase):
+    def test_windows_job_preserves_its_requested_kernel_name(self):
+        import ctypes
+        from process_tree import WindowsJob
+        api = mock.MagicMock()
+        api.CreateJobObjectW.return_value = 123
+        with mock.patch.object(ctypes, "WinDLL", return_value=api, create=True):
+            job = WindowsJob("Local\\Cosmos-fixture")
+            api.CreateJobObjectW.assert_called_once_with(None, "Local\\Cosmos-fixture")
+            job.close()
+
+    @unittest.skipUnless(os.name == "nt", "native Windows Job Object isolation")
+    def test_named_windows_jobs_are_independent_and_observable(self):
+        from process_tree import ProcessTree, observed_terminal
+        first_identity, second_identity = [], []
+        first = ProcessTree([sys.executable, "-c", "import time; time.sleep(10)"], on_start=first_identity.append)
+        second = ProcessTree([sys.executable, "-c", "import time; time.sleep(10)"], on_start=second_identity.append)
+        try:
+            self.assertNotEqual(first_identity[0]["job_name"], second_identity[0]["job_name"])
+            self.assertFalse(observed_terminal(first_identity[0]))
+            first.stop(1)
+            self.assertTrue(observed_terminal(first_identity[0]))
+            self.assertFalse(observed_terminal(second_identity[0]))
+        finally:
+            second.stop(1)
+            first.close()
+            second.close()
+
+    @unittest.skipIf(os.name == "nt", "POSIX process-group observation")
+    def test_missing_process_inspection_cannot_prove_terminal(self):
+        tree = supervisor.ProcessTree.__new__(supervisor.ProcessTree)
+        tree.job = None
+        tree.process = mock.Mock(pid=12345)
+        with mock.patch("os.killpg"), mock.patch("subprocess.run", side_effect=FileNotFoundError("ps")):
+            self.assertTrue(tree.alive())
+            from process_tree import observed_terminal
+            self.assertFalse(observed_terminal({"platform": os.name, "pid": 12345}))
+        with mock.patch("os.killpg", side_effect=ProcessLookupError), mock.patch("subprocess.run") as ps:
+            self.assertFalse(tree.alive())
+            self.assertTrue(observed_terminal({"platform": os.name, "pid": 12345}))
+            ps.assert_not_called()
+
+    def test_terminal_inspection_failure_keeps_failed_receipt_and_sanitized_log(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            tree = mock.Mock()
+            tree.process.wait.return_value = 0
+            tree.alive.return_value = True
+            tree.stop.side_effect = OSError("terminal observation unavailable")
+            with mock.patch.object(supervisor, "ProcessTree", return_value=tree):
+                result, code, receipt, log = self.run_case(root, [sys.executable, "-c", "print(42)"])
+            self.assertEqual(125, code)
+            self.assertEqual("crash", result["outcome"])
+            self.assertIn("terminal observation unavailable", json.loads(receipt.read_text())["terminal_error"])
+            self.assertTrue(log.is_file())
+            self.assertFalse(list(root.glob("*.raw.*")))
+            tree.close.assert_called_once()
+
+    @unittest.skipIf(os.name == "nt", "Windows uses kill-on-close Job ownership")
+    def test_managed_process_tree_dies_when_its_controller_exits(self):
+        from process_tree import observed_terminal
+        with tempfile.TemporaryDirectory() as directory:
+            identity = Path(directory) / "identity.json"
+            code = "import sys,json,time,os; from pathlib import Path; sys.path.insert(0,sys.argv[1]); from process_tree import ProcessTree; tree=ProcessTree([sys.executable,'-c','import time; time.sleep(30)'],on_start=lambda value:Path(sys.argv[2]).write_text(json.dumps(value))); time.sleep(.1); os._exit(77)"
+            parent = subprocess.run([sys.executable, "-B", "-c", code, str(ROOT / "workflow"), str(identity)], timeout=5)
+            self.assertEqual(77, parent.returncode)
+            saved = json.loads(identity.read_text())
+            deadline = time.monotonic() + 5
+            while not observed_terminal(saved) and time.monotonic() < deadline:
+                time.sleep(.02)
+            self.assertTrue(observed_terminal(saved))
+
+            child = "import subprocess,sys; subprocess.Popen([sys.executable,'-c','import time; time.sleep(30)'])"
+            parent_code = "import sys,json,time,os; from pathlib import Path; sys.path.insert(0,sys.argv[1]); from process_tree import ProcessTree; tree=ProcessTree([sys.executable,'-c',sys.argv[3]],on_start=lambda value:Path(sys.argv[2]).write_text(json.dumps(value))); time.sleep(.3); os._exit(77)"
+            subprocess.run([sys.executable, "-B", "-c", parent_code, str(ROOT / "workflow"), str(identity), child], timeout=5)
+            saved = json.loads(identity.read_text())
+            deadline = time.monotonic() + 5
+            while not observed_terminal(saved) and time.monotonic() < deadline:
+                time.sleep(.02)
+            self.assertTrue(observed_terminal(saved))
+
+    @unittest.skipIf(os.name == "nt", "POSIX controlled TERM with owner loss")
+    def test_managed_term_then_controller_exit_cleans_term_ignoring_descendant(self):
+        from process_tree import observed_terminal
+        with tempfile.TemporaryDirectory() as directory:
+            identity = Path(directory) / "identity.json"
+            marker = Path(directory) / "ready"
+            grandchild = "import signal,time,sys; from pathlib import Path; signal.signal(signal.SIGTERM,signal.SIG_IGN); Path(sys.argv[1]).touch(); time.sleep(30)"
+            target = "import subprocess,sys,time; subprocess.Popen([sys.executable,'-c',sys.argv[1],sys.argv[2]]); time.sleep(30)"
+            controller = "import sys,json,time,os,signal; from pathlib import Path; sys.path.insert(0,sys.argv[1]); from process_tree import ProcessTree; tree=ProcessTree([sys.executable,'-c',sys.argv[4],sys.argv[5],sys.argv[3]],on_start=lambda value:Path(sys.argv[2]).write_text(json.dumps(value)))\nwhile not Path(sys.argv[3]).exists(): time.sleep(.01)\nos.killpg(tree.process.pid,signal.SIGTERM); os._exit(77)"
+            parent = subprocess.run([sys.executable, "-B", "-c", controller, str(ROOT / "workflow"), str(identity), str(marker), target, grandchild], timeout=5)
+            self.assertEqual(77, parent.returncode)
+            saved = json.loads(identity.read_text())
+            deadline = time.monotonic() + 5
+            while not observed_terminal(saved) and time.monotonic() < deadline:
+                time.sleep(.02)
+            self.assertTrue(observed_terminal(saved))
+
     def test_parent_exit_does_not_leave_a_background_writer(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -48,6 +145,38 @@ class TestSupervisorTests(unittest.TestCase):
             scope=scope,
         )
         return result, exit_code, receipt, log
+
+    def test_invalid_performance_inputs_do_not_launch_the_command(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            marker = root / 'executed'
+            for options in ({'measurement_context': '   '}, {'performance_baseline': {}}, {'performance_baseline': []}):
+                with self.subTest(options=options), self.assertRaises(ValueError):
+                    supervisor.run_command([sys.executable, '-c', "from pathlib import Path; Path('executed').touch()"],
+                                           cwd=root, receipt=root/'receipt.json', log=root/'log', timeout=3, grace=.1, scope='targeted', **options)
+                self.assertFalse(marker.exists())
+                self.assertFalse((root/'receipt.json').exists())
+
+    def test_performance_observation_keeps_functional_exit_and_receipt(self):
+        from test_governance import summarize, baseline
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            command = [sys.executable, '-c', 'print(42)']
+            options = dict(cwd=root, receipt=root/'receipt.json', log=root/'log', timeout=3, grace=.1, scope='targeted',
+                           measurement_context='same-fixture')
+            first, code = supervisor.run_command(command, **options)
+            samples = [(str(i), dict(first, duration_seconds=.000001, started_at=str(i))) for i in range(2)]
+            report = summarize(samples, root)
+            fixed = baseline(report, next(iter(report['groups'])), 'p50', 2, 0, 0)
+            observed, code = supervisor.run_command(command, performance_baseline=fixed, **options)
+            self.assertEqual(0, code)
+            self.assertEqual('pass', observed['outcome'])
+            self.assertEqual('regression_observed', observed['performance']['status'])
+            self.assertEqual(observed, json.loads((root/'receipt.json').read_text()))
+            with mock.patch('test_governance.assess_receipt', side_effect=ValueError('invalid observation')):
+                observed, code = supervisor.run_command(command, performance_baseline=fixed, **options)
+            self.assertEqual(0, code)
+            self.assertEqual('incomplete', json.loads((root/'receipt.json').read_text())['performance']['status'])
 
     def test_pass_records_timing_and_log_digest_atomically(self):
         with tempfile.TemporaryDirectory() as directory:

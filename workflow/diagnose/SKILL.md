@@ -6,6 +6,8 @@ description: >-
 
 # Diagnose
 
+For an active protocol-2 batch, retain its run/checkpoint IDs and diagnose within its root budget. Recovery and repair follow [BATCH-FORMAT.md](../tdd/BATCH-FORMAT.md); do not launch a legacy full-suite loop.
+
 Reuse existing repros and combine phases when the cause is clear. Fix requests run through verified repair; diagnosis-only ends with findings.
 
 ## Phase 1 — Build a feedback loop

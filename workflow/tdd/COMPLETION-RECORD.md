@@ -11,7 +11,7 @@ record; execution receipts and tests hold machine evidence. Do not narrate the i
    test ownership. An execution cannot shrink ownership or change its behavior/profile contract.
    A needed expansion outside those paths is attention before writing: stop affected workers,
    reconcile/close the old execution, update the contract, then admit the revised work.
-3. Cover chosen failure modes: empty/boundary/error and relevant concurrency/timeout behavior.
+3. Review changed tests using [test quality criteria](tests.md). Cover chosen failure modes: empty/boundary/error and relevant concurrency/timeout behavior.
 4. Reuse project verification commands; cache a reusable adapter in `CODEBASE.md` only when
    project configuration cannot cheaply supply it.
 5. Challenge the most plausible failure and trace it to evidence. A review with no finding is
@@ -102,3 +102,36 @@ If execution aborts or will be retried, restore the original status and append o
 Do not repeat facts already visible in the card, receipt, or code; the next packet projects only the
 newest attempt. `/tdd` stops at validated changes; submission
 continues through `/commit` in this task when already requested.
+
+
+## Managed batch completion (protocol 2)
+
+An assigned schema-2/3 batch uses `check-local` for development feedback, then yields the complete
+execution to the controller. Local green or worker exit never marks an issue done. The controller
+runs the accepted checks on the frozen candidate and writes this completion form only after their
+executed receipts cover the issue AC and current contract:
+
+```markdown
+### 完成 — YYYY-MM-DD
+
+- managed-proof: <proof_sha256>
+```
+
+The proof object binds the issue reference, behavior/profile digests, candidate, named verifiers,
+AC union, run IDs and immutable receipt/log hashes. `validate_v3_completion` resolves this shape
+through `workflow_members.validate_proof`; editing the line cannot create evidence. It is an
+alternative to the legacy v3 `验证回执` form above, not an additional receipt to invent. Final
+combined checks and required operator observations remain batch obligations after issue completion.
+Only active-batch failed-verification recovery may reopen its completed members. Follow
+[BATCH-FORMAT.md](BATCH-FORMAT.md) for the controller commands and retained evidence.
+
+
+Schema 3 also publishes a portable proof pointer under
+`.scratch/<feature>/receipts/managed/<proof_sha256>.json` with a complete local object closure.
+It retains actual contract and requirement text, manual steps, jobs, results/logs, upstream proof
+and decision events. Copy that directory with the issue history before dropping execution caches.
+External completed dependencies retain their original contracts and validated completion payloads;
+available managed proof closures are copied too. A legacy done declaration without machine proof
+remains a historical premise, not an upgraded verification claim.
+Proof verification checks bytes and AC coverage; it does not assert the same outcome on changed
+source. An absent or damaged closure keeps the original evidence retained and reports the gap.

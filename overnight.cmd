@@ -2,10 +2,10 @@
 rem Windows entry for the overnight /tdd -p driver (engine: scripts\overnight.py).
 rem Bedtime ritual - pick one:
 rem   right-click the project folder -> Send to -> overnight  (one-time: create a shortcut
-rem     to this file inside shell:sendto) - runs every feature, no prompts
-rem   drag the target project folder onto this file   runs every feature, no prompts
+rem     to this file inside shell:sendto) - continues the active goal
+rem   drag the target project folder onto this file   continues the active goal
 rem   double-click                                     asks for the repo root
-rem   terminal: overnight.cmd [repo-root] [feat]       feat omitted = all features
+rem   terminal: overnight.cmd [repo-root] [feat]       feat omitted = active goal; --repo = every feature
 setlocal
 set "REPO=%~1"
 set "FEAT=%~2"

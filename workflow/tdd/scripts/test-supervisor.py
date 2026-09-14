@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
+import functools
 import hashlib
 import json
 import os
@@ -155,6 +157,22 @@ def _git_state(cwd: Path) -> Mapping[str, Any]:
     }
 
 
+def _admit_legacy_verifier(function):
+    @functools.wraps(function)
+    def run(*args, **kwargs):
+        from workflow_runtime import legacy_verifier_session
+        cwd = kwargs["cwd"].resolve()
+        root = (kwargs.get("repo_root") or _repo_root(cwd)).resolve()
+        roots = {root} | {candidate for candidate in (cwd, *cwd.parents)
+                          if (candidate / ".scratch/batches").exists()}
+        with contextlib.ExitStack() as stack:
+            for candidate in sorted(roots):
+                stack.enter_context(legacy_verifier_session(candidate))
+            return function(*args, **kwargs)
+    return run
+
+
+@_admit_legacy_verifier
 def run_command(
     argv: Sequence[str],
     *,
@@ -167,6 +185,9 @@ def run_command(
     env: Optional[Mapping[str, str]] = None,
     binding: Optional[Mapping[str, Any]] = None,
     repo_root: Optional[Path] = None,
+    launch_record: Optional[Path] = None,
+    measurement_context: Optional[str] = None,
+    performance_baseline: Optional[Mapping[str, Any]] = None,
 ) -> Tuple[Mapping[str, Any], int]:
     if not argv:
         raise ValueError("command must not be empty")
@@ -175,6 +196,11 @@ def run_command(
     if scope not in SCOPES:
         raise ValueError("unsupported scope: %s" % scope)
 
+    if measurement_context is not None and (not isinstance(measurement_context, str) or not measurement_context.strip()):
+        raise ValueError("measurement context must identify comparable environment and cache conditions")
+    if performance_baseline is not None:
+        from test_governance import validate_baseline
+        validate_baseline(performance_baseline)
     effective_env = dict(env) if env is not None else dict(os.environ)
     secrets = _secret_values(effective_env)
     if any(secret in str(argument).encode("utf-8") for secret in secrets for argument in argv):
@@ -190,6 +216,7 @@ def run_command(
     git = _git_state(working_dir)
     return_code: Optional[int] = None
     launch_error: Optional[str] = None
+    terminal_error: Optional[str] = None
     timed_out = False
     termination = "none"
 
@@ -199,6 +226,7 @@ def run_command(
         try:
             tree = ProcessTree(
                 list(argv),
+                on_start=(lambda identity: _atomic_json(launch_record, identity)) if launch_record else None,
                 cwd=str(working_dir),
                 env=effective_env,
                 stdout=output,
@@ -210,18 +238,21 @@ def run_command(
         else:
             process = tree.process
             try:
-                return_code = process.wait(timeout=timeout)
-            except subprocess.TimeoutExpired:
-                timed_out = True
-                termination = tree.stop(grace)
-                return_code = process.returncode
-            finally:
                 try:
-                    if tree.alive():
-                        orphaned = True
-                        termination = tree.stop(grace)
-                finally:
-                    tree.close()
+                    return_code = process.wait(timeout=timeout)
+                except subprocess.TimeoutExpired:
+                    timed_out = True
+                    termination = tree.stop(grace)
+                    return_code = process.returncode
+                if tree.alive():
+                    orphaned = True
+                    termination = tree.stop(grace)
+            except (OSError, subprocess.SubprocessError) as exc:
+                terminal_error = "%s: %s" % (type(exc).__name__, exc)
+                orphaned = True
+                output.write((terminal_error + "\n").encode("utf-8", errors="replace"))
+            finally:
+                tree.close()
 
     _sanitize_log(raw_log_path, log_path, secrets)
 
@@ -290,8 +321,19 @@ def run_command(
         data["grace_seconds"] = grace
     if launch_error is not None:
         data["launch_error"] = launch_error
+    if terminal_error is not None:
+        data["terminal_error"] = terminal_error
     if timed_out:
         data["log_tail"] = _log_tail(log_path)
+    data["performance"] = {"status": "unmeasured"}
+    if measurement_context is not None:
+        data["measurement_context"] = measurement_context
+    if performance_baseline is not None:
+        from test_governance import assess_receipt
+        try:
+            data["performance"] = assess_receipt(data, repo_root or working_dir, performance_baseline)
+        except (ValueError, TypeError, KeyError):
+            data["performance"] = {"status": "incomplete", "reason": "observation_unavailable"}
     if binding is not None:
         data["issue"] = dict(binding)
     _atomic_json(receipt_path, data)
@@ -306,6 +348,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--timeout", type=float, required=True)
     parser.add_argument("--grace", type=float, default=5.0)
     parser.add_argument("--scope", choices=SCOPES, required=True)
+    parser.add_argument("--measurement-context")
+    parser.add_argument("--performance-baseline", type=Path)
     parser.add_argument("--issue", type=Path)
     parser.add_argument("--verifier")
     parser.add_argument("--ac", help="comma/range AC subset bound to this receipt, e.g. 1,3-5")
@@ -350,6 +394,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             _require_under(args.log, repo_root / ".scratch" / "tmp", "--log")
         if args.receipt.resolve() == args.log.resolve():
             raise ValueError("--receipt and --log must be different paths")
+        performance_baseline = json.loads(args.performance_baseline.read_text(encoding="utf-8")) if args.performance_baseline else None
         result, exit_code = run_command(
             command,
             cwd=args.cwd,
@@ -359,7 +404,9 @@ def main(argv: Optional[List[str]] = None) -> int:
             grace=args.grace,
             scope=args.scope,
             binding=binding,
-            repo_root=repo_root if binding is not None else None,
+            repo_root=repo_root,
+            measurement_context=args.measurement_context,
+            performance_baseline=performance_baseline,
         )
     except (OSError, ValueError) as exc:
         print("test-supervisor: %s" % exc, file=sys.stderr)
@@ -375,6 +422,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             args.receipt,
         )
     )
+    if args.performance_baseline:
+        print("performance=" + result["performance"]["status"])
     return exit_code
 
 

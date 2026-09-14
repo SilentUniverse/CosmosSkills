@@ -7,6 +7,10 @@ The caller owns the entire requested batch through implementation, integration, 
 
 ## Driver and inputs
 
+An active schema-2 or schema-3 batch uses [BATCH-FORMAT.md](BATCH-FORMAT.md). Follow `batch-step` and
+`batch-run`; its implementation yields, local checks and proof-driven completion replace the
+legacy `green`/`close`/`collect` steps below. Keep the existing ownership and review obligations.
+
 Start each scheduling round with:
 
 ```text
@@ -140,7 +144,7 @@ open-wave barrier are owned by [DRAIN-PARALLEL.md](DRAIN-PARALLEL.md).
 
 Per-issue GREEN requires all AC plus the touched module's scoped tests and applicable build.
 Write the [completion record](COMPLETION-RECORD.md), sync `test_paths`, then close to `done`.
-Only the batch close runs the whole suite unless an issue explicitly requires it.
+Run the full suite where the accepted delivery candidate requires it and at final completion; local cycles remain scoped.
 
 Return one outcome. Green is at most eight compact lines; red/blocked/conflict stays under 150 words
 plus the shortest decisive error excerpt:
@@ -200,7 +204,7 @@ conflict evidence, safely interrupt/revert unfinished siblings, and classify the
 keep already verified green siblings. Reconcile, then include every result in the one wave collect.
 The ledger rejects new dispatch while the recorded contract
 digest is unchanged. The caller resolves it through `/spec` within this task, asking only the new
-consequential decision. Apply spec's user-review checkpoint to a changed plan, then update the actual
+consequential decision. Honor existing implementation authorization and ask only unresolved material decisions, then update the actual
 affected contract and readiness before resuming; cosmetic
 changes made solely to release the digest guard are invalid.
 

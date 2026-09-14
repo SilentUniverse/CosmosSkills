@@ -7,6 +7,8 @@ argument-hint: "Feature slug or exact handoff path (optional)"
 
 # Resume
 
+For a protocol-2 batch handoff, query the named batch with its frozen runtime and follow [BATCH-FORMAT.md](../tdd/BATCH-FORMAT.md). Preserve holds, unresolved owners and root budgets.
+
 Resume is the inverse of `/handoff`; it layers one bounded packet over session-start orientation.
 
 ## 1. Locate and classify drift

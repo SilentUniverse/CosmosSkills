@@ -7,6 +7,8 @@ argument-hint: "[-local]"
 
 # Commit
 
+When this change belongs to an active protocol-2 batch, verify its final proof and required decisions through [BATCH-FORMAT.md](../tdd/BATCH-FORMAT.md). A Git commit does not close an incomplete batch.
+
 This is the submit phase after validation. Existing authorization to commit or submit carries into
 this skill. Preserve any explicit local-only or narrower file scope.
 

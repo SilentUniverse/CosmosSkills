@@ -6,7 +6,8 @@
 # Selftest gates dispatch. Nonzero model exit, unchanged scheduler state, or the bounded
 # turn/session budget stops incomplete work; close-out verifies the requested batch.
 #
-#   python overnight.py            # every feature: drain all ready issues under .scratch/
+#   python overnight.py            # continue the active goal; otherwise require scope
+#   python overnight.py --repo     # explicitly drain every feature
 #   python overnight.py <feat>     # one feature: .scratch/<feat>/issues only
 #   python overnight.py <feat> <repo-root>
 #
@@ -110,7 +111,7 @@ def owns_open_wave(root, execution):
         return active == {execution}
 
 
-def launch(exe, root, log_path, prompt):
+def launch(exe, root, log_path, prompt, timeout=None, on_boundary=None):
     session = _session.get()
     arguments = [exe, "-p", "--max-turns", str(MAX_TURNS)]
     if session is not None:
@@ -121,7 +122,23 @@ def launch(exe, root, log_path, prompt):
         log.flush()
         tree = ProcessTree(arguments, cwd=root, stdout=log, stderr=subprocess.STDOUT)
         try:
-            code = tree.process.wait()
+            try:
+                if on_boundary is None:
+                    code = tree.process.wait(timeout=timeout)
+                else:
+                    import time
+                    deadline = time.monotonic() + timeout if timeout else None
+                    while True:
+                        try:
+                            code = tree.process.wait(timeout=1)
+                            break
+                        except subprocess.TimeoutExpired:
+                            on_boundary()
+                            if deadline and time.monotonic() >= deadline:
+                                raise
+            except subprocess.TimeoutExpired:
+                tree.stop(5)
+                code = 124
         finally:
             try:
                 if tree.alive():
@@ -159,10 +176,19 @@ def _main(argv):
         except (AttributeError, ValueError):
             pass
     if len(argv) > 3:
-        print("overnight: usage: python overnight.py [<feat>] [repo-root]", file=sys.stderr)
+        print("overnight: usage: python overnight.py [<feat>|--repo] [repo-root]", file=sys.stderr)
         return 2
-    feat = argv[1] if len(argv) >= 2 else None
+    whole_repo = len(argv) >= 2 and argv[1] == '--repo'
+    feat = argv[1] if len(argv) >= 2 and not whole_repo else None
     root = os.path.abspath(argv[2] if len(argv) == 3 else os.getcwd())
+    from workflow_batch import guard_legacy, active_batch
+    active = active_batch(root)
+    if active and active["schema_version"] in (2, 3):
+        return managed_main(root, feat, active["batch_id"])
+    guard_legacy(root, "legacy overnight runner")
+    if feat is None and not whole_repo:
+        print('overnight: no active goal; name a feature or explicitly use --repo', file=sys.stderr)
+        return 2
     exe = shutil.which("claude")
     if exe is None:
         print("overnight: claude not found on PATH", file=sys.stderr)
@@ -194,7 +220,7 @@ def _main(argv):
             return 0
         log_name = "overnight-all.log"
         handoff = ".scratch/handoff.md"
-        scope = "跑裸 /tdd -p 的一波（DRAIN.md：扫 .scratch/*/issues 的全部 ready）"
+        scope = "按明确的全仓授权执行 /tdd -p 的一波（DRAIN.md）"
     tmp_dir = os.path.join(scratch, "tmp")
     os.makedirs(tmp_dir, exist_ok=True)
     log_path = os.path.join(tmp_dir, log_name)
@@ -402,6 +428,87 @@ def _main(argv):
             return 1
     print("overnight: batch closed — see %s" % log_path)
     return 0
+
+
+def managed_main(root, feature, batch_id):
+    import importlib.util
+    import workflow_batch as batch
+    from workflow_managed import advance_owned
+    from workflow_members import yield_wave
+    from workflow_runtime import atomic_write
+    root = Path(root).resolve()
+    state, plan = batch.load_batch(root, batch_id)
+    if feature and any(reference.split("/")[0] != feature for reference in plan["members"]):
+        raise ValueError("runner feature does not cover the active batch; resume its complete accepted scope")
+    log_path = batch._path(root, batch_id) / "external-runner.log"
+    sessions = 0
+    previous_output = None
+    while True:
+        try:
+            if state["schema_version"] == 3:
+                from workflow_incremental import drive
+                result = drive(root, batch_id, background=True)
+            else:
+                result = advance_owned(root, batch_id)
+        except batch.BatchError as exc:
+            print(str(exc), file=sys.stderr)
+            return exc.exit_code
+        projection = json.dumps(result, ensure_ascii=False, separators=(',', ':'))
+        if projection != previous_output:
+            print(projection, flush=True)
+            previous_output = projection
+        if result["status"] == "closed":
+            return 0
+        if result["action"] == "wait_human":
+            return 10
+        if state["schema_version"] == 3 and result["action"] == "reconcile_run" and result["reason_code"] == "verification_running":
+            import time
+            time.sleep(1)
+            continue
+        if result["action"] != "dispatch_work":
+            return 12 if result["reason_code"] == "budget_exhausted" else 13 if result["reason_code"] == "runtime_changed" else 11
+        if sessions >= MAX_SESSIONS:
+            return 12
+        exe = shutil.which("claude")
+        if not exe:
+            print("overnight: implementation requires the configured Claude CLI", file=sys.stderr)
+            return 11
+        spec = importlib.util.spec_from_file_location("managed_state_driver", Path(batch.__file__).parent / "workflow-state.py")
+        driver = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(driver)
+        reference = result["eligible_members"][0]
+        owner, slug = reference.split("/")
+        started = driver.start_issue(root, owner, slug)
+        execution = started["execution"]
+        output = batch._path(root, batch_id) / "external-events" / (execution + ".json")
+        output.parent.mkdir(parents=True, exist_ok=True)
+        prompt = (
+            "继续已接受的受管批次 %s；只实现 %s，execution=%s。读取该卡的已有 packet，按 /tdd 做局部 RED/GREEN。"
+            "受管局部检查用 check-local；完整协议见 tdd/BATCH-FORMAT.md。原生会话继续，不重新展开既有上下文。"
+            "每个安全边界读取 batch-step；有查看或暂停请求则停止新增写入。"
+            "结束时把 JSON {\"lane\":\"implement 或 verify\",\"reason\":\"剩余工作或待验证项\"} 写入 %s。"
+            "你不调用 close/collect/batch-yield，不写 done；宿主确认执行终态后交回主控验证。"
+            % (batch_id, reference, execution, output))
+        sessions += 1
+        on_boundary = None
+        if state["schema_version"] == 3:
+            from workflow_incremental import deliver_notifications
+            def on_boundary():
+                drive(root, batch_id, background=True)
+                deliver_notifications(root, batch_id)
+        code = launch(exe, str(root), str(log_path), prompt, timeout=600, on_boundary=on_boundary)
+        if code == 0 and output.exists():
+            continuation = json.loads(output.read_text(encoding="utf-8"))
+        else:
+            continuation = {"lane": "implement", "reason": "native worker exited %s or omitted its continuation" % code}
+        event = {"source": {"kind": "harness", "reference": "native process tree observed terminal; exit=%s; log=%s" % (code, log_path),
+                            "execution": execution, "terminal": {reference: {"worker_id": execution, "status": "completed" if code == 0 else "stopped"}}},
+                 "members": {reference: continuation}}
+        atomic_write(output, json.dumps(event, ensure_ascii=False))
+        yield_wave(root, batch_id, execution, output)
+        if code != 0:
+            return 11
+    return 12
 
 
 if __name__ == "__main__":

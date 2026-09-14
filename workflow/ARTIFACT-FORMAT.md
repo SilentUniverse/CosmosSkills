@@ -150,7 +150,7 @@ contract_version: 2           # verification + SPEC preflight contract; omitted 
 # verifier_schema: 2          # add only with contract_version 3 + verifier schema 2
 type: issue
 feature: balance
-status: ready       # ready | done
+status: ready       # pending | ready | done; pending is not dispatchable
 category: enhancement         # enhancement | detail | redo | fix
 blocked_by: [01-init-schema]  # list of sibling issue slugs; [] if none
 refines: 03-balance-api       # parent slice this elaborates; omit for top-level slices
@@ -183,11 +183,11 @@ Field rules:
 - **type** — always `issue`.
 - **feature** — the `<feat>` slug; must equal the parent directory name. Lets the consuming
   skills group issues without parsing paths.
-- **status** — the two canonical states only. A shipped `done` contract is immutable. During its
+- **status** — `pending`, `ready` and `done`. Pending needs `pending_reason` and a concrete goal; ready records engineering readiness, not human acceptance. A shipped `done` contract is immutable. During its
   active batch, a failed closing check/review may reopen it to `ready` with exact evidence while
   retaining prior completion records. Later behavior changes create redo/fix issues.
   Hands-on checks no agent can run live in the PRD's 端到端验证 or, without a parent PRD, the
-  issue's `## 手动验证`; never as a third state or as issue AC.
+  issue's `## 手动验证`; never encoded as an engineering status or as issue AC.
 - **category** —
   - `enhancement` — a normal vertical slice from the PRD.
   - `detail` — a small sub-behavior added later that does NOT warrant a PRD revision. MUST carry
@@ -329,6 +329,11 @@ not infer an outcome. The recovery contract lives in
 crash diagnosis. `workflow-state.py gc` may delete it once every wave is closed, no conflict barrier
 remains, and the batch shipped; it also removes that ledger's global baseline manifests once no
 other feature ledger references them.
+
+## Managed batch — `.scratch/batches/<batch_id>/`
+
+Only explicit `batch-open` uses [the managed batch format](tdd/BATCH-FORMAT.md).
+Schema 3 adds immutable plan revisions, scoped human reviews, consumed-input bindings and portable proof to executed candidate closure. Schema 2 retains sequential milestones; schema 1 is admission-only. New incremental plans use schema 3.
 
 ## Batch preflight receipt — `.scratch/<feat>/preflight-receipt.json`
 

@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 Configure what the engineering skills **cannot assume**: deviations from the default
 conventions. Defaults need no setup — the issue tracker is local markdown under
-`.scratch/<feat>/issues/` and the two-state vocabulary `ready|done`, both hard-coded in
+`.scratch/<feat>/issues/` and the status vocabulary `pending|ready|done`, both defined in
 [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md); verifier commands live lazily in
 `CODEBASE.md`'s `## Verifier commands` zone.
 

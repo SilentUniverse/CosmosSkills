@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fixed candidate — document preview</title>
+<style>
+body { max-width: 48rem; margin: 4rem auto; padding: 0 1rem; color: #17243a; background: #f5f7fb; font: 18px/1.6 system-ui; }
+button { font: inherit; padding: .5rem 1rem; margin-right: .75rem; border: 1px solid #72829a; border-radius: .5rem; background: white; }
+article { margin-top: 2rem; padding: 2rem; background: white; border-radius: 1rem; }
+</style>
+<h1>Document preview</h1>
+<p>Select a document. The latest selection stays visible when earlier requests finish.</p>
+<button id="a">Open A</button><button id="b">Open B</button>
+<article aria-live="polite" data-pending="0"><h2 id="document">No document selected</h2></article>
+<script>
+let latest = 0;
+let pending = 0;
+async function openDocument(name) {
+  const requested = ++latest;
+  const article = document.querySelector('article');
+  article.dataset.pending = String(++pending);
+  try {
+    const response = await fetch('/doc?name=' + name);
+    if (!response.ok) throw new Error('Document request failed');
+    const text = await response.text();
+    if (requested !== latest) return;
+    document.querySelector('#document').textContent = text;
+  } finally {
+    article.dataset.pending = String(--pending);
+  }
+}
+document.querySelector('#a').addEventListener('click', () => openDocument('A'));
+document.querySelector('#b').addEventListener('click', () => openDocument('B'));
+</script>
+</html>

@@ -308,6 +308,7 @@ def issue_preflight_rows(
     feature: Optional[str] = None,
     *,
     statuses: Sequence[str] = ("ready",),
+    issue_refs: Optional[Sequence[str]] = None,
 ) -> List[Mapping[str, Any]]:
     """Return executable P# tuples from selected live issues."""
     root = repo_root.resolve()
@@ -322,6 +323,8 @@ def issue_preflight_rows(
             continue
         profile = None
         for issue in sorted(issues_dir.glob("*.md")):
+            if issue_refs is not None and feature_dir.name + "/" + issue.stem not in issue_refs:
+                continue
             issue_raw = issue.read_text(encoding="utf-8-sig")
             lines = issue_raw.splitlines()
             card = _frontmatter(lines)

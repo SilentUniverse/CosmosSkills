@@ -37,6 +37,6 @@ ask only about consequences the request and repository cannot resolve.
    `refines:` the original slug).
 3. **Execute settled changes.** Write the PRD when needed, then apply the reconciliation. Deletes
    relocate to `.scratch/tmp/reconcile-<date>/`
-   (undo = move back), never `rm`. Ready-issue edits happen in place; refresh the
+   (undo = move back), never `rm`. Pending/ready edits require no active consumer of their contract or verification setup; coordinate affected workers before editing in place; refresh the
    `## 上级` extract.
 4. New + redo units → [CARD-TEST.md](CARD-TEST.md).
