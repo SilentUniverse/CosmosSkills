@@ -53,7 +53,9 @@ def runtime_files(plan=None):
 def runtime_revision(plan=None):
     directory = Path(__file__).resolve().parent
     paths = runtime_files(plan)
-    return digest({path: hashlib.sha256((directory / path).read_bytes()).hexdigest() for path in paths})
+    # Hash canonical text, not raw bytes: the frozen runtime copy is written from
+    # read_text (newline-normalized), so a CRLF checkout must hash the same as LF.
+    return digest({path: hashlib.sha256((directory / path).read_text(encoding="utf-8").encode("utf-8")).hexdigest() for path in paths})
 
 
 def _directory(root):

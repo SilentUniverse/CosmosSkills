@@ -22,7 +22,8 @@ def guard(event, args):
         if os.path.basename(os.fsdecode(args[0])) in {'UI-TESTING.md', 'EXPERIENCE-RUBRIC.md', 'workflow_ui.py', 'playwright-reporter.cjs'}:
             raise AssertionError('non-UI path loaded UI instructions')
     if event == 'subprocess.Popen':
-        name = os.path.basename(os.fsdecode(args[0])).lower().removesuffix('.exe')
+        program = args[0] if args[0] is not None else (args[1][0] if isinstance(args[1], list) and args[1] else args[1])
+        name = os.path.basename(os.fsdecode(program)).lower().removesuffix('.exe')
         if name in ui_executables:
             raise AssertionError('non-UI path launched a UI executable')
 sys.addaudithook(guard)

@@ -141,7 +141,7 @@ def main():
             previous.mkdir()
             archive = subprocess.check_output(["git", "archive", baseline], cwd=ROOT)
             with tarfile.open(fileobj=io.BytesIO(archive)) as contents:
-                contents.extractall(previous)
+                contents.extractall(previous, filter="data")
         for path in sources:
             target = candidate / path
             target.parent.mkdir(parents=True, exist_ok=True)

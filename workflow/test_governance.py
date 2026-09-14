@@ -263,7 +263,7 @@ def main(argv=None):
         code = 0
         if args.command == 'select':
             policy = load_policy(args.policy)
-            paths = json.loads(args.paths_file.read_text()) if args.paths_file else []
+            paths = json.loads(args.paths_file.read_text(encoding='utf-8')) if args.paths_file else []
             result = select(policy, paths, args.full)
             if args.github_output:
                 with args.github_output.open('a', encoding='utf-8') as stream:
@@ -283,10 +283,10 @@ def main(argv=None):
                             receipts.append((run_id, managed._document(args.root, run['receipt_ref'])))
             result = summarize(receipts, args.root)
         elif args.command == 'baseline':
-            result = baseline(json.loads(args.report.read_text()), args.group, args.statistic, args.min_samples,
+            result = baseline(json.loads(args.report.read_text(encoding='utf-8')), args.group, args.statistic, args.min_samples,
                               args.relative_tolerance, args.absolute_tolerance_seconds)
         else:
-            result = compare(json.loads(args.report.read_text()), json.loads(args.baseline.read_text()))
+            result = compare(json.loads(args.report.read_text(encoding='utf-8')), json.loads(args.baseline.read_text(encoding='utf-8')))
             code = {'within_target': 0, 'regression_observed': 1, 'incomplete': 2}[result['status']]
         output = getattr(args, 'output', None)
         if output:

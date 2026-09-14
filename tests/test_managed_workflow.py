@@ -313,7 +313,8 @@ print(action)
         drift = self.cli("batch-run", "--batch", batch_id)
         self.assertEqual("diagnose_incident", drift["action"])
         old = self.cli("checkpoint-show", "--batch", batch_id, "--checkpoint", sealed["checkpoint_ref"], "--path", "check.py")
-        self.assertEqual("print(42)\n", old["content"])
+        # A text-mode write on Windows stores CRLF bytes; the snapshot is byte-faithful.
+        self.assertEqual("print(42)\n", old["content"].replace("\r\n", "\n"))
 
     def test_unittest_wrapper_cannot_hide_a_later_failure(self):
         (self.root / "check.py").write_text(

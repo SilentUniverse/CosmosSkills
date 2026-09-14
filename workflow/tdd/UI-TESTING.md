@@ -50,8 +50,9 @@ transcript nor a fabricated CLI receipt substitutes for that consumer.
 ## Optional experience assessment
 
 Only an opted-in graphical UI (`experience_review: runtime|graded`) writes the canonical
-`.scratch/<feat>/experience-contract.json`; the receipt displays it and durable artifacts reference
-it. `runtime` uses deterministic assertions for behavior, capture, media decoding, and runtime
+`.scratch/<feat>/experience-contract.json`; the completion record carries its mode and durable
+artifacts reference it. `runtime` uses deterministic assertions for behavior, capture, media
+decoding, and runtime
 failures. `graded` additionally loads [experience-v1](../code-review/EXPERIENCE-RUBRIC.md) for
 visual dimensions that assertions cannot express. Functional UI verification does not require
 opting into visual grading. Formal blind calibration belongs to explicit `/eval`.

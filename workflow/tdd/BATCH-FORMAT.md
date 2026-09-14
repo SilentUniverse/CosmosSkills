@@ -214,9 +214,9 @@ the project. This protocol authenticates a configured host channel, not an unres
 adversary. There is no event-signing CLI or `actor: human` bypass.
 
 `approve` requires the exact pending green checkpoint and its unchanged runnable delivery. `request_changes` permits bounded repair and
-retains the obligation to review the next candidate. `batch-repair --request-id ID --reason TEXT`
+retains the obligation to review the next candidate. `batch-repair --request-id ID --members REF... --reason TEXT`
 records the diagnosis and starts another verification epoch without refunding budget or erasing
-failures. Existing required gates remain required; default gates remain `none`.
+failures; a combined incident must name its affected members instead of reopening every issue. Existing required gates remain required; default gates remain `none`.
 
 Checkpoint history is immutable content-addressed data under `objects/`. Historical show/diff and
 materialization do not change the active phase or acquire runtime resources. Plain source

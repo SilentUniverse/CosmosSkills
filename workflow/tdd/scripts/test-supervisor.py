@@ -73,10 +73,14 @@ def _secret_values(env: Mapping[str, str]) -> List[bytes]:
 
 def _require_under(path: Path, directory: Path, label: str) -> Path:
     resolved = path.resolve()
+    base = str(directory.resolve()).rstrip("\\/") + os.sep
     try:
         resolved.relative_to(directory.resolve())
     except ValueError as exc:
-        raise ValueError(f"{label} must stay under {directory}") from exc
+        # Windows hosts can report a git toplevel whose case/short-path form differs
+        # from the process CWD's resolved form; compare case-insensitively there.
+        if os.name != "nt" or not str(resolved).lower().startswith(base.lower()):
+            raise ValueError(f"{label} must stay under {directory}") from exc
     return resolved
 
 
@@ -359,6 +363,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Optional[List[str]] = None) -> int:
     args = build_parser().parse_args(argv)
+    # Relative receipt/log paths resolve against the declared --cwd, not the
+    # caller's process CWD, which a host shell may leave elsewhere.
+    for name in ("receipt", "log"):
+        value = getattr(args, name)
+        if not value.is_absolute():
+            setattr(args, name, args.cwd / value)
     command = args.command[1:] if args.command[:1] == ["--"] else args.command
     try:
         if bool(args.issue) != bool(args.verifier):
