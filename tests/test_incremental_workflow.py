@@ -322,7 +322,7 @@ class IncrementalWorkflowTests(unittest.TestCase):
         self.assertEqual('closed', self.cli('batch-run', '--batch', self.id)['status'])
         reference = self.state()['member_proofs']['demo/01-result']
         shutil.rmtree(self.root / '.scratch/batches')
-        proof = store.read_proof(self.root, 'demo/01-result', reference, path.read_text())
+        proof = store.read_proof(self.root, 'demo/01-result', reference, path.read_text(encoding='utf-8'))
         self.assertEqual('demo/01-result', proof['member'])
         objects = store.proof_store(self.root, 'demo') / 'objects'
         pointer = json.loads((store.proof_store(self.root,'demo')/(reference+'.json')).read_text())
@@ -330,7 +330,7 @@ class IncrementalWorkflowTests(unittest.TestCase):
         log = bundle['logs'][0]
         (objects/'blobs'/log[:2]/log[2:]).write_bytes(b'tampered')
         with self.assertRaises(ValueError):
-            store.read_proof(self.root, 'demo/01-result', reference, path.read_text())
+            store.read_proof(self.root, 'demo/01-result', reference, path.read_text(encoding='utf-8'))
 
     def test_changed_review_contract_rejects_late_old_approval(self):
         plan = self.release_plan()
@@ -588,7 +588,7 @@ class IncrementalWorkflowTests(unittest.TestCase):
         self.issue.unlink()
         (destination/(parent_proof+'.json')).unlink()
         shutil.rmtree(self.root/'.scratch/batches')
-        self.assertIsNotNone(store.read_proof(self.root,self.member,proof_ref,child.read_text()))
+        self.assertIsNotNone(store.read_proof(self.root,self.member,proof_ref,child.read_text(encoding='utf-8')))
 
     def test_stale_running_check_can_recover_on_unchanged_source(self):
         plan = self.member_plan(choice=True)
@@ -702,7 +702,7 @@ class IncrementalWorkflowTests(unittest.TestCase):
     def test_upstream_check_proof_precedes_consumer_admission(self):
         plan = self.member_plan()
         second = self.issue.with_name('02-child.md')
-        second.write_text(self.issue.read_text().replace('blocked_by: []','blocked_by: [01-work]').replace('Return the declared answer.','Use the upstream result.'))
+        second.write_text(self.issue.read_text(encoding='utf-8').replace('blocked_by: []','blocked_by: [01-work]').replace('Return the declared answer.','Use the upstream result.'), encoding='utf-8')
         child = 'demo/02-child'
         plan['members'].append(child)
         plan['milestones'][0]['members'].append(child)
@@ -721,14 +721,14 @@ class IncrementalWorkflowTests(unittest.TestCase):
         self.yield_member(execution)
         self.assertEqual('closed',self.cli('batch-run','--batch',self.id)['status'])
         proof_ref = self.state()['member_proofs'][child]
-        proof = store.read_proof(self.root,child,proof_ref,second.read_text())
+        proof = store.read_proof(self.root,child,proof_ref,second.read_text(encoding='utf-8'))
         current_parent = self.state()['member_proofs']['demo/01-work']
         self.assertNotEqual(parent_proof, current_parent)
         self.assertEqual(current_parent, proof['upstream']['demo/01-work'])
         self.assertTrue(store.get(self.root/'.scratch/batches/objects', parent_proof))
         copied = Path(self.tmp.name)/'history-clone'
         shutil.copytree(self.root/'.scratch/demo',copied/'.scratch/demo')
-        self.assertEqual(proof,store.read_proof(copied,child,proof_ref,second.read_text()))
+        self.assertEqual(proof,store.read_proof(copied,child,proof_ref,second.read_text(encoding='utf-8')))
 
     def test_feedback_before_producer_registration_protects_material(self):
         from workflow_incremental import pin_feedback_artifacts
