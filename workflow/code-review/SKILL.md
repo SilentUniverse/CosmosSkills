@@ -15,8 +15,7 @@ Review the diff between `HEAD` (or a named branch) and a pinned fixed point:
 - **Spec** — does the code faithfully implement the originating issue / PRD?
 - **Experience (opt-in graded UI only)** — does a graphical UI meet its aligned rubric after runtime integrity passed?
 
-Artifacts follow [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md). Use the user's language and concise
-outcome/evidence reporting; keep Fowler smell names in English.
+Use the user's language and concise outcome/evidence reporting; keep Fowler smell names in English.
 
 > A change can pass one axis and fail another. Never merge or rerank findings across axes.
 
@@ -52,6 +51,9 @@ Look for the originating spec, in this order:
    was superseded, retain any requested historical comparison and identify the current contract.
 4. Use the user's explicit requirements if no artifact exists. If no contract is available,
    report "无 spec 可比对" and complete the available axes; never infer a Spec pass.
+
+Consult the relevant [artifact schema](../ARTIFACT-FORMAT.md) section only when interpreting
+issue, PRD or completion-record fields requires it.
 
 > Issue-tracker layout is configured. Default convention (`.scratch/` local markdown) needs no setup; run `/cosmos-setup` only if this repo deviates (non-default tracker/paths or legacy states).
 

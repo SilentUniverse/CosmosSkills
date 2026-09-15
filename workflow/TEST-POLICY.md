@@ -1,6 +1,6 @@
 # Test quality, scope and cost
 
-Load when choosing verification scope, reviewing changed tests, or investigating growing test cost.
+Load when choosing verification scope, changing test triggers, or investigating growing test cost.
 Spec owns the evidence and trigger contract; TDD owns execution and test maintenance; TIDY reports
 cost concerns and cleans disposable outputs. These are rules for the existing workflow entries.
 
@@ -35,30 +35,8 @@ and native runner threads together. A slow test does not justify another model s
 
 ## Reuse and admission
 
-Managed batch admission provides the run sharing and cache rules below. Ordinary supervisor calls
-do not deduplicate commands; the parent coordinates their shared checks.
-
-Schema-3 jobs may opt into `reuse: true` only for isolated checks without external state, real-time or
-random-dependent results. UI, resource and application lifecycle jobs cannot use this cache.
-`reuse_environment: {"paths": [...], "external_state": "none"}` explicitly declares the complete
-materialized runtime/dependency closure. Paths may be absolute or relative to the repository.
-The runtime hashes the actual command executable and all declared dependency files/directories,
-including resolved symlink targets; it does not substitute a lockfile for installed package bytes.
-`reuse_inputs` optionally binds additional regular repository files. Source/config/lock/test inputs
-still belong in the frozen candidate. Omit reuse when network, clock, randomness, undeclared package
-loads or other mutable influences prevent a closed environment. This is a caller contract, not an
-automatic proof of hermeticity. No closure, unresolved tool, missing input or directory cycle means
-no completed reuse. Hashing a large closure has a cost: opt in only when that cost is justified by
-saved runs. Ordinary checks do not scan dependency trees or probe/install browser tooling.
-
-Cache identity includes check name, candidate, job, verification epoch, artifact inputs, member requirement/
-proof/decision bindings, process environment, executable bytes and the declared materialized dependency closure. Failed evidence never
-enters the cache. Running identical immutable requests share a run ID; the returned `shared: true`
-means observe that run. Aliases do not reserve another budget. Different checks cannot be admitted
-while a verifier remains nonterminal. Mutable development checks do not coalesce by source guess.
-Managed execution has one active verifier per workspace; it does not create a second pending-job queue.
-Status readers and owned verifier state transactions retry brief lock contention within 40 attempts
-at 25 ms intervals. Other state writers fail fast; a timeout never grants lock takeover or reruns a command.
+For managed batch reuse, apply [batch admission](tdd/BATCH-FORMAT.md#reuse-and-admission).
+Ordinary supervisor calls do not deduplicate commands; the parent coordinates shared checks.
 
 ## Performance and budget
 

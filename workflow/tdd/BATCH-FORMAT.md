@@ -3,11 +3,7 @@
 ## Schema 3: incremental collaboration
 
 Test trigger, quality, performance and retirement rules live in [test policy](../TEST-POLICY.md).
-Jobs may declare `measurement_context` for comparable cost reports. Isolated schema-3 jobs can opt into
-`reuse: true` with a complete `reuse_environment` declaration; see [test policy](../TEST-POLICY.md).
-Actual executable and installed dependency bytes bind reuse. Default reuse is disabled; missing closure means rerun.
-A shared admission returns the existing run ID with `shared: true`; observe it rather than starting
-another verifier. Aliases do not spend the root budget. Different active checks serialize.
+Jobs may declare `measurement_context` for comparable cost reports.
 
 Use schema 3 for rolling plans, independent implementation during human review, versioned decisions,
 and portable proof. This is the internal execution protocol for Spec/TDD/TIDY, not a fourth user entry.
@@ -170,6 +166,33 @@ Source snapshots include tracked actual bytes, deletion tombstones and declared 
 They preserve the Git index and HEAD. Parent links, external links, unresolved Git state, incomplete
 LFS inputs and nonportable aliases fail explicitly. No snapshot promises consistency under an
 uncooperative same-account writer that changes and restores bytes between observations.
+
+### Reuse and admission
+
+Default reuse is disabled; missing closure means rerun.
+Schema-3 jobs may opt into `reuse: true` only for isolated checks without external state, real-time or
+random-dependent results. UI, resource and application lifecycle jobs cannot use this cache.
+`reuse_environment: {"paths": [...], "external_state": "none"}` explicitly declares the complete
+materialized runtime/dependency closure. Paths may be absolute or relative to the repository.
+The runtime hashes the actual command executable and all declared dependency files/directories,
+including resolved symlink targets; it does not substitute a lockfile for installed package bytes.
+`reuse_inputs` optionally binds additional regular repository files. Source/config/lock/test inputs
+still belong in the frozen candidate. Omit reuse when network, clock, randomness, undeclared package
+loads or other mutable influences prevent a closed environment. This is a caller contract, not an
+automatic proof of hermeticity. No closure, unresolved tool, missing input or directory cycle means
+no completed reuse. Hashing a large closure has a cost: opt in only when that cost is justified by
+saved runs. Ordinary checks do not scan dependency trees or probe/install browser tooling.
+
+Cache identity includes check name, candidate, job, verification epoch, artifact inputs, member requirement/
+proof/decision bindings, process environment, executable bytes and the declared materialized dependency closure. Failed evidence never
+enters the cache. Running identical immutable requests share a run ID; the returned `shared: true`
+means observe that run. Aliases do not reserve another budget. Different checks cannot be admitted
+while a verifier remains nonterminal. Mutable development checks do not coalesce by source guess.
+Managed execution has one active verifier per workspace; it does not create a second pending-job queue.
+Status readers and owned verifier state transactions retry brief lock contention within 40 attempts
+at 25 ms intervals. Other state writers fail fast; a timeout never grants lock takeover or reruns a command.
+
+### Job execution
 
 Each job is admitted with a persistent idempotency key, candidate/plan/verifier/runtime identities,
 and a reservation from the root budget before it can launch. A running run is never blindly retried. POSIX managed launchers watch their controller and refuse

@@ -64,7 +64,9 @@ Submit through `/commit` only when requested; continue there after validation.
 
 ## Test philosophy
 
-Test public behavior against independent expectations: [tests.md](tests.md), [mocking.md](mocking.md).
+Test public behavior against independent expectations; apply [test quality](tests.md) throughout
+planning, implementation and review.
+Load [mocking.md](mocking.md) only when a test needs mocks.
 Complete one RED/GREEN slice before writing the next test. Only UI behavior loads [UI-TESTING.md](UI-TESTING.md).
 
 ## Workflow
@@ -75,7 +77,7 @@ Start from first principles about the approach. Use the project's domain glossar
 
 Use settled requirements as the contract; infer routine interface and test mechanics from the repo.
 Ask only a new consequential decision. Shape a new seam with `/codebase-design` when needed.
-Existing coverage first: [tests.md](tests.md) §Existing evidence. Inline runs use their stated
+Check existing coverage first. Inline runs use their stated
 behavior/evidence contract; issue runs use 做什么/AC/验证设计 and the parent extract.
 
 Update and replay affected existing drivers and scenario instructions in the same slice.
@@ -131,7 +133,7 @@ Keep transient hypotheses in the current task or handoff. Run affected tests aft
 **never refactor while RED**.
 
 When test cost grows or shared checks need scheduling, apply [test policy](../TEST-POLICY.md).
-Review changed tests with [test quality](tests.md); shared checks remain parent-owned.
+Review changed tests against the same test quality criteria; shared checks remain parent-owned.
 
 ### 5. Full-suite check
 
