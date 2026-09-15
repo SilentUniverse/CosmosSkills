@@ -26,9 +26,13 @@ class InstallerTests(unittest.TestCase):
             installed = subprocess.run(command, cwd=probe, capture_output=True, text=True,
                                        encoding="utf-8", errors="replace", timeout=60)
             self.assertEqual(0, installed.returncode, installed.stdout + installed.stderr)
-            self.assertTrue((target / "tdd/UI-TESTING.md").is_file())
-            self.assertTrue((target / "tdd/BATCH-FORMAT.md").is_file())
-            self.assertTrue((target / "TEST-POLICY.md").is_file())
+            for relative in (
+                "verify/SKILL.md", "verify/BUILD.md", "verify/MAINTAIN.md",
+                "ARTIFACT-FORMAT.md", "tdd/BATCH-FORMAT.md",
+                "tdd/UI-TESTING.md", "TEST-POLICY.md",
+            ):
+                with self.subTest(installed_reference=relative):
+                    self.assertTrue((target / relative).read_text(encoding="utf-8").strip())
             report = subprocess.run([sys.executable, '-I', '-B', str(target / 'test-governance.py'), 'report'],
                                     cwd=probe, capture_output=True, text=True, timeout=10)
             self.assertEqual(0, report.returncode, report.stdout + report.stderr)
@@ -211,7 +215,7 @@ class InstallerTests(unittest.TestCase):
                 "bash=%s\n--- stdout ---\n%s\n--- stderr ---\n%s"
                 % (self.bash_executable(), result.stdout, result.stderr),
             )
-            self.assertIn("Found 29 skills", result.stdout)
+            self.assertIn("Found 30 skills", result.stdout)
             self.assertIn("Link brief", result.stdout)
             self.assertIn("Link conflicts", result.stdout)
             self.assertIn("Recreate link atk", result.stdout)
@@ -256,7 +260,7 @@ class InstallerTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(0, result.returncode, result.stderr)
-            self.assertIn("Found 29 skills", result.stdout)
+            self.assertIn("Found 30 skills", result.stdout)
             self.assertIn("Link brief", result.stdout)
             self.assertIn("Link conflicts", result.stdout)
             self.assertIn("Recreate link atk", result.stdout)

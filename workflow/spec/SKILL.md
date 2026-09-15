@@ -71,6 +71,7 @@ A proposed coverage, size, or timing bar →
 ## 3. Prepare and write
 
 A settled plan can remain inline with its outcome, constraints, authorization, and verification route.
+Use `/verify` only when that route lacks a required run, drive or observation tool.
 Run the deletion test on the plan's structure: every proposed boundary, interface, artifact kind,
 PRD, or verifier profile names its consuming card, AC, test, or recorded decision; anything unnamed
 leaves the plan.

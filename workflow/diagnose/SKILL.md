@@ -95,6 +95,7 @@ Required before declaring done:
 - [ ] Original repro passes after the fix; reuse the Phase 5 run if code/environment are unchanged
 - [ ] Regression test passes (or absence of seam is documented)
 - [ ] Relevant module and integration checks pass; broaden for affected contracts or unresolved risk, not file count (`CODEBASE.md`'s `## Verifier commands` caches commands)
+- [ ] Affected existing drivers and scenario instructions are updated and replayed
 - [ ] All `[DEBUG-...]` instrumentation removed (`rg` the prefix)
 - [ ] Remove temporary artifacts created by this task once their regression evidence is retained
 - [ ] State the cause, fix, and verification in the result; include them in a commit/PR only if submission is requested

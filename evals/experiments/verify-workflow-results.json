@@ -1,0 +1,973 @@
+{
+  "schema": "observations, not a complete paired performance verdict",
+  "date": "2026-09-16",
+  "controls": {
+    "model": "glm-5.3-flash[1M]",
+    "reasoning": "medium",
+    "fixture_sha256": "85ca43fea45b616302b044f89fa9cfdb90e4f2835faf1e423089a9eeddf47674",
+    "common_sha256": "3607ac123504914ef1c134f45ce207a3f97c3789e4f0dd02a43616fb4e2e5ee7",
+    "policy_sha256": {
+      "previous": "b26b101d3c2c77676521ffe4870d18a16ee524d06aa1a6226b95bad9f715a409",
+      "candidate": "a4acb51ae5c85359447d071f17e49abc5cb60622c4030c52d9e89c048b82f7ce"
+    },
+    "network": "No network tools; instruction-scoped shell, not OS-enforced",
+    "toolset": "claude-2.1.236; safe-mode; Read,Write,Edit,Bash,Glob,Grep",
+    "phase_budget_usd": 0.8,
+    "seed": "fixture-order-fixed; model RNG unavailable"
+  },
+  "attempts": [
+    {
+      "case": "verify-capability-loop",
+      "arm": "candidate",
+      "trial": 1,
+      "outer_elapsed_ms": 462851,
+      "trace_sha256": {
+        "trace-1.jsonl": "7a617cb4301b0c49a72f6634beb07e381ebcaa5fb88947879df3ef6deed78d03",
+        "trace-2.jsonl": "358d3bb35312d8fc04a83c22152923309776c02b60418c43e1ca8b7cbbdb8b76",
+        "trace-3.jsonl": "8402797c694e50cb970cfd4df9ba1c6e7f036512afa5d2b991760df5c010e2a7"
+      },
+      "phases": [
+        {
+          "exit": 0,
+          "elapsed_ms": 252685,
+          "wall_time_ms": 251727,
+          "input_tokens": 469618,
+          "output_tokens": 11027,
+          "tool_calls": 29,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        },
+        {
+          "exit": 0,
+          "elapsed_ms": 134885,
+          "wall_time_ms": 133931,
+          "input_tokens": 222835,
+          "output_tokens": 3661,
+          "tool_calls": 23,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        },
+        {
+          "exit": 0,
+          "elapsed_ms": 75281,
+          "wall_time_ms": 74319,
+          "input_tokens": 103100,
+          "output_tokens": 1855,
+          "tool_calls": 18,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        }
+      ],
+      "business_gates": {
+        "1": true,
+        "2": true,
+        "3": true
+      },
+      "scope_passed": true,
+      "status": "completed"
+    },
+    {
+      "case": "verify-capability-loop",
+      "arm": "candidate",
+      "trial": 2,
+      "outer_elapsed_ms": 300606,
+      "trace_sha256": {
+        "trace-1.jsonl": "6419847cfbb7c68d140d56ab3a5e6a5d9caaa9991d88e7d728444b2cb321628a"
+      },
+      "phases": [
+        {
+          "exit": 124,
+          "elapsed_ms": 300606
+        }
+      ],
+      "business_gates": null,
+      "scope_passed": null,
+      "status": "timeout-without-terminal-usage"
+    },
+    {
+      "case": "verify-capability-loop",
+      "arm": "candidate",
+      "trial": 3,
+      "outer_elapsed_ms": 407196,
+      "trace_sha256": {
+        "trace-1.jsonl": "76b04b044fbec1fe6bd792ebd3e70d048ad9b21670029a6989e238d2d9499bdb",
+        "trace-2.jsonl": "513785afb24bfa98d9fa46468661ef99d20e236d8b8f22980ce48ff2519660c0",
+        "trace-3.jsonl": "489b4b38b045177cb03124990f1a549e65e2fb3cf3b93d33eae4ed75a955b503"
+      },
+      "phases": [
+        {
+          "exit": 0,
+          "elapsed_ms": 270220,
+          "wall_time_ms": 269280,
+          "input_tokens": 281767,
+          "output_tokens": 8546,
+          "tool_calls": 18,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        },
+        {
+          "exit": 0,
+          "elapsed_ms": 70275,
+          "wall_time_ms": 69302,
+          "input_tokens": 157458,
+          "output_tokens": 3459,
+          "tool_calls": 21,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        },
+        {
+          "exit": 0,
+          "elapsed_ms": 66701,
+          "wall_time_ms": 65757,
+          "input_tokens": 74355,
+          "output_tokens": 2442,
+          "tool_calls": 10,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        }
+      ],
+      "business_gates": {
+        "1": true,
+        "2": true,
+        "3": true
+      },
+      "scope_passed": true,
+      "status": "completed"
+    },
+    {
+      "case": "verify-capability-loop",
+      "arm": "no-verify",
+      "trial": 1,
+      "outer_elapsed_ms": 304367,
+      "trace_sha256": {
+        "trace-1.jsonl": "9a3b52f422c51968053dc5f74e74f054a4357f414adbeb9898a6153bb392fbd2",
+        "trace-2.jsonl": "949698ea4ba911762a3e9915b9e183d6ba56ad5f692745fee1c36ef146563a0a",
+        "trace-3.jsonl": "52c4456aa2f836a9467f11844ba23bad83f4e86afbffd21ccecdc04514da31dc"
+      },
+      "phases": [
+        {
+          "exit": 0,
+          "elapsed_ms": 120057,
+          "wall_time_ms": 119098,
+          "input_tokens": 126854,
+          "output_tokens": 4921,
+          "tool_calls": 13,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        },
+        {
+          "exit": 0,
+          "elapsed_ms": 98098,
+          "wall_time_ms": 97160,
+          "input_tokens": 183845,
+          "output_tokens": 2431,
+          "tool_calls": 22,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        },
+        {
+          "exit": 0,
+          "elapsed_ms": 86212,
+          "wall_time_ms": 85237,
+          "input_tokens": 110366,
+          "output_tokens": 2974,
+          "tool_calls": 13,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        }
+      ],
+      "business_gates": {
+        "1": true,
+        "2": true,
+        "3": true
+      },
+      "scope_passed": true,
+      "status": "completed"
+    },
+    {
+      "case": "verify-capability-loop",
+      "arm": "no-verify",
+      "trial": 2,
+      "outer_elapsed_ms": 430023,
+      "trace_sha256": {
+        "trace-1.jsonl": "cb95a06ac36bafad81c5dcb298af168cd315af391e6562b31b1254c3f7c72b47",
+        "trace-2.jsonl": "d842c2efbee3cd4046fd8791a5ed697da9733a7842807a0288653b3cd6f2b2ac",
+        "trace-3.jsonl": "b920940d30f0e07a2c237724467b5ae8d1bb394aaf35b224251f6be604aadb0a"
+      },
+      "phases": [
+        {
+          "exit": 0,
+          "elapsed_ms": 197786,
+          "wall_time_ms": 196829,
+          "input_tokens": 186153,
+          "output_tokens": 6344,
+          "tool_calls": 17,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        },
+        {
+          "exit": 0,
+          "elapsed_ms": 157633,
+          "wall_time_ms": 156660,
+          "input_tokens": 201761,
+          "output_tokens": 3187,
+          "tool_calls": 21,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        },
+        {
+          "exit": 0,
+          "elapsed_ms": 74604,
+          "wall_time_ms": 73671,
+          "input_tokens": 146063,
+          "output_tokens": 1715,
+          "tool_calls": 16,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        }
+      ],
+      "business_gates": {
+        "1": true,
+        "2": true,
+        "3": true
+      },
+      "scope_passed": true,
+      "status": "completed"
+    },
+    {
+      "case": "verify-capability-loop",
+      "arm": "no-verify",
+      "trial": 3,
+      "outer_elapsed_ms": 460985,
+      "trace_sha256": {
+        "trace-1.jsonl": "93b8b6ada453894e85da42f8e3538865bc99b8fcf03616824afd4874160db795",
+        "trace-2.jsonl": "bac6edc96e732a135734a90425b7afa0ff6ecc79cc19cba91dcbd210aa772521",
+        "trace-3.jsonl": "08a784d75735cf6f1d62d608025a84203b9619db6e42e31702590794102f7a1f"
+      },
+      "phases": [
+        {
+          "exit": 0,
+          "elapsed_ms": 151378,
+          "wall_time_ms": 150439,
+          "input_tokens": 156016,
+          "output_tokens": 4646,
+          "tool_calls": 15,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        },
+        {
+          "exit": 0,
+          "elapsed_ms": 91311,
+          "wall_time_ms": 90381,
+          "input_tokens": 155888,
+          "output_tokens": 1857,
+          "tool_calls": 15,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        },
+        {
+          "exit": 0,
+          "elapsed_ms": 218296,
+          "wall_time_ms": 217336,
+          "input_tokens": 311110,
+          "output_tokens": 5212,
+          "tool_calls": 26,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        }
+      ],
+      "business_gates": {
+        "1": true,
+        "2": true,
+        "3": true
+      },
+      "scope_passed": true,
+      "status": "completed"
+    },
+    {
+      "case": "verify-capability-loop",
+      "arm": "previous",
+      "trial": 1,
+      "outer_elapsed_ms": 342959,
+      "trace_sha256": {
+        "trace-1.jsonl": "f8465f5c8574fbc26b748ac5effe1ed67e4bf558b2a6beeafaeeba6cf92102ea",
+        "trace-2.jsonl": "d16dd13f0e70c3511650211e40635fb4cfdb14d86b65b85f92744295fade6ace",
+        "trace-3.jsonl": "c264dd387ba8fc827b72841e8eebd74e36880e80c1f8a0caff95192c2b177ae3"
+      },
+      "phases": [
+        {
+          "exit": 0,
+          "elapsed_ms": 176580,
+          "wall_time_ms": 175636,
+          "input_tokens": 259895,
+          "output_tokens": 7335,
+          "tool_calls": 22,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        },
+        {
+          "exit": 0,
+          "elapsed_ms": 89783,
+          "wall_time_ms": 88813,
+          "input_tokens": 178991,
+          "output_tokens": 3512,
+          "tool_calls": 23,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        },
+        {
+          "exit": 0,
+          "elapsed_ms": 76596,
+          "wall_time_ms": 75656,
+          "input_tokens": 147586,
+          "output_tokens": 2545,
+          "tool_calls": 19,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        }
+      ],
+      "business_gates": {
+        "1": true,
+        "2": true,
+        "3": true
+      },
+      "scope_passed": true,
+      "status": "completed"
+    },
+    {
+      "case": "verify-capability-loop",
+      "arm": "previous",
+      "trial": 2,
+      "outer_elapsed_ms": 379293,
+      "trace_sha256": {
+        "trace-1.jsonl": "06dad98cf1fd1fe857def9f69ee06db0621a83e84345e23f09b4786a2a4e7785",
+        "trace-2.jsonl": "2256c40097f14ed610e223719ae4813cf304f1181879d87e76dd5df820e3eab6",
+        "trace-3.jsonl": "10a91553a2407e41bbd32bd9b1fe34689e7146e6cd41f71ac970c36f0cafba0a"
+      },
+      "phases": [
+        {
+          "exit": 0,
+          "elapsed_ms": 256199,
+          "wall_time_ms": 255255,
+          "input_tokens": 317885,
+          "output_tokens": 8090,
+          "tool_calls": 26,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        },
+        {
+          "exit": 0,
+          "elapsed_ms": 68179,
+          "wall_time_ms": 67236,
+          "input_tokens": 171684,
+          "output_tokens": 2565,
+          "tool_calls": 20,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        },
+        {
+          "exit": 0,
+          "elapsed_ms": 54915,
+          "wall_time_ms": 53919,
+          "input_tokens": 90526,
+          "output_tokens": 2473,
+          "tool_calls": 12,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        }
+      ],
+      "business_gates": {
+        "1": true,
+        "2": true,
+        "3": true
+      },
+      "scope_passed": true,
+      "status": "completed"
+    },
+    {
+      "case": "verify-capability-loop",
+      "arm": "previous",
+      "trial": 3,
+      "outer_elapsed_ms": 400660,
+      "trace_sha256": {
+        "trace-1.jsonl": "054f120880d54aa39ebdb30786348769a066d9b84a33546039455ed78767fb20",
+        "trace-2.jsonl": "620648431e1d3f4e22c4d6ddaec1ecd042c067c4be9e1360b35576aa02104b0a",
+        "trace-3.jsonl": "a9f673b093520f8e44eccb8b0881d987664bb159439213d0f000fbab68ea113d"
+      },
+      "phases": [
+        {
+          "exit": 0,
+          "elapsed_ms": 209207,
+          "wall_time_ms": 208230,
+          "input_tokens": 464572,
+          "output_tokens": 7441,
+          "tool_calls": 37,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        },
+        {
+          "exit": 0,
+          "elapsed_ms": 112117,
+          "wall_time_ms": 111184,
+          "input_tokens": 273758,
+          "output_tokens": 4065,
+          "tool_calls": 29,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        },
+        {
+          "exit": 0,
+          "elapsed_ms": 79336,
+          "wall_time_ms": 78398,
+          "input_tokens": 124120,
+          "output_tokens": 2749,
+          "tool_calls": 19,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        }
+      ],
+      "business_gates": {
+        "1": true,
+        "2": true,
+        "3": true
+      },
+      "scope_passed": true,
+      "status": "completed"
+    },
+    {
+      "case": "verify-light-path",
+      "arm": "candidate",
+      "trial": 1,
+      "outer_elapsed_ms": 31257,
+      "trace_sha256": {
+        "trace-1.jsonl": "e18c6206c79c54862f4c2e2ed31be790a28e1e21b4a4782969f806c4ea0437f7"
+      },
+      "phases": [
+        {
+          "exit": 0,
+          "elapsed_ms": 31257,
+          "wall_time_ms": 30257,
+          "input_tokens": 46478,
+          "output_tokens": 783,
+          "tool_calls": 8,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        }
+      ],
+      "business_gates": {
+        "1": true
+      },
+      "scope_passed": true,
+      "status": "completed"
+    },
+    {
+      "case": "verify-light-path",
+      "arm": "candidate",
+      "trial": 2,
+      "outer_elapsed_ms": 31787,
+      "trace_sha256": {
+        "trace-1.jsonl": "24bd32d46ba9818b410a8ee3f6a8c5a21238c534d0eeb00e7107db82103d831e"
+      },
+      "phases": [
+        {
+          "exit": 0,
+          "elapsed_ms": 31787,
+          "wall_time_ms": 30816,
+          "input_tokens": 39837,
+          "output_tokens": 911,
+          "tool_calls": 8,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        }
+      ],
+      "business_gates": {
+        "1": true
+      },
+      "scope_passed": true,
+      "status": "completed"
+    },
+    {
+      "case": "verify-light-path",
+      "arm": "candidate",
+      "trial": 3,
+      "outer_elapsed_ms": 35499,
+      "trace_sha256": {
+        "trace-1.jsonl": "7a16310f3fb197396e49b8a028a60696f001562573ce017a5d735c0d21db4a7e"
+      },
+      "phases": [
+        {
+          "exit": 0,
+          "elapsed_ms": 35499,
+          "wall_time_ms": 34534,
+          "input_tokens": 47617,
+          "output_tokens": 1232,
+          "tool_calls": 8,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        }
+      ],
+      "business_gates": {
+        "1": true
+      },
+      "scope_passed": true,
+      "status": "completed"
+    },
+    {
+      "case": "verify-light-path",
+      "arm": "no-verify",
+      "trial": 1,
+      "outer_elapsed_ms": 44446,
+      "trace_sha256": {
+        "trace-1.jsonl": "e39f6868c2ce1de97d2a4836eac70b6564d5e679042cad3be8b5ecb2f9a87839"
+      },
+      "phases": [
+        {
+          "exit": 0,
+          "elapsed_ms": 44446,
+          "wall_time_ms": 43399,
+          "input_tokens": 46793,
+          "output_tokens": 989,
+          "tool_calls": 8,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        }
+      ],
+      "business_gates": {
+        "1": true
+      },
+      "scope_passed": true,
+      "status": "completed"
+    },
+    {
+      "case": "verify-light-path",
+      "arm": "no-verify",
+      "trial": 2,
+      "outer_elapsed_ms": 42280,
+      "trace_sha256": {
+        "trace-1.jsonl": "c865819c9d48d7a43420d6af1fd79878d7be3b2da9f1de36ee262073284d3dca"
+      },
+      "phases": [
+        {
+          "exit": 0,
+          "elapsed_ms": 42280,
+          "wall_time_ms": 41311,
+          "input_tokens": 47217,
+          "output_tokens": 1007,
+          "tool_calls": 9,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        }
+      ],
+      "business_gates": {
+        "1": true
+      },
+      "scope_passed": true,
+      "status": "completed"
+    },
+    {
+      "case": "verify-light-path",
+      "arm": "no-verify",
+      "trial": 3,
+      "outer_elapsed_ms": 33330,
+      "trace_sha256": {
+        "trace-1.jsonl": "abb1bc5eb1328eede839dc13d71f7dae56ef1ad5e750e39a7d3a53a8dbfeee09"
+      },
+      "phases": [
+        {
+          "exit": 0,
+          "elapsed_ms": 33330,
+          "wall_time_ms": 32380,
+          "input_tokens": 39661,
+          "output_tokens": 1044,
+          "tool_calls": 8,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        }
+      ],
+      "business_gates": {
+        "1": true
+      },
+      "scope_passed": true,
+      "status": "completed"
+    },
+    {
+      "case": "verify-light-path",
+      "arm": "previous",
+      "trial": 1,
+      "outer_elapsed_ms": 29051,
+      "trace_sha256": {
+        "trace-1.jsonl": "236fba1271ee4c8557e9f3cf54ec42e316476dac99c3aaf53d08f7b9c6bef401"
+      },
+      "phases": [
+        {
+          "exit": 0,
+          "elapsed_ms": 29051,
+          "wall_time_ms": 28005,
+          "input_tokens": 38913,
+          "output_tokens": 711,
+          "tool_calls": 8,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        }
+      ],
+      "business_gates": {
+        "1": true
+      },
+      "scope_passed": true,
+      "status": "completed"
+    },
+    {
+      "case": "verify-light-path",
+      "arm": "previous",
+      "trial": 2,
+      "outer_elapsed_ms": 26344,
+      "trace_sha256": {
+        "trace-1.jsonl": "ac09b6be3c6b97e3d194b270fd8b1922f0c42fd7f90d871f13db8602b611ff82"
+      },
+      "phases": [
+        {
+          "exit": 0,
+          "elapsed_ms": 26344,
+          "wall_time_ms": 25409,
+          "input_tokens": 39578,
+          "output_tokens": 817,
+          "tool_calls": 8,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        }
+      ],
+      "business_gates": {
+        "1": true
+      },
+      "scope_passed": true,
+      "status": "completed"
+    },
+    {
+      "case": "verify-light-path",
+      "arm": "previous",
+      "trial": 3,
+      "outer_elapsed_ms": 36671,
+      "trace_sha256": {
+        "trace-1.jsonl": "4826fec3eeb62fb4483f53aa4289fc76053f673590a6c7932dc1c504e9c562dc"
+      },
+      "phases": [
+        {
+          "exit": 0,
+          "elapsed_ms": 36671,
+          "wall_time_ms": 35673,
+          "input_tokens": 41080,
+          "output_tokens": 887,
+          "tool_calls": 6,
+          "models": [
+            "firstParty:glm-5.3",
+            "firstParty:glm-5.3-flash[1m]"
+          ],
+          "terminal_ok": true,
+          "terminal_reason": "completed"
+        }
+      ],
+      "business_gates": {
+        "1": true
+      },
+      "scope_passed": true,
+      "status": "completed"
+    }
+  ],
+  "integration": {
+    "workflow-acceptance": {
+      "exit": 0,
+      "elapsed_ms": 225166,
+      "wall_time_ms": 224184,
+      "input_tokens": 530205,
+      "output_tokens": 9566,
+      "tool_calls": 37,
+      "models": [
+        "firstParty:glm-5.3",
+        "firstParty:glm-5.3-flash[1m]"
+      ],
+      "terminal_ok": true,
+      "terminal_reason": "completed",
+      "num_turns": 38,
+      "total_cost_usd": 0.632831,
+      "trace_sha256": "806b231c29ab76efb2f4aa2a6d44e271efc21135e2d2b46a840a60d2ac9b9bd9"
+    },
+    "workflow-acceptance-fixed": {
+      "exit": 0,
+      "elapsed_ms": 231096,
+      "wall_time_ms": 230151,
+      "input_tokens": 336729,
+      "output_tokens": 7829,
+      "tool_calls": 35,
+      "models": [
+        "firstParty:glm-5.3",
+        "firstParty:glm-5.3-flash[1m]"
+      ],
+      "terminal_ok": true,
+      "terminal_reason": "completed",
+      "num_turns": 36,
+      "total_cost_usd": 0.46817,
+      "trace_sha256": "1ed91fff28d6c52186cdeecdc4947367f8f7db178ce6f72b7c5d3cc7d539106e"
+    },
+    "workflow-acceptance-dispatched": {
+      "exit": 0,
+      "elapsed_ms": 993,
+      "wall_time_ms": 23,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "tool_calls": 0,
+      "models": [
+        "glm-5.3-flash[1m]"
+      ],
+      "terminal_ok": true,
+      "terminal_reason": "unknown",
+      "num_turns": 0,
+      "total_cost_usd": 0,
+      "trace_sha256": "203af5c6a29d040af33522b50114689d266ac6bf4193a951fd78cb556ead5efe"
+    },
+    "workflow-acceptance-final": {
+      "exit": 0,
+      "elapsed_ms": 298664,
+      "wall_time_ms": 297688,
+      "input_tokens": 494317,
+      "output_tokens": 9908,
+      "tool_calls": 36,
+      "models": [
+        "firstParty:glm-5.3",
+        "firstParty:glm-5.3-flash[1m]"
+      ],
+      "terminal_ok": true,
+      "terminal_reason": "completed",
+      "num_turns": 37,
+      "total_cost_usd": 0.6165970000000001,
+      "trace_sha256": "7e254613797c5c1f92dd1a53a8264172c66ef8ea86f428302684ec7b1fa891d4",
+      "independent_checks": {
+        "public_contract": {
+          "add_title_and_initial_state": true,
+          "finish_persists": true,
+          "old_command_rejected": true,
+          "unknown_id_rejected": true,
+          "rejections_preserve_state": true
+        },
+        "trace_order": {
+          "tdd_loaded_before_edit": true,
+          "red_before_product_edit": true,
+          "driver_run_after_last_edit": true,
+          "no_build_load": true,
+          "no_issue_queue": true
+        },
+        "retention": {
+          "first_passed": true,
+          "existing_output_rejected": false,
+          "original_evidence_unchanged": false
+        }
+      }
+    }
+  },
+  "retention_repair": {
+    "red": {
+      "passed": false,
+      "checks": {
+        "first_passed": true,
+        "existing_output_rejected": false,
+        "original_evidence_unchanged": false
+      },
+      "first_exit": 0,
+      "second_exit": 0,
+      "first_stderr": "",
+      "second_stderr": "",
+      "evidence_files": [
+        "1-add.json",
+        "2-finish.json",
+        "3-list.json",
+        "audit.jsonl",
+        "summary.json"
+      ]
+    },
+    "green": {
+      "passed": true,
+      "checks": {
+        "first_passed": true,
+        "existing_output_rejected": true,
+        "original_evidence_unchanged": true
+      },
+      "first_exit": 0,
+      "second_exit": 2,
+      "first_stderr": "",
+      "second_stderr": "usage: replay.py [-h] --evidence EVIDENCE\nreplay.py: error: evidence destination is nonempty; choose a fresh run directory\n",
+      "evidence_files": [
+        "1-add.json",
+        "2-finish.json",
+        "3-list.json",
+        "audit.jsonl",
+        "summary.json"
+      ]
+    },
+    "cold_reuse": {
+      "exit": 0,
+      "elapsed_ms": 38405,
+      "wall_time_ms": 37456,
+      "input_tokens": 47719,
+      "output_tokens": 1787,
+      "tool_calls": 13,
+      "models": [
+        "firstParty:glm-5.3",
+        "firstParty:glm-5.3-flash[1m]"
+      ],
+      "terminal_ok": true,
+      "terminal_reason": "completed",
+      "num_turns": 14,
+      "total_cost_usd": 0.10586200000000001,
+      "gates": {
+        "prior_files_unchanged": true,
+        "fresh_proof": true,
+        "replay_invoked": true
+      },
+      "trace_sha256": "1d628813e4aa39337fdd422a686f2766b6adbc02d121857c36011ff19b21dc1d"
+    }
+  },
+  "deterministic_suite": {
+    "run": 450,
+    "passed": 447,
+    "skipped": 3,
+    "receipt": ".scratch/tmp/verify-workflow-final.json",
+    "receipt_sha256": "4698648dd1b6804088114fc97797d5e501803fec2103b714bb17fdd75e8d1f61"
+  },
+  "cleanup": {
+    "removed_prior_isolated_project_copies": 32,
+    "removed_intermediate_directory": ".eval-runs/verify-compare",
+    "removed_unused_candidate": "evals/experiments/pstack-create",
+    "final_proof_directory": ".eval-runs/verify-final-proof",
+    "final_proof_files": 25,
+    "net_files_removed_this_cleanup": 3391,
+    "net_bytes_removed_this_cleanup": 31133415
+  },
+  "retention_note": "Intermediate comparison workspaces, candidate sources, scripts, raw traces and duplicate assessments were deleted after summarization. Historical comparison attempts cannot be replayed from this summary. Final workflow and retention proof are in .eval-runs/verify-final-proof."
+}

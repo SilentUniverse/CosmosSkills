@@ -20,7 +20,7 @@ A complete engineering methodology for your coding agent — nine laws, an artif
 
 ## 这是什么
 
-CosmosSkills 是一套给单人开发者的 AI 编程工程方法论：29 个跨宿主技能、九条设计定律、一道工件门和一套按需行为 eval。连续会话复用已核实的上下文，跨会话保留可校验的恢复入口；AI 的自我汇报不能代替证据。定律给方向，机器与可重放证据给结论。所有权衡按字典序处理：产品质量与正确性 > 交付速度 > Token 消耗；后两项不得削弱前一项的证据、安全或可访问性。
+CosmosSkills 是一套给单人开发者的 AI 编程工程方法论：30 个跨宿主技能、九条设计定律、一道工件门和一套按需行为 eval。连续会话复用已核实的上下文，跨会话保留可校验的恢复入口；AI 的自我汇报不能代替证据。定律给方向，机器与可重放证据给结论。所有权衡按字典序处理：产品质量与正确性 > 交付速度 > Token 消耗；后两项不得削弱前一项的证据、安全或可访问性。
 
 - **九条定律**：从 Hoare、Dijkstra、Parnas、Ousterhout 等软件工程经典提炼的九个问题。不给规范，让 AI 自己推导出好代码
 - **机器门**：`verify-artifacts.py` 校验每份工件——完成记录点名的测试文件必须真实存在于磁盘，误删当场红灯；依赖图有环、PRD 版本链多头或缺头、需求记录源哈希漂移都会红灯
@@ -218,7 +218,7 @@ stateDiagram-v2
 
 **只并行真正独立的工作。** 默认 inline。`/tdd -p` 只并行写集和运行资源不冲突的卡；独立盲审保留独立上下文；大量多源研究必须有窄输出且主线程仍有可做工作。单文件、单次搜索、慢命令、大输出、顺序依赖和上下文清理都不是委派理由。全量 suite 由当前会话启动 supervisor；Standards / Spec 独立审查仍可并行。
 
-29 个技能、工件门、按需行为 eval、九个词——目标是**先保证可逐条审查的产品质量，再缩短交付时间，最后降低 Token 消耗**；是否做到由 [evals](evals/README.md) 的真实对照结果回答，不由 README 宣称。
+30 个技能、工件门、按需行为 eval、九个词——目标是**先保证可逐条审查的产品质量，再缩短交付时间，最后降低 Token 消耗**；是否做到由 [evals](evals/README.md) 的真实对照结果回答，不由 README 宣称。
 
 ### 读写控制面
 
@@ -378,7 +378,7 @@ git_base: 7af387c
 
 ## skill
 
-源码只分两层：[workflow](workflow/README.md) 放产品与开发工作流，[tooling](tooling/README.md) 放安装、迁移和宿主工具。
+源码只分两层：[workflow](workflow/README.md) 放产品与开发工作流，[tooling](tooling/README.md) 放安装、迁移、项目验证和宿主工具。
 
 | | 何时用 |
 |---|---|
@@ -393,6 +393,7 @@ git_base: 7af387c
 | [commit](workflow/commit/SKILL.md) | 只提交本任务已验证路径并落地；`-local` 仅建本地提交 |
 | [tidy](workflow/tidy/SKILL.md) | 工程／人工状态查询 + 有归属的临时文件 GC；保留测试、经验、历史证据 |
 | [diagnose](workflow/diagnose/SKILL.md) | 硬 bug / 性能回归 |
+| [verify](tooling/verify/SKILL.md) | 缺少操作或观察能力时补建工具；`-maintain <area>` 修复工具漂移；已有检查直接运行，见[验证闭环](workflow/README.md#application-verification-loop) |
 | [conflicts](workflow/conflicts/SKILL.md) | 解决 Git merge / rebase 冲突 |
 | [map](workflow/map/SKILL.md) | 生成/刷新 `CODEBASE.md` 结构地图 |
 | [show](workflow/show/SKILL.md) | 讲解陌生代码区：一屏（目的/模块图/一条流/先读什么）；`-html` 出给人看的单页 |
