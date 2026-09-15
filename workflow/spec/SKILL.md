@@ -44,7 +44,7 @@ Named `<feat>` → `rg` that feature only; else 3–5 keywords over `.scratch/**
 - No hit → inspect the related code and live contracts before classifying it as new work; absence
   from the issue queue does not establish absence from the product. Use [PRD-TEMPLATE.md](PRD-TEMPLATE.md) when shared scenarios/decisions need
   a durable owner across slices. Multi-module reach or card count alone does not require a PRD.
-  Use [CARD-TEST.md](CARD-TEST.md) for work needing tracked slices. A settled plan can stay inline;
+  A settled plan can stay inline;
   a session boundary alone uses `/handoff` without creating a queue.
 - Hit in the target feature: read the live PRD's 实现决策 (if any) and the hit issue's AC/`status`.
   - Nothing recorded goes false → [ADDITIVE.md](ADDITIVE.md).
