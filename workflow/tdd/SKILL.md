@@ -78,6 +78,9 @@ Ask only a new consequential decision. Shape a new seam with `/codebase-design` 
 Existing coverage first: [tests.md](tests.md) §Existing evidence. Inline runs use their stated
 behavior/evidence contract; issue runs use 做什么/AC/验证设计 and the parent extract.
 
+Update and replay affected existing drivers and scenario instructions in the same slice.
+Use `/verify` only when missing or drifted run, drive or observation tools block verification.
+
 Repeated follow-up patches landing on the same module are a design signal: stop patching and
 re-derive the design from the requirements; propose the re-derivation instead of the next patch.
 

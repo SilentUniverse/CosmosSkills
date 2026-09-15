@@ -18,6 +18,9 @@ edge cases. A menu to scan, not a checklist to read top-to-bottom every time.
 
 ## Tighten the loop
 
+Use `/verify` when missing or drifted run, drive or observation tools block reproduction, then
+resume the original diagnosis.
+
 Treat the loop as a product. Once you have _a_ loop, **tighten** it:
 
 - Can I make it faster? (Cache setup, skip unrelated init, narrow the test scope.)

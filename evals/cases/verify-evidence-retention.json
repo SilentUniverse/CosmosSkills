@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "id": "verify-evidence-retention",
+  "title": "Replay refuses to overwrite historical evidence",
+  "layer": "L2",
+  "skills": ["verify", "tdd"],
+  "origin": {
+    "kind": "regression",
+    "reference": "2026-09-16 workflow acceptance: a command rename reused evidence/replay and overwrote prior observations despite a preservation instruction"
+  },
+  "task": {
+    "prompt": "Repair the existing verification package so repeated runs cannot silently overwrite historical evidence. Keep its public replay command and business assertions, document the evidence location contract, and prove the repair through actual invocations.",
+    "fixture": "The generated tools/verify-tasks package from verify-inline-change, before the evidence writer guard; record the source hash before execution"
+  },
+  "budgets": {"wall_time_ms": 300000, "total_tokens": 350000, "tool_calls": 80},
+  "hard_limits": {"scope_leakage_count": 0},
+  "requirements": [
+    {"id": "R1", "criterion": "A fresh replay succeeds; reusing its nonempty evidence destination fails before any retained file changes.", "grader_ids": ["retention-gates"]},
+    {"id": "R2", "criterion": "The public business path, false-completion detection, state cleanup and external-state preservation still work.", "grader_ids": ["retention-gates"]}
+  ],
+  "graders": [
+    {"id": "retention-gates", "kind": "deterministic", "procedure": "Run evals/experiments/verify_loop.py with --retention and with --command finish. Require every check to pass; retain the original failing output, repaired source, gate output and any model trace separately."}
+  ]
+}

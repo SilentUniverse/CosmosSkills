@@ -46,6 +46,10 @@ EXPECTED_CASE_IDS = {
     "tdd-holds-red-under-pressure",
     "tdd-routes-receipt-conflict-to-realignment",
     "typescript-ui-verification",
+    "verify-capability-loop",
+    "verify-inline-change",
+    "verify-evidence-retention",
+    "verify-light-path",
 }
 
 

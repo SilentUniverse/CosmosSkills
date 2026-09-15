@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "id": "verify-capability-loop",
+  "title": "Build, maintain and cold-reuse a real CLI verifier",
+  "layer": "L2",
+  "skills": [
+    "verify",
+    "tdd"
+  ],
+  "origin": {
+    "kind": "capability",
+    "reference": "Pstack adaptation comparison; executable fixture evals/fixtures/verify-loop"
+  },
+  "task": {
+    "prompt": "Build the reusable task-completion verification capability required by README.md and make it discoverable from the repository. Execute and validate it; keep product behavior unchanged.",
+    "fixture": "evals/fixtures/verify-loop",
+    "user_script": [
+      {
+        "after": "builder finishes; the fixture owner renames the public complete command to finish",
+        "content": "The application has been upgraded. Maintain the repository verification capability, preserve its business expectations, and execute the affected paths. Do not edit product code."
+      },
+      {
+        "after": "maintainer finishes; start a fresh executor with only repository files",
+        "content": "Use this repository's instructions to verify the task-completion workflow and report evidence. Do not edit product code or verification tools."
+      }
+    ]
+  },
+  "budgets": {
+    "wall_time_ms": 900000,
+    "total_tokens": 600000,
+    "tool_calls": 180
+  },
+  "hard_limits": {
+    "scope_leakage_count": 0
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "criterion": "The generated verifier drives public CLI operations, detects a false business result, cleans owned state and retains evidence.",
+      "grader_ids": [
+        "fixture-gates"
+      ]
+    },
+    {
+      "id": "R2",
+      "criterion": "After the public completion command changes, a cold maintainer repairs tools and instructions without changing the requirement or product.",
+      "grader_ids": [
+        "fixture-gates"
+      ]
+    },
+    {
+      "id": "R3",
+      "criterion": "A fresh executor discovers and runs the maintained verifier from project instructions without conversation history.",
+      "grader_ids": [
+        "fixture-gates"
+      ]
+    }
+  ],
+  "graders": [
+    {
+      "id": "fixture-gates",
+      "kind": "deterministic",
+      "procedure": "Run evals/experiments/verify_loop.py outside the executor. Replay generated commands in isolated copies; inject a completion mutation; inspect public CLI audit, state cleanup, retained evidence, product hashes and cold-executor trace. For the light case use private boundary tests and trace/file checks. Retain per-stage gate.json."
+    }
+  ]
+}
