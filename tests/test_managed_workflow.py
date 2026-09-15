@@ -180,7 +180,7 @@ print(action)
         self.assertEqual("closed", replay["status"])
 
     def test_packaged_service_launch_is_ready_tested_and_terminal_before_review(self):
-        (self.root / "server.py").write_text("from http.server import BaseHTTPRequestHandler, HTTPServer\nclass Handler(BaseHTTPRequestHandler):\n def do_GET(self):\n  self.send_response(200); self.end_headers(); self.wfile.write(b'42')\nserver=HTTPServer(('127.0.0.1',0),Handler)\nprint(server.server_port,flush=True)\nserver.serve_forever()\n", encoding="utf-8")
+        (self.root / "server.py").write_text("import socketserver\nfrom http.server import BaseHTTPRequestHandler, HTTPServer\nclass Handler(BaseHTTPRequestHandler):\n def do_GET(self):\n  self.send_response(200); self.end_headers(); self.wfile.write(b'42')\nclass Server(HTTPServer):\n def server_bind(self):\n  socketserver.TCPServer.server_bind(self)\n  host, port = self.server_address[:2]\n  self.server_name, self.server_port = host, port\nserver=Server(('127.0.0.1',0),Handler)\nprint(server.server_port,flush=True)\nserver.serve_forever()\n", encoding="utf-8")
         launch = ["{python}", "server.py"]
         reader = "from pathlib import Path; import urllib.request; port=Path(r'{run_dir}/application.raw.log').read_text().splitlines()[0]; print(urllib.request.urlopen('http://127.0.0.1:'+port).read().decode())"
         ready = "from pathlib import Path\nimport time\np=Path(r'{run_dir}/application.raw.log')\nwhile not p.read_text().strip(): time.sleep(.01)\nprint('ready')"
