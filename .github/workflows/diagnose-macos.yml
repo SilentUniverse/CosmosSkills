@@ -55,15 +55,20 @@ jobs:
                 "in %.3fs" % (time.perf_counter() - started), flush=True)
           server.server_close()
           PY
-      - name: Reproduce the exact test fixture server
+      - name: Reproduce the exact test fixture server (fixed server_bind)
         run: |
           python - <<'PY'
           import subprocess, sys, tempfile, time
           from pathlib import Path
 
-          code = ("from http.server import BaseHTTPRequestHandler, HTTPServer\nclass Handler(BaseHTTPRequestHandler):\n"
-                  " def do_GET(self):\n  self.send_response(200); self.end_headers(); self.wfile.write(b'42')\n"
-                  "server=HTTPServer(('127.0.0.1',0),Handler)\nprint(server.server_port,flush=True)\nserver.serve_forever()\n")
+          code = ("import socketserver\nfrom http.server import BaseHTTPRequestHandler, HTTPServer\n"
+                  "class Handler(BaseHTTPRequestHandler):\n def do_GET(self):\n"
+                  "  self.send_response(200); self.end_headers(); self.wfile.write(b'42')\n"
+                  "class Server(HTTPServer):\n def server_bind(self):\n"
+                  "  socketserver.TCPServer.server_bind(self)\n"
+                  "  host, port = self.server_address[:2]\n"
+                  "  self.server_name, self.server_port = host, port\n"
+                  "server=Server(('127.0.0.1',0),Handler)\nprint(server.server_port,flush=True)\nserver.serve_forever()\n")
           with tempfile.TemporaryDirectory(prefix="cosmos managed 空格 ") as temporary:
               root = Path(temporary)
               (root / "server.py").write_text(code, encoding="utf-8")
@@ -75,12 +80,22 @@ jobs:
                   deadline = time.monotonic() + 30
                   while time.monotonic() < deadline:
                       if log.read_text().strip():
-                          print("port line appeared in %.3fs:" % (time.perf_counter() - started),
-                                log.read_text().strip(), flush=True)
                           break
                       time.sleep(0.01)
                   else:
                       print("NO PORT LINE within 30s; poll()=", process.poll(), flush=True)
+                      process.kill(); process.wait(); raise SystemExit(1)
+                  port = log.read_text().splitlines()[0]
+                  print("port line appeared in %.3fs: %s" % (time.perf_counter() - started, port), flush=True)
+                  reader = ("from pathlib import Path; import urllib.request; "
+                            "port=Path(r'{log}').read_text().splitlines()[0]; "
+                            "print(urllib.request.urlopen('http://127.0.0.1:'+port).read().decode())"
+                            ).format(log=log)
+                  t = time.perf_counter()
+                  body = subprocess.run([sys.executable, "-B", "-c", reader], capture_output=True,
+                                        text=True, timeout=30, cwd=root)
+                  print("reader -> %r (rc=%d) in %.3fs" % (body.stdout, body.returncode, time.perf_counter() - t),
+                        body.stderr, flush=True)
                   process.kill()
                   process.wait()
           PY
