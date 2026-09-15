@@ -195,12 +195,6 @@ print(action)
         definition["milestones"][0].update(human_gate="required", decision_ref="review tested package")
         batch_id = self.open(definition)["batch_id"]
         reviewed = self.cli("batch-run", "--batch", batch_id)
-        if reviewed.get("action") != "wait_human":
-            print("DIAG-REVIEWED", json.dumps(reviewed, ensure_ascii=False))
-            for record in sorted((self.root / ".scratch/batches" / batch_id).rglob("*")):
-                if record.is_file() and record.suffix in (".json", ".log"):
-                    print("DIAG-FILE", record.relative_to(self.root),
-                          record.read_text(encoding="utf-8", errors="replace")[:6000])
         self.assertEqual("wait_human", reviewed["action"])
         self.assertEqual("release", reviewed["review_delivery"]["kind"])
         self.assertEqual(reviewed, self.cli("batch-run", "--batch", batch_id))
