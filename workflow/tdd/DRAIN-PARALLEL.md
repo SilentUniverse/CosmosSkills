@@ -30,9 +30,9 @@ Assign the first (highest-priority) issue to the orchestrator by default. Launch
 worker concurrently in one host operation, then immediately begin the orchestrator issue; the
 four-issue cap includes the orchestrator. Retain each worker's host identifier beside its ledger
 binding; later corrections and stops address that worker only through this handle. If its next
-action cannot yield within the supervision
-interval, delegate that issue too and keep the orchestrator on supervision, evidence review, and
-reconciliation. The orchestrator's issue follows the same ownership and evidence contract.
+action cannot yield within one bounded host wait, delegate that issue too and keep the
+orchestrator on supervision, evidence review, and reconciliation. The orchestrator's issue follows
+the same ownership and evidence contract.
 
 Until every worker closes, repeat a bounded supervision loop:
 

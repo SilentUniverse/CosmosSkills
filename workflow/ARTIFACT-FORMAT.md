@@ -322,7 +322,7 @@ For a disproved report, `drain-wave.py dismiss-conflict` preserves the original 
 `conflict_dismissals[slug]` with only the review path/hash and time;
 only that closed result becomes `red`. It never changes the issue contract or marks it done.
 Review evidence is durable under the feature's `receipts/`; the caller owns its truthfulness.
-Every dispatched slug without ledger closure is a zombie, even when its card is `done`, archived,
+Every dispatched slug without ledger closure remains uncollected, even when its card is `done`, archived,
 or missing; disk state cannot prove wave-level reconciliation and read-only scheduling commands do
 not infer an outcome. The recovery contract lives in
 `tdd/EDGE-CASES.md`. The ledger is append-oriented machine state; humans read it only for
