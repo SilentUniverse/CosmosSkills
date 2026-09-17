@@ -432,9 +432,9 @@ git_base: 7af387c
 | 加 / 改 / 退役流程规则 | 先登记 [RULE-LEDGER.md](workflow/RULE-LEDGER.md)（防什么失败 · 出处 · 探针）；需要测量模型代际差异时，显式 `/eval full` 跑对应探针；普通规则修复先做确定性检查 |
 | SKILL.md | 按 [write-skill](workflow/write-skill/SKILL.md) 做披露测试；行数只提示复查，不是拆分门槛；最终范围跑一次 `/atk` + `/lint` + `wc -l`，行为 eval 仅显式开启 |
 | 改 hook | 先跑 `test-block-legacy-cli.ps1` / `test-block-dangerous-git.ps1` |
-| 改 verify-artifacts | 跨平台先跑 `python -m unittest discover -s tests -v`；Windows 再跑 `test-verify-codebase.ps1` 全集 |
-| 跑大测试 | 用 `tdd/scripts/test-supervisor.py` 指定 scope、timeout、log、receipt；不要因慢而委派 |
-| 改 eval 协议 | `python scripts/eval.py validate-cases evals/cases` + `python scripts/eval_campaign.py --help` + `python -m unittest discover -s tests -v` |
+| 改 verify-artifacts | 跨平台先跑 `python scripts/run-tests.py`（默认并行）；Windows 再跑 `test-verify-codebase.ps1` 全集 |
+| 跑大测试 | 用 `tdd/scripts/test-supervisor.py` 指定 scope、timeout、log、receipt；不要因慢而委派。全量默认并行：`python scripts/run-tests.py`（须装 pytest-xdist，缺失直接红灯不回落串行；16 核实测 230s→76s，超过 4 个 worker 不提速、还会让进程树/锁用例偶发失败；`--durations-file` 逐例计时走串行） |
+| 改 eval 协议 | `python scripts/eval.py validate-cases evals/cases` + `python scripts/eval_campaign.py --help` + `python scripts/run-tests.py` |
 | 契约 | [ARTIFACT-FORMAT.md](workflow/ARTIFACT-FORMAT.md) |
 
 每个文件有读者；每个状态有闭环；每个入口有守门。

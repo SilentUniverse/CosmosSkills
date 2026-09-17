@@ -14,6 +14,10 @@ spec = importlib.util.spec_from_file_location('ci_scope', ROOT / 'scripts/ci-sco
 ci = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(ci)
 
+runner_spec = importlib.util.spec_from_file_location('run_tests', ROOT / 'scripts/run-tests.py')
+runner = importlib.util.module_from_spec(runner_spec)
+runner_spec.loader.exec_module(runner)
+
 
 class TestGovernanceTests(unittest.TestCase):
     def setUp(self):
@@ -137,6 +141,40 @@ class TestGovernanceTests(unittest.TestCase):
         self.assertEqual(before, output.read_bytes())
         receipt.write_text('[]')
         self.assertEqual(2, subprocess.run(command[:-2], capture_output=True).returncode)
+
+    def tiny_suite(self):
+        directory = self.root / 'cases'
+        directory.mkdir()
+        (directory / 'test_one.py').write_text(
+            'import unittest\nclass Cases(unittest.TestCase):\n def test_ok(self): self.assertTrue(True)\n')
+        return directory
+
+    def test_full_suite_runs_parallel_by_default_at_a_capped_worker_count(self):
+        self.assertEqual(4, runner.default_jobs(16))
+        self.assertEqual(2, runner.default_jobs(2))
+        self.assertEqual(1, runner.default_jobs(1))
+        argv = runner.parallel_argv(4, 'tests', 'test*.py')
+        self.assertEqual('4', argv[argv.index('-n') + 1])
+        self.assertEqual('loadfile', argv[argv.index('--dist') + 1])
+        self.assertIn('tests', argv)
+        self.assertIn('python_files=test*.py', argv)
+
+    def test_missing_parallel_plugins_fail_instead_of_falling_back_to_serial(self):
+        directory = self.tiny_suite()
+        # -S hides site-packages, so the parallel plugins read as absent on every host.
+        result = subprocess.run([sys.executable, '-S', '-B', str(ROOT / 'scripts/run-tests.py'),
+                                 '--start-directory', str(directory)], capture_output=True, text=True, timeout=30)
+        self.assertEqual(2, result.returncode, result.stdout + result.stderr)
+        self.assertIn('pytest', result.stderr)
+        self.assertIn('xdist', result.stderr)
+        self.assertNotIn('Ran 1 test', result.stdout + result.stderr)
+
+    def test_serial_loader_needs_no_third_party_plugin(self):
+        directory = self.tiny_suite()
+        result = subprocess.run([sys.executable, '-S', '-B', str(ROOT / 'scripts/run-tests.py'), '--jobs', '1',
+                                 '--start-directory', str(directory)], capture_output=True, text=True, timeout=30)
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn('runner=serial', result.stdout)
 
     def test_native_runner_preserves_failures_skips_and_rejects_empty_selection(self):
         source = self.root / 'test_example.py'

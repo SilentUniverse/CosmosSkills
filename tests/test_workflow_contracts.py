@@ -23,6 +23,11 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertIn("workflow-state.py", text("workflow/spec/PRD-TEMPLATE.md"))
         self.assertIn("workflow-state.py", text("claude/document-layout.md"))
 
+    def test_full_suite_instructions_use_the_parallel_runner(self):
+        readme = text("README.md")
+        self.assertIn("python scripts/run-tests.py", readme)
+        self.assertNotIn("unittest discover -s tests", readme)
+
     def test_installers_distribute_workflow_state(self):
         self.assertGreaterEqual(text("scripts/install.sh").count("workflow-state.py"), 2)
         self.assertGreaterEqual(text("scripts/install.ps1").count("workflow-state.py"), 2)
