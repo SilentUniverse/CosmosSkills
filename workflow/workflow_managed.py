@@ -586,6 +586,10 @@ def control(root, batch_id, request_id, action, reason=None, members=None):
             if "pause:" + request_id not in state["holds"]:
                 raise ValueError("resume must name an existing pause; reviews need a decision")
             del state["holds"]["pause:" + request_id]
+        elif action == "diagnose":
+            _quiescent(root, state)
+            if state["phase"] != "repair" or state["holds"] or state["checkpoint_request"] or not reason or not reason.strip():
+                raise ValueError("diagnose needs the failing incident and no pending stop")
         elif action == "repair":
             _quiescent(root, state)
             if state["phase"] != "repair" or state["holds"] or state["checkpoint_request"] or not reason or not reason.strip():

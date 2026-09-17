@@ -320,9 +320,18 @@ Historical exported deliverables remain usable subject to their recorded runtime
 
 `scripts/overnight.py` advances active schema-2/3 batches from structured state. Mechanical checks need
 no model call. Implementation runs one assigned issue in the existing native session, retains its
-actual terminal observation, then yields to proof. Return codes: 0 closed, 10 waiting for a person,
-11 repair/owner/readiness block, 12 budget/incomplete, 13 revision/runtime conflict. It does not infer
-completion from model exit, an empty queue or a handoff. No additional close-out full suite runs.
+actual terminal observation, then yields to proof. A verification failure continues in the same
+session: the runner admits one bounded diagnosis through the `diagnose` control (idempotent per
+incident run, persisted with the state), the session only proposes
+`{action: repair|blocked, members, reason, evidence}` into
+`.scratch/batches/<id>/diagnosis/<run_id>.json` and never touches managed state itself, and the
+runner applies the existing `repair` control with request-id `run-<run_id>`. An identical remedy
+already attempted, a blocked proposal, an invalid artifact, or a refused repair stops at 11 with the
+evidence retained; completion still requires the proof chain, and every repair round draws its bound
+from the goal budget by consuming a real dispatch and check runs. Return codes: 0 closed, 10
+waiting for a person, 11 repair/owner/readiness block, 12 budget/incomplete, 13 revision/runtime
+conflict. It does not infer completion from model exit, an empty queue or a handoff. No additional
+close-out full suite runs.
 
 ```text
 python workflow-state.py batch-prepare ROOT --batch ID

@@ -71,6 +71,38 @@ def reset_log(log_path):
         log.write("=== overnight run ===\n")
 
 
+def _load_diagnosis(path):
+    """A proposal is {action: repair|blocked, members, reason}; anything else is None."""
+    try:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if not isinstance(data, dict) or data.get("action") not in ("repair", "blocked"):
+        return None
+    reason = data.get("reason")
+    if not isinstance(reason, str) or not reason.strip():
+        return None
+    if data["action"] == "repair":
+        members = data.get("members")
+        if not isinstance(members, list) or not members or not all(
+                isinstance(member, str) and member.strip() for member in members):
+            return None
+    return data
+
+
+def _remedy_already_attempted(diagnosis_dir, current, proposal):
+    signature = (sorted(proposal.get("members") or []), (proposal.get("reason") or "").strip())
+    for other in Path(diagnosis_dir).glob("*.json"):
+        if other == current:
+            continue
+        prior = _load_diagnosis(other)
+        if prior and prior.get("action") == "repair" and (
+                sorted(prior.get("members") or []),
+                (prior.get("reason") or "").strip()) == signature:
+            return True
+    return False
+
+
 def launch(exe, root, log_path, prompt, timeout=None, on_boundary=None):
     session = _session.get()
     arguments = [exe, "-p", "--max-turns", str(MAX_TURNS)]
@@ -333,7 +365,7 @@ def _main(argv):
 def managed_main(root, feature, batch_id):
     import importlib.util
     import workflow_batch as batch
-    from workflow_managed import advance_owned
+    from workflow_managed import advance_owned, control
     from workflow_members import yield_wave
     from workflow_runtime import atomic_write
     root = Path(root).resolve()
@@ -343,6 +375,19 @@ def managed_main(root, feature, batch_id):
     log_path = batch._path(root, batch_id) / "external-runner.log"
     sessions = 0
     previous_output = None
+
+    def make_on_boundary():
+        if state["schema_version"] != 3:
+            return None
+        from workflow_incremental import drive as drive_incremental
+        from workflow_incremental import deliver_notifications
+
+        def on_boundary():
+            drive_incremental(root, batch_id, background=True)
+            deliver_notifications(root, batch_id)
+
+        return on_boundary
+
     while True:
         try:
             if state["schema_version"] == 3:
@@ -361,6 +406,65 @@ def managed_main(root, feature, batch_id):
             return 0
         if result["action"] == "wait_human":
             return 10
+        if result["action"] == "diagnose_incident":
+            run_id = ((result.get("incidents") or [{}])[-1] or {}).get("run_id")
+            if not run_id:
+                print("overnight: diagnose action carried no incident run — aborting", file=sys.stderr)
+                return 11
+            diagnosis_dir = batch._path(root, batch_id) / "diagnosis"
+            diagnosis_path = diagnosis_dir / (run_id + ".json")
+            proposal = _load_diagnosis(diagnosis_path) if diagnosis_path.exists() else None
+            if diagnosis_path.exists() and proposal is None:
+                print("overnight: diagnosis artifact for run %s is invalid — see %s"
+                      % (run_id, log_path), file=sys.stderr)
+                return 11
+            if proposal is None:
+                if sessions >= MAX_SESSIONS:
+                    return 12
+                exe = shutil.which("claude")
+                if not exe:
+                    print("overnight: diagnosis requires the configured Claude CLI", file=sys.stderr)
+                    return 11
+                try:
+                    control(root, batch_id, "run-" + run_id, "diagnose",
+                            "verification failed: run %s" % run_id)
+                except ValueError as exc:
+                    print("overnight: diagnosis control refused — %s" % exc, file=sys.stderr)
+                    return 11
+                diagnosis_dir.mkdir(parents=True, exist_ok=True)
+                prompt = (
+                    "继续已接受的受管批次 %s；固定候选验证失败，incident run=%s。在已有授权内做一次有界诊断："
+                    "读取失败回执、当前候选与该 job 绑定的成员契约，定位根因与受影响成员，不以无证据猜测开修。"
+                    "结束时把 JSON {\"action\":\"repair 或 blocked\",\"members\":[\"feature/slug\"],"
+                    "\"reason\":\"...\",\"evidence\":\"...\"} 写入 %s。"
+                    "缺权限、需新产品决定或无法定位时 action=blocked 并写明事实。"
+                    "你不调用 batch-repair/batch-close 等托管命令，不新建卡、不改验收或契约、不宣布完成；"
+                    "宿主核验后应用修复。" % (batch_id, run_id, diagnosis_path)
+                )
+                sessions += 1
+                if launch(exe, str(root), str(log_path), prompt,
+                          timeout=600, on_boundary=make_on_boundary()) != 0:
+                    print("overnight: diagnosis session exited nonzero — see %s" % log_path, file=sys.stderr)
+                    return 11
+                proposal = _load_diagnosis(diagnosis_path)
+                if proposal is None:
+                    print("overnight: diagnosis session wrote no valid proposal to %s"
+                          % diagnosis_path, file=sys.stderr)
+                    return 11
+                if _remedy_already_attempted(diagnosis_dir, diagnosis_path, proposal):
+                    print("overnight: identical remedy already attempted without success — see %s"
+                          % diagnosis_dir, file=sys.stderr)
+                    return 11
+            if proposal["action"] == "blocked":
+                print("overnight: diagnosis blocked — %s" % proposal["reason"], file=sys.stderr)
+                return 11
+            try:
+                control(root, batch_id, "run-" + run_id, "repair",
+                        proposal["reason"], proposal["members"])
+            except ValueError as exc:
+                print("overnight: repair control refused — %s" % exc, file=sys.stderr)
+                return 11
+            continue
         if state["schema_version"] == 3 and result["action"] == "reconcile_run" and result["reason_code"] == "verification_running":
             import time
             time.sleep(1)
@@ -390,12 +494,7 @@ def managed_main(root, feature, batch_id):
             "你不调用 close/collect/batch-yield，不写 done；宿主确认执行终态后交回主控验证。"
             % (batch_id, reference, execution, output))
         sessions += 1
-        on_boundary = None
-        if state["schema_version"] == 3:
-            from workflow_incremental import deliver_notifications
-            def on_boundary():
-                drive(root, batch_id, background=True)
-                deliver_notifications(root, batch_id)
+        on_boundary = make_on_boundary()
         code = launch(exe, str(root), str(log_path), prompt, timeout=600, on_boundary=on_boundary)
         if code == 0 and output.exists():
             continuation = json.loads(output.read_text(encoding="utf-8"))

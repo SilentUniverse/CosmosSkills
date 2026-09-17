@@ -107,6 +107,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | Parallel·收波 | 全 worker 终态 → 联合 scoped 验证/归属核对 → 一次 collect 全部 outstanding；partial 拒绝 | 过程·质量·经济 | 机器+流程 | ARTIFACT-FORMAT wave ledger + drain-wave.py collect |
 | Parallel·监督 | 回合不随开放波结束；collect 收波或升级停全 worker 才收口；worker 返回即终态 | 过程 | 流程 | 会话退出即杀活 worker、丢在途工作；未溯源 |
 | Parallel→overnight | runner 只拥有进程生命周期（启动/续接/预算/卡死停/独立冲突核查/收尾后校验）；调度按 DRAIN 在会话内执行 | 过程·经济 | 机器+流程 | scripts/overnight.py + tdd/SESSION-REUSE.md / resume-cold-start |
+| Managed·诊断接续 | 验证失败在原批次内一次有界诊断，经既有 repair 控制回原目标；同疗法/受阻/越界即停，完成仍走证明链 | 过程·经济 | 机器+流程 | scripts/overnight.py + workflow_managed.control；未溯源 |
 
 ## E. pr — workflow/pr/SKILL.md（每次提交付费）
 

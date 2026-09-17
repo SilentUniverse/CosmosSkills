@@ -74,11 +74,12 @@ published result before reporting landed, is idempotent on a re-run after a mid-
 failure, never stages or scopes (the validated commit is its only input), leaves the
 caller's checked-out branch untouched, and advances the local default branch to the published
 one by fast-forward only; `--mode/--remote/--base/--verify-command` override its
-resolutions. A check the user named goes in as `--verify-command` on the native engine, which runs
-it before publishing. The gh engine takes no verify command because CI owns verification there, so
-`/pr` runs no check before that merge and no CI watch after it; exit 4 is the whole signal that a
-required check blocks landing. The script's JSON report and exit code are authoritative on both
-engines, and are not predicted by reading its internals or the repository's CI configuration.
+resolutions. On the native engine, the applicable repository gates go in as `--verify-command`; the
+script runs them before publishing. The gh engine takes no verify command: `/pr` runs no check
+before that merge and no CI watch after it. Where the base branch requires no checks, the delivery
+gates therefore first run in CI after the merge; exit 4 reports a merge that a blocked check
+stopped. The script's JSON report and exit code are authoritative; read them rather than deriving
+them from the repository's CI configuration.
 
 A moved head, a wrong PR target, pending required checks, an unavailable engine, or a failed
 verify command returns to this skill's recovery: resolve the target, revalidate only the head that
