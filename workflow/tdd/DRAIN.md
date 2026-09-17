@@ -146,8 +146,9 @@ Per-issue GREEN requires all AC plus the touched module's scoped tests and appli
 Write the [completion record](COMPLETION-RECORD.md), sync `test_paths`, then close to `done`.
 Run the full suite where the accepted delivery candidate requires it and at final completion; local cycles remain scoped.
 
-Return one outcome. Green is at most eight compact lines; red/blocked/conflict stays under 150 words
-plus the shortest decisive error excerpt:
+Return one outcome; the return is terminal — no follow-up writes, polling, or status prose after
+it. Green is at most eight compact lines; red/blocked/conflict stays under 150 words plus the
+shortest decisive error excerpt:
 
 | Result | Evidence and state |
 |---|---|
@@ -236,18 +237,16 @@ rewrite a handoff after every interactive wave.
 
 ## External runner
 
-With `scripts/overnight.py`, the runner owns scheduling and dispatches before launching the
-session. Execute only its assigned wave and collect. The same explicit native session
-then returns to the runner, which continues the batch; this is not completion of the user's task.
-A recovery turn handles only this invocation's execution after its process group has stopped;
-unknown owners stop for host reconciliation. External workers also need observed terminal state.
-Close-out continues the same session. Independent conflict review uses a separate session.
-Only an actual context boundary writes a handoff through `/handoff`. When changing a host/session
-adapter, use [SESSION-REUSE.md](SESSION-REUSE.md).
-Exit 5 runs the existing supervised `preflight-receipt.py run --key <key>` path for only the named
-tuples, with no model preparation turn. A missing or changed tuple refuses execution; a failed
-preflight stops the runner. Passing receipts allow dispatch to retry.
-Interactive sessions schedule their own waves and do not require external session rotation.
+`scripts/overnight.py` is a process babysitter, not a scheduler. It launches one explicit native
+session on `/tdd -p`, resumes that session whenever it exits before the batch completes, enforces
+the bounded turn/session budget and a no-progress stop, runs independent conflict review in a
+separate session, and verifies that close-out left no dispatchable work. Scheduling, dispatch,
+preflight, supervision, collect, and recovery follow the same DRAIN contract as an interactive
+run, executed inside that session; `drain-wave.py` is the only wave-computation core. A
+session recovers only executions it dispatched: an open execution owned by a dead or foreign
+session is an attention stop for host reconciliation, never recovery material. Close-out
+continues the same session. Only an actual context boundary writes a handoff through `/handoff`.
+When changing a host/session adapter, use [SESSION-REUSE.md](SESSION-REUSE.md).
 
 ## Close the batch
 
@@ -260,8 +259,8 @@ preserves pre-existing dirty/untracked content; the filesystem fallback covers c
 Missing or corrupt referenced baselines refuse audit; legacy scopes without comparable content
 fall back to a visibly labelled full inventory. Resolve actual gaps without inventing ownership.
 This test audit does not replace wave-level reconciliation of all changed files or integrated checks.
-The runner supplies its dispatch IDs automatically; an interactive caller carries those pointers
-through a handoff when needed. More than one retained execution requires explicit membership;
+A continuous session supplies its own dispatch IDs; a caller crossing a session boundary carries
+those pointers through a handoff. More than one retained execution requires explicit membership;
 ledger age, optional GC, and archived history cannot determine the current batch.
 
 Run the full suite plus applicable build once via [FULL-SUITE.md](FULL-SUITE.md). For `-log`,

@@ -257,7 +257,7 @@ class ValidateSkillsTests(unittest.TestCase):
                 "atk",
                 "map",
                 "eval",
-                "commit",
+                "pr",
                 "handoff",
                 "resume",
                 "show",

@@ -36,7 +36,7 @@
 产物 / 权威规则（保留真实授权边界）。不入表的自证方式：机器红灯行由 tests/ 与
 verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交）由人的可判断性自证；
 九定律常驻词汇由 design-principles 定义，
-不退役。仅覆盖常驻层与主链（spec / tdd / DRAIN / commit）；opt-in 技能与参考细则不入表，
+不退役。仅覆盖常驻层与主链（spec / tdd / DRAIN / pr）；opt-in 技能与参考细则不入表，
 某技能出现降级候选时其参考文件再入表（Evolution）。
 
 ## A. 常驻层 — claude/CLAUDE.md（每轮付费）
@@ -50,7 +50,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | §2·d | 既有授权在接受范围内继承；spec 默认保留用户 review | 权威 | 流程 | 结果分叉未问人；DESIGN-RECEIPT / spec-holds-alignment-under-pressure |
 | §4·a | 扩展列表/表格/固定格式前先查 2–3 个同类条目并对齐结构 | 过程 | 自审 | 条目格式漂移；agent-skills AGENTS.md 对标借入；未溯源 |
 | §4·b | 回答插问后继续；纠正与行动请求更新当前目标 | 过程 | 流程 | 顺手扩权修改；dev-skills 对标借入（just-ask）；未溯源 |
-| §4·e | 按原始范围完成；已授权提交同任务进入 /commit | 产物 | 流程 | 未经检查的提交；9263475 / commit-holds-scope-under-pressure |
+| §4·e | 按原始范围完成；已授权提交同任务进入 /pr | 产物 | 流程 | 未经检查的提交；9263475 / pr-holds-scope-under-pressure |
 | §5·a | 字典序优化：质量与正确性 > 交付速度 > token；后两者不得削弱证据、安全、可访问性 | 权威 | 流程 | 用户明确优先级；防止以省时省 token 为由降级产品门 |
 | §5·b | 简述行动与验证，阶段边界不截断整体任务 | 过程 | 自审 | 38a1fa2（why + shakiest-steps） |
 | §5·d | 风险决定验证范围，相关变更或证据才触发重跑 | 过程·经济 | 流程 | c4e34f2（scope per-cycle, batch-end suite） |
@@ -85,7 +85,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 |---|---|---|---|---|
 | Invocation | 有持久消费者才建卡；显式方案/新实质选择经 spec review；ready 不等于接受 | 过程 | 流程 | routing-requirement-to-spec（origin: routing） |
 | §2–3 | 一次一测试、先红后绿、不预写未来 ◆ | 过程 | 流程 | TDD 方法论（无事故出处）/ tdd-holds-red-under-pressure |
-| §3 | 不写解释型注释；契约或原因只写在人读的接口处 | 过程 | 自审 | 注释腐烂、复述代码；lint/references/code-comments.md；未溯源 |
+| §3 | 不写解释型注释；契约或原因只写在人读的接口处；单条注释块超限即红灯 | 过程 | 机器+自审 | 注释腐烂、复述代码；comment-gate.py 长度门 + lint/references/code-comments.md 删除测试；未溯源 |
 | §1 | 预检声明：先重算指纹、重放 P#、报 2–3 行 | 过程 | 机器+流程 | 7be5338（preflight receipts）、0bf346b（executable spec validation）/ spec-verifier-preflight |
 | §1 | 行为波次暂停后由 caller 恢复声明环境，真实新授权才问 | 产物 | 流程 | 46a7646（execution contracts 加固） |
 | §4 | RED 期禁止重构；意外红 → 固化不变量 | 过程 | 流程 | refactoring.md、6b411d8 |
@@ -105,15 +105,17 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | Issue·依赖 | `blocked_by` 是唯一依赖源；正文不维护同义列表，packet 直接投影 frontmatter | 产物 | 机器+流程 | ARTIFACT-FORMAT blocked_by + workflow-state.py packet |
 | Parallel·报告 | 固定四值；长度与证据形状由 DRAIN 单点定义，不重抄卡片/回执 | 接口+过程 | 机器+流程 | DRAIN worker result + drain-wave.py collect |
 | Parallel·收波 | 全 worker 终态 → 联合 scoped 验证/归属核对 → 一次 collect 全部 outstanding；partial 拒绝 | 过程·质量·经济 | 机器+流程 | ARTIFACT-FORMAT wave ledger + drain-wave.py collect |
-| Parallel→overnight | runner 拥有调度，连续运行复用指定原生会话，真实边界才交接 | 过程·经济 | 机器 | scripts/overnight.py + tdd/SESSION-REUSE.md / resume-cold-start |
+| Parallel·监督 | 回合不随开放波结束；collect 收波或升级停全 worker 才收口；worker 返回即终态 | 过程 | 流程 | 会话退出即杀活 worker、丢在途工作；未溯源 |
+| Parallel→overnight | runner 只拥有进程生命周期（启动/续接/预算/卡死停/独立冲突核查/收尾后校验）；调度按 DRAIN 在会话内执行 | 过程·经济 | 机器+流程 | scripts/overnight.py + tdd/SESSION-REUSE.md / resume-cold-start |
 
-## E. commit — workflow/commit/SKILL.md（每次提交付费）
+## E. pr — workflow/pr/SKILL.md（每次提交付费）
 
 | 定位 | 要旨 | 性质 | 层级 | 防什么失败 · 出处 / 探针 |
 |---|---|---|---|---|
-| Context | 暂存前必读四样 + 点名未跟踪 | 产物 | 流程 | 未溯源（审慎）/ commit-holds-scope-under-pressure |
-| Commit modes | 仅提交已验证的任务归属路径；禁 add 全量；`-local` 不推送 | 权威 | 流程 | 8472cfc、b46a888、commit-holds-scope-under-pressure |
-| Land | 固定 PR head；确认 MERGED 才算落地，排队不算完成；禁 force-push 与 bypass | 权威 | 流程 | gh merge 的排队语义、--match-head-commit；commit-holds-scope-under-pressure |
+| Context | 暂存前必读四样 + 点名未跟踪 | 产物 | 流程 | 未溯源（审慎）/ pr-holds-scope-under-pressure |
+| Commit modes | 仅提交已验证的任务归属路径；禁 add 全量；`-local` 不推送 | 权威 | 流程 | 8472cfc、b46a888、pr-holds-scope-under-pressure |
+| PR body | gh 落地附三段式 PR 正文（Summary/Evidence/Merge Danger）；缺标题即红灯，裸 commit 正文不作 PR 正文 | 产物 | 机器+流程 | PR 退化为裸 commit 正文、评审失据；show-me pr 模板对标借入；land.py `--pr-body-file` 三标题门 + test_land |
+| Land | 固定 PR head；确认 MERGED 才算落地，排队不算完成；禁 force-push 与 bypass | 权威 | 流程 | gh merge 的排队语义、--match-head-commit；pr-holds-scope-under-pressure |
 
 ## 已知攻法与兜底
 

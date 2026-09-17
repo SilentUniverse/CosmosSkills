@@ -136,6 +136,47 @@ def _default_branch_native(repo: Path, remote: str) -> Optional[str]:
 
 _REMOTE_HEAD_RE = re.compile(r"HEAD branch:\s*(\S+)")
 
+_SUBJECT_RE = re.compile(r"^[a-z]+(\([^)\s]+\))?: \S")
+_CJK_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]")
+
+
+def _validate_message(message: str) -> str:
+    """Gate the subject: English imperative `type(scope): summary`, no CJK.
+
+    Body language is prose policy (a `Closes #123`-only body is valid), so only
+    the subject line is mechanically checked."""
+    subject = message.splitlines()[0].strip() if message else ""
+    if not _SUBJECT_RE.match(subject) or _CJK_RE.search(subject):
+        raise LandError(
+            1,
+            "commit subject must be an English imperative 'type(scope): summary'"
+            " without CJK characters, got: %r" % subject,
+            {},
+        )
+    return subject
+
+
+_PR_BODY_SECTIONS = ("## Summary", "## Evidence", "## Merge Danger")
+
+
+def _validate_pr_body(body: str) -> str:
+    """Gate the PR body file on the three fixed headings, in order.
+
+    Section content is prose policy; only presence and order are checked."""
+    previous = -1
+    for header in _PR_BODY_SECTIONS:
+        match = re.compile(r"(?m)^%s\s*$" % re.escape(header)).search(body)
+        if match is None or match.start() < previous:
+            raise LandError(
+                1,
+                "PR body must carry the fixed headings in order: '## Summary',"
+                " '## Evidence', '## Merge Danger'; missing or misplaced: %r"
+                % header,
+                {},
+            )
+        previous = match.start()
+    return body
+
 
 def _remote_topic_sha(repo: Path, remote: str, branch: str) -> Optional[str]:
     process = _git(
@@ -148,7 +189,7 @@ def _remote_topic_sha(repo: Path, remote: str, branch: str) -> Optional[str]:
 def _pr_view(repo: Path, branch: str) -> Optional[Dict[str, Any]]:
     process = _gh(
         ["pr", "view", branch, "--json",
-         "number,url,state,headRefOid,headRefName,baseRefName"]
+         "number,url,state,headRefOid,headRefName,baseRefName,title"]
     )
     if process.returncode != 0:
         return None
@@ -190,6 +231,7 @@ def land_gh(
     branch: str,
     sha: str,
     base: str,
+    pr_body: Optional[str],
     report: Dict[str, Any],
 ) -> None:
     _ensure_topic_pushed(repo, remote, branch, sha)
@@ -213,10 +255,15 @@ def land_gh(
                 % pr.get("url"),
                 {},
             )
+        if pr.get("title") is not None:
+            _validate_message(pr["title"])
     else:
         message = _commit_message(repo, sha)
-        subject = message.splitlines()[0] if message else branch
-        body = "\n".join(message.splitlines()[1:]).strip()
+        subject = _validate_message(message)
+        body = (
+            pr_body if pr_body is not None
+            else "\n".join(message.splitlines()[1:]).strip()
+        )
         create = _gh(
             ["pr", "create", "--base", base, "--head", branch,
              "--title", subject, "--body", body or subject]
@@ -374,6 +421,11 @@ def land_native(
             _cleanup_remote_topic(repo, remote, branch, sha, report)
             return
 
+    for subject in _git(
+        repo, ["log", "--format=%s", "%s..%s" % (merge_base, sha)]
+    ).stdout.splitlines():
+        _validate_message(subject)
+
     worktree = Path(tempfile.mkdtemp(prefix="land-native-"))
     try:
         add = _git(repo, ["worktree", "add", "--detach", str(worktree), remote_base_ref], check=False)
@@ -487,9 +539,45 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("--mode", choices=("auto", "gh", "native"), default="auto")
     parser.add_argument("--verify-command")
     parser.add_argument("--verify-timeout", type=float, default=600.0)
+    parser.add_argument(
+        "--check-message", action="store_true",
+        help="validate a commit message instead of landing",
+    )
+    parser.add_argument(
+        "--message-file", type=Path,
+        help="message file for --check-message; defaults to HEAD",
+    )
+    parser.add_argument(
+        "--pr-body-file", type=Path,
+        help="PR body file for the gh engine; must carry the three fixed"
+             " headings (Summary, Evidence, Merge Danger)",
+    )
     args = parser.parse_args(argv)
 
     repo = args.repo_root.resolve()
+    pr_body: Optional[str] = None
+    if args.pr_body_file is not None:
+        try:
+            pr_body = _validate_pr_body(
+                args.pr_body_file.read_text(encoding="utf-8", errors="replace")
+            )
+        except LandError as exc:
+            print(str(exc), file=sys.stderr)
+            return exc.code
+    if args.check_message:
+        if args.message_file is not None:
+            message = args.message_file.read_text(encoding="utf-8", errors="replace")
+        elif _git(repo, ["rev-parse", "--git-dir"], check=False).returncode != 0:
+            print("not a git repository: %s" % repo, file=sys.stderr)
+            return 1
+        else:
+            message = _commit_message(repo, "HEAD")
+        try:
+            _validate_message(message)
+        except LandError as exc:
+            print(str(exc), file=sys.stderr)
+            return exc.code
+        return 0
     report: Dict[str, Any] = {
         "engine": args.mode,
         "remote": args.remote,
@@ -531,7 +619,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         report.update(branch=branch, head=sha, base=base)
         if use_gh:
             report["engine"] = "gh"
-            land_gh(repo, args.remote, branch, sha, base, report)
+            land_gh(repo, args.remote, branch, sha, base, pr_body, report)
         else:
             report["engine"] = "native"
             land_native(

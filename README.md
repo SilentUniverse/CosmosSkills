@@ -178,7 +178,7 @@ stateDiagram-v2
   Resume --> TDD: 核对工作区与未完义务后继续
 ```
 
-`/atk` 也可手动审查已有变更；`-r` 只读并返回发现。提交获得授权后，通过验证的修改进入 `/commit`；
+`/atk` 也可手动审查已有变更；`-r` 只读并返回发现。提交获得授权后，通过验证的修改进入 `/pr`；
 模型行为对照试验使用显式启用的 `/eval`。这两项不会因队列为空自动触发。
 
 ### 日常使用怎样减少重复工作
@@ -242,7 +242,7 @@ stateDiagram-v2
 | 排空一个 feature 的 ready | `/tdd <feat>` |
 | 全量测试与构建 | `/tdd -all` |
 | 车机 / 设备，验收在 log 里 | `/tdd -log` |
-| 过夜无人值守跑批 | Windows：双击仓库根的 [overnight.cmd](overnight.cmd) 后输入项目路径，可建桌面快捷方式或将项目文件夹拖到脚本上；终端 `overnight.cmd [repo] [feat]`；macOS / Linux：`python scripts/overnight.py [feat]`；省略范围接续活动目标，全仓显式 `--repo` |
+| 过夜无人值守跑批 | `python scripts/overnight.py [feat]`（各平台通用）；省略范围接续活动目标，全仓显式 `--repo` |
 | 上一 session 留了 handoff | `/resume` |
 | 做到哪了 | `python <skills-root>/workflow-state.py survey . --format human`；默认看 pending、工程/决定阻塞、在途执行、待审和未解决反馈，`--history` 列交付历史 |
 | 想听 AI 逐条讲它改了什么 | `/atk` 默认讲上一轮增量；`-all` 讲全部未提交 |
@@ -390,7 +390,7 @@ git_base: 7af387c
 | [atk](workflow/atk/SKILL.md) | 对抗审查自己的产出；工作流只调审查方向，手动默认讲解，`-r` 纯审查且不改文件 |
 | [tdd](workflow/tdd/SKILL.md) | 写代码；`-all` 跑全量，`-log` 读设备 log。[DRAIN.md](workflow/tdd/DRAIN.md) |
 | [cpp-oop-style](workflow/cpp-oop-style/SKILL.md) | 写、改、审 C++/CMake 时覆盖默认风格：抽象类/数据类/值类型、RAII、依赖注入、现代 CMake；源自 [agent-skills](https://github.com/archibate/agent-skills)（CC BY-NC-SA 4.0） |
-| [commit](workflow/commit/SKILL.md) | 只提交本任务已验证路径并落地；`-local` 仅建本地提交 |
+| [pr](workflow/pr/SKILL.md) | 只提交本任务已验证路径并落地；PR 附三段式正文（Summary/Evidence/Merge Danger）；`-local` 仅建本地提交 |
 | [tidy](workflow/tidy/SKILL.md) | 工程／人工状态查询 + 有归属的临时文件 GC；保留测试、经验、历史证据 |
 | [diagnose](workflow/diagnose/SKILL.md) | 硬 bug / 性能回归 |
 | [verify](tooling/verify/SKILL.md) | 缺少操作或观察能力时补建工具；`-maintain <area>` 修复工具漂移；已有检查直接运行，见[验证闭环](workflow/README.md#application-verification-loop) |
@@ -415,9 +415,9 @@ git_base: 7af387c
 
 **一次性：** [shell-guardrails](tooling/shell-guardrails/SKILL.md) · [setup-pre-commit](tooling/setup-pre-commit/SKILL.md) · [migrate-to-shoehorn](tooling/migrate-to-shoehorn/SKILL.md)（仅 TS）
 
-名称迁移只有两项公共命令：`merge-conflicts` → `/conflicts`，`caveman` → `/brief`。
+名称迁移：`merge-conflicts` → `/conflicts`，`caveman` → `/brief`，`commit` → `/pr`。
 内部 `grilling` 已并入 `/grill`；两套单项 hook 技能已并入 `/shell-guardrails` 的按需分支。
-`atk / map / eval / commit / handoff / resume / show / lint / tidy / improve-arch` 保持不变。
+`atk / map / eval / handoff / resume / show / lint / tidy / improve-arch` 等其余名称保持不变。
 拉取名称或目录迁移后重跑 [Windows](install.cmd) 或 [Linux/macOS](scripts/install.sh) 安装器；它会创建当前链接，并只清理指向本仓库的退役 skill 链接。
 
 ---

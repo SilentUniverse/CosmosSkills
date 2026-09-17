@@ -87,4 +87,4 @@ New recurring runs require the user's request. Model-run evaluation remains expl
 tool availability changes are whole-system comparisons, with no skill-only performance attribution.
 
 Return the usable entry, assets changed, scenarios actually exercised, evidence and unresolved gaps.
-Resume the caller's authorized task. Submission follows `/commit` only when already requested.
+Resume the caller's authorized task. Submission follows `/pr` only when already requested.
