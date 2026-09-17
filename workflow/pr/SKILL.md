@@ -97,9 +97,10 @@ reported at the exact stopping point.
 
 ## PR body
 
-When the gh engine will create the pull request, write its body to a file and pass
-`--pr-body-file <path>` to the landing script; the commit message body is not reused as the PR
-body. The script gates the file on three fixed headings, in this order, before any mutation:
+When the gh engine will create the pull request, write its body to a file under the OS temp
+directory and pass `--pr-body-file <path>` to the landing script; the commit message body is
+not reused as the PR body. The script gates the file on three fixed headings, in this order,
+before any mutation:
 
 ```markdown
 ## Summary
@@ -123,20 +124,23 @@ interaction. Prose is Chinese with code-matching English terms; no preamble. Evi
 upstream phase's real checks — the exact failing→passing test or output — never a claim without
 a run. Merge Danger states the rollback class and the widest plausible impact of the merge; a
 cheap two-way door with no outside consumers is a valid, complete answer. A re-run that finds
-the PR already open or merged leaves the existing body untouched.
+the PR already open or merged leaves the existing body untouched. Delete the file once landing
+reports landed; keep it when a landing stopped short of success, so the retry reuses it.
 
 ## Message and report
 
 Title: an English imperative `type(scope): summary`. Repository history informs only the type
 and scope vocabulary, never the language; a Chinese or prefix-less subject is invalid. Body:
 Chinese, one bullet per meaningful mechanism and file group. An empty body is acceptable only
-when the title fully reconstructs the change. Write the message to a file, gate it, then commit
-with that file:
+when the title fully reconstructs the change. Write the message to a file under the OS temp
+directory, gate it, then commit with that file:
 
 ```text
 python <pr-skill-dir>/scripts/land.py <repo-root> --check-message --message-file <path>
 git commit --only -F <path> -- <paths>
 ```
+
+Delete the message file once the commit exists; a failed commit keeps it for the retry.
 
 Both landing engines enforce the same subject gate on the verified head before publishing.
 
