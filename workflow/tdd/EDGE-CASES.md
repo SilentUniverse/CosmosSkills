@@ -18,8 +18,8 @@ Then inspect the diff and baseline before any new wave; resolve each issue by ev
 
 After every outstanding issue has an outcome, run the combined scoped checks and reconcile changed
 paths against the wave baseline. Then pass all remaining outcomes to one `drain-wave.py collect`
-call with that dispatch's `--execution <id>`. A `done` card is still a zombie until this wave-level reconciliation is committed.
-An assigned card moved to `archive/` or deleted also remains a zombie; restore it to its feature's
+call with that dispatch's `--execution <id>`. A `done` card is still uncollected until this wave-level reconciliation is committed.
+An assigned card moved to `archive/` or deleted also remains uncollected; restore it to its feature's
 live issue path before explicit collection. `next` and `step` never infer an outcome or mutate the
 ledger.
 

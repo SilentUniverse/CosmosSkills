@@ -812,7 +812,7 @@ def render_survey(states):
     for state in states:
         count = state["counts"]
         lines.append(
-            "%s: ready %d · blocked %d · done %d · zombie %d"
+            "%s: ready %d · blocked %d · done %d · uncollected %d"
             % (
                 state["feature"],
                 count["ready"],
@@ -831,7 +831,8 @@ def render_survey(states):
             if feedback["status"] not in ("resolved", "cancelled"):
                 lines.append("- feedback %s %s" % (feedback["id"], feedback["status"]))
         for item in state["zombies"]:
-            lines.append("- zombie %s (wave %s)" % (item["slug"], item["wave"]))
+            lines.append("- uncollected %s (wave %s) · 已派发未归集，运行状态以宿主为准"
+                         % (item["slug"], item["wave"]))
     return "\n".join(lines)
 
 

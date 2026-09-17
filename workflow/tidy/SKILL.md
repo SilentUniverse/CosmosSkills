@@ -18,7 +18,9 @@ requirement lineage belong to normal implementation or Spec.
 
 Use `workflow-state.py survey ROOT --format human` or `inspect ROOT FEATURE --format human` for
 current reality. Show pending readiness, technical/decision blockers, fixed review requests and
-unresolved feedback even when related issues are done. History is available on demand; no SUMMARY
+unresolved feedback even when related issues are done. An `uncollected` entry is a dispatched
+assignment the ledger has not collected; runtime status belongs to the host, so do not infer a
+dead or running process from it. History is available on demand; no SUMMARY
 copy is generated. Completed issue cards remain available outside the compact active frontier.
 
 ## Actual cleanup
