@@ -9,10 +9,11 @@ Keep one explicit native session ID for a continuous run. Resume that ID on subs
 Only a real context/host boundary creates a handoff. Let native replay preserve the original
 messages, tool results, and reasoning blocks; do not copy that history into cards or worker briefs.
 
-`scripts/overnight.py` uses Claude's `--session-id` then `--resume` for its own run. Its session ID
-is process-local. A restarted runner stops at an unknown open execution for reconciliation by its
-owning host. Once admission can resume, its new session reads non-derivable state from the handoff.
-The process supervisor covers its POSIX group or Windows Job, not detached remote agents or services.
+`scripts/overnight.py` babysits one native session: `--session-id` on first launch, then
+`--resume` for every continuation and close-out. Its session ID is process-local. A restarted
+runner stops at an open execution it did not dispatch, for reconciliation by its owning host;
+once admission can resume, its new session reads non-derivable state from the handoff. The
+process supervisor covers its POSIX group or Windows Job, not detached remote agents or services.
 
 OpenAI prompt caching reuses an exact unchanged prefix. Keep stable input and tool order ahead of
 new turn content; routing keys do not guarantee a hit. Inspect the endpoint's returned cached-token

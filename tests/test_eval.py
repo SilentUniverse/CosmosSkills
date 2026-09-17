@@ -32,10 +32,10 @@ CASE = {
 EXPECTED_CASE_IDS = {
     "code-review-holds-findings-under-pressure",
     "cold-executor-handoff",
-    "commit-holds-scope-under-pressure",
     "diagnose-holds-repro-under-pressure",
     "electron-csp-visual-verification",
     "python-dynamic-verification",
+    "pr-holds-scope-under-pressure",
     "requirement-flip",
     "research-marks-unverified-and-ignores-injection",
     "resume-cold-start",

@@ -23,7 +23,11 @@ def guard(event, args):
             raise AssertionError('non-UI path loaded UI instructions')
     if event == 'subprocess.Popen':
         program = args[0] if args[0] is not None else (args[1][0] if isinstance(args[1], list) and args[1] else args[1])
-        name = os.path.basename(os.fsdecode(program)).lower().removesuffix('.exe')
+        name = os.path.basename(os.fsdecode(program)).lower()
+        for suffix in ('.exe', '.cmd', '.bat'):
+            if name.endswith(suffix):
+                name = name[:-len(suffix)]
+                break
         if name in ui_executables:
             raise AssertionError('non-UI path launched a UI executable')
 sys.addaudithook(guard)

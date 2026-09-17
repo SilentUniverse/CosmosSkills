@@ -412,6 +412,32 @@ class TestSupervisorTests(unittest.TestCase):
             supervisor.command_argv('echo "it\'s fine" -q', "windows"),
         )
 
+    def test_path_resolved_command_name_runs_on_every_platform(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            bindir = root / "bin"
+            bindir.mkdir()
+            if os.name == "nt":
+                shim = bindir / "cosmos-path-shim.cmd"
+                shim.write_bytes(b"@echo off\r\nexit /b 0\r\n")
+            else:
+                shim = bindir / "cosmos-path-shim"
+                shim.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+                shim.chmod(shim.stat().st_mode | stat.S_IEXEC)
+            env = dict(os.environ)
+            env["PATH"] = str(bindir) + os.pathsep + env.get("PATH", "")
+            result, exit_code = supervisor.run_command(
+                ["cosmos-path-shim"],
+                cwd=root,
+                receipt=root / "receipt.json",
+                log=root / "run.log",
+                timeout=10,
+                grace=0.1,
+                scope="targeted",
+                env=env,
+            )
+            self.assertEqual(("pass", 0), (result["outcome"], exit_code))
+
     def test_environment_secrets_are_redacted_from_log_and_receipt_tail(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

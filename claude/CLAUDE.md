@@ -46,7 +46,7 @@ artifact keeps a live consumer (caller, test, or recorded decision) or is delete
   resumes; corrections steer the active task unless the user cancels it or changes the objective.
 - Remove only orphans created by this change. Report unrelated dead code.
 - A small logical change with a wide verification radius is a locality defect; surface it.
-- When submission is requested, continue through `/commit` after validation in the same task.
+- When submission is requested, continue through `/pr` after validation in the same task.
   Otherwise finish at validated changes. Plan-only or review-only requests keep that scope.
 
 ## 5. Execute against evidence

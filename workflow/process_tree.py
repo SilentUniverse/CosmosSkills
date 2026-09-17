@@ -1,6 +1,7 @@
 """Bound verifier descendants to a POSIX process group or a Windows Job Object."""
 
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -80,6 +81,15 @@ class WindowsJob:
 
 class ProcessTree:
     def __init__(self, argv, on_start=None, **options):
+        argv = list(argv)
+        if os.name == "nt":
+            # CreateProcess never applies PATHEXT and searches only the parent's
+            # PATH, so a bare "npm"/"npx" must resolve to its .cmd shim here;
+            # an unresolved name is left unchanged.
+            search = (options.get("env") or os.environ).get("PATH")
+            resolved = shutil.which(argv[0], path=search)
+            if resolved:
+                argv[0] = resolved
         job_name = "Local\\Cosmos-" + __import__("uuid").uuid4().hex if on_start and os.name == "nt" else None
         self.job = WindowsJob(job_name) if os.name == "nt" else None
         self.process = None

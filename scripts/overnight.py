@@ -1,10 +1,12 @@
 #!/usr/bin/env python
-# Unattended /tdd -p driver. Dispatch precedes model work. One explicit native session
-# continues across waves; independent conflict review has no inherited session.
-# Only this invocation's stopped execution can enter recovery. Unknown owners stop the run.
+# Unattended /tdd -p babysitter. One explicit native session owns the whole DRAIN
+# contract in-session (next/dispatch/preflight/collect/recovery); this runner only
+# launches that session, resumes it when it exits before completion, enforces the
+# bounded turn/session budget and a no-progress stop, runs independent conflict
+# review with no inherited session, and verifies close-out. drain-wave.py is the
+# scheduling core. An open execution that predates this run stops for host recovery.
 # The runner lock spans the run; workflow-state transactions hold a separate short lock.
-# Selftest gates dispatch. Nonzero model exit, unchanged scheduler state, or the bounded
-# turn/session budget stops incomplete work; close-out verifies the requested batch.
+# Nonzero model exit stops incomplete work with the handoff left for diagnosis.
 #
 #   python overnight.py            # continue the active goal; otherwise require scope
 #   python overnight.py --repo     # explicitly drain every feature
@@ -15,7 +17,6 @@
 import hashlib
 import json
 import os
-import re
 import shutil
 import subprocess
 import sys
@@ -27,7 +28,7 @@ WORKFLOW_ROOT = Path(__file__).resolve().parents[1] / "workflow"
 if str(WORKFLOW_ROOT) not in sys.path:
     sys.path.insert(0, str(WORKFLOW_ROOT))
 from process_tree import ProcessTree
-from workflow_runtime import file_lock, read_snapshot
+from workflow_runtime import file_lock
 
 _session = ContextVar("overnight_session", default=None)
 
@@ -64,51 +65,10 @@ def run_tool(wave_script, args):
     return proc.returncode, ((proc.stdout or "") + (proc.stderr or "")).strip()
 
 
-def parse_wave(output):
-    """Slugs from drain-wave.py next's `wave:` line; [] when no wave is proposed."""
-    for line in output.splitlines():
-        if line.startswith("wave: "):
-            rest = line[len("wave: "):].strip()
-            slugs = []
-            for tok in rest.split():
-                if tok.startswith("("):
-                    break
-                slugs.append(tok)
-            return slugs
-    return []
-
-
-def parse_preflight_required(output):
-    """Return only the structured preflight payload, excluding repeated CLI guidance."""
-    for line in output.splitlines():
-        if not line.startswith("preflight-required: "):
-            continue
-        try:
-            payload = json.loads(line[len("preflight-required: "):])
-        except (TypeError, ValueError):
-            return None
-        if isinstance(payload, dict) and isinstance(payload.get("duplicates"), list):
-            return payload
-        return None
-    return None
-
-
 def reset_log(log_path):
     """Keep one transient batch transcript instead of appending across invocations."""
     with open(log_path, "w", encoding="utf-8", errors="replace") as log:
         log.write("=== overnight run ===\n")
-
-
-def owns_open_wave(root, execution):
-    if execution is None:
-        return False
-    with read_snapshot(root):
-        active = set()
-        for path in Path(root).glob(".scratch/*/wave-ledger.json"):
-            for wave in json.loads(path.read_text(encoding="utf-8"))["waves"]:
-                if set(wave["dispatched"]) - set(wave.get("closed", {})):
-                    active.add(wave.get("execution"))
-        return active == {execution}
 
 
 def launch(exe, root, log_path, prompt, timeout=None, on_boundary=None):
@@ -230,9 +190,7 @@ def _main(argv):
             "..", "workflow", "tdd", "scripts", "drain-wave.py",
         )
     )
-    receipt_script = os.path.join(os.path.dirname(wave_script), "preflight-receipt.py")
     next_args = ["next", root] + ([feat] if feat else [])
-    audit_arg = (' "%s"' % feat) if feat else ""
     close_scope = ("feature '%s'" % feat) if feat else "全部 feature"
     handoff_path = os.path.join(root, handoff.replace("/", os.sep))
 
@@ -253,9 +211,18 @@ def _main(argv):
     ran = False
     complete = False
     last_conflict = None
-    owned_execution = None
-    batch_executions = []
     prev_marker1 = prev_marker2 = None
+    start_prompt = (
+        "%s：在会话内按 DRAIN.md 与 DRAIN-PARALLEL.md 执行 /tdd -p，直到批次可关批。"
+        "调度、派发、preflight、监督、collect、恢复都由你按 DRAIN 契约调用 drain-wave.py 完成；"
+        "若 %s 存在，只读 card/ledger 无法推导的决定和测试指针。仅真实上下文边界调用 /handoff。"
+        % (scope, handoff)
+    )
+    continue_prompt = (
+        "会话在批次未完时退出。继续 %s 的 /tdd -p（DRAIN.md + DRAIN-PARALLEL.md）："
+        "按 ledger 与卡片现状开新波、处置未收口的已派发执行、或收尾关批。仅真实上下文边界调用 /handoff。"
+        % scope
+    )
     for _ in range(MAX_SESSIONS):
         code, out = run_tool(wave_script, next_args)
         if code == 4:
@@ -266,7 +233,7 @@ def _main(argv):
             ready = sum(count_ready(d) for d in issues_dirs)
             print(
                 "overnight: scheduler state unchanged across two sessions (%d ready) — "
-                "stuck-red stop before dispatch, see %s" % (ready, log_path),
+                "no-progress stop, see %s" % (ready, log_path),
                 file=sys.stderr,
             )
             return 3
@@ -290,87 +257,24 @@ def _main(argv):
             )
             detail = "independent conflict review"
         elif code == 3:
-            if not owns_open_wave(root, owned_execution):
-                print("overnight: open execution has no verified stopped owner in this run; reconcile through the owning host before retrying", file=sys.stderr)
-                return 3
-            prompt = (
-                "drain-wave.py next 报 exit 3——已派发未闭环的僵尸：\n%s\n"
-                "按 EDGE-CASES.md 先确认外部 worker 也已终止，再逐个处置：采纳则补 ### 完成并置 done，结果记 green；"
-                "回退只处理有归属证据的本 issue 改动、留 ready，结果记 aborted；归属有歧义时保留现场并说明。"
-                "所有 outstanding slug 都有终态后，先做联合验证和归属核对，再一次性落账："
-                "python \"%s\" collect \"%s\" <slug>=green|aborted [...]。"
-                "闭环后返回；仅真实上下文边界调用 /handoff。不要派发新波，不要调 next/dispatch。"
-                % (out, wave_script, root)
-            )
-            prompt += " 本次 execution=%s；collect 必须附 --execution。" % owned_execution
-            detail = "zombie recovery"
-        elif code == 0:
-            slugs = parse_wave(out)
-            if not slugs:
+            session = _session.get()
+            if session is None or not session["started"]:
                 print(
-                    "overnight: next proposes no schedulable wave while ready issues remain —"
-                    " check blocked_by (cycle or missing slug). See %s" % log_path,
+                    "overnight: open execution predates this run; reconcile through its "
+                    "owning host before retrying",
                     file=sys.stderr,
                 )
-                return 1
-            dcode, dout = run_tool(wave_script, ["dispatch", root] + slugs)
-            if dcode == 5:
-                required = parse_preflight_required(dout)
-                if required is None:
-                    print(
-                        "overnight: dispatch returned no valid preflight-required payload",
-                        file=sys.stderr,
-                    )
-                    return 1
-                grouped = {}
-                for row in required["duplicates"]:
-                    owner, key = row.get("feature", ""), row.get("key", "")
-                    if (not isinstance(owner, str) or owner in ("", ".", "..")
-                            or "/" in owner or "\\" in owner or not isinstance(key, str)
-                            or not re.fullmatch(r"[0-9a-f]{64}", key)):
-                        print("overnight: dispatch omitted preflight tuple identity", file=sys.stderr)
-                        return 1
-                    grouped.setdefault(owner, set()).add(key)
-                if not grouped:
-                    print("overnight: dispatch omitted preflight tuple identity", file=sys.stderr)
-                    return 1
-                for owner, keys in sorted(grouped.items()):
-                    preparation = ["run", root, owner]
-                    for key in sorted(keys):
-                        preparation += ["--key", key]
-                    pcode, pout = run_tool(receipt_script, preparation)
-                    with open(log_path, "a", encoding="utf-8", errors="replace") as log:
-                        log.write("\n=== shared preflight ===\n" + pout + "\n")
-                    print("overnight: scripted preflight feature=%s exit=%s log=%s" % (owner, pcode, log_path))
-                    if pcode != 0:
-                        return 1
-                dcode, dout = run_tool(wave_script, ["dispatch", root] + slugs)
-            if dcode != 0:
-                print("overnight: dispatch refused — aborting. %s" % dout, file=sys.stderr)
-                return 1
-            owned_execution = next((line.split(": ", 1)[1] for line in dout.splitlines()
-                                    if line.startswith("execution: ")), None)
-            if not owned_execution:
-                print("overnight: dispatch omitted execution identity; no worker started", file=sys.stderr)
-                return 1
-            batch_executions.append(owned_execution)
+                return 3
+            prompt = continue_prompt
+            detail = "resume open-wave recovery"
+        elif code == 0:
+            session = _session.get()
             prompt = (
-                "%s。已派发：[%s]；以列表/ledger 为准，禁止调用 next/dispatch。"
-                "遵守 DRAIN.md 与 DRAIN-PARALLEL.md 的 brief/监督/reconcile/collect。"
-                "若 %s 存在，只读 card/ledger 无法推导的决定和测试指针。"
-                "每个 feature 用 workflow-state.py briefs --compact 一次取本波输入；先同时派出其余 issue，"
-                "再开始主 agent 的首个 issue，并行 issue（含主 agent）不超过四个。"
-                "游标状态检查间隔至少约 30 秒，最迟约一分钟检查；attention/final 立即处理。"
-                "主 action 无法在该间隔内让出控制时也委派。全员终态后做联合 scoped 验证、"
-                "baseline/路径归属核对，再一次收波："
-                "python \"%s\" collect \"%s\" <slug>=green|red|blocked|aborted；"
-                "conflict 使用 <slug>=conflict@<contract-bound-evidence.json>。"
-                "close/collect 均传本波 execution。收波后返回，沿用原会话；仅真实上下文边界调用 /handoff。"
-                % (scope, ", ".join(slugs), handoff, wave_script, root)
+                continue_prompt
+                if session is not None and session["started"]
+                else start_prompt
             )
-            if owned_execution:
-                prompt += " execution=%s。" % owned_execution
-            detail = "wave [%s]" % ", ".join(slugs)
+            detail = "drain session"
         else:
             print(
                 "overnight: drain-wave next exit %d — aborting. %s" % (code, out),
@@ -402,15 +306,11 @@ def _main(argv):
         return 3
     if complete and (ran or os.path.isfile(handoff_path)):
         print("overnight: batch complete — close-out session (audit + full suite)")
-        audit_args = ["audit", root] + ([feat] if feat else [])
-        for execution in batch_executions:
-            audit_args += ["--execution", execution]
-            audit_arg += " --execution " + execution
         prompt = (
-            "对 %s 收尾：按 DRAIN.md 关批。先归账无主测试：python \"%s\" audit \"%s\"%s；"
-            "再按 FULL-SUITE.md 跑全量套件+构建，红则按关批规则处置；完成后按 /resume 的版本校验消费 %s，结束会话。"
-            "不派发新波，不要调 next/dispatch。"
-            % (close_scope, wave_script, root, audit_arg, handoff)
+            "对 %s 收尾：按 DRAIN.md 关批。先归账无主测试（drain-wave.py audit，带上本批每次派发的 "
+            "--execution）；再按 FULL-SUITE.md 跑全量套件+构建，红则按关批规则处置；"
+            "完成后按 /resume 的版本校验消费 %s，结束会话。不派发新波。"
+            % (close_scope, handoff)
         )
         if launch(exe, root, log_path, prompt) != 0:
             print(
@@ -419,9 +319,9 @@ def _main(argv):
                 file=sys.stderr,
             )
             return 1
-        acode, aout = run_tool(wave_script, audit_args)
-        if acode != 0:
-            print("overnight: close-out audit still fails — %s" % aout, file=sys.stderr)
+        vcode, vout = run_tool(wave_script, next_args)
+        if vcode != 4:
+            print("overnight: close-out left dispatchable work — %s" % vout, file=sys.stderr)
             return 1
         if os.path.isfile(handoff_path):
             print("overnight: close-out left active handoff %s" % handoff, file=sys.stderr)

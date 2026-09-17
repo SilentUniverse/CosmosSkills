@@ -97,7 +97,7 @@ Only create if no Prettier config exists. Use these defaults:
 
 ### 8. Hand off to submit workflow
 
-Report the setup and verification. If submission was already requested, continue through `/commit`;
+Report the setup and verification. If submission was already requested, continue through `/pr`;
 otherwise finish with validated changes. Hook setup alone does not authorize a submission.
 
 ## Notes

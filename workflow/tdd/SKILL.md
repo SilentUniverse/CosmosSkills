@@ -60,7 +60,7 @@ Managed batches load [BATCH-FORMAT.md](BATCH-FORMAT.md) for dispatch, background
 **Issue-based runs only.** When all AC pass, review this issue's owned diff against its AC, preserve other work, write the completion record, then close to `done`: **[COMPLETION-RECORD.md](COMPLETION-RECORD.md)**.
 
 Use TIDY at delivery boundaries for released temporary files; preserve tests and useful experience.
-Submit through `/commit` only when requested; continue there after validation.
+Submit through `/pr` only when requested; continue there after validation.
 
 ## Test philosophy
 

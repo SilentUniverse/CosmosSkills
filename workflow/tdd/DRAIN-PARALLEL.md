@@ -43,8 +43,9 @@ Until every worker closes, repeat a bounded supervision loop:
 2. Between checks, fill the bounded interval with one RED/GREEN action, evidence/ownership review
    for returned work, reconciliation preparation for this wave, or immutable-candidate verification/delivery preparation for a managed batch.
    Do not spend a remote call before every short local action.
-3. If no safe work remains, use one cursor-aware wait of up to about one minute. Do not busy-poll,
-   reread full worker history, or request periodic prose status.
+3. If no safe work remains, use one cursor-aware host blocking wait of up to about one minute;
+   a bare sleep observes nothing. Do not busy-poll, reread full worker history, or request
+   periodic prose status.
 4. Resolve repo-observable context gaps for the worker and send only the missing packet field,
    pointer, command, or evidence. Correct concrete scope/path/test drift promptly; interrupt and
    rebrief only when continuing would contaminate ownership. A new consequential choice returns to
@@ -52,6 +53,11 @@ Until every worker closes, repeat a bounded supervision loop:
 5. Consume final results immediately and retain their compact outcomes in the current wave context,
    but do not partially collect the ledger. Do not redo the worker's task; once every worker is
    terminal, verify the combined evidence and ownership before the one wave commit.
+
+The turn does not end while the wave is open: ending the turn can end the session, and a session
+exit kills every live worker. Only two exits close a wave and the turn with it: the one collect
+after all workers are terminal, or an escalated attention stop that first interrupts or stops
+every worker.
 
 ## Orchestrator write scope and the open-wave barrier
 
