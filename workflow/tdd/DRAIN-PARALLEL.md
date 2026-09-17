@@ -16,7 +16,7 @@ runners on every card that uses them; do not rely on a prose warning the driver 
 After dispatch, generate briefs in one read-only call per feature:
 
 ```text
-python3 <skills-root>/workflow-state.py briefs <repo-root> <feat> --compact
+python <skills-root>/workflow-state.py briefs <repo-root> <feat> --compact
 ```
 
 This validates outstanding assignments and the dispatch binding, includes their packets, and emits
@@ -28,36 +28,50 @@ using DRAIN's brief contract; a JSON pointer alone does not give a separate agen
 
 Assign the first (highest-priority) issue to the orchestrator by default. Launch every remaining
 worker concurrently in one host operation, then immediately begin the orchestrator issue; the
-four-issue cap includes the orchestrator. If its next action cannot yield within the supervision
+four-issue cap includes the orchestrator. Retain each worker's host identifier beside its ledger
+binding; later corrections and stops address that worker only through this handle. If its next
+action cannot yield within the supervision
 interval, delegate that issue too and keep the orchestrator on supervision, evidence review, and
 reconciliation. The orchestrator's issue follows the same ownership and evidence contract.
 
 Until every worker closes, repeat a bounded supervision loop:
 
-1. Keep one cursor per worker. Use host completion/attention events when available. Otherwise consume
-   one compact event snapshot at the first meaningful RED/GREEN
-   boundary after at least about 30 seconds since the previous status call; if no boundary arrives,
-   check by about one minute. Consume an explicit attention/final event immediately without an
-   extra status call. Check events against the packet, declared paths, first test, and verifier;
-   silence alone is not drift.
+1. Keep one cursor per worker. Prefer host completion/attention events and bounded host waits:
+   consume a completion notification when it re-invokes the turn, keep the blocking wait
+   cursor-aware and time-bounded, and use a non-terminal status read for mid-run review. Mid-run
+   review between events is opportunistic: one compact snapshot during the main turn's own safe
+   work, never a cadence owed on every interval. Only a host without native events falls back to
+   the snapshot cadence: one compact snapshot at the first meaningful RED/GREEN boundary after at
+   least about 30 seconds since the previous status call; if no boundary arrives, check by about
+   one minute. Consume an explicit attention/final event immediately without an extra status call.
+   Check events against the packet, declared paths, first test, and verifier; silence alone is not
+   drift.
 2. Between checks, fill the bounded interval with one RED/GREEN action, evidence/ownership review
    for returned work, reconciliation preparation for this wave, or immutable-candidate verification/delivery preparation for a managed batch.
    Do not spend a remote call before every short local action.
 3. If no safe work remains, use one cursor-aware host blocking wait of up to about one minute;
    a bare sleep observes nothing. Do not busy-poll, reread full worker history, or request
    periodic prose status.
-4. Resolve repo-observable context gaps for the worker and send only the missing packet field,
-   pointer, command, or evidence. Correct concrete scope/path/test drift promptly; interrupt and
-   rebrief only when continuing would contaminate ownership. A new consequential choice returns to
-   the caller.
+4. When user feedback arrives mid-wave, locate the affected assignment first. Resolve
+   repo-observable context gaps for the worker and send only the missing packet field, pointer,
+   command, or evidence through the host's native worker message to the retained identifier.
+   Sending does not imply consumption or that old actions stopped; judge the effect at that
+   worker's next return or terminal state. Correct concrete scope/path/test drift promptly;
+   interrupt, stop, and rebrief only when continuing would contaminate ownership. A new
+   consequential choice returns to the caller.
 5. Consume final results immediately and retain their compact outcomes in the current wave context,
    but do not partially collect the ledger. Do not redo the worker's task; once every worker is
    terminal, verify the combined evidence and ownership before the one wave commit.
 
-The turn does not end while the wave is open: ending the turn can end the session, and a session
-exit kills every live worker. Only two exits close a wave and the turn with it: the one collect
-after all workers are terminal, or an escalated attention stop that first interrupts or stops
-every worker.
+The turn may end while the wave is open only when the host keeps dispatched workers running across
+turns and redelivers their completion to this session. Reply that the wave is still running;
+ending the turn releases no file or resource ownership. Without a confirmed background path, keep
+supervising in the foreground or stop every worker safely before ending the turn. A turn
+re-invoked by a completion notification first consumes that terminal result per step 5, retaining
+its compact outcome without partially collecting the ledger; only the one collect after every
+worker is terminal closes the wave. The session itself never closes over an open wave: leave it
+only after that collect, or after an escalated attention stop that first interrupts or stops
+every worker, or through a handoff that records the open execution.
 
 ## Orchestrator write scope and the open-wave barrier
 
