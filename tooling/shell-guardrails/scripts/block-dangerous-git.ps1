@@ -1,4 +1,4 @@
-# Claude Code PreToolUse hook — blocks destructive git commands on Windows (PowerShell).
+# PreToolUse hook — blocks destructive git commands on Windows (PowerShell).
 # Reads the tool-call JSON from stdin, inspects tool_input.command, and exits 2
 # (with a message on stderr) if a HOST-side git invocation is destructive.
 #
@@ -148,7 +148,7 @@ try {
         if ($why) {
             [Console]::Error.WriteLine(
                 "BLOCKED: destructive git operation ($why). The user has reserved these operations for themselves; " +
-                "use the /commit workflow or ask the user to run it by hand.")
+                "use the /pr workflow or ask the user to run it by hand.")
             exit 2
         }
     }

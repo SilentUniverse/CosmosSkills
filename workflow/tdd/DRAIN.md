@@ -113,7 +113,7 @@ diff as needed to distinguish pre-existing or concurrent edits.
 
 Disjoint workers may edit the shared tree. Overlap serializes by default. Use worktrees when
 requested or necessary for authorized isolation, while honoring the driver's collision rules;
-follow host branch naming (Codex: `codex/`). Merge in dependency order, resolve conflicts through
+follow the host's required branch prefix. Merge in dependency order, resolve conflicts through
 `/conflicts`, and verify on the integrated tree. Worktrees cannot write shared stash/tmp state.
 
 ## Worker brief contract (`-p`)

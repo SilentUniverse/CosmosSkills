@@ -8,7 +8,7 @@ The concrete `settings.json` `PreToolUse` config, carrier selection, install loc
 
 | Forbidden | Use instead |
 |---|---|
-| `grep` | `rg` (or the built-in `Grep`) |
+| `grep` | `rg` (or the harness's built-in search tool) |
 | `find` | `fd` |
 | `sed` | `sd` |
 
@@ -16,11 +16,11 @@ The concrete `settings.json` `PreToolUse` config, carrier selection, install loc
 
 **Matching rules.** The hook parses command positions, it does not substring-match: control flow (`if grep …`), pipelines, subshells, `$(…)`/backticks even inside double quotes (the host executes them), wrappers with options (`sudo -u root grep`, `timeout --signal TERM 5 grep`), absolute paths (`/usr/bin/grep`), and static `bash -c` / `eval` payloads all count. Look-alikes (`ripgrep`, `fdfind`, `lsd`), argument positions (`adb shell ls /sdcard`), heredoc bodies, comments, array literals, `[[ =~ ]]` operands, `case` patterns, and name lookups (`command -v grep`) never block. So `adb shell "ls; grep x"` passes, while `adb logcat -d | grep x` blocks — that grep runs on the host; use `rg`.
 
-**Escape hatch** for unavoidable cases (third-party Makefiles, inlined scripts, a `git` subcommand that shells out): prefix the command with a `# force-legacy` comment line, or set `ALLOW_LEGACY_CLI=1` in the shell that launches Claude Code — an inline `ALLOW_LEGACY_CLI=1 cmd` prefix is invisible to the hook, which runs in its own process.
+**Escape hatch** for unavoidable cases (third-party Makefiles, inlined scripts, a `git` subcommand that shells out): prefix the command with a `# force-legacy` comment line, or set `ALLOW_LEGACY_CLI=1` in the shell that launches the host. An inline `ALLOW_LEGACY_CLI=1 cmd` prefix is invisible to the hook, which runs in its own process.
 
 ## Layering principle
 
-The harness exposes ripgrep-backed `Grep`, `Glob`, and `Read` tools with permission integration. Use those for routine agent search/read; only drop to a shell tool when the built-in can't express the need.
+Where the harness exposes built-in ripgrep-backed `Grep`, `Glob`, and `Read` tools with permission integration, use those for routine agent search/read; only drop to a shell tool when the built-in can't express the need. Where it exposes none, `rg`/`fd`/`sd` are the routine path.
 
 ## Key distinctions
 

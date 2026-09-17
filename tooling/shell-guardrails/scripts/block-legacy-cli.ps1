@@ -1,4 +1,4 @@
-# Claude Code PreToolUse hook — enforces CLAUDE.md §7 (modern CLI tooling) on Windows (PowerShell).
+# PreToolUse hook — enforces CLAUDE.md §7 (modern CLI tooling) on Windows (PowerShell).
 # Reads the tool-call JSON from stdin, inspects tool_input.command, and exits 2
 # (with a message on stderr) if a HOST-side segment of the command invokes a
 # forbidden legacy tool.
@@ -121,7 +121,7 @@ try {
             if ($t -match "^$old(?![\w./-])") {
                 [Console]::Error.WriteLine(
                     "BLOCKED: '$old' is forbidden on the host shell (CLAUDE.md section 7). " +
-                    "Use '$($map[$old])' instead. For routine search/read prefer the built-in Grep/Glob/Read tools. " +
+                    "Use '$($map[$old])' instead. Prefer the host's built-in search/read tools when it provides them. " +
                     "If truly unavoidable, put '# force-legacy' on its own line first, or set ALLOW_LEGACY_CLI=1.")
                 exit 2
             }

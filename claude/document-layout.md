@@ -16,8 +16,9 @@ handoff pointers are the initial read set, not a ban on investigating a discover
 Skip missing orientation files. Create/refresh a map only when navigation or a changed invariant
 needs it; no bootstrap offer or full-map drift scan on every session.
 
-Claude Code may inject per-area `CLAUDE.md` blocks. Other hosts read the relevant referenced blocks
-explicitly when needed. Do not assume one host's automatic loading applies to every host.
+A host may inject per-area `CLAUDE.md` blocks automatically; where it does not, read the relevant
+referenced blocks explicitly when needed. Do not assume one host's automatic loading applies to
+every host.
 At a real resume, follow `/resume`'s minimal boot chain before unrelated orientation work.
 
 Issue state is queried on demand: live roster via `rg '^status:' -g '**/issues/*.md' .scratch`;

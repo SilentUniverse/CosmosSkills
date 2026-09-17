@@ -124,8 +124,8 @@ Rules:
 - **Per-area block** — marker pair + `git_base` + body ≤8 lines. Each line passes the two-axis
   test (defined in `/map`). Locations, exports, caller lists, import graphs
   are excluded. A 1-line block is normal; an area with no surviving facts gets a roster line only.
-- **Loading:** use root routing and relevant sections on demand. Claude Code auto-injects area
-  blocks; hosts without that behavior read the referenced block explicitly.
+- **Loading:** use root routing and relevant sections on demand. A host may auto-inject area
+  blocks; without that behavior, read the referenced block explicitly.
 - **Budgets:** root body ≤40 lines excluding roster lines; area block ≤8 lines. On red: relocate →
   condense → raise. A raise carries justification in the change. A ceiling is set to the file's
   size at adoption.

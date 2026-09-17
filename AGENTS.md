@@ -1,8 +1,8 @@
 # CosmosSkills
 
 This repository maintains reusable agent instructions and their deterministic validators.
-Read [claude/CLAUDE.md](claude/CLAUDE.md) once for the shared workflow policy; its rules apply
-to Codex as well as Claude Code. Resolve its on-demand references from `claude/` in this checkout.
+Read [claude/CLAUDE.md](claude/CLAUDE.md) once for the shared workflow policy. Resolve its
+on-demand references from `claude/` in this checkout.
 
 Edit skill sources under `workflow/` and `tooling/`. Installed skill paths may
 be links to these sources. Keep shared policy in the linked file; skill-specific contracts belong
