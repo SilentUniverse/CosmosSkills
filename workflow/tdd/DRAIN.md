@@ -14,7 +14,7 @@ legacy `green`/`close`/`collect` steps below. Keep the existing ownership and re
 Start each scheduling round with:
 
 ```text
-python3 <tdd-skill-dir>/scripts/drain-wave.py step <repo-root> [<feat>] [-p]
+python <tdd-skill-dir>/scripts/drain-wave.py step <repo-root> [<feat>] [-p]
 ```
 
 Without `-p`, `step` returns one issue even when several do not collide; `-p` returns the
@@ -47,7 +47,7 @@ JSON formatting, completion-command order, and fingerprint/prerequisite pair ord
 not invalidate it; changed values do. `dispatch` already checks this; inspect duplicates separately only when needed:
 
 ```text
-python3 <tdd-skill-dir>/scripts/preflight-receipt.py plan <repo-root> [<feat>]
+python <tdd-skill-dir>/scripts/preflight-receipt.py plan <repo-root> [<feat>]
 ```
 
 No duplicates means no shared cache; continue normal execution. Execute and record every miss in
@@ -56,14 +56,14 @@ passing executions, and returns per-tuple verdicts; a failed tuple is reported, 
 and independent tuples still run:
 
 ```text
-python3 <tdd-skill-dir>/scripts/preflight-receipt.py run <repo-root> [<feat>]
+python <tdd-skill-dir>/scripts/preflight-receipt.py run <repo-root> [<feat>]
 ```
 
 The manual per-tuple path is also available: run the action through
 `test-supervisor.py --scope preflight`, then record it:
 
 ```text
-python3 <tdd-skill-dir>/scripts/preflight-receipt.py record <receipt> --cwd <cwd> --action <resolved-action> --fingerprint <value> --readiness-digest <v2-digest> --verifier-digest <v3-digest> --execution-receipt <execution.json>
+python <tdd-skill-dir>/scripts/preflight-receipt.py record <receipt> --cwd <cwd> --action <resolved-action> --fingerprint <value> --readiness-digest <v2-digest> --verifier-digest <v3-digest> --execution-receipt <execution.json>
 ```
 
 Rerun `plan` or dispatch after recording. A cache entry requires actual passing execution evidence.
@@ -96,7 +96,7 @@ generation, worker launch, supervision, and the open-wave barrier; this file sta
 Before execution record:
 
 ```text
-python3 <tdd-skill-dir>/scripts/drain-wave.py dispatch <repo-root> <slug>...
+python <tdd-skill-dir>/scripts/drain-wave.py dispatch <repo-root> <slug>...
 ```
 
 Dispatch returns one execution ID and writes `.scratch/<feat>/wave-ledger.json` with bound issue
@@ -118,7 +118,7 @@ follow host branch naming (Codex: `codex/`). Merge in dependency order, resolve 
 
 ## Worker brief contract (`-p`)
 
-`python3 <skills-root>/workflow-state.py briefs <repo-root> <feat> --compact` renders the mechanical half of
+`python <skills-root>/workflow-state.py briefs <repo-root> <feat> --compact` renders the mechanical half of
 every outstanding worker brief: packet, receipt-hit token(s) when the ledger recorded them, and the
 derived tests-so-far manifest (done cards' `test_paths`, archived history included, derived per
 call). Generation, launch, and supervision live in [DRAIN-PARALLEL.md](DRAIN-PARALLEL.md). The
@@ -181,7 +181,7 @@ issue, a contradictory test manifest, or broken base build is wave-level failure
 Only after clean reconciliation, commit every outstanding result with one `collect` invocation:
 
 ```text
-python3 <tdd-skill-dir>/scripts/drain-wave.py collect <repo-root> --execution <id> <slug>=<result|conflict@evidence.json>[,...]
+python <tdd-skill-dir>/scripts/drain-wave.py collect <repo-root> --execution <id> <slug>=<result|conflict@evidence.json>[,...]
 ```
 
 Supported results: `green|red|blocked|aborted`, or `conflict@<receipt.json>`. Disk and report must
@@ -221,7 +221,7 @@ review under `.scratch/<feat>/receipts/<slug>-conflict-review.json`, with `featu
 and `evidence` containing the observed command/result or source. Then run:
 
 ```text
-python3 <tdd-skill-dir>/scripts/drain-wave.py dismiss-conflict <repo-root> <feat> <slug> <review.json>
+python <tdd-skill-dir>/scripts/drain-wave.py dismiss-conflict <repo-root> <feat> <slug> <review.json>
 ```
 
 The command requires a closed wave, a ready issue, a matching recorded/current contract, and
