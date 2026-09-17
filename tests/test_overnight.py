@@ -1,10 +1,15 @@
 import importlib.util
 import io
+import json
+import os
+import stat
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import Mock, patch
+
+from test_incremental_workflow import IncrementalWorkflowTests
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -325,6 +330,208 @@ class OvernightTests(unittest.TestCase):
             self.assertEqual(0, code)
             self.assertIn("prior diagnostic evidence", log.read_text(encoding="utf-8"))
             self.assertIn("overnight resume", log.read_text(encoding="utf-8"))
+
+FAKE_CLAUDE = r'''
+import json
+import sys
+from pathlib import Path
+
+prompt = sys.argv[-1]
+target = prompt.split("写入 ", 1)[1].split("。", 1)[0] if "写入 " in prompt else ""
+if "有界诊断" in prompt:
+    Path(target).write_text(json.dumps({
+        "action": "repair", "members": ["demo/01-work"],
+        "reason": "app prints 0 instead of 42",
+        "evidence": "predicate stdout_equals 42"}), encoding="utf-8")
+    raise SystemExit(0)
+if "只实现" in prompt:
+    Path("app.py").write_text("print(42)\n", encoding="utf-8")
+    Path(target).write_text(json.dumps({"lane": "verify", "reason": "fixed to 42"}),
+                            encoding="utf-8")
+    raise SystemExit(0)
+raise SystemExit(3)
+'''
+
+
+class ManagedRunnerTests(unittest.TestCase):
+    """Borrow the incremental CLI fixtures without re-collecting their tests."""
+
+    def setUp(self):
+        fixture = IncrementalWorkflowTests('setUp')
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+        self.fixture = fixture
+        self.root = fixture.root
+        self.tmp = fixture.tmp
+        for helper in ('cli', 'open', 'state', 'member_plan', 'yield_member', 'write_json'):
+            setattr(self, helper, getattr(fixture, helper))
+
+    def to_repair_phase(self, dispatches=12):
+        plan = self.member_plan()
+        self.member = self.fixture.member
+        plan['budget']['dispatches'] = dispatches
+        (self.root / 'app.py').write_text('print(0)\n', encoding='utf-8')
+        self.open(plan)
+        self.id = self.fixture.id
+        execution = self.cli('start', 'demo', '01-work')['execution']
+        self.yield_member(execution)
+        result = self.cli('batch-run', '--batch', self.id)
+        self.assertEqual('diagnose_incident', result['action'])
+        return result['incidents'][0]['run_id']
+
+    def diagnosis_dir(self):
+        return self.root / '.scratch/batches' / self.id / 'diagnosis'
+
+    def run_managed(self, launch_side_effect):
+        output = io.StringIO()
+        with patch.object(overnight, 'launch', side_effect=launch_side_effect), \
+             patch.object(overnight.shutil, 'which', return_value='claude-fake'), \
+             redirect_stdout(output), redirect_stderr(output):
+            code = overnight.managed_main(str(self.root), None, self.id)
+        return code, output.getvalue()
+
+    def proposal_session(self, proposal):
+        def session(_exe, _root, _log, prompt, timeout=None, on_boundary=None):
+            target = prompt.split('写入 ', 1)[1].split('。', 1)[0]
+            Path(target).write_text(json.dumps(proposal), encoding='utf-8')
+            return 0
+        return session
+
+    def implementing_session(self, calls):
+        def session(_exe, root, _log, prompt, timeout=None, on_boundary=None):
+            calls.append(prompt)
+            target = prompt.split('写入 ', 1)[1].split('。', 1)[0]
+            Path(root, 'app.py').write_text('print(42)\n', encoding='utf-8')
+            Path(target).write_text(json.dumps({'lane': 'verify', 'reason': 'fixed to 42'}),
+                                    encoding='utf-8')
+            return 0
+        return session
+
+    def test_external_runner_closes_a_repaired_batch_without_human_input(self):
+        run_id = self.to_repair_phase()
+        bindir = Path(self.tmp.name) / 'bin'
+        bindir.mkdir()
+        (bindir / 'fake_claude.py').write_text(FAKE_CLAUDE, encoding='utf-8')
+        if os.name == 'nt':
+            (bindir / 'claude.cmd').write_bytes(
+                b'@echo off\r\npython "%~dp0fake_claude.py" %*\r\n')
+        else:
+            shim = bindir / 'claude'
+            shim.write_text(
+                '#!/bin/sh\nexec python3 "$(dirname "$0")/fake_claude.py" "$@"\n',
+                encoding='utf-8')
+            shim.chmod(shim.stat().st_mode | stat.S_IEXEC)
+        old_path = os.environ['PATH']
+        os.environ['PATH'] = str(bindir) + os.pathsep + old_path
+        try:
+            with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                code = overnight.managed_main(str(self.root), None, self.id)
+        finally:
+            os.environ['PATH'] = old_path
+        self.assertEqual(0, code)
+        state = self.state()
+        self.assertEqual('closed', state['phase'])
+        self.assertIn('diagnose:run-' + run_id, state['controls'])
+        self.assertIn('repair:run-' + run_id, state['controls'])
+        self.assertTrue(list(self.diagnosis_dir().glob('*.json')))
+        self.assertEqual(2, state['budget']['dispatches']['consumed'])
+
+    def test_blocked_proposal_stops_with_reason(self):
+        run_id = self.to_repair_phase()
+        code, output = self.run_managed(self.proposal_session({
+            'action': 'blocked', 'members': [],
+            'reason': 'needs a product decision on the expected value',
+            'evidence': 'receipt shows 0'}))
+        self.assertEqual(11, code)
+        self.assertIn('needs a product decision', output)
+        state = self.state()
+        self.assertEqual('repair', state['phase'])
+        self.assertIn('diagnose:run-' + run_id, state['controls'])
+        self.assertFalse([key for key in state['controls'] if key.startswith('repair:')])
+
+    def test_restart_resumes_from_a_stored_diagnosis_without_a_session(self):
+        run_id = self.to_repair_phase()
+        directory = self.diagnosis_dir()
+        directory.mkdir(parents=True)
+        (directory / (run_id + '.json')).write_text(json.dumps({
+            'action': 'repair', 'members': [self.member],
+            'reason': 'app prints 0 instead of 42', 'evidence': 'predicate'}),
+            encoding='utf-8')
+        calls = []
+        code, _output = self.run_managed(self.implementing_session(calls))
+        self.assertEqual(0, code)
+        self.assertEqual(1, len(calls))
+        self.assertIn('只实现', calls[0])
+        state = self.state()
+        self.assertEqual('closed', state['phase'])
+        self.assertIn('repair:run-' + run_id, state['controls'])
+        self.assertNotIn('diagnose:run-' + run_id, state['controls'])
+
+    def test_identical_remedy_is_a_bounded_stop(self):
+        self.to_repair_phase()
+        directory = self.diagnosis_dir()
+        directory.mkdir(parents=True)
+        (directory / 'earlier-run.json').write_text(json.dumps({
+            'action': 'repair', 'members': [self.member],
+            'reason': 'app prints 0 instead of 42', 'evidence': 'predicate'}),
+            encoding='utf-8')
+        code, output = self.run_managed(self.proposal_session({
+            'action': 'repair', 'members': [self.member],
+            'reason': 'app prints 0 instead of 42', 'evidence': 'predicate, second look'}))
+        self.assertEqual(11, code)
+        self.assertIn('identical remedy', output)
+        state = self.state()
+        self.assertEqual('repair', state['phase'])
+        self.assertFalse([key for key in state['controls'] if key.startswith('repair:')])
+
+    def test_out_of_scope_members_are_refused_not_retried(self):
+        self.to_repair_phase()
+        calls = []
+        session = self.proposal_session({
+            'action': 'repair', 'members': ['demo/02-other'],
+            'reason': 'mislocated', 'evidence': 'guess'})
+        original = session
+
+        def counting(_exe, _root, _log, prompt, timeout=None, on_boundary=None):
+            calls.append(prompt)
+            return original(_exe, _root, _log, prompt, timeout=timeout, on_boundary=on_boundary)
+
+        code, output = self.run_managed(counting)
+        self.assertEqual(11, code)
+        self.assertIn('outside the current goal', output)
+        self.assertEqual(1, len(calls))
+
+    def test_session_without_a_valid_proposal_stops(self):
+        self.to_repair_phase()
+        code, output = self.run_managed(lambda *_args, **_kwargs: 0)
+        self.assertEqual(11, code)
+        self.assertIn('no valid proposal', output)
+
+    def test_failed_diagnosis_session_stops(self):
+        self.to_repair_phase()
+        code, output = self.run_managed(lambda *_args, **_kwargs: 1)
+        self.assertEqual(11, code)
+        self.assertIn('exited nonzero', output)
+
+    def test_corrupt_diagnosis_artifact_stops(self):
+        run_id = self.to_repair_phase()
+        directory = self.diagnosis_dir()
+        directory.mkdir(parents=True)
+        (directory / (run_id + '.json')).write_text('not json', encoding='utf-8')
+        code, output = self.run_managed(lambda *_args, **_kwargs: 0)
+        self.assertEqual(11, code)
+        self.assertIn('invalid', output)
+
+    def test_repair_rounds_consume_the_dispatch_budget(self):
+        run_id = self.to_repair_phase(dispatches=1)
+        code, _output = self.run_managed(self.proposal_session({
+            'action': 'repair', 'members': [self.member],
+            'reason': 'app prints 0 instead of 42', 'evidence': 'predicate'}))
+        self.assertEqual(12, code)
+        state = self.state()
+        self.assertEqual(1, state['budget']['dispatches']['consumed'])
+        self.assertIn('diagnose:run-' + run_id, state['controls'])
+        self.assertTrue([key for key in state['controls'] if key.startswith('repair:')])
 
 
 if __name__ == "__main__":
