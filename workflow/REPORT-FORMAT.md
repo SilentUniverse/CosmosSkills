@@ -9,7 +9,7 @@ machine-formatted.
 
 Every report opens with one line: `范围（计量）· 判定 · 关键计数` —
 e.g. `范围 tdd drain（3 issue）· 完成 2 · 阻塞 1`. A clean run is the lead line alone. Machine
-renderings for people use the same shape: `demo: ready 1 · blocked 0 · done 3 · zombie 0`.
+renderings for people use the same shape: `demo: ready 1 · blocked 0 · done 3 · uncollected 0`.
 
 ## Sections
 

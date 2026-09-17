@@ -767,7 +767,7 @@ status: ready
             )
             self.assertNotIn("- ready 02-ready", human)
             self.assertIn("- blocked 03-blocked ← 99-missing", human)
-            self.assertIn("- zombie 02-ready (wave 2)", human)
+            self.assertIn("- uncollected 02-ready (wave 2)", human)
             self.assertNotIn("01-done —", human)
 
     def test_survey_feature_filter_limits_the_projection(self):
