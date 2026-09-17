@@ -9,10 +9,10 @@ argument-hint: "[-local]"
 
 When this change belongs to an active protocol-2 batch, verify its final proof and required decisions through [BATCH-FORMAT.md](../tdd/BATCH-FORMAT.md). A Git commit does not close an incomplete batch.
 
-This is the submit phase after validation. `/pr` itself runs no test suite, build, or
-repo-wide gate. Validation evidence already exists from the upstream phase; commit the validated
-scope directly. Installed repository hooks run as configured. Existing authorization to commit
-or submit carries into this skill. Preserve any explicit local-only or narrower file scope.
+This is the submit phase after validation. `/pr` runs no test suite, build, or repo-wide gate of
+its own: the upstream phase already produced the evidence, so commit the validated scope directly.
+Installed repository hooks run as configured. Existing authorization to commit or submit carries
+into this skill. Preserve any explicit local-only or narrower file scope.
 
 ## Inspect
 
@@ -74,13 +74,17 @@ published result before reporting landed, is idempotent on a re-run after a mid-
 failure, never stages or scopes (the validated commit is its only input), leaves the
 caller's checked-out branch untouched, and advances the local default branch to the published
 one by fast-forward only; `--mode/--remote/--base/--verify-command` override its
-resolutions. Pass integration checks as `--verify-command` on the native engine and run them
-before landing on the gh engine.
+resolutions. A check the user named goes in as `--verify-command` on the native engine, which runs
+it before publishing. The gh engine takes no verify command because CI owns verification there, so
+`/pr` runs no check before that merge and no CI watch after it; exit 4 is the whole signal that a
+required check blocks landing. The script's JSON report and exit code are authoritative on both
+engines, and are not predicted by reading its internals or the repository's CI configuration.
 
 A moved head, a wrong PR target, pending required checks, an unavailable engine, or a failed
-verify command returns to this skill's recovery: resolve the target, revalidate the changed
-head, or stop with the scoped commit intact. Enabling auto-merge or entering a merge queue is
-pending work, not landing. An advanced target need not have the topic branch's identical tree.
+verify command returns to this skill's recovery: resolve the target, revalidate only the head that
+changed since the upstream phase, or stop with the scoped commit intact. Enabling auto-merge or
+entering a merge queue is pending work, not landing. An advanced target need not have the topic
+branch's identical tree.
 
 Never switch branches or create a native squash commit through an index or worktree containing
 unrelated changes. Use an isolated clean worktree for native landing, or stop with the scoped commit
@@ -121,11 +125,12 @@ before any mutation:
 Pick one visual for Summary, not several: a diff-sketch when the surrounding shape already
 exists, a file or component tree for structure, pseudocode for logic, a sequence diagram for
 interaction. Prose is Chinese with code-matching English terms; no preamble. Evidence cites the
-upstream phase's real checks — the exact failing→passing test or output — never a claim without
-a run. Merge Danger states the rollback class and the widest plausible impact of the merge; a
-cheap two-way door with no outside consumers is a valid, complete answer. A re-run that finds
-the PR already open or merged leaves the existing body untouched. Delete the file once landing
-reports landed; keep it when a landing stopped short of success, so the retry reuses it.
+upstream phase's real checks — the exact failing→passing test or output — never a claim without a
+run, and never a run launched to produce one; when the upstream phase left no check, state that
+absence in one line. Merge Danger states the rollback class and the widest plausible impact of the
+merge; a cheap two-way door with no outside consumers is a valid, complete answer. A re-run that
+finds the PR already open or merged leaves the existing body untouched. Delete the file once
+landing reports landed; keep it when a landing stopped short of success, so the retry reuses it.
 
 ## Message and report
 
@@ -145,5 +150,6 @@ Delete the message file once the commit exists; a failed commit keeps it for the
 Both landing engines enforce the same subject gate on the verified head before publishing.
 
 Report the commit hash and included paths. For a landed change, also report the pushed ref, pull
-request URL when applicable, default-branch result, and any cleanup still pending. Layout follows
+request URL when applicable, default-branch result, and any cleanup still pending; when CI was not
+awaited, say so rather than leaving a green run implied. Layout follows
 [REPORT-FORMAT.md](../REPORT-FORMAT.md).

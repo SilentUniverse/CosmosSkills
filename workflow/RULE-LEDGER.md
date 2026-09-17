@@ -116,6 +116,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | Commit modes | 仅提交已验证的任务归属路径；禁 add 全量；`-local` 不推送 | 权威 | 流程 | 8472cfc、b46a888、pr-holds-scope-under-pressure |
 | PR body | gh 落地附三段式 PR 正文（Summary/Evidence/Merge Danger）；缺标题即红灯，裸 commit 正文不作 PR 正文 | 产物 | 机器+流程 | PR 退化为裸 commit 正文、评审失据；show-me pr 模板对标借入；land.py `--pr-body-file` 三标题门 + test_land |
 | Land | 固定 PR head；确认 MERGED 才算落地，排队不算完成；禁 force-push 与 bypass | 权威 | 流程 | gh merge 的排队语义、--match-head-commit；pr-holds-scope-under-pressure |
+| Verify | `/pr` 不自建验证：消费上游证据；gh 引擎不预跑检查、不等 CI，只有 exit 4 代表被 required checks 阻塞 | 过程·经济 | 流程 | 落地前重复验证 + 落地后等 CI 的纯等待（PR #121 实测：落地 59s、CI 等待 6m30s）；未溯源 |
 
 ## 已知攻法与兜底
 
