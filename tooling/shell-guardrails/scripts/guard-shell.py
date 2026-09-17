@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Claude Code / ZCode PreToolUse hook — one process, one parse, three tiers.
+"""PreToolUse hook — one process, one parse, three tiers.
 
 Reads the tool-call JSON from stdin, inspects tool_input.command, exits 2 with
 a stderr message on the highest-priority hit, else 0. Single self-contained
@@ -616,7 +616,7 @@ def payload_segments(segments, depth, want_path=False):
 # ---------------------------------------------------------------------- main
 
 MSG_GIT = ("BLOCKED: destructive git operation ({why}). The user has reserved "
-           "these operations for themselves; use the /commit workflow or ask "
+           "these operations for themselves; use the /pr workflow or ask "
            "the user to run it by hand.")
 MSG_PATH = ("BLOCKED: POSIX path '{tok}' handed to a native Windows "
             "executable. Native processes only understand Windows absolute "
@@ -708,8 +708,8 @@ def main():
             if old:
                 sys.stderr.write(
                     "BLOCKED: '%s' is forbidden on the host shell (CLAUDE.md "
-                    "section 7). Use '%s' instead. For routine search/read "
-                    "prefer the built-in Grep/Glob/Read tools. If truly "
+                    "section 7). Use '%s' instead. Prefer the host's built-in "
+                    "search/read tools when it provides them. If truly "
                     "unavoidable, put '# force-legacy' on its own line first, "
                     "or set ALLOW_LEGACY_CLI=1." % (old, MSG_LEGACY[old]))
                 sys.exit(2)

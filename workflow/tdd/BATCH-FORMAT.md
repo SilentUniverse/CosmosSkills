@@ -31,7 +31,7 @@ In addition to the common fields, a schema-3 plan declares:
   `{mode: host, argv: [...], deduplicates_event_id: true}`. The adapter reads one event as JSON on
   stdin, renders it with stable-ID deduplication, and returns `{acknowledged_event_id: ID}` on stdout.
   This acknowledgement records delivery, not reading or approval. The adapter is an explicitly
-  configured external integration; a universal Codex/browser notification adapter is not bundled.
+  configured external integration; a universal host/browser notification adapter is not bundled.
 - Optional `allow_inherit: true` plus complete `review_inputs` allows retaining a scene conclusion
   across source changes only when those inputs, the actual artifact, launch contract and tested
   environment match. Changed artifacts require review. If final uses another package producer,

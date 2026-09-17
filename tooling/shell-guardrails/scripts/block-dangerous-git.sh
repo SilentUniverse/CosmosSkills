@@ -1,5 +1,5 @@
 #!/bin/bash
-# Claude Code PreToolUse hook — blocks destructive git commands on Unix / WSL.
+# PreToolUse hook — blocks destructive git commands on Unix / WSL.
 # Reads the tool-call JSON from stdin, inspects tool_input.command, and exits 2
 # (with a message on stderr) if a HOST-side git invocation is destructive.
 #
@@ -162,7 +162,7 @@ stdbuf:-o|stdbuf:-e|stdbuf:-i|watch:-n|watch:-g) pending=1 ;;
       for ((j = 0; j < m; j++)); do [ "${REST[$j]}" = "." ] && why="git restore ."; done ;;
   esac
   if [ -n "$why" ]; then
-    echo "BLOCKED: destructive git operation ($why). The user has reserved these operations for themselves; use the /commit workflow or ask the user to run it by hand." >&2
+    echo "BLOCKED: destructive git operation ($why). The user has reserved these operations for themselves; use the /pr workflow or ask the user to run it by hand." >&2
     exit 2
   fi
 done

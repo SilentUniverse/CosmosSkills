@@ -1,5 +1,5 @@
 #!/bin/bash
-# Claude Code PreToolUse hook — enforces CLAUDE.md §7 (modern CLI tooling) on Unix / WSL.
+# PreToolUse hook — enforces CLAUDE.md §7 (modern CLI tooling) on Unix / WSL.
 # Reads the tool-call JSON from stdin, inspects tool_input.command, and exits 2
 # (with a message on stderr) if a HOST-side segment of the command invokes a
 # forbidden legacy tool.
@@ -117,7 +117,7 @@ for t in "${SEGMENTS[@]}"; do
     case "$old" in
       grep) new=rg ;; find) new=fd ;; sed) new=sd ;;
     esac
-    echo "BLOCKED: '$old' is forbidden on the host shell (CLAUDE.md section 7). Use '$new' instead. For routine search/read prefer the built-in Grep/Glob/Read tools. If truly unavoidable, put '# force-legacy' on its own line first, or set ALLOW_LEGACY_CLI=1." >&2
+    echo "BLOCKED: '$old' is forbidden on the host shell (CLAUDE.md section 7). Use '$new' instead. Prefer the host's built-in search/read tools when it provides them. If truly unavoidable, put '# force-legacy' on its own line first, or set ALLOW_LEGACY_CLI=1." >&2
     exit 2
   fi
 done
