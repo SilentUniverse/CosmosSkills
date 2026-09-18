@@ -7,6 +7,11 @@ Wave driving, supervision, collect and recovery belong to the orchestrator in
 file for execution rules. No nested agents.
 Use `python` for workflow scripts; `python3` only when `python` is absent.
 
+An assigned schema-2/3 batch branches here, before execution: development feedback runs through
+`check-local` and the controller's continuation protocol in [BATCH-FORMAT.md](BATCH-FORMAT.md),
+not this file's pytest loop; local green never closes the card. Every other packet continues
+below.
+
 ## Pre-issue statement
 
 - Use the caller-supplied packet and execution ID directly; never run
@@ -25,8 +30,12 @@ Use `python` for workflow scripts; `python3` only when `python` is absent.
 
 ## RED/GREEN loop
 
-- One test at a time: RED (fails on the asserted behavior) → GREEN (minimal code passes); an
-  import/collection error is not RED. Run only the test just written each cycle
+- Complete the behavior evidence, not a test count: locate existing coverage for each behavior
+  first. An already-failing case is this slice's RED; run it as-is; coverage that pins the
+  behavior verifies without an equivalent case; extend an existing scenario or its parameters
+  before adding an independent one.
+- One case at a time: RED (fails on the asserted behavior) → GREEN (minimal code passes); an
+  import/collection error is not RED. Run only the case driving each cycle, written or reused
   (`pytest path/test_x.py::test_y`), and the touched module's tests at slice completion. The full
   suite and build are batch-level obligations owned by the orchestrator; never launch them.
 - Test quality: [tests.md](tests.md); load [mocking.md](mocking.md) only when a test needs mocks.
