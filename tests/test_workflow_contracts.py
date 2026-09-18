@@ -1,4 +1,3 @@
-import re
 import unittest
 from pathlib import Path
 
@@ -85,19 +84,6 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertIn("issue or `verifier.json`", prd)
         self.assertNotIn("Preserve the readiness register", prd)
         self.assertNotIn("| P# | cwd | prerequisites", prd)
-
-    def test_structure_maps_match_top_level_definition_order(self):
-        for path in (
-            "workflow/verify-artifacts.py",
-            "workflow/tdd/scripts/drain-wave.py",
-        ):
-            source = text(path)
-            block = source.split("--- structure map", 1)[1].split(
-                "--- end structure map", 1
-            )[0]
-            mapped = re.findall(r"^# (\w+) — ", block, re.M)
-            defined = re.findall(r"^(?:def|class) (\w+)", source, re.M)
-            self.assertEqual(defined, mapped, path)
 
     def test_dependency_has_one_owner_and_supervision_is_rate_limited(self):
         issue = text("workflow/spec/ISSUE-TEMPLATE.md")

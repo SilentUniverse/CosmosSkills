@@ -70,7 +70,8 @@ Submit through `/pr` only when requested; continue there after validation.
 ## Test philosophy
 
 Test public behavior against independent expectations; apply [test quality](tests.md) throughout
-planning, implementation and review.
+planning, implementation and review. Screenshots, agent self-reports and ad-hoc probe scripts
+never substitute for required acceptance.
 Load [mocking.md](mocking.md) only when a test needs mocks.
 Complete one RED/GREEN slice before writing the next test. Only UI behavior loads [UI-TESTING.md](UI-TESTING.md).
 
@@ -105,19 +106,26 @@ writes paused until readiness passes; never silently replace the required verifi
 
 ### 2. Tracer Bullet
 
-Write ONE test confirming ONE thing about the system: RED (test fails on the asserted behavior) → GREEN (minimal code passes). Proves the path works end-to-end.
+Complete the behavior evidence, not a test count: locate the existing tests for the behavior
+this slice changes before writing any. An already-failing case is this slice's RED; run it
+as-is. Coverage that already pins the behavior needs verification only, not an equivalent case.
+For a real gap, extend an existing scenario or its parameters first, then add one independent
+case protecting a failure mode no current test covers. The tracer proves the path works
+end-to-end.
 
 ### 3. Incremental Loop
 
-For each remaining behavior: RED (write next test, watch it fail) → GREEN (minimal code passes).
+For each remaining behavior: RED (write or extend the one test that pins it, watch it fail) →
+GREEN (minimal code passes).
 
-- One test at a time; an import/collection error is not RED
+- One case at a time; an import/collection error is not RED
 - Only enough code to pass the current test; don't anticipate future tests
 - Keep tests focused on observable behavior
 - No explanatory comments; place a surviving contract or reason at the interface a human reads,
   not beside implementation the code already shows
 
-**What to run each cycle.** RED/GREEN runs execute only the test just written (`pytest path/test_x.py::test_y`).
+**What to run each cycle.** RED/GREEN runs execute only the case driving this cycle, written or
+reused (`pytest path/test_x.py::test_y`).
 Run the touched module's tests at slice completion; relevant refactors invalidate that evidence.
 The full suite stays batch-level (§5). Reuse project commands. Cache only reusable adapters that
 cannot be cheaply recovered from project configuration in `CODEBASE.md`'s `## Verifier commands`.
@@ -134,8 +142,9 @@ After all tests pass: [refactoring.md](refactoring.md). Persist a verified, hard
 to the relevant existing knowledge surface under `/map`'s two-axis test; link its code/test evidence.
 Knowledge retention does not require an issue completion. If no such surface exists, establish only
 the needed entry with a retrieval path; do not inventory the whole repository to retain one fact.
-Keep transient hypotheses in the current task or handoff. Run affected tests after refactoring;
-**never refactor while RED**.
+Keep transient hypotheses in the current task or handoff. Behavior-preserving refactors reuse
+the relevant existing regressions as the before/after check; do not manufacture a RED for form.
+Run affected tests after refactoring; **never refactor while RED**.
 
 When test cost grows or shared checks need scheduling, apply [test policy](../TEST-POLICY.md).
 Review changed tests against the same test quality criteria; shared checks remain parent-owned.
