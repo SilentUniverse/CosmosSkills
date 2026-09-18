@@ -52,6 +52,7 @@
 # open_waves — waves with unclosed assignments
 # find_zombies — dispatched issues without ledger closure
 # chain_depths — downstream ready-chain length per slug
+# retry_debts — red/blocked debt since the card's dispatch contract last changed
 # plan_waves — deterministic eligibility + ranking
 # batch_projection — persistent batch action for managed next/step queries
 # cmd_next — propose the collision-free wave (read-only)
@@ -75,7 +76,7 @@
 # --- end structure map ---
 # Exit: 0 ok, 1 violation, 2 usage, 3 zombies (recovery first), 4 nothing ready,
 # 5 shared preflight receipt must be prepared before dispatch, 6 receipt conflict
-# requires /spec realignment.
+# requires /spec realignment, 7 retry budget exceeded (revise via /spec or park).
 import hashlib
 import importlib.util
 import io
@@ -101,6 +102,7 @@ from workflow_runtime import load_baseline, reading, read_text
 
 RESULTS = ("green", "red", "blocked", "conflict", "aborted")
 MAX_IN_FLIGHT = 4
+RETRY_BUDGET = 3
 SKIP_DIRS = {
     ".git", "node_modules", ".scratch", ".venv", "venv", "target",
     "dist", "build", "out", ".next", "__pycache__", "coverage", "lib",
@@ -778,14 +780,70 @@ def chain_depths(issues):
     return depth
 
 
-def plan_waves(issues, archived_done, parallel=True):
+def retry_debts(root, feature=None, issues=None):
+    """(feat, slug) -> {count, last} of red/blocked closures since the last change.
+
+    The count resets when a wave records a different dispatch contract for the
+    slug (/spec revised the slice) or when the live card's digest differs from
+    the last dispatched one. Green closes the card; aborted and conflict
+    outcomes leave the count untouched.
+    """
+    scratch = os.path.join(root, ".scratch")
+    feats = []
+    if os.path.isdir(scratch):
+        feats = [
+            n for n in sorted(os.listdir(scratch))
+            if os.path.isfile(os.path.join(scratch, n, "wave-ledger.json"))
+        ]
+        if feature:
+            feats = [n for n in feats if n == feature]
+    debts = {}
+    for feat in feats:
+        counts = {}
+        lasts = {}
+        digests = {}
+        for wave in load_ledger(root, feat)["waves"]:
+            contracts = wave.get("contracts") or {}
+            for slug in wave.get("dispatched", []):
+                digest = contracts.get(slug)
+                if digests.get(slug) != digest:
+                    digests[slug] = digest
+                    counts[slug] = 0
+            for slug, result in (wave.get("closed") or {}).items():
+                if result in ("red", "blocked"):
+                    counts[slug] = counts.get(slug, 0) + 1
+                    lasts[slug] = result
+        if issues is not None:
+            for slug in list(counts):
+                entry = issues.get(slug)
+                if entry is not None and entry[0] == feat:
+                    try:
+                        live = dispatch_contract_sha256(entry[1])
+                    except OSError:
+                        live = None
+                    if live is not None and live != digests.get(slug):
+                        counts[slug] = 0
+        for slug, count in counts.items():
+            if count:
+                debts[(feat, slug)] = {"count": count, "last": lasts.get(slug, "")}
+    return debts
+
+
+def plan_waves(issues, archived_done, parallel=True, debts=None):
     done = {
         s for s, (_, _, fm) in issues.items() if fm.get("status") == "done"
     } | archived_done
     ready = {s for s, (_, _, fm) in issues.items() if fm.get("status") == "ready"}
+    debts = debts or {}
+    exhausted = sorted(
+        (s, debts[(issues[s][0], s)]["count"])
+        for s in ready
+        if debts.get((issues[s][0], s), {}).get("count", 0) >= RETRY_BUDGET
+    )
+    dispatchable = ready - {s for s, _ in exhausted}
     blocked = []
     eligible = []
-    for s in sorted(ready):
+    for s in sorted(dispatchable):
         deps = [d for d in as_list(issues[s][2].get("blocked_by")) if d]
         missing = [d for d in deps if d not in done]
         if missing:
@@ -802,6 +860,7 @@ def plan_waves(issues, archived_done, parallel=True):
             "done": done,
             "ready": ready,
             "blocked": blocked,
+            "exhausted": exhausted,
             "wave": [first] if first else [],
             "solo_now": eligible[0] if eligible and first is None else None,
         }
@@ -823,6 +882,7 @@ def plan_waves(issues, archived_done, parallel=True):
         "done": done,
         "ready": ready,
         "blocked": blocked,
+        "exhausted": exhausted,
         "wave": wave,
         "later": later,
         "undeclared": undeclared,
@@ -870,7 +930,7 @@ def cmd_next(root, feat):
     if not issues:
         print("drain-wave: no issues found under .scratch/%s" % (feat or "*/issues"))
         return 4
-    plan = plan_waves(issues, archived_done)
+    plan = plan_waves(issues, archived_done, debts=retry_debts(root, feat, issues=issues))
     if not plan["ready"]:
         print("drain-wave: nothing ready (%d done) - batch complete" % len(plan["done"]))
         return 4
@@ -889,6 +949,13 @@ def cmd_next(root, feat):
         )
     for s, missing in plan["blocked"]:
         print("deferred: %s blocked by %s" % (s, ", ".join(missing)))
+    for s, count in plan["exhausted"]:
+        print(
+            "retry-budget: %s (%d red/blocked since its last contract change - revise via /spec or park it)"
+            % (s, count)
+        )
+    if not plan["wave"] and not plan["solo_now"] and plan["exhausted"]:
+        return 7
     return 0
 
 
@@ -921,7 +988,9 @@ def cmd_step(root, feat, parallel=False):
     if not issues:
         print("action: none - no issues found under .scratch/%s" % (feat or "*/issues"))
         return 4
-    plan = plan_waves(issues, archived_done, parallel=parallel)
+    plan = plan_waves(
+        issues, archived_done, parallel=parallel, debts=retry_debts(root, feat, issues=issues)
+    )
     if not plan["ready"]:
         print("action: close - nothing ready (%d done)" % len(plan["done"]))
         print(
@@ -934,10 +1003,22 @@ def cmd_step(root, feat, parallel=False):
         wave = [plan["solo_now"]]
     else:
         wave = plan["wave"]
+    for s, count in plan["exhausted"]:
+        print(
+            "retry-budget: %s (%d red/blocked since its last contract change)"
+            % (s, count)
+        )
     if wave:
         print("action: dispatch %s" % " ".join(wave))
         print("run: drain-wave.py dispatch <repo-root> %s" % " ".join(wave))
         return 0
+    if plan["exhausted"]:
+        print("action: revise-or-park - retry budget exceeded")
+        print(
+            "run: revise the card contract via /spec, or"
+            " workflow-state.py park <repo-root> <feat> <slug> --reason TEXT"
+        )
+        return 7
     print("action: blocked - every ready issue is blocked or deferred")
     print("run: drain-wave.py next <repo-root> %s" % (feat or ""))
     return 1
@@ -1132,6 +1213,17 @@ def _dispatch(root, slugs, direct=False, feature=None):
                 file=sys.stderr,
             )
             return 1
+    debts = retry_debts(root, feature, issues=issues)
+    for s in slugs:
+        debt = debts.get((issues[s][0], s))
+        if debt and debt["count"] >= RETRY_BUDGET:
+            print(
+                "drain-wave: %s exceeded the retry budget (%d red/blocked since its last"
+                " contract change) - revise its contract via /spec or park it with"
+                " workflow-state.py park" % (s, debt["count"]),
+                file=sys.stderr,
+            )
+            return 7
     undeclared = [s for s in slugs if not declared(issues[s][2])]
     if len(slugs) > 1 and undeclared:
         print(
@@ -1149,6 +1241,24 @@ def _dispatch(root, slugs, direct=False, feature=None):
                     file=sys.stderr,
                 )
                 return 1
+    try:
+        sharing = [
+            group
+            for feat in sorted({issues[s][0] for s in slugs})
+            for group in preflight_api().environment_sharing(Path(root), feat)
+        ]
+    except PreflightHelperMissing as exc:
+        print("drain-wave: preflight helper unusable: %s" % exc, file=sys.stderr)
+        return 1
+    if sharing:
+        for group in sharing:
+            print(
+                "drain-wave: feature '%s' has %d ready v2 cards sharing one verifier environment"
+                " (%s) - write verifier.json and reference it per spec VERIFICATION-DESIGN"
+                % (group["feature"], len(group["slugs"]), ", ".join(group["slugs"])),
+                file=sys.stderr,
+            )
+        return 1
     zombies = find_zombies(root)
     if zombies:
         print(

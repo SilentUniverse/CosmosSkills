@@ -1,5 +1,10 @@
 # Managed batches — `.scratch/batches/<batch_id>/`
 
+Execution core for an active schema-2/3 batch: plan semantics, dispatch, checks, admission and
+job execution. Human review, revisions, delivery and manual observations load
+[BATCH-REVIEW.md](BATCH-REVIEW.md) at their boundary; durable proof, budget and managed close load
+[BATCH-PROOF.md](BATCH-PROOF.md).
+
 ## Schema 3: incremental collaboration
 
 Test trigger, quality, performance and retirement rules live in [test policy](../TEST-POLICY.md).
@@ -32,6 +37,7 @@ In addition to the common fields, a schema-3 plan declares:
   stdin, renders it with stable-ID deduplication, and returns `{acknowledged_event_id: ID}` on stdout.
   This acknowledgement records delivery, not reading or approval. The adapter is an explicitly
   configured external integration; a universal host/browser notification adapter is not bundled.
+  Adapter mechanics and a sample live in [BATCH-REVIEW.md](BATCH-REVIEW.md).
 - Optional `allow_inherit: true` plus complete `review_inputs` allows retaining a scene conclusion
   across source changes only when those inputs, the actual artifact, launch contract and tested
   environment match. Changed artifacts require review. If final uses another package producer,
@@ -41,18 +47,16 @@ In addition to the common fields, a schema-3 plan declares:
 
 The scheduler prioritizes preparing a ready delivery and completing checks for a captured candidate
 before new implementation. A capture still needs the shared working tree's entire current wave to
-return. Once captured, its checks and delivery use immutable inputs; independent workers can run in
-the original repository. One open shared-tree wave remains the ownership boundary. No refill joins
-an existing wave, and there is no compulsory separate coordinator agent.
+return ([wave barrier](DRAIN.md#wave-barrier)). Once captured, its checks and delivery use immutable
+inputs; independent workers can run in the original repository. There is no compulsory separate
+coordinator agent.
 
 `batch-run --background` admits a check, starts its frozen runner with a retained log and returns
-without waiting for the check. `scripts/overnight.py` services mechanical progress and host delivery
-while its implementation subprocess is busy. Its default scope is the active goal; without one,
-name a feature or explicitly pass `--repo`. A normal interactive harness calls `batch-run` and
-consumes the returned actions at safe boundaries. In parent-turn mode, notification waits for that
-boundary; a closed or unsupported host has no promise of immediate background display. No extra
-model heartbeat is required. Prerequisite, capture, delivery and acknowledgement timestamps remain
-available in state; they are not evidence of an unmeasured notification-latency SLA.
+without waiting for the check; a normal interactive harness calls `batch-run` and consumes the
+returned actions at safe boundaries. `scripts/overnight.py` services mechanical progress and host
+delivery while its implementation subprocess is busy; its lifecycle contract is
+[DRAIN.md](DRAIN.md)'s External runner section, and its managed-batch diagnosis control lives in
+the External runner integration section below.
 
 Dispatch binds the assigned contract, applicable requirement bodies, upstream proofs and decision
 events. `start`, an assigned `packet`, and `briefs` deliver those bindings in `execution_context`,
@@ -63,71 +67,6 @@ An in-flight decision change invalidates transitive consumers. A stale worker re
 implementation for reconciliation; a stale run cannot supply proof. A binding-only invalidation can
 be rechecked on unchanged source, but a real behavior failure remains a failure. New batches or
 retries never refund the original goal's consumption.
-
-### Revisions, review and feedback
-
-`batch-revise --plan FILE --request-id ID --expected-revision N --reason TEXT` appends an immutable
-plan and preserves budget consumption, history and unchanged reviews. Quiesce only affected workers;
-collect active check runs and explicit capture requests before revision. It cannot change review
-keys, notification executables or budget authorization. Editing a completed contract is rejected;
-use linked detail/redo/fix work. Explicitly removed members are retained as retired history, not
-silently marked done. Closed goals keep their history and use a linked follow-up goal.
-
-A review becomes `pending` only after its actual package and entry have passed required checks and
-its export is complete. Each event binds checkpoint, artifact, scene version and that review's
-revision. The current batch revision can advance with independent work. User events carry:
-
-```json
-{"batch_id":"ID", "decision_id":"HOST_EVENT_ID", "action":"approve",
- "checkpoint_ref":"HASH", "artifact_digest":"HASH", "scene":"SCENE",
- "version":1, "revision":0, "observations":{}}
-```
-
-`request_changes` additionally carries the actual `reason`. Scenes may be decided separately;
-manual observations are required for their declared scene. Choice events instead carry
-`action: choice`, `decision`, `version`, `value` and `expected_decision_id` of the decision replaced,
-or null initially. Only the actual operator or pinned host supplies these events.
-
-`batch-feedback --record FILE` accepts `{id, source, description, ...}`. `fixed_review` includes its
-checkpoint and scene; `live_preview` includes its actual observation time/session and known reference,
-which may be uncertain; `requirements` needs no invented run identity. Optional `artifacts` pins
-registered reproduction files. Requesting changes from a review creates feedback automatically.
-`batch-feedback-resolve --record FILE` locates `{id, action: repair, members, diagnosis}` or resolves
-`{id, action: resolve, members, diagnosis, checkpoint_ref}` against current verified results. A scene
-needs a subsequent actual acceptance, not its previous approval. Resolution releases only that
-feedback's temporary references. An explicit scope reduction can record `{id, action: cancel, diagnosis, reason, revision_request}`;
-the request must identify the current plan revision. It records cancellation, never acceptance.
-Unlocated or unresolved feedback prevents final closure.
-
-`batch-notifications` returns durable pending events; `--ack EVENT_ID` records actual host delivery.
-`batch-notify` executes the configured adapter. Retries keep the same event ID; withdrawn reviews
-cannot accept stale approval. Adapter failure retains the event and its error, backs off retries, and does not block independent implementation; withdrawal emits an update event. A host must check the current event before presenting a retry.
-`checkpoint-request --mode observe` remains a diagnostic capture, not acceptance. `--mode review`
-requests a declared tested release without adding a global human hold to independent work.
-
-### Durable proof and owned temporary files
-
-Schema 3 publishes `.scratch/FEATURE/receipts/managed/PROOF.json` and its hash-addressed object closure.
-It includes the contract text, requirement/manual bodies, actual jobs, receipt/logs and consumed
-proof/decision evidence. It can be copied with the feature's history and verified without batch
-runtime directories. It is historical proof, not a way to resume an active batch in another clone.
-`batch-proof-export` explicitly publishes portable copies of retained managed proofs; missing or
-corrupt evidence prevents migration. Retain the originals until the copy verifies.
-
-Temporary files created for an issue belong under its owned feature scratch directory. Register
-`{path, owner, purpose, lifecycle: temporary|asset|evidence|delivery, references: []}` through
-`artifact-register ROOT FEATURE --record FILE`; release the finished producer with
-`artifact-release ROOT FEATURE --owner OWNER`. A shared consumer releases only its own `--consumer`.
-Managed terminal check scratch, including private restored dependencies, is registered automatically.
-Shared developer dependency directories, tracked tests, issue history and durable receipts are not
-transient GC. Unknown root-level files require explicit classification, never age-based deletion.
-
-`gc ROOT FEATURE --apply` rechecks consumers, process state and file identity under the workflow
-lock, persists unlink intents before deletion and reports actual removed bytes plus retained reasons.
-Stage/close cleanup does not run product tests or models. Completed portable-proof batches allow
-obsolete feature wave/preflight caches to be collected. Exported releases and proof objects have
-conservative durable retention: approval never makes a possibly running application disposable.
-Direct human launches need no process scan or lease to remain protected.
 
 ## Executed checks and local candidates
 
@@ -215,108 +154,15 @@ adapter is a real blocked state, not permission to clear resource metadata.
 
 Launch identity is persisted before the command can cross its input gate. `check-recover --run ID
 --reason TEXT` requires the previous controller lock to be free and observes its POSIX process group
-or Windows named Job as terminal before cleanup. It never blindly kills an unknown PID or repeats
-the scenario. A live or unobservable owner remains blocked. Identity/stop/terminal/cleanup/recovered
+or Windows named Job as terminal before cleanup. It never blindly kills an unknown PID or repeats the
+scenario. A live or unobservable owner remains blocked. Identity/stop/terminal/cleanup/recovered
 adapters must be safe to repeat after interruption; their original accepted commands run under the
 resource lock with owner validation and retained time budget. Completed recovery produces incomplete
 evidence, followed by new checks. A cancelled unlaunched run or controller interruption is not a
 product assertion failure. Actual behavior failures remain binding; a passing scenario whose cleanup
 failed may retry unchanged source after actual recovery. Recovery does not refund prior reservations.
 
-`checkpoint-request --mode observe` freezes a view after workers are quiescent and preserves other
-holds. `--mode review` records a review obligation. An incomplete candidate stays diagnostic and routes to
-repair; it never becomes a human approval target. Once green, delivery preparation precedes human waiting. Schema 2 has independent `latest_checkpoint_ref` and `pending_review_ref` fields. Schema 3 keeps per-point reviews and does not impose a global human wait. Identical requests return the original `result_ref`, including
-after sealing; changing the payload under that ID is refused. Schema 2 finishes a pending capture before approval advances its milestone; schema 3 binds approval to its independent review.
-
-`batch-pause --request-id ID --reason TEXT` creates its own hold. `batch-resume --request-id ID`
-releases only that pause. `checkpoint-decide --interactive` reads an exact-version operator decision
-from a terminal. Agents must wait for actual user input; they must not manufacture terminal input.
-For host integration, `review_authority: {kind: hmac, key_sha256: HASH}` pins an external signing key.
-`checkpoint-decide --event FILE` verifies a signed host event using `COSMOS_REVIEW_KEY_FILE` outside
-the project. This protocol authenticates a configured host channel, not an unrestricted same-account
-adversary. There is no event-signing CLI or `actor: human` bypass.
-
-`approve` requires the exact pending green checkpoint and its unchanged runnable delivery. `request_changes` permits bounded repair and
-retains the obligation to review the next candidate. `batch-repair --request-id ID --members REF... --reason TEXT`
-records the diagnosis and starts another verification epoch without refunding budget or erasing
-failures; a combined incident must name its affected members instead of reopening every issue. Existing required gates remain required; default gates remain `none`.
-
-Checkpoint history is immutable content-addressed data under `objects/`. Historical show/diff and
-materialization do not change the active phase or acquire runtime resources. Plain source
-materialization restores code only; it is not a runnable review delivery.
-
-### Runnable review delivery
-
-A human gate or manual obligation projects `prepare_review_delivery` after all technical checks
-pass. The controller prepares a tested fixed directory before publishing its pending review with its
-path, checkpoint and artifact identities. Schema 2 returns the same pending delivery while waiting. Schema 3 retains that delivery and may return independent work; it uses `reviews` and `point_reviews`. Repeated viewing does not rebuild. Human approval checks the delivery bytes and metadata. Observations may update `latest_checkpoint_ref` without replacing a pending review.
-
-Release is selected first from the checkpoint's declared release producers. A job producing
-artifacts declares `release: {argv: [...], requirements: [...]}`; an `artifact_only: true` behavior
-check must consume that producer and execute the **complete same argv**, from its artifact root.
-A passing command with added smoke arguments does not prove an untested shorter launch command.
-Every review entry must have an executable behavior/readiness check appropriate to the application;
-GUI or server harnesses must exercise the declared launch contract, not infer readiness from build
-exit. A project may use PyInstaller, Node SEA + esbuild, another native builder, an installer, or
-its existing packaging system. Build/sign/package actions remain explicit argv jobs. Final signed
-bytes need their own consuming check; signing after verification creates a different artifact.
-
-Optional milestone `review_delivery: {kind: release, check: ID}` selects its producer. The plan-level
-field is a preference when its producer and matching behavior consumer are available at the current
-milestone. Required review stages are validated for complete delivery checks at plan admission.
-Put expensive packaging only in milestones that deliver a release or require package verification.
-Local RED/GREEN and historical/source preview never build automatically. Export reuses retained
-artifacts; it still incurs copy/hash/archive time. No implicit cross-version build cache is trusted.
-
-For a long-running GUI/service, the consuming job declares `application: {argv: [...]}` matching the
-complete release launch entry. The controller owns and records that actual process tree before
-running `lifecycle.assert_baseline` as a bounded readiness check. Then `job.argv` runs the harness
-against that application. Application logs, launch identity, harness results, termination and final
-artifact integrity all enter the receipt. A ready port alone is not a behavior result. Application
-state belongs outside the fixed package. A failed or unobservable shutdown blocks completion.
-An application that exits before controller shutdown fails, even when the harness passed. If the
-harness intentionally closes it, `application.expected_exit: 0` explicitly permits a clean exit;
-other exit codes remain failures.
-
-`checkpoint-export --artifact BUILD` exports a tested release with a manifest and optional verification launcher. Native executables can run directly without
-Python; only `run-release.py` needs Python 3.9+. ZIP supports ordinary files; `.tar.gz` and directory
-export preserve internal links and executable modes needed by native packages and `.app` trees.
-Build and test platform-specific binaries on each target OS/architecture. Native package examples:
-`scripts/check-native-packaging.py`; a dependency-containing zipapp: `scripts/demo-checkpoint-release.py`.
-
-### Live source preview
-
-Plan `source_preview: {argv: [...], requirements: [...]}` declares a task that runs directly in the
-original repository using its existing environment. `batch-source-task` returns the expanded argv,
-cwd and latest checkpoint as a reference. The harness may launch it and use its native browser tools
-while implementation workers continue writing. The command does not launch anything itself, change
-batch state, request yield, take a snapshot, copy dependencies, build, or add a human hold. Use normal
-host process ownership and isolated ports/data for the preview. Shared devices/accounts still need
-their resource owner; the source task is not a bypass for acquiring those resources.
-
-This is a live view and may show edits after the reference node. Feedback may guide current work;
-it supplies no fixed-candidate completion or approval credit. Reading a genuinely fixed older source
-still uses checkpoint-show/diff. Formal fixed-version acceptance binds a tested release.
-
-### Manual observations and budget continuation
-
-Plan `manual_checks: {ID: {instruction: TEXT, issue_refs: [...]}}` records agent-inaccessible checks.
-A milestone may select `required_manual_checks`. Schema 3 requires their union across review points to cover every declared manual obligation; schema 2 carries them all at final.
-Approval carries `observations: {ID: {result: passed, observation: ACTUAL_RESULT}}` for every required
-check. A generic approval, skipped operation, old checkpoint or blank observation cannot close it.
-Manual evidence never changes machine proof or triggers an extra full suite after approval.
-
-`batch-budget --interactive --limits FILE --reason TEXT` permits an actual operator to raise limits
-without discarding the goal or prior consumption. FILE contains `dispatches`, `runs`, `seconds`.
-A pinned host may instead supply a signed `--event` with batch_id, plan_digest, action=extend_budget,
-limits, reason, decision_id and expected_revision. The retained event binds all increases; replay
-is idempotent, changed payloads/lowered limits/stale revisions fail, and holds remain in force.
-
-Each managed batch retains a copy of its runtime alongside state. If installed runtime bytes change,
-`batch-status` returns `runtime_entry`; invoke that frozen `workflow-state.py` to continue. Do not
-rewrite state versions, overwrite an accepted plan or silently reset budgets. The budget command
-changes only authorized limits. Schema 3 supports accepted-scope amendments as immutable plan revisions below. Schema 2 plans remain fixed. Active cross-host migration requires explicit reconciliation; copying a live directory is not migration.
-Historical exported deliverables remain usable subject to their recorded runtime requirements.
+## External runner integration
 
 `scripts/overnight.py` advances active schema-2/3 batches from structured state. Mechanical checks need
 no model call. Implementation runs one assigned issue in the existing native session, retains its
@@ -328,10 +174,12 @@ incident run, persisted with the state), the session only proposes
 runner applies the existing `repair` control with request-id `run-<run_id>`. An identical remedy
 already attempted, a blocked proposal, an invalid artifact, or a refused repair stops at 11 with the
 evidence retained; completion still requires the proof chain, and every repair round draws its bound
-from the goal budget by consuming a real dispatch and check runs. Return codes: 0 closed, 10
-waiting for a person, 11 repair/owner/readiness block, 12 budget/incomplete, 13 revision/runtime
-conflict. It does not infer completion from model exit, an empty queue or a handoff. No additional
-close-out full suite runs.
+from the goal budget by consuming a real dispatch and check runs. It does not infer completion from
+model exit, an empty queue or a handoff. No additional close-out full suite runs. Return codes:
+0 closed, 10 waiting for a person, 11 repair/owner/readiness block, 12 budget/incomplete,
+13 revision/runtime conflict. Lifecycle, session
+and process supervision follow [DRAIN.md](DRAIN.md)'s External runner section and
+[SESSION-REUSE.md](SESSION-REUSE.md).
 
 ```text
 python workflow-state.py batch-prepare ROOT --batch ID
@@ -349,7 +197,10 @@ python workflow-state.py checkpoint-export ROOT --batch ID --checkpoint HASH --a
 ## Compatibility and return codes
 
 Schema 1 remains an admission-only compatibility format. It retains obligations and ownership but
-cannot execute jobs or produce final proof. Use schema 3 for new incremental goals; schema 2 keeps its sequential milestone behavior. Legacy tasks
+cannot execute jobs or produce final proof. Use schema 3 for new incremental goals; schema 2 is
+frozen (bug fixes only, no new execution features) and keeps its sequential milestone behavior.
+The plain-path receipt-conflict barrier remains the lightweight equivalent of schema-3
+decision-event invalidation until the two mechanisms converge. Legacy tasks
 without an active batch keep their established command behavior. Managed commands are lazy imports;
 non-UI paths do not load UI policy/reporters, install browser dependencies or start browsers.
 
@@ -357,6 +208,13 @@ Plans and run intents bind batch identity, workspace, runtime, verifier and sour
 feature wave ledger is the execution authority; batch and ledger publication share a journal
 transaction. Dispatch reserves budget before work, and neither yields nor restarts refund it.
 Issue `pending` is not dispatchable; `ready` enters implementation and `done` requires proof.
+
+Each managed batch retains a copy of its runtime alongside state. If installed runtime bytes change,
+`batch-status` returns `runtime_entry`; invoke that frozen `workflow-state.py` to continue. Do not
+rewrite state versions, overwrite an accepted plan or silently reset budgets. The budget command
+changes only authorized limits ([BATCH-PROOF.md](BATCH-PROOF.md)). Schema 3 supports accepted-scope amendments as immutable plan revisions in
+[BATCH-REVIEW.md](BATCH-REVIEW.md). Schema 2 plans remain fixed. Active cross-host migration requires explicit reconciliation; copying a live directory is not migration.
+Historical exported deliverables remain usable subject to their recorded runtime requirements.
 
 Queries return JSON with phase/status/action/reason_code and exit 0 even when incomplete. Protocol
 errors: invalid arguments/contracts 2, budget or unavailable legacy proof 12, revision/identity/

@@ -58,7 +58,9 @@ card:
    `no-vcs` explicitly when absent. The fingerprint makes later drift visible; it does not promise
    that an environment can never change.
 
-Before card materialization, compare the proposed harness records. Pair ordering and incidental
+Before card materialization, compare the proposed harness records. This is the single-source
+profile-selection algorithm; the profile schema and deviation semantics live in
+[ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md). Pair ordering and incidental
 spacing do not distinguish a fingerprint or prerequisite map. If two or more non-graphical cards
 have the same cwd, fingerprint, prerequisites, and prepare state, `/spec` selects the largest
 sharing group (dependency order breaks a size tie) and writes one schema-2 `verifier.json` before

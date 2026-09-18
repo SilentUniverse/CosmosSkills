@@ -20,7 +20,9 @@ argument-hint: "Issue path, feature slug, -p, -all, -log, or nothing to continue
   request; missing parameters never enlarge authorization.
 - `/tdd <feat>` — drain scoped to one feature's `issues/` directory.
 - `/tdd -p [<feat>]` — **drain (parallel)**: up to four concurrent issues including the main agent's. The main agent normally owns the highest-priority issue and supervises delegated work. Declared collisions serialize; undeclared issues run alone. Rules: [DRAIN.md](DRAIN.md) plus [DRAIN-PARALLEL.md](DRAIN-PARALLEL.md).
-- `/tdd -all` — run build + the whole suite now (§5); combines with any form above.
+- `/tdd -all` — run build + the whole suite now (§5); combines with any form above. During an
+  open `-p` wave it defers to the wave collect and never launches a live-tree suite against
+  open workers.
 - `/tdd -log` — the verdict is a command's log file, not test runs: [LOG.md](LOG.md). Also applies to device runs judged by a log; combines with other forms.
 - Task-scoped entry without an issue: keep a settled outcome, constraints, authorization, and proof
   inline when no queue, delegation, dependency, or contract-history consumer needs a card. File count
@@ -55,7 +57,10 @@ Edge cases — prior `### 完成` on a `ready` issue, or `category: redo`/`fix` 
 
 ## Completion record
 
-Managed batches load [BATCH-FORMAT.md](BATCH-FORMAT.md) for dispatch, background checks, versioned review and feedback. Follow its projected action at safe boundaries; independent work can continue during human review.
+Managed batches load [BATCH-FORMAT.md](BATCH-FORMAT.md) for dispatch and background checks;
+review boundaries load [BATCH-REVIEW.md](BATCH-REVIEW.md) and managed close loads
+[BATCH-PROOF.md](BATCH-PROOF.md). Follow its projected action at safe boundaries; independent work
+can continue during human review.
 
 **Issue-based runs only.** When all AC pass, review this issue's owned diff against its AC, preserve other work, write the completion record, then close to `done`: **[COMPLETION-RECORD.md](COMPLETION-RECORD.md)**.
 

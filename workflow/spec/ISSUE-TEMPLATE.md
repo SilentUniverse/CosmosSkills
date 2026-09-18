@@ -80,14 +80,9 @@ evidence, and true deviations:
 - 偏差 command.NAME：`<replacement command>`（仅有差异时）
 ```
 
-A fingerprint deviation key must already exist. A command deviation may replace a shared name or
-fill a card-local name declared by `completion_commands`. `profile:NAME` resolves through effective
-`commands` at replay and in AC mappings. A schema-2 AC maps to exactly one final `profile:NAME`;
-full command text is limited to one-off P# readiness actions. Graphical-UI issues
+Deviation forms, `profile:NAME` resolution, and the completion-command rule are owned by
+[ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md) (Verifier profile). Graphical-UI issues
 (`experience_review`) stay on contract_version 2.
-
-Every final `NAME` must be listed in schema-2 `completion_commands`; preflight-only names are not
-valid completion evidence. A receipt may claim only the ACs mapped to its verifier.
 
 ## 相关面（Read contract）
 
@@ -112,10 +107,9 @@ check and the person or access needed; it is not an agent-runnable AC.
 
 **Frontmatter** — fill every ordinary field per the schema in [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd).
 
-- Decide shared verifier ownership before creating cards. The largest group of two or more
-  non-graphical cards with the same verifier base uses the already-written schema-2 profile,
-  `contract_version: 3`, and `verifier_schema: 2`. Other groups use v2 because a feature has one
-  profile path. A v3 card records only real fingerprint/command deviations.
+- Decide shared verifier ownership before creating cards by the single-source algorithm in
+  [VERIFICATION-DESIGN.md](VERIFICATION-DESIGN.md); the profile schema and deviation semantics
+  live in [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md).
 - An additive edit upgrades a `ready` legacy issue only after executing its complete 验证设计.
   `done` is immutable.
 - `category` defaults to `enhancement`. `detail`, `redo`, and `fix` require `refines:`; top-level

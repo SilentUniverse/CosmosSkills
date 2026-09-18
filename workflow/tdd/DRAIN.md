@@ -7,9 +7,12 @@ The caller owns the entire requested batch through implementation, integration, 
 
 ## Driver and inputs
 
-An active schema-2 or schema-3 batch uses [BATCH-FORMAT.md](BATCH-FORMAT.md). Follow `batch-step` and
-`batch-run`; its implementation yields, local checks and proof-driven completion replace the
-legacy `green`/`close`/`collect` steps below. Keep the existing ownership and review obligations.
+An active schema-2 or schema-3 batch uses [BATCH-FORMAT.md](BATCH-FORMAT.md) as its execution core;
+human review, revisions, delivery and manual observations load [BATCH-REVIEW.md](BATCH-REVIEW.md)
+at their boundary, and durable proof, budget and managed close load [BATCH-PROOF.md](BATCH-PROOF.md).
+Follow `batch-step` and `batch-run`; its implementation yields, local checks and proof-driven
+completion replace the legacy `green`/`close`/`collect` steps below. Keep the existing ownership
+and review obligations.
 
 Start each scheduling round with:
 
@@ -25,8 +28,18 @@ that queue. This is a deterministic duration-free heuristic, not a measured crit
 estimate. Follow the next action and exact
 command. `next` calculates eligible waves; `dispatch` records
 intent before work; `collect` closes assignments; `audit` checks test ownership before batch close.
-Exit meanings: 0 dispatchable; 3 uncollected work; 4 no dispatchable work; 5 missing shared preflight
-receipt; 6 unresolved contract conflict. Exit 4 alone does not prove all requested work shipped.
+Exit meanings: 0 dispatchable; 1 invalid argument or state; 2 usage error; 3 uncollected work;
+4 no dispatchable work; 5 missing shared preflight receipt; 6 unresolved contract conflict;
+7 retry budget exceeded. Exit 4 alone does not prove all requested work shipped.
+
+The retry budget stops a chronically failing issue from re-entering waves forever: three
+`red`/`blocked` closures since the card's dispatch contract last changed make it ineligible,
+`step`/`next` report exit 7 with a revise-or-park action, and `dispatch` refuses it the same
+way. A `/spec` revision changes the recorded contract digest and resets the count; parking
+(`python <skills-root>/workflow-state.py park <repo-root> <feat> <slug> --reason TEXT`) moves
+the card to `pending` with its recorded reason, out of dispatch and visible in 未竟.
+`green` closes the card; `aborted` and `conflict` outcomes do not consume the budget. Packets
+carry the derived `retry_summary` so the next worker sees the accumulated failure pattern.
 
 Read only sections needed by the returned action. Enumerate `.scratch/*/issues/*.md`, never
 `archive/`, or the named feature's top-level issues. Use status, `blocked_by`, `touches`, and
@@ -126,7 +139,8 @@ bullets below stay the single-sourced brief contract; supply what they name verb
 delegated workers from these immutable inputs before beginning the orchestrator's RED action. Each
 worker receives a self-contained brief:
 
-- Run `/tdd <issue-path>` with inherited `-log`, not drain mode. No nested agents.
+- Execute the issue per [WORKER.md](WORKER.md), the worker entry that replaces invoking `/tdd`,
+  with inherited `-log`. No nested agents and no drain mode.
 - Supply that issue's compact packet from `briefs` and exact receipt-hit token, if
   any. The worker uses the caller-supplied packet directly; do not regenerate it or paste the full
   card/prior Comments. A stale source/status/hash is an attention event, not permission to refresh
@@ -164,6 +178,18 @@ Before collecting a retryable `red` or `blocked` result, retain one compact `###
 card with failure, attempted remedy, confirmed facts, and next action. A later packet projects only
 the newest block, so the next worker gets the missing context without receiving Comments history.
 
+## Wave barrier
+
+One open wave across all features is the reconciliation contract: every worker diffs against the
+same recorded baseline manifest, so a refill would inherit moving sibling edits and turn ownership
+review into an ambiguous multi-baseline merge. While any worker remains open, three refusals hold.
+Do not materialize next-wave packets, briefs, or manifests; they would be stale by construction;
+do not dispatch a refill into the open wave; and let a managed capture wait for the entire wave to
+return. `collect`
+closes all outstanding assignments in one commit after reconciliation; partial collection is
+rejected, and the next wave dispatches only after the ledger closes. This fixed shared-tree
+barrier may leave a short-lived free slot.
+
 ## Collect and recover
 
 Resolve abandoned dispatched work first using [EDGE-CASES.md](EDGE-CASES.md): adopt useful code
@@ -173,7 +199,9 @@ user/concurrent work and `.scratch/**` history. An ambiguous baseline is a reaso
 After every worker is terminal, verify the union of touched modules and reconcile changed paths
 against the baseline and reported owners, excluding `.scratch/**`. Reuse current per-issue results
 only where sibling edits and integration cannot invalidate them; run the remaining scopes once on
-the reconciled tree. Append new tests within admitted ownership to `test_paths` before final receipts;
+the reconciled tree. Check the wave's newly added tests against each other for duplicate coverage
+before final receipts; sibling workers cannot see one another's in-flight tests.
+Append new tests within admitted ownership to `test_paths` before final receipts;
 scope expansion follows [COMPLETION-RECORD.md](COMPLETION-RECORD.md), before writing outside that scope.
 Two workers claiming one path, unowned changes, dependency/lock drift, a nonexistent assigned
 issue, a contradictory test manifest, or broken base build is wave-level failure.
@@ -240,9 +268,12 @@ rewrite a handoff after every interactive wave.
 `scripts/overnight.py` is a process babysitter, not a scheduler. It launches one explicit native
 session on `/tdd -p`, resumes that session whenever it exits before the batch completes, enforces
 the bounded turn/session budget and a no-progress stop, runs independent conflict review in a
-separate session, and verifies that close-out left no dispatchable work. Scheduling, dispatch,
+separate session, and verifies that close-out left no dispatchable work. Its default scope is the
+active goal; without one, name a feature or explicitly pass `--repo`. Scheduling, dispatch,
 preflight, supervision, collect, and recovery follow the same DRAIN contract as an interactive
-run, executed inside that session; `drain-wave.py` is the only wave-computation core. A
+run, executed inside that session; `drain-wave.py` is the only wave-computation core. For an
+active managed batch, its diagnosis/repair control and codes 10/11 live in
+[BATCH-FORMAT.md](BATCH-FORMAT.md)'s External runner integration. A
 session recovers only executions it dispatched: an open execution owned by a dead or foreign
 session is an attention stop for host reconciliation, never recovery material. Close-out
 continues the same session. Only an actual context boundary writes a handoff through `/handoff`.

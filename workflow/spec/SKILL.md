@@ -91,11 +91,11 @@ Before marking an issue ready:
    just-observed action when cwd, prerequisites, preparation, and fingerprint are unchanged.
    Known engineering work with a concrete readiness gap stays `pending` with `pending_reason`; vague future work stays in requirements. Ask only about new consequential
    choices or authority; routine setup is part of this phase.
-3. Choose verifier ownership per verification design. Two or more non-graphical cards sharing a
-   base use the largest sharing group: write `verifier.json` first, then its v3 cards. Other groups
-   and graphical UI use v2. Preserve a profile bound to a done card; use card deviations or v2 for
-   new differences. For opted-in UI, operate the baseline and prove capture/runtime checks before
-   writing the canonical experience contract.
+3. Choose verifier ownership by the single-source algorithm in
+   [VERIFICATION-DESIGN.md](VERIFICATION-DESIGN.md) and write `verifier.json` before its v3 cards.
+   Preserve a profile bound to a done card; new differences use card deviations or v2. For opted-in
+   UI, operate the baseline and prove capture/runtime checks before writing the canonical
+   experience contract.
 4. Write a PRD only when shared scenarios or decisions need one. A tracked delegation may replace
    that PRD with the path/hash stub in [PRD-TEMPLATE.md](PRD-TEMPLATE.md). Chat, URLs, mutable or
    untracked sources become the needed facts in the PRD or self-contained issue. Source location

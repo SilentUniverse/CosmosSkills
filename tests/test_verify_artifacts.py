@@ -1285,5 +1285,73 @@ class VerifyArtifactsV3Tests(unittest.TestCase):
             self.assertIn("legacy", whole_out.getvalue())
 
 
+class OpenRefinesAdvisoryTests(unittest.TestCase):
+    def _card(self, name, category="enhancement", refines=""):
+        refines_line = "refines: %s\n" % refines if refines else ""
+        return (
+            "---\ntype: issue\nfeature: demo\nstatus: ready\ncategory: %s\n%screated: 2026-09-18\n---\n\n"
+            "## 做什么（What to build）\n\nDeliver %s.\n" % (category, refines_line, name),
+            name,
+        )
+
+    def run_cards(self, cards):
+        import importlib.util
+        import tempfile
+        import os
+        spec = importlib.util.spec_from_file_location(
+            "verify_artifacts_advisory", ROOT / "workflow" / "verify-artifacts.py"
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as directory:
+            issues = Path(directory) / ".scratch" / "demo" / "issues"
+            issues.mkdir(parents=True)
+            for body, name in cards:
+                (issues / ("%s.md" % name)).write_text(body, encoding="utf-8")
+            import io
+            from contextlib import redirect_stdout
+            output = io.StringIO()
+            with redirect_stdout(output):
+                code = module.main(["verify-artifacts.py", directory])
+            return code, output.getvalue()
+
+    def test_two_open_cards_refining_one_target_warn_without_failing(self):
+        code, output = self.run_cards(
+            [
+                self._card("00-root"),
+                self._card("01-fix-a", category="fix", refines="00-root"),
+                self._card("02-fix-b", category="fix", refines="00-root"),
+            ]
+        )
+
+        self.assertEqual(0, code, output)
+        self.assertIn("advisory warning", output)
+        self.assertIn("2 open cards refine '00-root'", output)
+
+    def test_deep_open_refines_chain_warns_without_failing(self):
+        code, output = self.run_cards(
+            [
+                self._card("00-root"),
+                self._card("01-fix-a", category="fix", refines="00-root"),
+                self._card("02-fix-b", category="fix", refines="01-fix-a"),
+                self._card("03-fix-c", category="fix", refines="02-fix-b"),
+            ]
+        )
+
+        self.assertEqual(0, code, output)
+        self.assertIn("open redo/fix chain depth 3", output)
+
+    def test_single_open_refinement_stays_silent(self):
+        code, output = self.run_cards(
+            [
+                self._card("00-root"),
+                self._card("01-fix-a", category="fix", refines="00-root"),
+            ]
+        )
+
+        self.assertEqual(0, code, output)
+        self.assertNotIn("advisory warning", output)
+
+
 if __name__ == "__main__":
     unittest.main()
