@@ -677,10 +677,14 @@ def main(argv):
     has_cb = feature is None and os.path.isfile(cb_path)
 
     errors = []
+    warns = []
     n_issues = n_prds = n_handoffs = n_summaries = n_cb_blocks = 0
 
     def err(msg):
         errors.append(msg)
+
+    def warn(msg):
+        warns.append(msg)
 
     profile_cache = {}
 
@@ -1006,6 +1010,7 @@ def main(argv):
                     except (OSError, UnicodeError, ValueError) as exc:
                         err("%s: %s" % (af, exc))
             graph = {}
+            open_refines = []
             ready_v2_environments = {}
             effective_verifiers = {}
             missing_effective = object()
@@ -1275,6 +1280,8 @@ def main(argv):
                 graph[slug] = deps
                 if cat in ("detail", "redo", "fix"):
                     ref = fm.get("refines")
+                    if ref and str(fm.get("status", "")) != "done":
+                        open_refines.append((slug, str(ref)))
                     if ref:
                         if ref not in resolved:
                             sug = ref_suggest(str(ref), list(resolved.keys()), slug)
@@ -1459,12 +1466,51 @@ def main(argv):
             for c in cyclic_slugs(graph):
                 err("%s: in (or depends on) a blocked_by cycle" % by_slug[c])
 
+            open_targets = {}
+            for slug, ref in open_refines:
+                open_targets.setdefault(ref, []).append(slug)
+            for ref, children in sorted(open_targets.items()):
+                if len(children) >= 2:
+                    warn(
+                        "%s: %d open cards refine '%s' (%s) - converge on one owner or park"
+                        " the rest before adding another card"
+                        % (fd, len(children), ref, ", ".join(sorted(children)))
+                    )
+            open_set = {slug for slug, _ in open_refines}
+            open_children = {}
+            for slug, ref in open_refines:
+                if ref in open_set:
+                    open_children.setdefault(ref, []).append(slug)
+
+            def open_chain_depth(slug, seen=()):
+                best = 0
+                for child in open_children.get(slug, ()):
+                    if child in seen:
+                        continue
+                    best = max(best, 1 + open_chain_depth(child, seen + (slug,)))
+                return best
+
+            longest_open_chain = max(
+                (1 + open_chain_depth(slug) for slug in open_set), default=0
+            )
+            if longest_open_chain >= 3:
+                warn(
+                    "%s: open redo/fix chain depth %d - the goal keeps regenerating files;"
+                    " revise the root contract or park the residue"
+                    % (fd, longest_open_chain)
+                )
+
     cfh = os.path.join(scratch, "handoff.md")
     if feature is None and os.path.isfile(cfh):
         check_handoff(cfh, "")
 
     for p in sorted(BAD_UTF8):
         err("%s: not valid UTF-8" % p)
+
+    if warns:
+        print("verify-artifacts: %d advisory warning(s)" % len(warns))
+        for w in warns:
+            print("  %s" % w)
 
     if errors:
         print("verify-artifacts: %d violation(s)" % len(errors))

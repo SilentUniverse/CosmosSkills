@@ -9,6 +9,7 @@ import json
 import os
 import re
 import sys
+from datetime import date
 from pathlib import Path
 from contextlib import redirect_stdout, redirect_stderr
 
@@ -467,6 +468,7 @@ def _packets(root, feature, states, payload=None):
     )
     packets = [_issue_packet(root, feature, slug, path, raw, data, profile)
                for slug, path, raw, data in states]
+    _attach_retry_summaries(root, feature, packets)
     for packet in packets:
         if binding.get("execution") and "effective_verifier" in packet:
             if binding.get("verifier_sha256", {}).get(packet["slug"]) != packet["effective_verifier"]["effective_sha256"]:
@@ -485,7 +487,8 @@ def worker_briefs(root, feature, slugs=(), compact=False):
 
     One brief per outstanding slug: the packet projection, the receipt-hit
     tokens the feature wave ledger recorded for that slug, and the tests-so-far
-    manifest (live done cards' declared `test_paths`, derived, never persisted).
+    manifest (done cards' declared `test_paths`, live and archived, derived,
+    never persisted).
     The brief contract itself stays single-sourced in the tdd skill's DRAIN.md;
     this projection removes hand-assembly without adding policy."""
     root = Path(root).resolve()
@@ -533,7 +536,7 @@ def worker_briefs(root, feature, slugs=(), compact=False):
     result = {
         "schema_version": 1,
         "dispatch": projected["dispatch"],
-        "brief_rules": "tdd/DRAIN.md — worker brief contract",
+        "brief_rules": "tdd/DRAIN.md — worker brief contract; worker entry: tdd/WORKER.md",
         "briefs": [
             {
                 "slug": slug,
@@ -587,6 +590,72 @@ def _wave_driver():
     return module
 
 
+def _attach_retry_summaries(root, feature, packets):
+    debts = _wave_driver().retry_debts(str(root), feature)
+    for packet in packets:
+        debt = debts.get((feature, packet["slug"]))
+        if debt:
+            packet["retry_summary"] = (
+                "%d red/blocked since the last contract change; last result: %s"
+                % (debt["count"], debt["last"])
+            )
+    return packets
+
+
+def park_issue(root, feature, slug, reason):
+    """Park a chronically failing ready card as pending with its recorded reason."""
+    root = Path(root).resolve()
+    reason = " ".join(str(reason).split())
+    if not reason:
+        raise ValueError("park requires --reason TEXT")
+    path = find_issue(root, feature, slug)
+    with transaction(root):
+        raw, data = issue_state(root, feature, path)
+        if data.get("status") != "ready":
+            raise ValueError(
+                "issue '%s' is '%s'; park requires status: ready (a pending card already"
+                " records its gap - edit pending_reason instead)" % (slug, data.get("status"))
+            )
+        if "## 做什么" not in raw:
+            raise ValueError(
+                "issue '%s' has no ## 做什么 section; a pending card must retain its"
+                " concrete goal" % slug
+            )
+        driver = _wave_driver()
+        for wave in driver.open_waves(driver.load_ledger(str(root), feature)):
+            if slug in set(wave.get("dispatched", [])) - set(wave.get("closed", {})):
+                raise ValueError(
+                    "issue '%s' has an uncollected dispatch; reconcile and collect the wave"
+                    " before parking" % slug
+                )
+        parked = "parked %s: %s" % (date.today().isoformat(), reason)
+        lines = raw.splitlines(keepends=True)
+        updated = []
+        scanning = False
+        replaced = False
+        for index, line in enumerate(lines):
+            if index == 0 and line.rstrip("\r\n") == "---":
+                scanning = True
+                updated.append(line)
+                continue
+            if scanning:
+                if line.rstrip("\r\n") == "---":
+                    scanning = False
+                elif line.startswith("status:"):
+                    ending = line[len(line.rstrip("\r\n")):]
+                    updated.append("status: pending" + ending)
+                    updated.append('pending_reason: "%s"\n' % parked.replace('"', "'"))
+                    replaced = True
+                    continue
+                elif line.startswith("pending_reason:"):
+                    continue
+            updated.append(line)
+        if not replaced:
+            raise ValueError("issue '%s' frontmatter has no status field" % slug)
+        write_state(root, path, "".join(updated))
+        return {"feature": feature, "slug": slug, "status": "pending", "pending_reason": parked}
+
+
 def start_issue(root, feature, slug):
     root = Path(root).resolve()
     path = find_issue(root, feature, slug)
@@ -594,6 +663,7 @@ def start_issue(root, feature, slug):
     with transaction(root):
         raw, data = issue_state(root, feature, path)
         packet = _issue_packet(root, feature, slug, path, raw, data)
+        _attach_retry_summaries(root, feature, [packet])
         with redirect_stdout(output), redirect_stderr(output):
             code = _wave_driver().cmd_dispatch(str(root), [slug], direct=True, feature=feature)
         if code:
@@ -1024,6 +1094,11 @@ def parser(include_batch=True):
     close.add_argument("feature")
     close.add_argument("slug")
     close.add_argument("--execution")
+    park = sub.add_parser("park")
+    park.add_argument("root")
+    park.add_argument("feature")
+    park.add_argument("slug")
+    park.add_argument("--reason", required=True)
     stats_cmd = sub.add_parser("stats")
     stats_cmd.add_argument("root")
     return command
@@ -1107,6 +1182,10 @@ def main(argv=None):
         elif args.command == "close":
             output = json.dumps(
                 close_issue(args.root, args.feature, args.slug, args.execution), ensure_ascii=False, indent=2
+            )
+        elif args.command == "park":
+            output = json.dumps(
+                park_issue(args.root, args.feature, args.slug, args.reason), ensure_ascii=False, indent=2
             )
         elif args.command == "stats":
             output = json.dumps(stats(args.root), ensure_ascii=False, indent=2)

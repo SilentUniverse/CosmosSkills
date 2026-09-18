@@ -1373,5 +1373,242 @@ status: done
             self.assertEqual(0, code, output)
 
 
+class RetryBudgetTests(unittest.TestCase):
+    def call(self, fn, *args):
+        if fn is wave.cmd_collect and len(args) == 2:
+            ledgers = sorted((Path(args[0]) / ".scratch").glob("*/wave-ledger.json"))
+            executions = [json.loads(path.read_text(encoding="utf-8"))["waves"][-1].get("execution")
+                          for path in ledgers]
+            args = args + (executions[0] if executions else None,)
+        output = io.StringIO()
+        with redirect_stdout(output), redirect_stderr(output):
+            code = fn(*args)
+        return code, output.getvalue()
+
+    def _red_once(self, root):
+        self.assertEqual(0, self.call(wave.cmd_dispatch, str(root), ["01-one"])[0])
+        self.assertEqual(0, self.call(wave.cmd_collect, str(root), ["01-one=red"])[0])
+
+    def test_dispatch_refuses_after_three_red_results(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "demo" / "issues"
+            issues.mkdir(parents=True)
+            (issues / "01-one.md").write_text(issue_body("pkg"), encoding="utf-8")
+            for _ in range(3):
+                self._red_once(root)
+
+            code, output = self.call(wave.cmd_dispatch, str(root), ["01-one"])
+
+            self.assertEqual(7, code, output)
+            self.assertIn("retry budget", output)
+
+    def test_contract_revision_resets_the_retry_budget(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "demo" / "issues"
+            issues.mkdir(parents=True)
+            issue = issues / "01-one.md"
+            issue.write_text(issue_body("pkg"), encoding="utf-8")
+            for _ in range(3):
+                self._red_once(root)
+            issue.write_text(
+                issue_body("pkg") + "\nrevised contract line\n", encoding="utf-8"
+            )
+
+            code, output = self.call(wave.cmd_dispatch, str(root), ["01-one"])
+
+            self.assertEqual(0, code, output)
+
+    def test_aborted_results_do_not_consume_the_budget(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "demo" / "issues"
+            issues.mkdir(parents=True)
+            (issues / "01-one.md").write_text(issue_body("pkg"), encoding="utf-8")
+            for _ in range(2):
+                self._red_once(root)
+            self.assertEqual(0, self.call(wave.cmd_dispatch, str(root), ["01-one"])[0])
+            self.assertEqual(0, self.call(wave.cmd_collect, str(root), ["01-one=aborted"])[0])
+
+            code, output = self.call(wave.cmd_dispatch, str(root), ["01-one"])
+
+            self.assertEqual(0, code, output)
+
+    def test_step_and_next_report_revise_or_park_when_only_exhausted_work_remains(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "demo" / "issues"
+            issues.mkdir(parents=True)
+            (issues / "01-one.md").write_text(issue_body("pkg"), encoding="utf-8")
+            for _ in range(3):
+                self._red_once(root)
+
+            code, output = self.call(wave.cmd_step, str(root), "demo")
+
+            self.assertEqual(7, code, output)
+            self.assertIn("revise-or-park", output)
+            self.assertIn("retry-budget: 01-one", output)
+
+            code, output = self.call(wave.cmd_next, str(root), "demo")
+            self.assertEqual(7, code, output)
+            self.assertIn("retry-budget: 01-one", output)
+
+    def test_exhausted_issue_does_not_block_independent_work(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "demo" / "issues"
+            issues.mkdir(parents=True)
+            (issues / "01-one.md").write_text(issue_body("pkg/one"), encoding="utf-8")
+            (issues / "02-two.md").write_text(
+                issue_body("pkg/two", action="python -m unittest two"), encoding="utf-8"
+            )
+            for _ in range(3):
+                self.assertEqual(0, self.call(wave.cmd_dispatch, str(root), ["01-one"])[0])
+                self.assertEqual(0, self.call(wave.cmd_collect, str(root), ["01-one=red"])[0])
+
+            code, output = self.call(wave.cmd_step, str(root), "demo")
+
+            self.assertEqual(0, code, output)
+            self.assertIn("action: dispatch 02-two", output)
+            self.assertIn("retry-budget: 01-one", output)
+
+
+class EnvironmentSharingTests(unittest.TestCase):
+    def call(self, fn, *args):
+        output = io.StringIO()
+        with redirect_stdout(output), redirect_stderr(output):
+            code = fn(*args)
+        return code, output.getvalue()
+
+    def test_dispatch_refuses_ready_v2_cards_sharing_one_environment(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "demo" / "issues"
+            issues.mkdir(parents=True)
+            body = """---
+contract_version: 2
+status: ready
+blocked_by: []
+touches: [{touches}]
+test_paths: [tests/{touches}/test_x.py]
+---
+
+## 验证设计
+
+- 工作目录：`.`
+- 环境指纹：`git=abc; lock=none; runtime=python-3; tools=unittest; services=none`
+- 前置条件：`fixtures=none; services=none; permissions=none; network=offline`
+- 准备动作：`无（已就绪）`
+- P1 预检：`{action}` → passed；observed=exit 0；evidence=inline；checked=2026-08-30
+"""
+            (issues / "01-one.md").write_text(
+                body.format(touches="pkg/one", action="python -m unittest one"),
+                encoding="utf-8",
+            )
+            (issues / "02-two.md").write_text(
+                body.format(touches="pkg/two", action="python -m unittest two"),
+                encoding="utf-8",
+            )
+
+            code, output = self.call(wave.cmd_dispatch, str(root), ["01-one", "02-two"])
+
+            self.assertEqual(1, code, output)
+            self.assertIn("sharing one verifier environment", output)
+
+    def test_v1_cards_and_v3_profiles_do_not_trigger_environment_sharing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "demo" / "issues"
+            issues.mkdir(parents=True)
+            (issues / "01-one.md").write_text(issue_body("pkg/one"), encoding="utf-8")
+            (issues / "02-two.md").write_text(
+                issue_body("pkg/two", action="python -m unittest two"), encoding="utf-8"
+            )
+
+            code, output = self.call(wave.cmd_dispatch, str(root), ["01-one", "02-two"])
+
+            self.assertEqual(0, code, output)
+
+    def test_active_profile_or_experience_review_disables_the_sharing_refusal(self):
+        shared = """---
+contract_version: 2
+status: ready
+blocked_by: []
+touches: [{touches}]
+test_paths: [tests/{touches}/test_x.py]
+{extra}---
+
+## 验证设计
+
+- 工作目录：`.`
+- 环境指纹：`git=abc; lock=none; runtime=python-3; tools=unittest; services=none`
+- 前置条件：`fixtures=none; services=none; permissions=none; network=offline`
+- 准备动作：`无（已就绪）`
+- P1 预检：`{action}` → passed；observed=exit 0；evidence=inline；checked=2026-08-30
+"""
+        for extra in (
+            "experience_review: runtime\n",
+            "",
+        ):
+            with tempfile.TemporaryDirectory() as directory, self.subTest(extra=extra):
+                root = Path(directory)
+                issues = root / ".scratch" / "demo" / "issues"
+                issues.mkdir(parents=True)
+                (issues / "01-one.md").write_text(
+                    shared.format(
+                        touches="pkg/one", extra=extra, action="python -m unittest one"
+                    ),
+                    encoding="utf-8",
+                )
+                (issues / "02-two.md").write_text(
+                    shared.format(
+                        touches="pkg/two", extra="", action="python -m unittest two"
+                    ),
+                    encoding="utf-8",
+                )
+                (issues / "03-v3.md").write_text(
+                    issue_body("pkg/three", action="python -m unittest three").replace(
+                        "status: ready",
+                        "status: ready\ncontract_version: 3\nverifier_schema: 2",
+                    ).replace(
+                        "- 工作目录：`.`\n"
+                        "- 环境指纹：`git=abc; lock=none; runtime=python-3;"
+                        " tools=unittest; services=none`\n",
+                        "",
+                    ).replace(
+                        "## 验证设计\n\n",
+                        "## 验证设计\n\n- profile: verifier.json\n",
+                    ),
+                    encoding="utf-8",
+                )
+                (root / ".scratch" / "demo" / "verifier.json").write_text(
+                    json.dumps(
+                        {
+                            "schema_version": 2,
+                            "cwd": ".",
+                            "fingerprint": "git=abc; lock=none; runtime=python-3;"
+                            " tools=unittest; services=none",
+                            "prerequisites": "fixtures=none; services=none;"
+                            " permissions=none; network=offline",
+                            "prepare": "无（已就绪）",
+                            "commands": {"scoped": "python -m unittest three"},
+                            "completion_commands": ["scoped"],
+                        },
+                        ensure_ascii=False,
+                    ),
+                    encoding="utf-8",
+                )
+
+                code, output = self.call(wave.cmd_dispatch, str(root), ["01-one", "02-two"])
+
+                if extra:
+                    self.assertEqual(0, code, output)
+                else:
+                    # the v3 card marks the feature's profile active; the all-v2
+                    # sharing rule no longer applies (spec gate parity)
+                    self.assertEqual(0, code, output)
+
+
 if __name__ == "__main__":
     unittest.main()

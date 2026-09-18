@@ -1054,5 +1054,124 @@ status: ready
             self.assertEqual("done", result["status"])
 
 
+class ParkAndRetrySummaryTests(unittest.TestCase):
+    DECLARED_BODY = """---
+type: issue
+feature: demo
+status: ready
+blocked_by: []
+touches: [pkg]
+test_paths: [tests/pkg/test_x.py]
+---
+
+## 做什么（What to build）
+
+Deliver one.
+
+## 验证设计
+
+- P1 预检：`python -m unittest` → passed；observed=exit 0；evidence=inline；checked=2026-09-18
+"""
+
+    def _dispatch_and_collect(self, root, result):
+        driver = workflow_state._wave_driver()
+        output = io.StringIO()
+        with redirect_stdout(output), redirect_stderr(output):
+            self.assertEqual(0, driver.cmd_dispatch(str(root), ["01-one"]))
+            execution = driver.load_ledger(str(root), "demo")["waves"][-1]["execution"]
+            self.assertEqual(0, driver.cmd_collect(str(root), ["01-one=" + result], execution))
+
+    def test_park_moves_a_ready_card_to_pending_with_reason(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_issue(root, "01-one", status="ready")
+
+            result = workflow_state.park_issue(root, "demo", "01-one", "device unavailable")
+
+            self.assertEqual("pending", result["status"])
+            self.assertTrue(result["pending_reason"].startswith("parked "))
+            card = (root / ".scratch" / "demo" / "issues" / "01-one.md").read_text(encoding="utf-8")
+            self.assertIn("status: pending", card)
+            self.assertIn('pending_reason: "parked ', card)
+            self.assertIn("device unavailable", card)
+
+    def test_park_refuses_pending_done_and_uncollected_cards(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_issue(root, "01-pending", status="pending")
+            plant_issue(root, "02-done", status="done")
+            with self.assertRaises(ValueError):
+                workflow_state.park_issue(root, "demo", "01-pending", "x")
+            with self.assertRaises(ValueError):
+                workflow_state.park_issue(root, "demo", "02-done", "x")
+
+    def test_park_refuses_a_card_with_an_uncollected_dispatch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "demo" / "issues"
+            issues.mkdir(parents=True)
+            (issues / "01-one.md").write_text(self.DECLARED_BODY, encoding="utf-8")
+            driver = workflow_state._wave_driver()
+            output = io.StringIO()
+            with redirect_stdout(output), redirect_stderr(output):
+                self.assertEqual(0, driver.cmd_dispatch(str(root), ["01-one"]))
+
+            with self.assertRaises(ValueError) as raised:
+                workflow_state.park_issue(root, "demo", "01-one", "mid-wave")
+
+            self.assertIn("uncollected dispatch", str(raised.exception))
+
+    def test_retry_summary_derives_from_the_wave_ledger(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "demo" / "issues"
+            issues.mkdir(parents=True)
+            (issues / "01-one.md").write_text(self.DECLARED_BODY, encoding="utf-8")
+            self._dispatch_and_collect(Path(root), "red")
+
+            packets = [{"slug": "01-one"}]
+            workflow_state._attach_retry_summaries(Path(root), "demo", packets)
+
+            self.assertIn(
+                "1 red/blocked since the last contract change",
+                packets[0]["retry_summary"],
+            )
+            self.assertIn("last result: red", packets[0]["retry_summary"])
+
+    def test_park_replaces_a_stale_pending_reason(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "demo" / "issues"
+            issues.mkdir(parents=True)
+            (issues / "01-one.md").write_text(
+                self.DECLARED_BODY.replace(
+                    "status: ready", "status: ready\npending_reason: stale gap"
+                ).replace("## 验证设计", "## 做什么\n\nDeliver one.\n\n## 验证设计"),
+                encoding="utf-8",
+            )
+
+            workflow_state.park_issue(root, "demo", "01-one", "flaky device")
+
+            card = (issues / "01-one.md").read_text(encoding="utf-8")
+            self.assertEqual(1, card.count("pending_reason:"))
+            self.assertNotIn("stale gap", card)
+            self.assertIn("flaky device", card)
+
+    def test_park_refuses_a_card_without_a_goal_section(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "demo" / "issues"
+            issues.mkdir(parents=True)
+            (issues / "01-one.md").write_text(
+                self.DECLARED_BODY.replace("## 做什么（What to build）\n\nDeliver one.\n\n", ""),
+                encoding="utf-8",
+            )
+
+            with self.assertRaises(ValueError) as raised:
+                workflow_state.park_issue(root, "demo", "01-one", "no goal")
+
+            self.assertIn("做什么", str(raised.exception))
+
+
 if __name__ == "__main__":
     unittest.main()

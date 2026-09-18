@@ -385,6 +385,60 @@ def issue_preflight_rows(
     return rows
 
 
+def environment_sharing(
+    repo_root: Path,
+    feature: Optional[str] = None,
+) -> List[Mapping[str, Any]]:
+    """Groups of >=2 ready v2 cards whose inline verifier environment is identical.
+
+    Dispatch backstop for the spec-side rule that such a group must share one
+    `verifier.json` profile; the selection algorithm lives in spec's
+    VERIFICATION-DESIGN. v3 cards resolve their environment through the profile
+    and never match here; cards without an inline environment are skipped.
+    """
+    root = repo_root.resolve()
+    scratch = root / ".scratch"
+    features = [scratch / feature] if feature else sorted(
+        path for path in scratch.iterdir() if path.is_dir()
+    ) if scratch.is_dir() else []
+    groups: List[Mapping[str, Any]] = []
+    for feature_dir in features:
+        issues_dir = feature_dir / "issues"
+        if not issues_dir.is_dir():
+            continue
+        by_env: Dict[Tuple[str, str, str, str], List[str]] = {}
+        profile_active = (feature_dir / "verifier.json").is_file()
+        for issue in sorted(issues_dir.glob("*.md")):
+            lines = issue.read_text(encoding="utf-8-sig").splitlines()
+            card = _frontmatter(lines)
+            if str(card.get("contract_version", "")) == "3":
+                profile_active = True
+            if card.get("status") != "ready" or str(card.get("contract_version", "")) != "2":
+                continue
+            if card.get("experience_review"):
+                continue
+            verification = _verification(lines)
+            env = (
+                _normal_cwd(_bullet(verification, "工作目录")),
+                _normal_fingerprint(_bullet(verification, "环境指纹")),
+                _normal_fingerprint(_bullet(verification, "前置条件")),
+                _bullet(verification, "准备动作").strip(),
+            )
+            if not env[0] or not env[1]:
+                continue
+            by_env.setdefault(env, []).append(issue.stem)
+        if profile_active:
+            # Mirror the spec gate: with an in-use verifier.json the all-v2
+            # sharing rule does not apply; smaller groups stay v2 by design.
+            continue
+        for env, slugs in sorted(by_env.items()):
+            if len(slugs) >= 2:
+                groups.append(
+                    {"feature": feature_dir.name, "slugs": sorted(slugs), "cwd": env[0]}
+                )
+    return groups
+
+
 def duplicate_plan(
     repo_root: Path,
     feature: Optional[str] = None,

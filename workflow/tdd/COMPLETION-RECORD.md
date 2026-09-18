@@ -66,11 +66,10 @@ Run each named final command through `test-supervisor.py` with `--issue <card>`,
 `--receipt` under `.scratch/<feat>/receipts/`, and `--log` under `.scratch/tmp/`. One command covering
 the whole card omits `--ac`; otherwise pass its subset as `--ac 1,3-5` and add one receipt line per
 command. Every selected AC must map to that verifier in `## 验证设计`. The supervisor rejects a
-different cwd, command argv, or output path before execution, then records the card/AC/profile/cwd/
-platform-argv binding. Cwd is stored once at receipt top level, and the effective profile hash owns
-its schema. At `close`, the gate requires receipt union to cover every AC and re-verifies
-each passing exit and transient log hash. Later `done`/archive audits use the durable receipt and do
-not require the ignored log or original checkout path. Coverage comes from bindings, not editable
+different cwd, command argv, or output path before execution; the receipt's field binding and the
+durable revalidation at `close` and later audits are owned by
+[ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md). At `close`, the gate requires receipt union to cover
+every AC. Coverage comes from bindings, not editable
 completion prose.
 The failure challenge and diff-to-AC review still run before completion. Add `审查` only when review found a
 concrete fact worth retaining: `<finding> → 已落在 <test/invariant/revert>`. `close` enforces the same receipt check before
@@ -110,31 +109,7 @@ continues through `/pr` in this task when already requested.
 ## Managed batch completion (protocol 2)
 
 An assigned schema-2/3 batch uses `check-local` for development feedback, then yields the complete
-execution to the controller. Local green or worker exit never marks an issue done. The controller
-runs the accepted checks on the frozen candidate and writes this completion form only after their
-executed receipts cover the issue AC and current contract:
-
-```markdown
-### 完成 — YYYY-MM-DD
-
-- managed-proof: <proof_sha256>
-```
-
-The proof object binds the issue reference, behavior/profile digests, candidate, named verifiers,
-AC union, run IDs and immutable receipt/log hashes. `validate_v3_completion` resolves this shape
-through `workflow_members.validate_proof`; editing the line cannot create evidence. It is an
-alternative to the legacy v3 `验证回执` form above, not an additional receipt to invent. Final
-combined checks and required operator observations remain batch obligations after issue completion.
-Only active-batch failed-verification recovery may reopen its completed members. Follow
-[BATCH-FORMAT.md](BATCH-FORMAT.md) for the controller commands and retained evidence.
-
-
-Schema 3 also publishes a portable proof pointer under
-`.scratch/<feature>/receipts/managed/<proof_sha256>.json` with a complete local object closure.
-It retains actual contract and requirement text, manual steps, jobs, results/logs, upstream proof
-and decision events. Copy that directory with the issue history before dropping execution caches.
-External completed dependencies retain their original contracts and validated completion payloads;
-available managed proof closures are copied too. A legacy done declaration without machine proof
-remains a historical premise, not an upgraded verification claim.
-Proof verification checks bytes and AC coverage; it does not assert the same outcome on changed
-source. An absent or damaged closure keeps the original evidence retained and reports the gap.
+execution to the controller. Local green or worker exit never marks an issue done; the controller
+writes the `managed-proof` completion only after executed receipts cover the issue AC and current
+contract. The completion form, proof-object semantics, and portable closure live in
+[BATCH-PROOF.md](BATCH-PROOF.md).

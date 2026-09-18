@@ -183,7 +183,10 @@ Field rules:
 - **type** — always `issue`.
 - **feature** — the `<feat>` slug; must equal the parent directory name. Lets the consuming
   skills group issues without parsing paths.
-- **status** — `pending`, `ready` and `done`. Pending needs `pending_reason` and a concrete goal; ready records engineering readiness, not human acceptance. A shipped `done` contract is immutable. During its
+- **status** — `pending`, `ready` and `done`. Pending needs `pending_reason` and a concrete goal; ready records engineering readiness, not human acceptance. TDD may park a chronically failing ready
+  card (`workflow-state.py park <repo-root> <feat> <slug> --reason TEXT`), recording `pending`
+  with a `parked <date>: <reason>` prefix; un-parking is a `/spec` revision or explicit
+  re-authorization. A shipped `done` contract is immutable. During its
   active batch, a failed closing check/review may reopen it to `ready` with exact evidence while
   retaining prior completion records. Later behavior changes create redo/fix issues.
   Hands-on checks no agent can run live in the PRD's 端到端验证 or, without a parent PRD, the
@@ -350,11 +353,9 @@ verification. `workflow-state.py gc` may remove it after the batch closes.
 
 ## Verifier profile — `.scratch/<feat>/verifier.json`（contract v3）
 
-Feature-scoped defaults owned by `/spec`. Before writing any issue, compare planned non-graphical
-cards' cwd, fingerprint, prerequisites, and prepare state. If two or more share a base, select the
-largest sharing group (dependency order breaks a size tie) and write `verifier.json` first with its
-named-command union. Single cards and other groups stay v2 because a feature has one profile path;
-PRDs do not copy this readiness data. The feature-scoped `verify-artifacts.py --feature <feat>` gate rejects a newly
+Feature-scoped defaults owned by `/spec`; selection and ownership of the shared profile follow the
+single-source algorithm in [VERIFICATION-DESIGN.md](spec/VERIFICATION-DESIGN.md), and PRDs do not
+copy this readiness data. The feature-scoped `verify-artifacts.py --feature <feat>` gate rejects a newly
 written all-v2 queue when such a sharing group exists, while whole-tree checks remain compatible
 with legacy queues; when a profile is active, it also rejects any ready v2 card that copies that
 profile's environment base instead of referencing it, and rejects an unreferenced profile. Cards
