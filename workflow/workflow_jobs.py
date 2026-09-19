@@ -106,7 +106,7 @@ def cached_run(root, state, plan, check_id, key):
 def admit(root, batch_id, check_id, request_id, development=None):
     with transaction(root):
         state, plan = batch.load_batch(root, batch_id)
-        if state["schema_version"] not in (2, 3) or not isinstance(request_id, str) or not request_id or len(request_id) > 256:
+        if not isinstance(request_id, str) or not request_id or len(request_id) > 256:
             raise ValueError("managed checks require an idempotent request ID")
         run_id = uuid.uuid5(uuid.UUID(batch_id), request_id).hex
         path = _run_path(root, batch_id, run_id)
@@ -129,10 +129,8 @@ def admit(root, batch_id, check_id, request_id, development=None):
                           for ref in wave.get("issue_refs", {}).values()}
             if development["member"] not in references:
                 raise ValueError("development check is outside its assigned issue")
-        elif state["schema_version"] != 3:
-            managed._quiescent(root, state)
         milestone = plan["milestones"][state["milestone_index"]]
-        if not development and (state["phase"] not in (("work", "verify") if state["schema_version"] == 3 else ("verify",)) or state["holds"] or state["checkpoint_request"] or not state["candidate_ref"] or state["final_proof_ref"]):
+        if not development and (state["phase"] not in ("work", "verify") or state["holds"] or state["checkpoint_request"] or not state["candidate_ref"] or state["final_proof_ref"]):
             raise ValueError("verification is not currently admitted")
         if not development and check_id not in milestone["required_checks"]:
             raise ValueError("check is outside the current milestone")
@@ -149,8 +147,8 @@ def admit(root, batch_id, check_id, request_id, development=None):
             if not receipt["passed"] or receipt["candidate_ref"] != state["candidate_ref"] or not receipt["artifact_ref"]:
                 raise ValueError("build artifact does not belong to this candidate")
             artifacts[producer] = receipt["artifact_ref"]
-        reuse_key = cache_key(root, state, plan, check_id, artifacts) if state['schema_version'] == 3 and not development else None
-        inputs = {ref: member_inputs(state, plan, ref) for ref in job['issue_refs']} if state['schema_version'] == 3 else {}
+        reuse_key = cache_key(root, state, plan, check_id, artifacts) if not development else None
+        inputs = {ref: member_inputs(state, plan, ref) for ref in job['issue_refs']}
         intent = batch.digest([state['candidate_ref'], job, state['verification_epoch'], artifacts, inputs,
                                environment_identity(root, job)]) if not development else None
         active = []
@@ -179,9 +177,8 @@ def admit(root, batch_id, check_id, request_id, development=None):
                "verifier_digest": batch.digest(job), "status": "admitted", "receipt_ref": None,
                "seconds_reserved": seconds, "artifact_inputs": artifacts, "verification_epoch": state["verification_epoch"]}
         run["intent"], run["reuse_key"] = intent, reuse_key
-        if state["schema_version"] == 3:
-            run["job"] = job
-            run["member_inputs"] = {ref: member_inputs(state, plan, ref) for ref in job["issue_refs"]}
+        run["job"] = job
+        run["member_inputs"] = {ref: member_inputs(state, plan, ref) for ref in job["issue_refs"]}
         if development:
             run["development"] = development
         state["run_refs"].append(run_id)
@@ -271,7 +268,7 @@ def execute(root, batch_id, run_id):
                 raise ValueError("run may already have launched; reconcile it without repeating side effects")
             development = run.get("development")
             expected_phase = "work" if development else "verify"
-            if state["holds"] or state["checkpoint_request"] or (state["phase"] != expected_phase and not (state["schema_version"] == 3 and not development and state["phase"] == "work")):
+            if state["holds"] or state["checkpoint_request"] or (state["phase"] != expected_phase and not (not development and state["phase"] == "work")):
                 raise ValueError("a stop or checkpoint request prevents launch")
             if development and batch.open_executions(root, state) != [development["execution"]]:
                 raise ValueError("development execution is no longer active")
@@ -443,7 +440,7 @@ def execute(root, batch_id, run_id):
             receipt["application"] = application_observation
         with transaction(root):
             current, current_plan = batch.load_batch(root, batch_id)
-            if current["schema_version"] == 3 and not development and any(member_inputs(current, current_plan, ref) != bound for ref, bound in run["member_inputs"].items()):
+            if not development and any(member_inputs(current, current_plan, ref) != bound for ref, bound in run["member_inputs"].items()):
                 receipt["non_behavior_failure"] = receipt["passed"]
                 receipt["passed"] = False
                 receipt["failures"].append("consumed_dependencies_changed")
@@ -452,7 +449,7 @@ def execute(root, batch_id, run_id):
             state, _ = batch.load_batch(root, batch_id)
             if state["phase"] in ("closed", "aborted"):
                 raise ValueError("terminal batch cannot accept a late execution result")
-            if state["schema_version"] == 3 and not development and any(member_inputs(state, plan, ref) != bound for ref, bound in run["member_inputs"].items()):
+            if not development and any(member_inputs(state, plan, ref) != bound for ref, bound in run["member_inputs"].items()):
                 receipt["non_behavior_failure"] = receipt.get("non_behavior_failure", receipt["passed"])
                 receipt["passed"] = False
                 if "consumed_dependencies_changed" not in receipt["failures"]:
@@ -464,7 +461,7 @@ def execute(root, batch_id, run_id):
                 pass
             elif receipt["passed"]:
                 state["verification"][run["check_id"]] = run_id
-                if state["schema_version"] == 3 and run.get('reuse_key'):
+                if run.get('reuse_key'):
                     current_key = cache_key(root, state, plan, run['check_id'], run['artifact_inputs'])
                     if current_key == run['reuse_key']:
                         state["candidate_cache"][current_key] = run_id
@@ -476,9 +473,8 @@ def execute(root, batch_id, run_id):
                 state["incidents"].append({"run_id": run_id, "receipt_ref": receipt_ref})
                 state["phase"] = "blocked" if not resource_grant["recovered"] else "repair"
             managed.save(root, state)
-        if state["schema_version"] == 3:
-            from workflow_incremental import register_run_artifacts
-            register_run_artifacts(root, state, run, receipt)
+        from workflow_incremental import register_run_artifacts
+        register_run_artifacts(root, state, run, receipt)
         return receipt
 
 
@@ -487,11 +483,11 @@ def validate_receipt(root, state, plan, run_id):
     if run_id not in state["run_refs"] or run["status"] != "terminal" or not run["receipt_ref"]:
         raise ValueError("check has no terminal admitted run")
     receipt = managed._document(root, run["receipt_ref"])
-    if state['schema_version'] == 3 and not run.get('development'):
+    if not run.get('development'):
         retained = batch._json(batch._path(root, state['batch_id']) / 'plans' / (run['plan_digest'] + '.json'))
         if batch.digest(retained) != run['plan_digest'] or retained['jobs'].get(run['check_id']) != run['job']:
             raise ValueError('run job differs from its retained accepted plan')
-    expected = {"batch_id": state["batch_id"], "run_id": run_id, "plan_digest": run["plan_digest"] if state["schema_version"] == 3 else state["plan_digest"],
+    expected = {"batch_id": state["batch_id"], "run_id": run_id, "plan_digest": run["plan_digest"],
                 "candidate_ref": run["candidate_ref"], "check_id": run["check_id"],
                 "verifier_digest": batch.digest(job_for(plan, run)), "milestone": run["milestone"],
                 "verification_epoch": run["verification_epoch"]}

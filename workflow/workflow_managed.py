@@ -33,7 +33,7 @@ def normalize(plan):
         raise ValueError("host signer requires its accepted key fingerprint")
     jobs = plan.get("jobs")
     if not isinstance(jobs, dict) or set(jobs) != set(plan.get("checks", [])):
-        raise batch.BatchError("invalid_plan", "schema 2 requires one executable job for each check", 2)
+        raise batch.BatchError("invalid_plan", "the plan requires one executable job for each check", 2)
     plan.setdefault("inputs", [])
     batch._strings(plan["inputs"], "source inputs")
     for path in plan["inputs"]:
@@ -110,8 +110,8 @@ def normalize(plan):
                 raise ValueError("release entry cannot refer to temporary run data")
         if type(job.get('reuse', False)) is not bool:
             raise ValueError('reuse must be an explicit boolean')
-        if job.get('reuse') and (plan['schema_version'] != 3 or job['resources'] or job['lifecycle'] or application or result['kind'] == 'ui'):
-            raise ValueError('reuse is limited to schema-3 isolated checks without external resource or UI lifecycles')
+        if job.get('reuse') and (job['resources'] or job['lifecycle'] or application or result['kind'] == 'ui'):
+            raise ValueError('reuse is limited to isolated checks without external resource or UI lifecycles')
         for path in batch._strings(job.get('reuse_inputs', []), 'reuse environment inputs'):
             snapshots.checked_path(path)
         closure = job.get('reuse_environment')
@@ -150,13 +150,11 @@ def normalize(plan):
             raise ValueError("managed budget requires positive runs and seconds")
     if type(budget["runs"]) is not int:
         raise ValueError("run budget must be an integer")
-    if plan.get("schema_version") != 3 and plan.get("milestones") and set(manual_for(plan, plan["milestones"][-1])) != set(manual):
-        raise ValueError("final milestone must retain every required manual check")
     return plan
 
 
 def initialize(plan):
-    return {"schema_version": 2, "candidate_ref": None, "run_refs": [], "verification": {},
+    return {"candidate_ref": None, "run_refs": [], "verification": {},
             "requests": {}, "holds": {}, "latest_checkpoint_ref": None, "pending_review_ref": None,
             "checkpoints": [], "milestone_proofs": {}, "incidents": [], "decisions": {}, "controls": {},
             "verification_epoch": 0, "review_obligations": {},
@@ -165,13 +163,10 @@ def initialize(plan):
 
 
 def validate_state(state, plan, root=None):
-    if plan["schema_version"] == 3:
-        from workflow_incremental import validate_state as validate_incremental
-        validate_incremental(state, plan, root)
+    from workflow_incremental import validate_state as validate_incremental
+    validate_incremental(state, plan, root)
     state.setdefault("member_proofs", {})
     state.setdefault("yield_refs", {})
-    if plan["schema_version"] not in (2, 3):
-        raise ValueError("managed state needs a schema 2 plan")
     for field in ("requests", "holds", "verification", "run_budget", "milestone_proofs", "decisions", "controls", "review_obligations"):
         if not isinstance(state.get(field), dict):
             raise ValueError("malformed managed state: " + field)
@@ -201,10 +196,9 @@ def store(root):
 
 
 def save(root, state):
-    if state['schema_version'] == 3:
-        from workflow_incremental import mark_ready
-        plan = batch._json(batch._path(root, state['batch_id']) / 'plans' / (state['plan_digest'] + '.json'))
-        mark_ready(state, plan)
+    from workflow_incremental import mark_ready
+    plan = batch._json(batch._path(root, state['batch_id']) / 'plans' / (state['plan_digest'] + '.json'))
+    mark_ready(state, plan)
     state["revision"] += 1
     batch._store(root, batch._path(root, state["batch_id"]) / "state.json", state)
 
@@ -249,77 +243,6 @@ def validate_observations(checkpoint, observations):
             raise ValueError("manual check is incomplete or failed")
 
 
-def project(state, plan, opened=(), root=None):
-    if state["schema_version"] == 3:
-        from workflow_incremental import project as incremental_project
-        return incremental_project(state, plan, opened, root)
-    milestone = plan["milestones"][state["milestone_index"]]
-    result = {"protocol_version": 2, "batch_id": state["batch_id"], "revision": state["revision"],
-              "phase": state["phase"], "status": "pending", "action": "prepare_checkpoint",
-              "reason_code": "candidate_needed", "milestone": milestone["id"],
-              "required_checks": milestone["required_checks"], "human_gate": milestone["human_gate"],
-              "open_executions": list(opened), "budget": state["budget"], "run_budget": state["run_budget"],
-              "budget_limits": limits(state, plan),
-              "latest_checkpoint_ref": state["latest_checkpoint_ref"], "pending_review_ref": state["pending_review_ref"]}
-    if state["phase"] in ("closed", "aborted"):
-        result.update(status=state["phase"], action=state["phase"], reason_code="batch_" + state["phase"])
-        return result
-    if opened:
-        result.update(action="request_worker_yield" if state["checkpoint_request"] or state["holds"] else "reconcile_execution",
-                      reason_code="open_execution")
-        return result
-    if state["checkpoint_request"]:
-        result.update(reason_code="checkpoint_requested", checkpoint_request=state["checkpoint_request"])
-        return result
-    reference = state["pending_review_ref"]
-    if reference and reference not in state.get("review_deliveries", {}):
-        result.update(action="prepare_review_delivery", reason_code="runnable_delivery_needed")
-        return result
-    if state["holds"]:
-        result.update(status="waiting", action="wait_human", reason_code="control_hold", holds=state["holds"])
-        if reference:
-            result["review_delivery"] = _document(root, state["review_deliveries"][reference])
-        return result
-    if any(not requirement["checks"] for requirement in plan["requirements"]):
-        result.update(status="blocked", action="blocked", reason_code="uncovered_requirements")
-        return result
-    if root is not None:
-        for run_id in state["run_refs"]:
-            run = batch._json(batch._path(root, state["batch_id"]) / "runs" / (run_id + ".json"))
-            if run["status"] != "terminal":
-                result.update(status="blocked", action="reconcile_run", reason_code="unresolved_run", run_id=run_id)
-                return result
-    if state["phase"] == "blocked":
-        result.update(status="blocked", action="blocked", reason_code="reconciliation_required")
-        return result
-    if state["phase"] == "repair":
-        result.update(action="diagnose_incident", reason_code="verification_failed", incidents=state["incidents"][-1:])
-        return result
-    if state["final_proof_ref"]:
-        result.update(action="commit_batch_completion", reason_code="final_proof_ready")
-        return result
-    ready = [member for member in milestone["members"] if state["members"][member]["lane"] == "implement"]
-    checks = milestone["required_checks"]
-    if state["members"]:
-        from workflow_members import ready_members, eligible_checks
-        ready = ready_members(state, milestone)
-        checks = eligible_checks(state, plan, milestone)
-    if ready and state["phase"] == "work":
-        if state["budget"]["dispatches"]["consumed"] >= state["budget"]["dispatches"]["limit"]:
-            result.update(status="blocked", action="blocked", reason_code="budget_exhausted")
-        else:
-            result.update(action="dispatch_work", reason_code="member_work_pending", eligible_members=ready)
-        return result
-    if state["members"] and not ready and not checks:
-        result.update(status="blocked", action="blocked", reason_code="dependency_or_verification_cycle")
-        return result
-    if state["candidate_ref"]:
-        missing = [check for check in checks if check not in state["verification"]]
-        result.update(action="run_verification" if missing else "seal_checkpoint",
-                      reason_code="checks_pending" if missing else "proof_ready", check_id=missing[0] if missing else None)
-    return result
-
-
 @contextlib.contextmanager
 def operation(root):
     with file_lock(batch._directory(root).parent / ".workflow-operation.lock"):
@@ -333,217 +256,6 @@ def _quiescent(root, state):
         run = batch._json(batch._path(root, state["batch_id"]) / "runs" / (run_id + ".json"))
         if run["status"] != "terminal":
             raise ValueError("unresolved run prevents checkpoint capture")
-
-
-def request(root, state, plan, request_id, milestone, mode, expected_revision):
-    if state["schema_version"] == 3:
-        from workflow_incremental import request as incremental_request
-        return incremental_request(root, state, plan, request_id, milestone, mode, expected_revision)
-    if mode not in ("observe", "review") or state["phase"] in ("closed", "aborted"):
-        raise ValueError("invalid checkpoint request")
-    payload = {"request_id": request_id, "milestone": milestone, "mode": mode}
-    previous = state["requests"].get(request_id)
-    if previous:
-        if previous["payload"] != payload:
-            raise ValueError("request ID already has a different payload")
-        return {**batch.batch_status(root, state["batch_id"]), "result_ref": previous["result_ref"]}
-    if state["revision"] != expected_revision or state["checkpoint_request"]:
-        raise batch.BatchError("revision_conflict", "read current revision and resolve the pending request")
-    if milestone != plan["milestones"][state["milestone_index"]]["id"]:
-        raise ValueError("checkpoint request must name current milestone")
-    state["requests"][request_id] = {"payload": payload, "result_ref": None}
-    state["checkpoint_request"] = payload
-    if mode == "review":
-        if state["pending_review_ref"]:
-            raise ValueError("resolve the existing review before requesting another review")
-        state["holds"]["review:" + request_id] = {"kind": "review", "reason": "explicit stop for review"}
-        state["review_obligations"][milestone] = request_id
-    save(root, state)
-    return batch.batch_status(root, state["batch_id"])
-
-
-def prepare(root, batch_id):
-    if batch.load_batch(root, batch_id)[0]["schema_version"] == 3:
-        from workflow_incremental import prepare as incremental_prepare
-        return incremental_prepare(root, batch_id)
-    with operation(root):
-        with transaction(root):
-            state, plan = batch.load_batch(root, batch_id)
-            _quiescent(root, state)
-            if state["members"]:
-                from workflow_members import contracts
-                contracts(root, state, plan)
-            if state["phase"] in ("closed", "aborted"):
-                raise ValueError("terminal batch cannot capture a new candidate")
-            if not state["checkpoint_request"] and state["holds"]:
-                raise ValueError("control hold prevents automatic verification")
-            if not state["checkpoint_request"]:
-                milestone = plan["milestones"][state["milestone_index"]]
-                if state["members"]:
-                    from workflow_members import ready_members, eligible_checks
-                    if ready_members(state, milestone) or not eligible_checks(state, plan, milestone):
-                        raise ValueError("complete eligible implementation before freezing a verification candidate")
-                if state["phase"] not in ("work", "verify") or state["final_proof_ref"]:
-                    raise ValueError("resolve repair or complete the sealed final checkpoint before preparing")
-                state["phase"] = "verify"
-                save(root, state)
-        candidate = snapshots.capture(root, store(root), plan["inputs"])["digest"]
-        with transaction(root):
-            state, plan = batch.load_batch(root, batch_id)
-            _quiescent(root, state)
-            if state["checkpoint_request"]:
-                return seal(root, state, plan, candidate, request_id=state["checkpoint_request"]["request_id"])
-            if state["candidate_ref"] != candidate:
-                state["candidate_ref"], state["verification"] = candidate, {}
-            save(root, state)
-            return batch.batch_status(root, batch_id)
-
-
-def seal(root, state, plan, candidate, request_id=None):
-    from workflow_jobs import validate_receipt
-    milestone = plan["milestones"][state["milestone_index"]]
-    proofs, failed_checks = {}, set()
-    for run_id in state["run_refs"]:
-        run = batch._json(batch._path(root, state["batch_id"]) / "runs" / (run_id + ".json"))
-        if run.get("development"):
-            continue
-        if run["status"] == "terminal" and run["candidate_ref"] == candidate and run["milestone"] == milestone["id"]:
-            receipt = validate_receipt(root, state, plan, run_id)
-            if not receipt["passed"] and not receipt.get("never_launched") and not receipt.get("non_behavior_failure"):
-                failed_checks.add(run["check_id"])
-            if run["verification_epoch"] == state["verification_epoch"]:
-                proofs[run["check_id"]] = {"run_id": run_id, "receipt_ref": run["receipt_ref"], "passed": receipt["passed"]}
-    missing = [check for check in milestone["required_checks"] if check not in proofs or not proofs[check]["passed"] or check in failed_checks]
-    for check in milestone["required_checks"]:
-        if check not in proofs:
-            continue
-        receipt = _document(root, proofs[check]["receipt_ref"])
-        for producer, reference in receipt.get("artifact_inputs", {}).items():
-            if producer not in proofs or _document(root, proofs[producer]["receipt_ref"])["artifact_ref"] != reference:
-                missing.append(check)
-    missing = sorted(set(missing))
-    unfinished = [ref for ref in milestone["members"] if state["members"][ref]["lane"] == "implement"]
-    green = not missing and not unfinished
-    request = state["requests"][request_id]["payload"] if request_id else None
-    if request and request["milestone"] != milestone["id"]:
-        raise ValueError("checkpoint request belongs to another milestone")
-    checkpoint = {"schema_version": 2, "kind": "checkpoint", "batch_id": state["batch_id"],
-                  "source_digest": candidate, "plan_digest": state["plan_digest"], "milestone": milestone["id"],
-                  "verification_epoch": state["verification_epoch"],
-                  "proofs": proofs, "missing_checks": missing, "unfinished_members": unfinished,
-                  "green": green, "purpose": request["mode"] if request else milestone["purpose"],
-                  "request_id": request_id, "contracts": {ref: row["behavior_digest"] for ref, row in state["members"].items()}}
-    if manual_for(plan, milestone):
-        checkpoint["manual_checks"] = manual_for(plan, milestone)
-    reference = snapshots.put(store(root), snapshots.encoded(checkpoint))
-    if reference not in state["checkpoints"]:
-        state["checkpoints"].append(reference)
-    state["latest_checkpoint_ref"] = reference
-    if request_id:
-        state["requests"][request_id]["result_ref"] = reference
-        state["checkpoint_request"] = None
-        if request["mode"] == "review" and green:
-            state["pending_review_ref"] = reference
-            state["phase"] = "await_review"
-        elif request["mode"] == "review":
-            state["holds"].pop("review:" + request_id, None)
-            state["phase"] = "repair"
-            state["incidents"].append({"checkpoint_ref": reference, "reason": "requested candidate is not ready for review"})
-    elif not green:
-        state["phase"] = "repair"
-    elif milestone["human_gate"] == "required" or milestone["id"] in state["review_obligations"] or checkpoint.get("manual_checks"):
-        state["pending_review_ref"] = reference
-        state["holds"]["milestone:" + milestone["id"]] = {"kind": "review", "reason": milestone.get("decision_ref") or state["review_obligations"].get(milestone["id"]) or "required manual observations"}
-        state["phase"] = "await_review"
-    else:
-        _accept(root, state, plan, reference)
-    save(root, state)
-    return {**batch.batch_status(root, state["batch_id"]), "checkpoint_ref": reference, "green": green,
-            "missing_checks": missing, "unfinished_members": unfinished}
-
-
-def _accept(root, state, plan, reference, observations=None):
-    checkpoint = _document(root, reference)
-    if not checkpoint["green"] or checkpoint["plan_digest"] != state["plan_digest"]:
-        raise ValueError("only a green checkpoint of the accepted plan can advance")
-    milestone = plan["milestones"][state["milestone_index"]]
-    if checkpoint["milestone"] != milestone["id"]:
-        raise ValueError("checkpoint belongs to another milestone")
-    validate_observations(checkpoint, observations)
-    state["milestone_proofs"][milestone["id"]] = reference
-    if milestone["purpose"] == "final":
-        state["final_proof_ref"] = reference
-        state["phase"] = "verify"
-    else:
-        state["milestone_index"] += 1
-        state["candidate_ref"], state["verification"] = None, {}
-        state["phase"] = "work"
-
-
-def finalize(root, batch_id):
-    if batch.load_batch(root, batch_id)[0]["schema_version"] == 3:
-        from workflow_incremental import finalize as incremental_finalize
-        return incremental_finalize(root, batch_id)
-    with operation(root):
-        with transaction(root):
-            state, plan = batch.load_batch(root, batch_id)
-            _quiescent(root, state)
-            if state["holds"] or state["checkpoint_request"] or not state["candidate_ref"] or state["phase"] != "verify":
-                raise ValueError("candidate is not ready for automatic sealing")
-        current = snapshots.capture(root, store(root), plan["inputs"])["digest"]
-        with transaction(root):
-            state, plan = batch.load_batch(root, batch_id)
-            if state["holds"] or state["checkpoint_request"]:
-                raise ValueError("a stop arrived before sealing")
-            if current != state["candidate_ref"]:
-                return source_drift(root, state, current)
-            return seal(root, state, plan, current)
-
-
-def source_drift(root, state, current):
-    state["incidents"].append({"kind": "source_drift", "previous": state["candidate_ref"], "current": current})
-    state["phase"], state["final_proof_ref"] = "repair", None
-    save(root, state)
-    return batch.batch_status(root, state["batch_id"])
-
-
-def close(root, state, plan, current):
-    if state["schema_version"] == 3:
-        from workflow_incremental import close as incremental_close
-        return incremental_close(root, state, plan, current)
-    from workflow_jobs import validate_receipt
-    _quiescent(root, state)
-    if state["members"]:
-        from workflow_members import contracts
-        contracts(root, state, plan)
-    reference = state["final_proof_ref"]
-    if not reference or state["holds"] or state["checkpoint_request"] or state["phase"] != "verify":
-        raise batch.BatchError("final_proof_unavailable", "required final proof or decision is incomplete", 12)
-    proof = _document(root, reference)
-    if proof.get("manual_checks"):
-        matching = [_document(root, value)["event"] for value in state["decisions"].values()
-                    if _document(root, value)["event"].get("checkpoint_ref") == reference
-                    and _document(root, value)["event"].get("action") == "approve"]
-        if not matching:
-            raise ValueError("final checkpoint has no operator evidence for required manual checks")
-        validate_observations(proof, matching[-1].get("observations"))
-    final = plan["milestones"][-1]
-    if (not proof["green"] or proof["milestone"] != final["id"] or proof["plan_digest"] != state["plan_digest"]
-            or proof["verification_epoch"] != state["verification_epoch"]
-            or set(state["member_proofs"]) != set(state["members"])
-            or any(entry["id"] not in state["milestone_proofs"] for entry in plan["milestones"])
-            or any(not requirement["checks"] for requirement in plan["requirements"])):
-        raise ValueError("final checkpoint does not cover the accepted plan")
-    for check in final["required_checks"]:
-        receipt = validate_receipt(root, state, plan, proof["proofs"][check]["run_id"])
-        if not receipt["passed"] or receipt["candidate_ref"] != proof["source_digest"]:
-            raise ValueError("required check does not prove the final candidate")
-    if current != proof["source_digest"]:
-        return source_drift(root, state, current)
-    state["phase"] = "closed"
-    save(root, state)
-    batch._store(root, batch._directory(root) / "active.json", {"batch_id": None})
-    return batch.batch_status(root, state["batch_id"])
 
 
 def show(root, batch_id, reference, path=None):
@@ -570,7 +282,7 @@ def control(root, batch_id, request_id, action, reason=None, members=None):
         raise ValueError("control needs a bounded request ID")
     with transaction(root):
         state, plan = batch.load_batch(root, batch_id)
-        if state["schema_version"] not in (2, 3) or state["phase"] in ("closed", "aborted"):
+        if state["phase"] in ("closed", "aborted"):
             raise ValueError("control requires an active managed batch")
         key = action + ":" + request_id
         payload = {"action": action, "reason": reason}
@@ -594,12 +306,8 @@ def control(root, batch_id, request_id, action, reason=None, members=None):
             _quiescent(root, state)
             if state["phase"] != "repair" or state["holds"] or state["checkpoint_request"] or not reason or not reason.strip():
                 raise ValueError("repair needs a diagnosis and no pending stop")
-            if state["schema_version"] == 3:
-                from workflow_incremental import repair_members
-                repair_members(root, state, plan, members)
-            elif state["members"]:
-                from workflow_members import reopen_failed
-                reopen_failed(root, state, plan)
+            from workflow_incremental import repair_members
+            repair_members(root, state, plan, members)
             state["verification_epoch"] += 1
             state["candidate_ref"], state["verification"], state["final_proof_ref"] = None, {}, None
             milestone = plan["milestones"][state["milestone_index"]]
@@ -608,80 +316,6 @@ def control(root, batch_id, request_id, action, reason=None, members=None):
         else:
             raise ValueError("unknown control action")
         state["controls"][key] = payload
-        save(root, state)
-        return batch.batch_status(root, batch_id)
-
-
-def decide(root, batch_id, event_path=None, interactive=False):
-    if batch.load_batch(root, batch_id)[0]["schema_version"] == 3:
-        from workflow_incremental import decide as incremental_decide
-        return incremental_decide(root, batch_id, event_path, interactive)
-    import sys
-    state, plan = batch.load_batch(root, batch_id)
-    authority = plan["review_authority"]
-    if interactive:
-        if event_path or authority["kind"] != "terminal" or not sys.stdin.isatty() or not sys.stderr.isatty():
-            raise ValueError("terminal review needs an interactive operator; the agent must wait for a user decision")
-        reference = state["pending_review_ref"]
-        if not reference:
-            raise ValueError("no checkpoint is waiting for review")
-        checkpoint = show(root, batch_id, reference)
-        print(json.dumps(checkpoint, ensure_ascii=False, indent=2), file=sys.stderr)
-        print("Enter 'approve <full checkpoint hash>' or 'request_changes <reason>':", file=sys.stderr)
-        response = sys.stdin.readline().strip()
-        if response == "approve " + reference:
-            action, reason = "approve", "interactive operator accepted the displayed checkpoint"
-        elif response.startswith("request_changes ") and response[16:].strip():
-            action, reason = "request_changes", response[16:].strip()
-        else:
-            raise ValueError("no matching operator decision")
-        event = {"batch_id": batch_id, "checkpoint_ref": reference, "action": action,
-                 "reason": reason, "decision_id": uuid.uuid4().hex}
-        if action == "approve" and checkpoint.get("manual_checks"):
-            observations = {}
-            for name, row in checkpoint["manual_checks"].items():
-                print(name + ": " + row["instruction"] + "\nEnter 'passed <actual observation>':", file=sys.stderr)
-                response = sys.stdin.readline().strip()
-                if not response.startswith("passed ") or not response[7:].strip():
-                    raise ValueError("manual operation was not confirmed")
-                observations[name] = {"result": "passed", "observation": response[7:].strip()}
-            event["observations"] = observations
-        source = "interactive_terminal"
-    else:
-        if not event_path or authority["kind"] != "hmac":
-            raise ValueError("noninteractive decisions require an accepted host signing authority")
-        event, source = host_event(root, authority, event_path)
-    if (set(event) - {"observations"} != {"batch_id", "checkpoint_ref", "action", "reason", "decision_id"}
-            or event["batch_id"] != batch_id or event["action"] not in ("approve", "request_changes")
-            or any(not isinstance(event[field], str) or not event[field].strip() for field in event if field != "observations")
-            or len(event["decision_id"]) > 256):
-        raise ValueError("invalid review event")
-    with transaction(root):
-        state, plan = batch.load_batch(root, batch_id)
-        decision_id = event["decision_id"]
-        previous = state["decisions"].get(decision_id)
-        if previous:
-            if _document(root, previous) != {"event": event, "source": source}:
-                raise ValueError("decision ID was already used for another event")
-            return batch.batch_status(root, batch_id)
-        reference = event["checkpoint_ref"]
-        if state["pending_review_ref"] != reference or state["phase"] in ("closed", "aborted"):
-            raise ValueError("decision does not name the pending checkpoint")
-        if state["checkpoint_request"]:
-            raise ValueError("seal the pending observation before advancing the reviewed milestone")
-        _quiescent(root, state)
-        checkpoint = _document(root, reference)
-        if event["action"] == "approve":
-            verify_delivery(root, state, reference)
-            _accept(root, state, plan, reference, event.get("observations"))
-            state["review_obligations"].pop(checkpoint["milestone"], None)
-        else:
-            state["phase"], state["final_proof_ref"] = "repair", None
-            state["incidents"].append({"checkpoint_ref": reference, "decision_id": decision_id, "reason": event["reason"]})
-        hold = "review:" + checkpoint["request_id"] if checkpoint["request_id"] else "milestone:" + checkpoint["milestone"]
-        state["holds"].pop(hold, None)
-        state["pending_review_ref"] = None
-        state["decisions"][decision_id] = snapshots.put(store(root), snapshots.encoded({"event": event, "source": source}))
         save(root, state)
         return batch.batch_status(root, batch_id)
 
@@ -758,43 +392,6 @@ def extend_budget(root, batch_id, event_path=None, interactive=False, limits_pat
         return batch.batch_status(root, batch_id)
 
 
-def drive(root, batch_id, max_steps=100):
-    with file_lock(batch._directory(root).parent / ".workflow-runner.lock"):
-        return advance_owned(root, batch_id, max_steps)
-
-
-def advance_owned(root, batch_id, max_steps=100):
-    """Advance with the caller holding this workspace's runner lock."""
-    if batch.load_batch(root, batch_id)[0]["schema_version"] == 3:
-        from workflow_incremental import drive as incremental_drive
-        return incremental_drive(root, batch_id, max_steps)
-    from workflow_jobs import admit, execute
-    for _ in range(max_steps):
-        current = batch.batch_status(root, batch_id)
-        action = current["action"]
-        if action == "prepare_checkpoint":
-            prepare(root, batch_id)
-        elif action == "run_verification":
-            state, _ = batch.load_batch(root, batch_id)
-            request_id = "%s:%s:%d" % (state["candidate_ref"], current["check_id"], state["run_budget"]["runs"])
-            run = admit(root, batch_id, current["check_id"], request_id)
-            if run.get("shared"):
-                return batch.batch_status(root, batch_id)
-            execute(root, batch_id, run["run_id"])
-        elif action == "seal_checkpoint":
-            finalize(root, batch_id)
-        elif action == "commit_batch_completion":
-            batch.close_batch(root, batch_id, current["revision"])
-        elif action == "prepare_review_delivery":
-            prepare_delivery(root, batch_id)
-        else:
-            if current.get("schema_version") == 3:
-                from workflow_incremental import deliver_notifications
-                current["notification_delivery"] = deliver_notifications(root, batch_id)
-            return current
-    return {**batch.batch_status(root, batch_id), "driver_limit_reached": True}
-
-
 RELEASE_LAUNCHER = '''"""Verify this fixed candidate before launching it; requires Python 3.9+."""
 import hashlib
 import json
@@ -842,10 +439,9 @@ def export_release(root, batch_id, reference, check_id, destination, archive=Non
         raise ValueError("release export requires a green fixed checkpoint")
     if check_id not in checkpoint["proofs"]:
         raise ValueError("delivery check was not executed for this checkpoint")
-    if state["schema_version"] == 3:
-        plan = batch._json(batch._path(root, batch_id) / "plans" / (checkpoint["plan_digest"] + ".json"))
-        if batch.digest(plan) != checkpoint["plan_digest"]:
-            raise ValueError("retained release plan changed")
+    plan = batch._json(batch._path(root, batch_id) / "plans" / (checkpoint["plan_digest"] + ".json"))
+    if batch.digest(plan) != checkpoint["plan_digest"]:
+        raise ValueError("retained release plan changed")
     release = plan["jobs"][check_id].get("release")
     if not release:
         raise ValueError("build job needs a declared launch entry and runtime requirements")
@@ -927,39 +523,6 @@ def check_delivery_files(root, delivery):
     actual = {p.relative_to(directory).as_posix() for p in directory.rglob("*") if p.is_file() or p.is_symlink()}
     if actual != set(snapshots.load(store(root), delivery["artifact_digest"])["files"]) | set(delivery["metadata"]):
         raise ValueError("review delivery file set changed")
-
-
-def prepare_delivery(root, batch_id):
-    if batch.load_batch(root, batch_id)[0]["schema_version"] == 3:
-        from workflow_incremental import prepare_delivery as incremental_delivery
-        return incremental_delivery(root, batch_id)
-    with operation(root):
-        with transaction(root):
-            state, plan = batch.load_batch(root, batch_id)
-            _quiescent(root, state)
-            reference = state["pending_review_ref"]
-            if not reference:
-                raise ValueError("no completed checkpoint needs a review delivery")
-            if reference in state.get("review_deliveries", {}):
-                return verify_delivery(root, state, reference)
-            checkpoint = show(root, batch_id, reference)
-            milestone = next(row for row in plan["milestones"] if row["id"] == checkpoint["milestone"])
-            target = delivery_target(plan, milestone, checkpoint["proofs"])
-            if not target:
-                raise batch.BatchError("review_delivery_missing", "accepted checks need a tested release entry before fixed-version human review", 2)
-        destination = batch._path(root, batch_id) / "reviews" / (reference + "-" + uuid.uuid4().hex[:8])
-        result = export_release(root, batch_id, reference, target["check"], destination)
-        result["kind"] = "release"
-        result["metadata"] = {name: hashlib.sha256((destination / name).read_bytes()).hexdigest()
-                              for name in ("release-manifest.json", "run-release.py", "RELEASE.txt")}
-        check_delivery_files(root, result)
-        with transaction(root):
-            state, _ = batch.load_batch(root, batch_id)
-            if state["pending_review_ref"] != reference:
-                raise ValueError("pending review changed during delivery preparation")
-            state.setdefault("review_deliveries", {})[reference] = snapshots.put(store(root), snapshots.encoded(result))
-            save(root, state)
-            return batch.batch_status(root, batch_id)
 
 
 def source_task(root, batch_id):

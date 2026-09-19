@@ -1,16 +1,16 @@
 # Managed batches — `.scratch/batches/<batch_id>/`
 
-Execution core for an active schema-2/3 batch: plan semantics, dispatch, checks, admission and
+Execution core for an active managed batch: plan semantics, dispatch, checks, admission and
 job execution. Human review, revisions, delivery and manual observations load
 [BATCH-REVIEW.md](BATCH-REVIEW.md) at their boundary; durable proof, budget and managed close load
 [BATCH-PROOF.md](BATCH-PROOF.md).
 
-## Schema 3: incremental collaboration
+## Incremental collaboration
 
 Test trigger, quality, performance and retirement rules live in [test policy](../TEST-POLICY.md).
 Jobs may declare `measurement_context` for comparable cost reports.
 
-Use schema 3 for rolling plans, independent implementation during human review, versioned decisions,
+Open a managed batch for rolling plans, independent implementation during human review, versioned decisions,
 and portable proof. This is the internal execution protocol for Spec/TDD/TIDY, not a fourth user entry.
 A simple settled task may stay inline; open a batch when its coordination or retention is needed.
 
@@ -20,7 +20,7 @@ dependencies, authorization and resources may still block dispatch. `done` means
 proof, separate from human acceptance. Pending cards retain their goal and dependencies even before
 verifier preparation; restoring them takes priority when otherwise-ready consumers cannot run.
 
-In addition to the common fields, a schema-3 plan declares:
+In addition to the common fields, a plan declares:
 
 - `requirements`: `{id, body, checks}`. Bodies are retained, not only PRD links. Empty checks keep an
   uncovered requirement visible and prevent closure. A point may select requirement IDs through
@@ -78,7 +78,7 @@ or human decision requires the harness. It does not start a model or claim a wor
 Both issue batches and verification-only batches (`members: []`) freeze inputs, execute checks in
 isolated restorations, seal exact proof sets and close only on complete passing final proof.
 Jobs bind `issue_refs` and `ac_map`; v3 cards also retain `verifier_names`, exact accepted argv/cwd,
-AC mapping and actual preflight receipts. Schema 2 requires readiness before admission; schema 3 also retains pending members with concrete readiness gaps. A status
+AC mapping and actual preflight receipts. Readiness is required before admission; pending members with concrete readiness gaps are retained. A status
 field alone does not establish completion or replace an executed proof.
 
 Dispatch only the returned eligible members with the existing `start`/`dispatch` ownership path.
@@ -99,7 +99,7 @@ workers; a model-written terminal statement is not host process evidence. Yield 
 Passing current-candidate checks covering an issue's AC generate its completion proof and unlock
 dependents. A later integration check does not prevent earlier local AC proof; all required final
 checks still run on the combined candidate. Failed final checks reopen their owners within the
-same batch. Schema 3 requires diagnosis to locate the affected members; an unmapped combined failure cannot implicitly reopen every issue.
+same batch. Diagnosis must locate the affected members; an unmapped combined failure cannot implicitly reopen every issue.
 
 Source snapshots include tracked actual bytes, deletion tombstones and declared untracked inputs.
 They preserve the Git index and HEAD. Parent links, external links, unresolved Git state, incomplete
@@ -109,7 +109,7 @@ uncooperative same-account writer that changes and restores bytes between observ
 ### Reuse and admission
 
 Default reuse is disabled; missing closure means rerun.
-Schema-3 jobs may opt into `reuse: true` only for isolated checks without external state, real-time or
+Jobs may opt into `reuse: true` only for isolated checks without external state, real-time or
 random-dependent results. UI, resource and application lifecycle jobs cannot use this cache.
 `reuse_environment: {"paths": [...], "external_state": "none"}` explicitly declares the complete
 materialized runtime/dependency closure. Paths may be absolute or relative to the repository.
@@ -164,7 +164,7 @@ failed may retry unchanged source after actual recovery. Recovery does not refun
 
 ## External runner integration
 
-`scripts/overnight.py` advances active schema-2/3 batches from structured state. Mechanical checks need
+`scripts/overnight.py` advances active managed batches from structured state. Mechanical checks need
 no model call. Implementation runs one assigned issue in the existing native session, retains its
 actual terminal observation, then yields to proof. A verification failure continues in the same
 session: the runner admits one bounded diagnosis through the `diagnose` control (idempotent per
@@ -196,11 +196,10 @@ python workflow-state.py checkpoint-export ROOT --batch ID --checkpoint HASH --a
 
 ## Compatibility and return codes
 
-Schema 1 remains an admission-only compatibility format. It retains obligations and ownership but
-cannot execute jobs or produce final proof. Use schema 3 for new incremental goals; schema 2 is
-frozen (bug fixes only, no new execution features) and keeps its sequential milestone behavior.
-The plain-path receipt-conflict barrier remains the lightweight equivalent of schema-3
-decision-event invalidation until the two mechanisms converge. Legacy tasks
+Plans pin `schema_version: 3`; state written in the retired formats (schema 1 or 2) is refused,
+and `workflow-state.py batch-prune` disposes their directories — schema 1 in any phase, schema 2
+once terminal. A live schema-2 batch continues via its own frozen runtime. The plain-path receipt-conflict barrier remains the
+lightweight equivalent of managed decision-event invalidation until the two mechanisms converge. Legacy tasks
 without an active batch keep their established command behavior. Managed commands are lazy imports;
 non-UI paths do not load UI policy/reporters, install browser dependencies or start browsers.
 
@@ -212,8 +211,8 @@ Issue `pending` is not dispatchable; `ready` enters implementation and `done` re
 Each managed batch retains a copy of its runtime alongside state. If installed runtime bytes change,
 `batch-status` returns `runtime_entry`; invoke that frozen `workflow-state.py` to continue. Do not
 rewrite state versions, overwrite an accepted plan or silently reset budgets. The budget command
-changes only authorized limits ([BATCH-PROOF.md](BATCH-PROOF.md)). Schema 3 supports accepted-scope amendments as immutable plan revisions in
-[BATCH-REVIEW.md](BATCH-REVIEW.md). Schema 2 plans remain fixed. Active cross-host migration requires explicit reconciliation; copying a live directory is not migration.
+changes only authorized limits ([BATCH-PROOF.md](BATCH-PROOF.md)). The plan supports accepted-scope amendments as immutable plan revisions in
+[BATCH-REVIEW.md](BATCH-REVIEW.md). Active cross-host migration requires explicit reconciliation; copying a live directory is not migration.
 Historical exported deliverables remain usable subject to their recorded runtime requirements.
 
 Queries return JSON with phase/status/action/reason_code and exit 0 even when incomplete. Protocol

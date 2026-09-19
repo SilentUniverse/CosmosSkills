@@ -39,10 +39,14 @@ class InstallerTests(unittest.TestCase):
             self.assertEqual(0, json.loads(report.stdout)['runs'])
             project = probe / "project"
             project.mkdir()
+            (project / "check.py").write_text("print(42)\n", encoding="utf-8")
             plan = project / "plan.json"
-            plan.write_text(json.dumps({"schema_version": 1, "members": [], "checks": ["regression"],
-                                       "requirements": [{"id": "R1", "checks": ["regression"]}],
+            plan.write_text(json.dumps({"schema_version": 3, "members": [], "checks": ["regression"],
+                                       "requirements": [{"id": "R1", "body": "The installed CLI retains the final obligation.", "checks": ["regression"]}],
                                        "milestones": [{"id": "final", "purpose": "final", "members": [], "required_checks": ["regression"]}],
+                                       "jobs": {"regression": {"argv": ["{python}", "check.py"], "timeout": 30,
+                                                              "result": {"kind": "predicate", "stdout_equals": "42"}}},
+                                       "inputs": ["check.py"],
                                        "budget": {"dispatches": 1}}), encoding="utf-8")
             env = {key: value for key, value in os.environ.items() if key != "PYTHONPATH"}
             opened = subprocess.run([sys.executable, "-I", "-B", str(target / "workflow-state.py"),

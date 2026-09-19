@@ -75,6 +75,10 @@ run `verify-artifacts.py` over the scope:
   `spec-review.py render`. Recording acceptance (`accept`) needs the human's explicit approval;
   tidy never infers it. A live feature whose PRD carries no R/D/S anchors routes to `/spec` for
   anchoring first.
+- A batch directory whose state declares a retired format (schema 1 or 2) is disposed through
+  `workflow-state.py batch-prune`; `--apply` deletes schema-1 directories in any phase and
+  schema-2 directories once terminal. A live schema-2 batch continues via its frozen runtime or
+  is aborted first; deleting the directory a stale active index names clears that index.
 
 Delete what the current model has no reader for: superseded planning drafts whose decisions landed
 elsewhere (the landed record keeps the citation), legacy `SUMMARY.md` copies once `/cosmos-setup`

@@ -110,7 +110,7 @@ class IncrementalWorkflowTests(unittest.TestCase):
 
     def test_completed_reuse_is_opt_in_and_binds_installed_dependency_bytes(self):
         from workflow_jobs import admit, execute
-        from workflow_managed import prepare
+        from workflow_incremental import prepare
         dependency = self.root / 'installed'
         dependency.mkdir()
         (dependency / 'module.py').write_text('VERSION = 1')
@@ -132,7 +132,7 @@ class IncrementalWorkflowTests(unittest.TestCase):
 
     def test_completed_checks_without_closed_environment_are_executed_again(self):
         from workflow_jobs import admit, execute
-        from workflow_managed import prepare
+        from workflow_incremental import prepare
         plan = self.simple()
         plan['jobs']['answer']['reuse'] = True
         self.open(plan)
@@ -144,7 +144,7 @@ class IncrementalWorkflowTests(unittest.TestCase):
 
     def test_cache_identity_binds_check_tool_and_environment(self):
         from workflow_jobs import cache_key
-        from workflow_managed import prepare
+        from workflow_incremental import prepare
         from unittest import mock
         executable = self.root / 'tool'
         executable.write_bytes(b'tool-v1')
@@ -171,7 +171,7 @@ class IncrementalWorkflowTests(unittest.TestCase):
 
     def test_dependency_symlink_cycle_disables_reuse_without_blocking_completion(self):
         from workflow_jobs import admit, execute, cache_key
-        from workflow_managed import prepare
+        from workflow_incremental import prepare
         dependency = self.root / 'dependency'
         dependency.write_bytes(b'installed-v1')
         loop_a, loop_b = self.root/'loop-a', self.root/'loop-b'
@@ -195,7 +195,7 @@ class IncrementalWorkflowTests(unittest.TestCase):
 
     def test_failed_check_cannot_enter_completed_cache(self):
         from workflow_jobs import admit, execute
-        from workflow_managed import prepare
+        from workflow_incremental import prepare
         plan = self.simple()
         plan['jobs']['answer'].update(reuse=True, reuse_environment={'paths': ['build.py'], 'external_state': 'none'})
         (self.root / 'app.py').write_text('print(0)')
@@ -556,20 +556,11 @@ class IncrementalWorkflowTests(unittest.TestCase):
             store.read_proof(self.root,self.member,proof_ref,self.issue.read_text(encoding='utf-8'))
 
     def test_portable_proof_copies_managed_dependency_from_prior_goal(self):
-        self.assert_external_managed_proof(3)
-
-    def test_portable_proof_exports_schema2_dependency_before_cleanup(self):
-        self.assert_external_managed_proof(2)
-
-    def assert_external_managed_proof(self, schema):
         parent_plan = self.member_plan()
-        parent_plan['schema_version'] = schema
         self.open(parent_plan)
         self.yield_member(self.cli('start','demo','01-work')['execution'])
         self.assertEqual('closed',self.cli('batch-run','--batch',self.id)['status'])
         parent_proof = self.state()['member_proofs'][self.member]
-        if schema == 2:
-            self.assertFalse((self.root/'.scratch/demo/receipts/managed'/(parent_proof+'.json')).exists())
         child = self.issue.with_name('02-child.md')
         child.write_text('---\ntype: issue\nfeature: demo\nstatus: ready\ntouches: [app.py]\ntest_paths: [app.py]\nblocked_by: [01-work]\n---\n## 做什么\nUse the prior completed behavior.\n', encoding='utf-8')
         self.member = 'demo/02-child'

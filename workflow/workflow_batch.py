@@ -45,7 +45,7 @@ def runtime_files(plan=None):
              "checkpoint_store.py", "workflow_managed.py", "workflow_jobs.py", "workflow_resources.py", "workflow_incremental.py")
     if plan and any(job["result"]["kind"] == "ui" for job in plan.get("jobs", {}).values()):
         paths += ("workflow_ui.py",)
-    if plan and plan["schema_version"] in (2, 3) and plan["members"]:
+    if plan:
         paths += ("workflow_members.py", "tdd/scripts/preflight-receipt.py")
     return paths
 
@@ -179,14 +179,14 @@ def open_executions(root, state=None):
                     continue
                 raise BatchError("legacy_execution", "unbound execution requires explicit reconciliation")
             opened.add(execution or "legacy:" + feature)
-    if state and set(state["execution_refs"]) - found and not (state["schema_version"] == 3 and state["phase"] == "closed"):
+    if state and set(state["execution_refs"]) - found and state["phase"] != "closed":
         raise BatchError("missing_execution", "batch execution ledger is missing; preserve recovery evidence")
     return sorted(opened)
 
 
 def normalize_plan(plan):
-    if not isinstance(plan, dict) or type(plan.get("schema_version")) is not int or plan["schema_version"] not in (1, 2, 3):
-        raise BatchError("invalid_plan", "batch plan requires schema_version 1, 2 or 3", 2)
+    if not isinstance(plan, dict) or type(plan.get("schema_version")) is not int or plan["schema_version"] != 3:
+        raise BatchError("invalid_plan", "batch plan requires schema_version 3", 2)
     plan = json.loads(encoded(plan))
     _strings(plan.get("members"), "members")
     checks = set(_strings(plan.get("checks"), "checks", allow_empty=False))
@@ -230,20 +230,28 @@ def normalize_plan(plan):
     budget = plan.get("budget")
     if not isinstance(budget, dict) or type(budget.get("dispatches")) is not int or budget["dispatches"] < 1:
         raise BatchError("invalid_plan", "budget.dispatches must be a positive integer", 2)
-    if plan["schema_version"] in (2, 3):
-        if plan["schema_version"] == 3:
-            from workflow_incremental import normalize
-        else:
-            from workflow_managed import normalize
-        plan = normalize(plan)
-    return plan
+    from workflow_incremental import normalize
+    return normalize(plan)
+
+
+def _legacy_state(path):
+    """True when a state.json belongs to the retired batch formats; only their
+    directories are skipped by scans — the formats themselves are unreadable."""
+    try:
+        data = json.loads(read_text(path))
+    except (ValueError, OSError, UnicodeDecodeError):
+        return False
+    return isinstance(data, dict) and data.get("schema_version") in (1, 2)
 
 
 @reading
 def load_batch(root, batch_id):
     state = _json(_path(root, batch_id) / "state.json")
-    if (type(state.get("schema_version")) is not int or state["schema_version"] not in (1, 2, 3)
-            or type(state.get("protocol_version")) is not int or state["protocol_version"] != PROTOCOL_VERSION
+    if type(state.get("schema_version")) is not int or state["schema_version"] != 3:
+        if state.get("schema_version") in (1, 2):
+            raise BatchError("legacy_batch", "batch uses a retired format; run workflow-state.py batch-prune, or continue a live schema-2 batch via its frozen runtime")
+        raise BatchError("invalid_state", "unsupported or malformed batch state")
+    if (type(state.get("protocol_version")) is not int or state["protocol_version"] != PROTOCOL_VERSION
             or state.get("batch_id") != batch_id or state.get("phase") not in PHASES
             or type(state.get("revision")) is not int or state["revision"] < 1):
         raise BatchError("invalid_state", "unsupported or malformed batch state")
@@ -270,17 +278,12 @@ def load_batch(root, batch_id):
                  and re.fullmatch(r"[0-9a-f]{64}", state["runtime_revision"]))
         for member in state["members"].values():
             valid = valid and member["lane"] in ("implement", "verify") and bool(re.fullmatch(r"[0-9a-f]{64}", member["behavior_digest"]))
-        request = state["checkpoint_request"]
-        valid = valid and (state["schema_version"] in (2, 3) or request is None or (isinstance(request, dict) and set(request) == {"request_id", "milestone"}
-                           and isinstance(request["request_id"], str) and bool(request["request_id"].strip())
-                           and request["milestone"] == plan["milestones"][state["milestone_index"]]["id"]))
     except (KeyError, TypeError, AttributeError):
         valid = False
     if not valid:
         raise BatchError("invalid_state", "malformed batch members, budget, request, or execution index")
-    if state["schema_version"] in (2, 3):
-        from workflow_managed import validate_state
-        validate_state(state, plan, root)
+    from workflow_managed import validate_state
+    validate_state(state, plan, root)
     return state, plan
 
 
@@ -288,15 +291,16 @@ def load_batch(root, batch_id):
 def active_batch(root):
     directory = _directory(root)
     index = directory / "active.json"
+    current = [path for path in directory.glob("*/state.json") if not _legacy_state(path)]
     if not index.exists():
-        if any(directory.glob("*/state.json")):
+        if current:
             raise BatchError("missing_active_index", "batch history exists without its active index; reconcile it")
         return None
     pointer = _json(index)
     if set(pointer) != {"batch_id"}:
         raise BatchError("invalid_active_index", "active index must contain batch_id")
     unfinished = []
-    for path in directory.glob("*/state.json"):
+    for path in current:
         candidate, _ = load_batch(root, path.parent.name)
         if candidate["phase"] not in ("closed", "aborted"):
             unfinished.append(candidate["batch_id"])
@@ -312,50 +316,15 @@ def active_batch(root):
 
 
 def next_action(state, plan, opened=()):
-    if state["schema_version"] in (2, 3):
-        from workflow_managed import project
-        return project(state, plan, opened)
-    milestone = plan["milestones"][state["milestone_index"]]
-    result = {"protocol_version": PROTOCOL_VERSION, "batch_id": state["batch_id"],
-            "revision": state["revision"], "phase": state["phase"], "status": "pending",
-            "action": "prepare_checkpoint", "reason_code": "final_proof_pending",
-            "required_checks": milestone["required_checks"],
-            "open_executions": list(opened), "budget": state["budget"],
-            "milestone": milestone["id"], "human_gate": milestone["human_gate"]}
-    ready = [member for member in milestone["members"] if state["members"][member]["lane"] == "implement"]
-    outstanding = [entry["id"] for entry in plan["requirements"] if not entry["checks"]]
-    budget = state["budget"]["dispatches"]
-    if opened:
-        result.update(action="reconcile_execution", reason_code="open_execution")
-    elif state["phase"] == "aborted":
-        result.update(status="aborted", action="blocked", reason_code="batch_aborted")
-    elif state["phase"] == "closed":
-        result.update(status="blocked", action="blocked", reason_code="unsupported_final_proof")
-    elif state["phase"] == "await_review":
-        result.update(status="waiting", action="wait_human", reason_code="human_decision_required")
-    elif outstanding:
-        result.update(status="blocked", action="blocked", reason_code="uncovered_requirements",
-                      outstanding_requirements=outstanding)
-    elif state["phase"] == "blocked":
-        result.update(status="blocked", action="blocked", reason_code="reconciliation_required")
-    elif state["checkpoint_request"]:
-        result.update(action="prepare_checkpoint", reason_code="checkpoint_requested",
-                      checkpoint_request=state["checkpoint_request"])
-    elif ready and budget["consumed"] >= budget["limit"]:
-        result.update(status="blocked", action="blocked", reason_code="budget_exhausted")
-    elif ready and state["phase"] in ("work", "repair"):
-        result.update(action="dispatch_work", reason_code="member_work_pending", eligible_members=ready)
-    return result
+    from workflow_incremental import project
+    return project(state, plan, opened)
 
 
 @reading
 def batch_status(root, batch_id):
     state, plan = load_batch(root, batch_id)
-    if state["schema_version"] in (2, 3):
-        from workflow_managed import project
-        result = project(state, plan, open_executions(root, state), root=root)
-    else:
-        result = next_action(state, plan, open_executions(root, state))
+    from workflow_incremental import project
+    result = project(state, plan, open_executions(root, state), root=root)
     if state["phase"] not in ("closed", "aborted") and state["runtime_revision"] != runtime_revision(plan):
         result.update(status="blocked", action="blocked", reason_code="runtime_changed")
         if state.get("runtime_entry"):
@@ -376,14 +345,16 @@ def open_batch(root, plan, request_id):
                 return batch_status(root, active["batch_id"])
             raise BatchError("active_batch", "workspace already has an active batch")
         for path in _directory(root).glob("*/state.json"):
+            if _legacy_state(path):
+                continue
             previous, _ = load_batch(root, path.parent.name)
             if previous["root_request_id"] == request_id:
                 raise BatchError("request_already_used", "terminal request cannot reset its budget; use an explicitly authorized new request")
         if open_executions(root):
             raise BatchError("legacy_execution", "collect existing executions before opening a batch")
-        members = _members(root, plan["members"], allow_pending=plan["schema_version"] == 3)
+        members = _members(root, plan["members"], allow_pending=True)
         batch_id = uuid.uuid4().hex
-        state = {"schema_version": 1, "protocol_version": PROTOCOL_VERSION, "batch_id": batch_id,
+        state = {"schema_version": 3, "protocol_version": PROTOCOL_VERSION, "batch_id": batch_id,
                  "revision": 1, "workspace_identity": workspace_identity(root),
                  "runtime_revision": runtime_revision(plan),
                  "root_request_id": request_id, "plan_digest": digest(plan),
@@ -391,24 +362,20 @@ def open_batch(root, plan, request_id):
                  "milestone_index": 0, "members": members,
                  "budget": {"dispatches": {"limit": plan["budget"]["dispatches"], "consumed": 0}},
                  "execution_refs": [], "checkpoint_request": None, "final_proof_ref": None}
-        if plan["schema_version"] in (2, 3):
-            from workflow_managed import initialize
-            state.update(initialize(plan))
-            if plan["schema_version"] == 3:
-                from workflow_incremental import initialize as incremental_initialize
-                state.update(incremental_initialize(plan))
-            if members:
-                from workflow_members import contracts
-                contracts(root, state, plan, freeze=True)
-            if plan["schema_version"] == 3:
-                from workflow_incremental import validate_state
-                validate_state(state, plan, root)
+        from workflow_managed import initialize
+        state.update(initialize(plan))
+        from workflow_incremental import initialize as incremental_initialize
+        state.update(incremental_initialize(plan))
+        if members:
+            from workflow_members import contracts
+            contracts(root, state, plan, freeze=True)
+        from workflow_incremental import validate_state
+        validate_state(state, plan, root)
         directory = _path(root, batch_id)
-        if plan["schema_version"] in (2, 3):
-            runtime = directory / "runtime"
-            for relative in runtime_files(plan):
-                write_state(root, runtime / relative, (Path(__file__).resolve().parent / relative).read_text(encoding="utf-8"))
-            state["runtime_entry"] = (runtime / "workflow-state.py").relative_to(Path(root).resolve()).as_posix()
+        runtime = directory / "runtime"
+        for relative in runtime_files(plan):
+            write_state(root, runtime / relative, (Path(__file__).resolve().parent / relative).read_text(encoding="utf-8"))
+        state["runtime_entry"] = (runtime / "workflow-state.py").relative_to(Path(root).resolve()).as_posix()
         _store(root, directory / "plans" / (state["plan_digest"] + ".json"), plan)
         _store(root, directory / "state.json", state)
         _store(root, _directory(root) / "active.json", {"batch_id": batch_id})
@@ -422,7 +389,7 @@ def bind_dispatch(root, execution, contracts):
         if state is None:
             return None
         _, plan = load_batch(root, state["batch_id"])
-        if state["schema_version"] in (2, 3) and state["members"]:
+        if state["members"]:
             from workflow_members import contracts as current_contracts
             current_contracts(root, state, plan)
         action = batch_status(root, state["batch_id"])
@@ -433,13 +400,11 @@ def bind_dispatch(root, execution, contracts):
                 raise BatchError("member_not_eligible", "member is outside the current batch milestone: %s" % reference)
             if execution_contract_digest(raw) != state["members"][reference]["behavior_digest"]:
                 raise BatchError("contract_changed", "batch member behavior changed; reconcile accepted scope")
-        if state["schema_version"] == 3:
-            state["phase"] = "work"
-        if state['schema_version'] == 3:
-            from workflow_jobs import member_inputs
-            state.setdefault('execution_inputs', {})[execution] = {
-                'plan_digest': state['plan_digest'],
-                'members': {ref: member_inputs(state, plan, ref) for ref in contracts}}
+        state["phase"] = "work"
+        from workflow_jobs import member_inputs
+        state.setdefault('execution_inputs', {})[execution] = {
+            'plan_digest': state['plan_digest'],
+            'members': {ref: member_inputs(state, plan, ref) for ref in contracts}}
         state["execution_refs"].append(execution)
         state["budget"]["dispatches"]["consumed"] += 1
         state["revision"] += 1
@@ -463,11 +428,13 @@ def collect_batch(root, batch_id, execution, results):
 def retain_feature(root, feature):
     active_batch(root)
     for path in _directory(root).glob("*/state.json"):
+        if _legacy_state(path):
+            continue
         state, _ = load_batch(root, path.parent.name)
         members = [ref for ref in state['members'] if ref.split('/', 1)[0] == feature]
         if not members:
             continue
-        if state['schema_version'] != 3 or state['phase'] != 'closed':
+        if state['phase'] != 'closed':
             return True
         from checkpoint_store import read_proof
         for ref in members:
@@ -496,30 +463,24 @@ def recover_batch(root, batch_id):
 
 
 def close_batch(root, batch_id, expected_revision):
-    state, plan = load_batch(root, batch_id)
-    if state["schema_version"] in (2, 3):
-        import workflow_managed as managed
-        with managed.operation(root):
-            with transaction(root):
-                state, plan = load_batch(root, batch_id)
-                if state["phase"] == "closed":
-                    return batch_status(root, batch_id)
-                if state["revision"] != expected_revision:
-                    raise BatchError("revision_conflict", "batch revision changed; read current state")
-                managed._quiescent(root, state)
-                if not state["final_proof_ref"] or state["phase"] not in (("work", "verify") if state["schema_version"] == 3 else ("verify",)) or state["holds"] or state["checkpoint_request"]:
-                    raise BatchError("final_proof_unavailable", "required final proof or decision is incomplete", 12)
-            current = managed.snapshots.capture(root, managed.store(root), plan["inputs"])["digest"]
-            with transaction(root):
-                state, plan = load_batch(root, batch_id)
-                if state["revision"] != expected_revision:
-                    raise BatchError("revision_conflict", "batch revision changed during final capture")
-                return managed.close(root, state, plan, current)
-    with transaction(root):
-        state, _ = load_batch(root, batch_id)
-        if state["revision"] != expected_revision:
-            raise BatchError("revision_conflict", "batch revision changed; read current state")
-        raise BatchError("final_proof_unavailable", "schema 1 retains admission only; executable final proof requires schema 2", 12)
+    import workflow_managed as managed
+    with managed.operation(root):
+        with transaction(root):
+            state, plan = load_batch(root, batch_id)
+            if state["phase"] == "closed":
+                return batch_status(root, batch_id)
+            if state["revision"] != expected_revision:
+                raise BatchError("revision_conflict", "batch revision changed; read current state")
+            managed._quiescent(root, state)
+            if not state["final_proof_ref"] or state["phase"] not in ("work", "verify") or state["holds"] or state["checkpoint_request"]:
+                raise BatchError("final_proof_unavailable", "required final proof or decision is incomplete", 12)
+        current = managed.snapshots.capture(root, managed.store(root), plan["inputs"])["digest"]
+        with transaction(root):
+            state, plan = load_batch(root, batch_id)
+            if state["revision"] != expected_revision:
+                raise BatchError("revision_conflict", "batch revision changed during final capture")
+            from workflow_incremental import close
+            return close(root, state, plan, current)
 
 
 def request_checkpoint(root, batch_id, milestone_id, request_id, expected_revision, mode="observe"):
@@ -527,22 +488,8 @@ def request_checkpoint(root, batch_id, milestone_id, request_id, expected_revisi
         raise BatchError("invalid_request", "request ID must be 1..256 characters", 2)
     with transaction(root):
         state, plan = load_batch(root, batch_id)
-        if state["schema_version"] in (2, 3):
-            from workflow_managed import request
-            return request(root, state, plan, request_id, milestone_id, mode, expected_revision)
-        request = {"request_id": request_id, "milestone": milestone_id}
-        if state["checkpoint_request"] == request:
-            return batch_status(root, batch_id)
-        if state["revision"] != expected_revision:
-            raise BatchError("revision_conflict", "batch revision changed; read current state")
-        if state["phase"] not in ("work", "repair", "verify") or state["checkpoint_request"]:
-            raise BatchError("checkpoint_conflict", "batch already has a barrier; reconcile it")
-        if plan["milestones"][state["milestone_index"]]["id"] != milestone_id:
-            raise BatchError("milestone_mismatch", "only the current milestone can be requested")
-        state["checkpoint_request"] = request
-        state["revision"] += 1
-        _store(root, _path(root, batch_id) / "state.json", state)
-        return batch_status(root, batch_id)
+        from workflow_incremental import request
+        return request(root, state, plan, request_id, milestone_id, mode, expected_revision)
 
 
 def abort_batch(root, batch_id, expected_revision, reason):
@@ -558,9 +505,8 @@ def abort_batch(root, batch_id, expected_revision, reason):
             raise BatchError("terminal_batch", "terminal batch cannot be changed")
         if open_executions(root, state):
             raise BatchError("open_execution", "stop and reconcile all workers before aborting; no process is killed by this command")
-        if state["schema_version"] in (2, 3):
-            from workflow_managed import _quiescent
-            _quiescent(root, state)
+        from workflow_managed import _quiescent
+        _quiescent(root, state)
         state["phase"] = "aborted"
         state["abort_reason"] = reason
         state["revision"] += 1
@@ -569,8 +515,63 @@ def abort_batch(root, batch_id, expected_revision, reason):
         return next_action(state, plan)
 
 
+def prune_batches(root, apply=False):
+    """Dispose directories of retired-format batches. Schema 1 admitted no
+    execution and carries no frozen runtime, so its directories are removable
+    in any phase; a live schema-2 batch keeps its frozen runtime and is
+    removable only once terminal. Deleting the directory named by the active
+    index also clears that index."""
+    from workflow_runtime import read_snapshot
+    directory = _directory(root)
+    legacy, removable, retained = [], [], []
+
+    def classify(batch_id, reason):
+        retained.append({"batch_id": batch_id, "reason": reason})
+
+    def scan(indexed):
+        for path in sorted(directory.glob("*/state.json")):
+            batch_id = path.parent.name
+            try:
+                state = _json(path)
+            except (BatchError, ValueError):
+                classify(batch_id, "unreadable state; inspect manually")
+                continue
+            if state.get("schema_version") == 3:
+                continue
+            entry = {"batch_id": batch_id, "schema_version": state.get("schema_version"), "phase": state.get("phase")}
+            legacy.append(entry)
+            if state.get("schema_version") != 1 and state.get("phase") not in ("closed", "aborted"):
+                classify(batch_id, "live legacy batch; continue via its frozen runtime or abort it")
+            else:
+                removable.append(entry)
+
+    def active_index():
+        if (directory / "active.json").exists():
+            return _json(directory / "active.json").get("batch_id")
+        return None
+
+    removed = []
+    if apply:
+        with transaction(root):
+            indexed = active_index()
+            scan(indexed)
+            import shutil
+            for entry in removable:
+                target = directory / entry["batch_id"]
+                if not _legacy_state(target / "state.json"):
+                    raise BatchError("prune_conflict", "legacy batch changed before deletion: %s" % entry["batch_id"])
+                shutil.rmtree(target)
+                removed.append(entry["batch_id"])
+            if indexed in removed:
+                _store(root, directory / "active.json", {"batch_id": None})
+    else:
+        with read_snapshot(root):
+            scan(active_index())
+    return {"legacy": legacy, "removable": removable, "retained": retained, "removed": removed}
+
+
 def add_cli(subparsers):
-    for name in ("batch-open", "batch-status", "batch-step", "batch-recover", "batch-close", "batch-abort", "checkpoint-request",
+    for name in ("batch-open", "batch-prune", "batch-status", "batch-step", "batch-recover", "batch-close", "batch-abort", "checkpoint-request",
                  "batch-prepare", "batch-run", "check-admit", "check-run", "checkpoint-seal", "checkpoint-show", "checkpoint-diff", "checkpoint-materialize",
                  "batch-pause", "batch-resume", "batch-repair", "checkpoint-decide", "checkpoint-export", "batch-yield", "check-recover", "check-local", "batch-budget", "batch-source-task", "batch-revise", "batch-feedback", "batch-feedback-resolve", "batch-notifications", "batch-notify", "batch-proof-export"):
         command = subparsers.add_parser(name)
@@ -579,6 +580,8 @@ def add_cli(subparsers):
         if name == "batch-open":
             command.add_argument("--plan", required=True)
             command.add_argument("--request-id", required=True)
+        elif name == "batch-prune":
+            command.add_argument("--apply", action="store_true")
         else:
             command.add_argument("--batch", required=True)
         if name in ("batch-close", "batch-abort", "checkpoint-request"):
@@ -644,11 +647,11 @@ def add_cli(subparsers):
 
 
 def run_cli(args):
+    if args.command == "batch-prune":
+        return prune_batches(args.root, apply=args.apply)
     if args.command in ("batch-revise", "batch-feedback", "batch-feedback-resolve", "batch-notifications", "batch-notify", "batch-proof-export"):
         import workflow_incremental as incremental
         state, plan = load_batch(args.root, args.batch)
-        if args.command != "batch-proof-export" and state["schema_version"] != 3:
-            raise ValueError("this operation requires a schema-3 batch")
         if state["phase"] not in ("closed", "aborted") and state["runtime_revision"] != runtime_revision(plan):
             raise BatchError("runtime_changed", "use the batch's frozen runtime")
         if args.command == "batch-revise":
@@ -666,7 +669,7 @@ def run_cli(args):
     if args.command == "batch-source-task":
         from workflow_managed import source_task
         return source_task(args.root, args.batch)
-    if args.command not in ("batch-open", "batch-status", "batch-step", "batch-recover", "checkpoint-show", "checkpoint-diff", "checkpoint-materialize", "checkpoint-export"):
+    if args.command not in ("batch-open", "batch-prune", "batch-status", "batch-step", "batch-recover", "checkpoint-show", "checkpoint-diff", "checkpoint-materialize", "checkpoint-export"):
         state, plan = load_batch(args.root, args.batch)
         if state["phase"] not in ("closed", "aborted") and state["runtime_revision"] != runtime_revision(plan):
             raise BatchError("runtime_changed", "resume using the frozen runtime_entry returned by batch-status")
@@ -688,18 +691,18 @@ def run_cli(args):
     if args.command in ("batch-pause", "batch-resume", "batch-repair", "checkpoint-decide"):
         import workflow_managed as managed
         if args.command == "checkpoint-decide":
-            return managed.decide(args.root, args.batch, args.event, args.interactive)
+            from workflow_incremental import decide
+            return decide(args.root, args.batch, args.event, args.interactive)
         return managed.control(args.root, args.batch, args.request_id, args.command.split("-", 1)[1], getattr(args, "reason", None), getattr(args, "members", None))
     if args.command in ("batch-prepare", "batch-run", "check-admit", "check-run", "checkpoint-seal", "checkpoint-show", "checkpoint-diff", "checkpoint-materialize"):
         import workflow_managed as managed
         if args.command == "batch-prepare":
-            return managed.prepare(args.root, args.batch)
+            from workflow_incremental import prepare
+            return prepare(args.root, args.batch)
         if args.command == "batch-run":
-            if load_batch(args.root, args.batch)[0]["schema_version"] == 3:
-                from workflow_incremental import drive
-                with file_lock(_directory(args.root).parent / ".workflow-runner.lock"):
-                    return drive(args.root, args.batch, background=args.background)
-            return managed.drive(args.root, args.batch)
+            from workflow_incremental import drive
+            with file_lock(_directory(args.root).parent / ".workflow-runner.lock"):
+                return drive(args.root, args.batch, background=args.background)
         if args.command == "check-admit":
             from workflow_jobs import admit
             return admit(args.root, args.batch, args.check, args.request_id)
@@ -707,7 +710,8 @@ def run_cli(args):
             from workflow_jobs import execute
             return execute(args.root, args.batch, args.run)
         if args.command == "checkpoint-seal":
-            return managed.finalize(args.root, args.batch)
+            from workflow_incremental import finalize
+            return finalize(args.root, args.batch)
         checkpoint = managed.show(args.root, args.batch, args.checkpoint, path=getattr(args, "path", None))
         if args.command == "checkpoint-show":
             return checkpoint

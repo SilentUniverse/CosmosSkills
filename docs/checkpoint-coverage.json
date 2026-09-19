@@ -509,9 +509,9 @@
         "workflow/tdd/BATCH-FORMAT.md",
         "workflow/workflow_incremental.py"
       ],
-      "verification": "verified",
+      "verification": "partial_or_unexecuted_exact_scenario",
       "evidence": [
-        "tests/test_managed_workflow.py::test_manual_obligations_need_actual_version_bound_operator_observations"
+        "tests/test_incremental_workflow.py::test_unassigned_manual_obligation_is_rejected"
       ]
     },
     {
@@ -525,9 +525,9 @@
         "workflow/tdd/BATCH-FORMAT.md",
         "workflow/workflow_incremental.py"
       ],
-      "verification": "verified",
+      "verification": "partial_or_unexecuted_exact_scenario",
       "evidence": [
-        "tests/test_managed_workflow.py::test_manual_obligations_need_actual_version_bound_operator_observations"
+        "tests/test_incremental_workflow.py::test_fixed_review_partial_decisions_and_notification_ack"
       ]
     },
     {
@@ -663,16 +663,18 @@
     {
       "id": "R045",
       "group": "证据",
-      "scenario": "旧 schema1 done 在新版本中只读审计",
-      "expected": "历史可读，不自动授予新 execution 完成",
+      "scenario": "退休格式(schema 1/2)批次目录的处置",
+      "expected": "活动代码拒绝读取；终态目录由 batch-prune 清理，活跃索引指向的目录不删除",
       "implementation": "implemented_protocol",
       "implementation_paths": [
         "workflow/workflow_managed.py",
         "workflow/tdd/BATCH-FORMAT.md",
         "workflow/workflow_incremental.py"
       ],
-      "verification": "partial_or_unexecuted_exact_scenario",
-      "evidence": []
+      "verification": "verified",
+      "evidence": [
+        "tests/test_workflow_batch.py::test_batch_prune_disposes_retired_formats_and_keeps_live_schema2"
+      ]
     },
     {
       "id": "R046",
@@ -1174,10 +1176,8 @@
         "workflow/tdd/BATCH-FORMAT.md",
         "workflow/workflow_incremental.py"
       ],
-      "verification": "verified",
-      "evidence": [
-        "tests/test_managed_workflow.py::test_observation_preserves_pending_review_and_a_later_pause"
-      ]
+      "verification": "implemented_protocol",
+      "evidence": []
     },
     {
       "id": "R082",
@@ -1190,10 +1190,8 @@
         "workflow/tdd/BATCH-FORMAT.md",
         "workflow/workflow_incremental.py"
       ],
-      "verification": "verified",
-      "evidence": [
-        "tests/test_managed_workflow.py::test_observation_preserves_pending_review_and_a_later_pause"
-      ]
+      "verification": "implemented_protocol",
+      "evidence": []
     },
     {
       "id": "R083",
@@ -1340,7 +1338,7 @@
       ],
       "verification": "partial_or_unexecuted_exact_scenario",
       "evidence": [
-        "tests/test_managed_workflow.py::test_observation_preserves_pending_review_and_a_later_pause"
+        "tests/test_workflow_batch.py::test_checkpoint_request_is_idempotent_cas_barrier_to_new_writes"
       ],
       "verification_limit": "The mapped test verifies replay identity; the complete changed-payload matrix is not executed by this test."
     },
@@ -1369,10 +1367,8 @@
         "workflow/tdd/BATCH-FORMAT.md",
         "workflow/workflow_incremental.py"
       ],
-      "verification": "verified",
-      "evidence": [
-        "tests/test_managed_workflow.py::test_observation_preserves_pending_review_and_a_later_pause"
-      ]
+      "verification": "implemented_protocol",
+      "evidence": []
     },
     {
       "id": "R095",
@@ -1387,7 +1383,7 @@
       ],
       "verification": "partial_or_unexecuted_exact_scenario",
       "evidence": [
-        "tests/test_managed_workflow.py::test_red_request_remains_diagnostic_until_fixed_runnable_review"
+        "tests/test_incremental_workflow.py::test_changed_review_contract_rejects_late_old_approval"
       ],
       "disposition": "User revised policy: incomplete requested versions are diagnostic; only complete runnable releases enter formal human review."
     },
@@ -1403,9 +1399,7 @@
         "workflow/workflow_incremental.py"
       ],
       "verification": "partial_or_unexecuted_exact_scenario",
-      "evidence": [
-        "tests/test_managed_workflow.py::test_red_request_remains_diagnostic_until_fixed_runnable_review"
-      ],
+      "evidence": [],
       "disposition": "Diagnostic feedback guides same-batch repair; no approval event is accepted for an incomplete preview."
     },
     {
@@ -2087,7 +2081,7 @@
       ]
     }
   ],
-  "scope": "Retained requirement scenarios with explicit evidence limits; current implementation includes batch schema 3.",
+  "scope": "Retained requirement scenarios with explicit evidence limits; current implementation uses the single managed batch format.",
   "incremental_cases": [
     {
       "id": "V01",

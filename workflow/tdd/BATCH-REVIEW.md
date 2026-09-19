@@ -72,8 +72,8 @@ if (-not $seen.PSObject.Properties[$event.decision_id]) {
 
 `checkpoint-request --mode observe` freezes a view after workers are quiescent and preserves other
 holds. `--mode review` records a review obligation. An incomplete candidate stays diagnostic and routes to
-repair; it never becomes a human approval target. Once green, delivery preparation precedes human waiting. Schema 2 has independent `latest_checkpoint_ref` and `pending_review_ref` fields. Schema 3 keeps per-point reviews and does not impose a global human wait. Identical requests return the original `result_ref`, including
-after sealing; changing the payload under that ID is refused. Schema 2 finishes a pending capture before approval advances its milestone; schema 3 binds approval to its independent review.
+repair; it never becomes a human approval target. Once green, delivery preparation precedes human waiting. Reviews are per point (`reviews`, `point_reviews`); no global human wait is imposed, and approval binds to its independent review while other work may proceed. Identical requests return the original `result_ref`, including
+after sealing; changing the payload under that ID is refused.
 
 `batch-pause --request-id ID --reason TEXT` creates its own hold. `batch-resume --request-id ID`
 releases only that pause. `checkpoint-decide --interactive` reads an exact-version operator decision
@@ -96,7 +96,7 @@ materialization restores code only; it is not a runnable review delivery.
 
 A human gate or manual obligation projects `prepare_review_delivery` after all technical checks
 pass. The controller prepares a tested fixed directory before publishing its pending review with its
-path, checkpoint and artifact identities. Schema 2 returns the same pending delivery while waiting. Schema 3 retains that delivery and may return independent work; it uses `reviews` and `point_reviews`. Repeated viewing does not rebuild. Human approval checks the delivery bytes and metadata. Observations may update `latest_checkpoint_ref` without replacing a pending review.
+path, checkpoint and artifact identities. A pending delivery is retained while waiting and independent work may proceed. Repeated viewing does not rebuild. Human approval checks the delivery bytes and metadata. Observations may update `latest_checkpoint_ref` without replacing a pending review.
 
 Release is selected first from the checkpoint's declared release producers. A job producing
 artifacts declares `release: {argv: [...], requirements: [...]}`; an `artifact_only: true` behavior
@@ -148,7 +148,7 @@ still uses checkpoint-show/diff. Formal fixed-version acceptance binds a tested 
 ## Manual observations
 
 Plan `manual_checks: {ID: {instruction: TEXT, issue_refs: [...]}}` records agent-inaccessible checks.
-A milestone may select `required_manual_checks`. Schema 3 requires their union across review points to cover every declared manual obligation; schema 2 carries them all at final.
+A review point may select `required_manual_checks`; their union across review points must cover every declared manual obligation.
 Approval carries `observations: {ID: {result: passed, observation: ACTUAL_RESULT}}` for every required
 check. A generic approval, skipped operation, old checkpoint or blank observation cannot close it.
 Manual evidence never changes machine proof or triggers an extra full suite after approval.

@@ -1,6 +1,6 @@
 # 增量协作：Spec、TDD、TIDY
 
-本文定义 schema-3 增量工作流。执行入口与字段见 [BATCH-FORMAT](../workflow/tdd/BATCH-FORMAT.md)，
+本文定义增量协作工作流。执行入口与字段见 [BATCH-FORMAT](../workflow/tdd/BATCH-FORMAT.md)，
 开发者操作见[日常使用说明](checkpoint-local-release.zh.md)，实际验证边界见
 [测评与证据](checkpoint-workflow-review.zh.md)。确定性检查不等于真实模型的速度或质量收益。
 
@@ -114,7 +114,7 @@ A 的接受绑定 checkpoint、真实 artifact、场景版本和 review revision
 说明。只沉淀后来会用且难以从测试/代码恢复的经验，避免给每次尝试再写一份总结。
 
 Issue 的完成证明包含实际约定与需求正文、手动步骤、真实 job、receipt/log、消费的上游证明
-和决定事件。Schema 3 把这些发布到 feature 的 `receipts/managed` 对象闭包。把它与 Issue 历史
+和决定事件。受管批次把这些发布到 feature 的 `receipts/managed` 对象闭包。把它与 Issue 历史
 一起保留，可以脱离 batch 缓存验证历史。缺对象或摘要不符时不迁移、不伪造完成。
 批次外已完成依赖也保留其原约定与验证结果；已有 managed 证明包含对象闭包。Legacy 的
 done 声明只作为历史前提保留，不升级成机器验证证明。

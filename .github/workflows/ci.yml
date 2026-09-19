@@ -60,7 +60,11 @@ jobs:
       - name: Parallel runner dependencies
         run: python -m pip install pytest pytest-xdist
       - name: Behavior and integration regressions
-        run: python workflow/tdd/scripts/test-supervisor.py --cwd . --receipt .scratch/ci/receipts/regression.json --log .scratch/tmp/regression.log --scope full --timeout 600 --measurement-context "${{ runner.os }}-hosted-py39-parallel" -- python scripts/run-tests.py
+        # Windows hosted runners pay a heavy per-spawn cost (Defender scans every
+        # fresh python.exe in temp dirs); 4 xdist workers of subprocess-heavy
+        # tests contend for CPU and surface run/lock timeouts in unrelated
+        # tests. Two workers keep the suite stable there.
+        run: python workflow/tdd/scripts/test-supervisor.py --cwd . --receipt .scratch/ci/receipts/regression.json --log .scratch/tmp/regression.log --scope full --timeout 600 --measurement-context "${{ runner.os }}-hosted-py39-parallel" -- python scripts/run-tests.py ${{ runner.os == 'Windows' && '--jobs 2' || '' }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:

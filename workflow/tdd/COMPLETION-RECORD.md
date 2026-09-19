@@ -107,7 +107,7 @@ continues through `/pr` in this task when already requested.
 
 ## Managed batch completion (protocol 2)
 
-An assigned schema-2/3 batch uses `check-local` for development feedback, then yields the complete
+An assigned batch uses `check-local` for development feedback, then yields the complete
 execution to the controller. Local green or worker exit never marks an issue done; the controller
 writes the `managed-proof` completion only after executed receipts cover the issue AC and current
 contract. The completion form, proof-object semantics, and portable closure live in

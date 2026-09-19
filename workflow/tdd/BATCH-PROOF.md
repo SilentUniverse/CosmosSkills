@@ -6,7 +6,7 @@ close. Execution and admission live in [BATCH-FORMAT.md](BATCH-FORMAT.md); revie
 
 ## Durable proof and owned temporary files
 
-Schema 3 publishes `.scratch/FEATURE/receipts/managed/PROOF.json` and its hash-addressed object closure.
+A closed batch publishes `.scratch/FEATURE/receipts/managed/PROOF.json` and its hash-addressed object closure.
 It includes the contract text, requirement/manual bodies, actual jobs, receipt/logs and consumed
 proof/decision evidence. It can be copied with the feature's history and verified without batch
 runtime directories. It is historical proof, not a way to resume an active batch in another clone.
@@ -38,7 +38,7 @@ is idempotent, changed payloads/lowered limits/stale revisions fail, and holds r
 
 ## Managed completion record (protocol 2)
 
-An assigned schema-2/3 batch uses `check-local` for development feedback, then yields the complete
+An assigned batch uses `check-local` for development feedback, then yields the complete
 execution to the controller. Local green or worker exit never marks an issue done. The controller
 runs the accepted checks on the frozen candidate and writes this completion form only after their
 executed receipts cover the issue AC and current contract:
@@ -58,7 +58,7 @@ combined checks and required operator observations remain batch obligations afte
 Only active-batch failed-verification recovery may reopen its completed members. Follow
 [BATCH-FORMAT.md](BATCH-FORMAT.md) for the controller commands and retained evidence.
 
-Schema 3 also publishes a portable proof pointer under
+It also publishes a portable proof pointer under
 `.scratch/<feature>/receipts/managed/<proof_sha256>.json` with a complete local object closure.
 It retains actual contract and requirement text, manual steps, jobs, results/logs, upstream proof
 and decision events. Copy that directory with the issue history before dropping execution caches.

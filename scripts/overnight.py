@@ -175,7 +175,7 @@ def _main(argv):
     root = os.path.abspath(argv[2] if len(argv) == 3 else os.getcwd())
     from workflow_batch import guard_legacy, active_batch
     active = active_batch(root)
-    if active and active["schema_version"] in (2, 3):
+    if active:
         return managed_main(root, feat, active["batch_id"])
     guard_legacy(root, "legacy overnight runner")
     if feat is None and not whole_repo:
@@ -373,7 +373,7 @@ def _main(argv):
 def managed_main(root, feature, batch_id):
     import importlib.util
     import workflow_batch as batch
-    from workflow_managed import advance_owned, control
+    from workflow_managed import control
     from workflow_members import yield_wave
     from workflow_runtime import atomic_write
     root = Path(root).resolve()
@@ -385,8 +385,6 @@ def managed_main(root, feature, batch_id):
     previous_output = None
 
     def make_on_boundary():
-        if state["schema_version"] != 3:
-            return None
         from workflow_incremental import drive as drive_incremental
         from workflow_incremental import deliver_notifications
 
@@ -398,11 +396,8 @@ def managed_main(root, feature, batch_id):
 
     while True:
         try:
-            if state["schema_version"] == 3:
-                from workflow_incremental import drive
-                result = drive(root, batch_id, background=True)
-            else:
-                result = advance_owned(root, batch_id)
+            from workflow_incremental import drive
+            result = drive(root, batch_id, background=True)
         except batch.BatchError as exc:
             print(str(exc), file=sys.stderr)
             return exc.exit_code
@@ -473,7 +468,7 @@ def managed_main(root, feature, batch_id):
                 print("overnight: repair control refused — %s" % exc, file=sys.stderr)
                 return 11
             continue
-        if state["schema_version"] == 3 and result["action"] == "reconcile_run" and result["reason_code"] == "verification_running":
+        if result["action"] == "reconcile_run" and result["reason_code"] == "verification_running":
             import time
             time.sleep(1)
             continue

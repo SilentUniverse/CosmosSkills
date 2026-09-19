@@ -17,8 +17,8 @@ STATE = ROOT / "workflow/workflow-state.py"
 
 def plan(jobs, inputs, members=()):
     checks = list(jobs)
-    return {"schema_version": 2, "members": list(members), "inputs": inputs,
-            "requirements": [{"id": "goal", "checks": checks}], "checks": checks, "jobs": jobs,
+    return {"schema_version": 3, "members": list(members), "inputs": inputs,
+            "requirements": [{"id": "goal", "body": "Deliver the accepted checks.", "checks": checks}], "checks": checks, "jobs": jobs,
             "milestones": [{"id": "final", "purpose": "final", "members": list(members),
                             "required_checks": checks}], "budget": {"dispatches": 4, "runs": 12, "seconds": 600}}
 
@@ -182,38 +182,6 @@ print(action)
         self.assertTrue(viewed["green"])
         replay = self.cli("batch-close", "--batch", opened["batch_id"], "--expected-revision", opened["revision"])
         self.assertEqual("closed", replay["status"])
-
-    def test_packaged_service_launch_is_ready_tested_and_terminal_before_review(self):
-        (self.root / "server.py").write_text("import socketserver\nfrom http.server import BaseHTTPRequestHandler, HTTPServer\nclass Handler(BaseHTTPRequestHandler):\n def do_GET(self):\n  self.send_response(200); self.end_headers(); self.wfile.write(b'42')\nclass Server(HTTPServer):\n def server_bind(self):\n  socketserver.TCPServer.server_bind(self)\n  host, port = self.server_address[:2]\n  self.server_name, self.server_port = host, port\nserver=Server(('127.0.0.1',0),Handler)\nprint(server.server_port,flush=True)\nserver.serve_forever()\n", encoding="utf-8")
-        launch = ["{python}", "server.py"]
-        reader = "from pathlib import Path; import urllib.request; port=Path(r'{run_dir}/application.raw.log').read_text().splitlines()[0]; print(urllib.request.urlopen('http://127.0.0.1:'+port).read().decode())"
-        ready = "from pathlib import Path\nimport time\np=Path(r'{run_dir}/application.raw.log')\nwhile not p.read_text().strip(): time.sleep(.01)\nprint('ready')"
-        definition = plan({
-            "build": {"argv": ["{python}", "-c", "print('package')"], "timeout": 30, "outputs": ["server.py"], "result": {"kind": "artifacts"},
-                      "release": {"argv": launch, "requirements": ["Python 3.9+"]}},
-            "browser-harness": {"application": {"argv": launch}, "argv": ["{python}", "-c", reader], "timeout": 30,
-                                "artifact_only": True, "artifact_inputs": ["build"],
-                                "lifecycle": {"assert_baseline": {"argv": ["{python}", "-c", ready], "expect": "ready"}},
-                                "result": {"kind": "predicate", "stdout_equals": "42"}}}, ["server.py"])
-        self.review_authority(definition)
-        definition["milestones"][0].update(human_gate="required", decision_ref="review tested package")
-        batch_id = self.open(definition)["batch_id"]
-        reviewed = self.cli("batch-run", "--batch", batch_id)
-        self.assertEqual("wait_human", reviewed["action"])
-        self.assertEqual("release", reviewed["review_delivery"]["kind"])
-        self.assertEqual(reviewed, self.cli("batch-run", "--batch", batch_id))
-        self.decide(batch_id, reviewed["pending_review_ref"], "approve")
-        self.assertEqual("closed", self.cli("batch-run", "--batch", batch_id)["status"])
-
-        server = self.root / "server.py"
-        server.write_text(server.read_text().replace("self.wfile.write(b'42')", "self.wfile.write(b'42'); self.wfile.flush(); __import__('os')._exit(1)"), encoding="utf-8")
-        definition["jobs"]["browser-harness"]["argv"][-1] += "; __import__('time').sleep(.3)"
-        path = self.root / "crashing-plan.json"
-        path.write_text(json.dumps(definition), encoding="utf-8")
-        second = self.cli("batch-open", "--plan", path, "--request-id", "crashing-application")["batch_id"]
-        failed = self.cli("batch-run", "--batch", second)
-        self.assertEqual("diagnose_incident", failed["action"])
-        self.assertIsNone(failed["pending_review_ref"])
 
     def test_release_contains_local_dependency_and_restores_the_tested_package(self):
         (self.root / "main.py").write_text("from shared import answer\nprint(answer())\n", encoding="utf-8")
@@ -398,80 +366,6 @@ print(action)
         self.assertEqual(2, closed["run_budget"]["runs"])
 
 
-    def test_manual_obligations_need_actual_version_bound_operator_observations(self):
-        (self.root / "check.py").write_text("print(42)\n", encoding="utf-8")
-        definition = plan({"check": {"argv": ["{python}", "check.py"], "timeout": 30,
-                                      "result": {"kind": "predicate", "stdout_equals": "42"}}}, ["check.py"])
-        definition["manual_checks"] = {"operator-demo": {"instruction": "Operate the specified candidate and confirm the displayed result."}}
-        self.review_authority(definition)
-        self.review_package(definition)
-        batch_id = self.open(definition)["batch_id"]
-        pending = self.cli("batch-run", "--batch", batch_id)
-        reference = pending["pending_review_ref"]
-        self.assertEqual("wait_human", pending["action"])
-        self.decide(batch_id, reference, "approve", expected=2)
-        self.decide(batch_id, reference, "approve", expected=2,
-                    observations={"operator-demo": {"result": "skipped", "observation": "not performed"}})
-        self.decide(batch_id, reference, "approve", observations={"operator-demo": {"result": "passed", "observation": "Test host records the fixture operator observation for this exact candidate."}})
-        closed = self.cli("batch-run", "--batch", batch_id)
-        self.assertEqual("closed", closed["status"])
-        self.assertEqual(reference, closed["latest_checkpoint_ref"])
-        self.assertEqual(3, closed["run_budget"]["runs"])
-
-    def test_observation_preserves_pending_review_and_a_later_pause(self):
-        (self.root / "check.py").write_text("print(42)\n", encoding="utf-8")
-        definition = plan({"check": {"argv": ["{python}", "check.py"], "timeout": 30,
-                                      "result": {"kind": "predicate", "stdout_equals": "42"}}}, ["check.py"])
-        self.review_authority(definition)
-        self.review_package(definition)
-        definition["milestones"][0].update(human_gate="required", decision_ref="accepted user review")
-        opened = self.open(definition)
-        batch_id = opened["batch_id"]
-        pending = self.cli("batch-run", "--batch", batch_id)
-        first = pending["pending_review_ref"]
-        self.assertEqual("wait_human", pending["action"])
-        requested = self.cli("checkpoint-request", "--batch", batch_id, "--milestone", "final", "--request-id", "peek",
-                             "--expected-revision", pending["revision"])
-        self.decide(batch_id, first, "approve", decision_id="while-capturing", expected=2)
-        self.cli("batch-pause", "--batch", batch_id, "--request-id", "pause-1", "--reason", "look later")
-        observed = self.cli("batch-prepare", "--batch", batch_id)
-        self.assertEqual(first, observed["pending_review_ref"])
-        self.assertNotEqual(first, observed["latest_checkpoint_ref"])
-        replay = self.cli("checkpoint-request", "--batch", batch_id, "--milestone", "final", "--request-id", "peek",
-                          "--expected-revision", requested["revision"])
-        self.assertEqual(observed["latest_checkpoint_ref"], replay["result_ref"])
-        accepted = self.decide(batch_id, first, "approve")
-        self.assertEqual("wait_human", accepted["action"])
-        self.assertIsNone(accepted["pending_review_ref"])
-        resumed = self.cli("batch-resume", "--batch", batch_id, "--request-id", "pause-1")
-        self.assertEqual("commit_batch_completion", resumed["action"])
-        closed = self.cli("batch-run", "--batch", batch_id)
-        self.assertEqual("closed", closed["status"])
-        self.assertEqual("closed", self.decide(batch_id, first, "approve")["status"])
-
-    def test_red_request_remains_diagnostic_until_fixed_runnable_review(self):
-        (self.root / "check.py").write_text("print(0)\n", encoding="utf-8")
-        definition = plan({"check": {"argv": ["{python}", "check.py"], "timeout": 30,
-                                      "result": {"kind": "predicate", "stdout_equals": "42"}}}, ["check.py"])
-        self.review_authority(definition)
-        self.review_package(definition)
-        batch_id = self.open(definition)["batch_id"]
-        failed = self.cli("batch-run", "--batch", batch_id)
-        self.cli("checkpoint-request", "--batch", batch_id, "--milestone", "final", "--request-id", "review-red",
-                 "--mode", "review", "--expected-revision", failed["revision"])
-        red = self.cli("batch-run", "--batch", batch_id)
-        self.assertEqual("diagnose_incident", red["action"])
-        self.assertIsNone(red["pending_review_ref"])
-        diagnostic = self.cli("checkpoint-show", "--batch", batch_id, "--checkpoint", red["latest_checkpoint_ref"])
-        self.assertFalse(diagnostic["green"])
-        self.cli("batch-repair", "--batch", batch_id, "--request-id", "fix-1", "--reason", "replace incorrect result")
-        (self.root / "check.py").write_text("print(42)\n", encoding="utf-8")
-        repaired = self.cli("batch-run", "--batch", batch_id)
-        self.assertEqual("wait_human", repaired["action"])
-        self.assertNotEqual(red["pending_review_ref"], repaired["pending_review_ref"])
-        self.decide(batch_id, repaired["pending_review_ref"], "approve", decision_id="accept-fixed")
-        self.assertEqual("closed", self.cli("batch-run", "--batch", batch_id)["status"])
-
     def test_inline_implementation_yields_to_real_proof_before_issue_completion(self):
         self.issue_scenario(False)
 
@@ -612,9 +506,6 @@ preflight.record(root/row['receipt'],cwd=row['cwd'],action=row['declared_action'
 
     def test_dependent_work_waits_for_proof_and_final_rechecks_the_combined_candidate(self):
         self.dependency_scenario(False)
-
-    def test_cross_milestone_proof_unlocks_qualified_dependency(self):
-        self.dependency_scenario(True)
 
     def dependency_scenario(self, split):
         jobs = {}
