@@ -82,8 +82,12 @@ run `../verify-artifacts.py` over the scope:
 
 Delete what the current model has no reader for: superseded planning drafts whose decisions landed
 elsewhere (the landed record keeps the citation), legacy `SUMMARY.md` copies once `/cosmos-setup`
-has folded them, and `spec-review.html` after acceptance. Report every item as migrated, deleted,
-or retained with its reason; git history stays the archive. TIDY never reopens issues, changes
+has folded them, and `spec-review.html` after acceptance; the accepted bytes stay pinned in
+`spec-accepted.md`, which tidy never deletes, and a digest audit diffs that snapshot against the
+live PRD rather than the page. Report every item as migrated, deleted,
+or retained with its reason; git history stays the archive, and in a repository without version
+control nothing else holds that history, so superseded drafts are retained there instead of
+deleted. TIDY never reopens issues, changes
 accepted behavior, or upgrades `done` cards.
 
 ## Timing and recovery

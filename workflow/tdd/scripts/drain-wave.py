@@ -68,6 +68,7 @@ FLOW_LIST = re.compile(r"^\[\s*(.*)\s*\]$")
 BLOCK_ITEM = re.compile(r"^\s+-\s+(.+)$")
 DONE_HEAD = re.compile(r"^#{2,3}\s*\u5b8c\u6210(?:[^\w]|$)")
 _PREFLIGHT_API = None
+_SPEC_REVIEW_API = None
 
 
 def now_iso():
@@ -95,6 +96,26 @@ def preflight_api():
         spec.loader.exec_module(module)
         _PREFLIGHT_API = module
     return _PREFLIGHT_API
+
+
+def spec_review_api():
+    """Load the spec skill's review module for the acceptance binding, or None
+    when this install has no spec skill beside tdd (the barrier then skips)."""
+    global _SPEC_REVIEW_API
+    if _SPEC_REVIEW_API is None:
+        path = os.path.normpath(os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..", "..", "spec", "scripts", "spec-review.py",
+        ))
+        if not os.path.isfile(path):
+            return None
+        spec = importlib.util.spec_from_file_location("cosmos_spec_review", path)
+        if spec is None or spec.loader is None:
+            return None
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _SPEC_REVIEW_API = module
+    return _SPEC_REVIEW_API
 
 
 def read_lines(path):
@@ -1170,6 +1191,16 @@ def _dispatch(root, slugs, direct=False, feature=None):
             file=sys.stderr,
         )
         return 1
+    review = spec_review_api()
+    if review is not None:
+        for feat in sorted({issues[s][0] for s in slugs}):
+            blocked = review.acceptance_barrier(os.path.join(root, ".scratch", feat))
+            if blocked:
+                print(
+                    "drain-wave: acceptance barrier - %s: %s" % (feat, blocked),
+                    file=sys.stderr,
+                )
+                return 1
     done = {
         s for s, (_, _, fm) in issues.items() if fm.get("status") == "done"
     } | archived_done

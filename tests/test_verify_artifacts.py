@@ -1599,6 +1599,54 @@ class SpecReviewAcceptanceGateTests(unittest.TestCase):
             self.assertIn("schema_version must be 1", output)
             self.assertIn("accepted_digest", output)
 
+    def recorded_acceptance(self, root):
+        tool = spec_review_tool()
+        output = io.StringIO()
+        with redirect_stdout(output):
+            self.assertEqual(0, tool.main(["spec-review.py", "accept", str(root), "demo"]))
+        return root / ".scratch" / "demo"
+
+    def test_recorded_acceptance_with_snapshot_passes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_reviewed_feature(root, issues=1)
+            self.recorded_acceptance(root)
+            result, output = self.run_gate(root, "demo")
+            self.assertEqual(0, result, output)
+
+    def test_edited_snapshot_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_reviewed_feature(root, issues=1)
+            feature = self.recorded_acceptance(root)
+            (feature / "spec-accepted.md").write_text("被篡改的快照。\n", encoding="utf-8")
+            result, output = self.run_gate(root, "demo")
+            self.assertEqual(1, result)
+            self.assertIn("acceptance record is inconsistent", output)
+
+    def test_missing_snapshot_with_ledger_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_reviewed_feature(root, issues=1)
+            feature = self.recorded_acceptance(root)
+            (feature / "spec-accepted.md").unlink()
+            result, output = self.run_gate(root, "demo")
+            self.assertEqual(1, result)
+            self.assertIn("spec-accepted.md is missing", output)
+
+    def test_edited_prd_after_recorded_acceptance_points_to_delta(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_reviewed_feature(root, issues=1)
+            self.recorded_acceptance(root)
+            (root / ".scratch" / "demo" / "PRD.md").write_text(
+                ANCHOR_PRD + "\n## 后记\n\n- 编辑过。\n", encoding="utf-8"
+            )
+            result, output = self.run_gate(root, "demo")
+            self.assertEqual(1, result)
+            self.assertIn("no longer matches accepted_digest", output)
+            self.assertIn("--require-accepted", output)
+
 
 if __name__ == "__main__":
     unittest.main()

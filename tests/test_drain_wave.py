@@ -1701,5 +1701,66 @@ test_paths: [tests/{touches}/test_x.py]
                     self.assertEqual(0, code, output)
 
 
+class AcceptanceBarrierTests(unittest.TestCase):
+    spec_review = load_module(
+        "spec_review_for_wave",
+        ROOT / "workflow" / "spec" / "scripts" / "spec-review.py",
+    )
+
+    def call(self, fn, *args):
+        output = io.StringIO()
+        with redirect_stdout(output), redirect_stderr(output):
+            code = fn(*args)
+        return code, output.getvalue()
+
+    def plant(self, root, *, accepted, drift=False):
+        issues = root / ".scratch" / "demo" / "issues"
+        issues.mkdir(parents=True)
+        (issues / "01-one.md").write_text(issue_body("pkg"), encoding="utf-8")
+        prd = root / ".scratch" / "demo" / "PRD.md"
+        prd.write_text(
+            "---\ntype: prd\nfeature: demo\nversion: 1\n---\n\n## 问题\n\n屏障测试。\n",
+            encoding="utf-8",
+        )
+        if accepted:
+            state = {
+                "schema_version": 1,
+                "spec": "PRD.md",
+                "last_rendered_digest": self.spec_review.prd_digest(prd),
+                "accepted_digest": self.spec_review.prd_digest(prd),
+            }
+            (root / ".scratch" / "demo" / "spec-review.json").write_text(
+                json.dumps(state), encoding="utf-8"
+            )
+        if drift:
+            prd.write_text(
+                "---\ntype: prd\nfeature: demo\nversion: 1\n---\n\n## 问题\n\n改过的正文。\n",
+                encoding="utf-8",
+            )
+
+    def test_dispatch_blocks_a_drifted_acceptance(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.plant(root, accepted=True, drift=True)
+            code, output = self.call(wave.cmd_dispatch, root, ["01-one"])
+            self.assertEqual(1, code)
+            self.assertIn("acceptance barrier", output)
+            self.assertIn("--require-accepted", output)
+
+    def test_dispatch_passes_a_matching_acceptance(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.plant(root, accepted=True)
+            code, output = self.call(wave.cmd_dispatch, root, ["01-one"])
+            self.assertEqual(0, code, output)
+
+    def test_dispatch_without_review_state_stays_legacy_compatible(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.plant(root, accepted=False)
+            code, output = self.call(wave.cmd_dispatch, root, ["01-one"])
+            self.assertEqual(0, code, output)
+
+
 if __name__ == "__main__":
     unittest.main()
