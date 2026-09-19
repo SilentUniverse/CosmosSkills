@@ -9,7 +9,7 @@ ask only about consequences the request and repository cannot resolve.
    carry forward still-open 尚未明确. Without a live PRD, reconcile the owning issues directly;
    create `PRD.md` only if shared scenarios or decisions need a durable owner. This is planning
    input, not a file write or a new alignment gate.
-2. **Reconcile.** Run `python <skills-root>/workflow-state.py inspect <repo-root> <feat>
+2. **Reconcile.** Run `python ../workflow-state.py inspect <repo-root> <feat>
    --format json`; use `python3` only when `python` is absent. The projection reads top-level and
    legacy archived done issues and folds completed redo lineage, so delivered work is not mistaken
    for a brand-new slice. Classify every existing issue into the report, then append it

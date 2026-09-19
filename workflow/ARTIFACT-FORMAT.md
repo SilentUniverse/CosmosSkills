@@ -6,6 +6,13 @@ file references THIS document instead of restating the schema. Keeping the contr
 place is what lets `/tdd`, `/resume`, and workflow-state tools parse deterministically instead of
 grepping prose.
 
+Shared gate scripts and contracts (`workflow-state.py`, `verify-artifacts.py`, `test-governance.py`,
+`TEST-POLICY.md`, this file) sit one directory above every skill; skills reference them as
+`../<name>`. Path text resolves `..` against the loading skill's directory: through an installed
+skill link it stays at the shared skills root instead of traversing the physical link target.
+A tooling skill reads them from the sibling `workflow/` tree in the source checkout; installed
+roots merge both trees.
+
 All frontmatter is YAML between `---` fences at the very top of the file. The human-readable
 body (Chinese, per `~/.claude/CLAUDE.md`) follows below the closing `---`.
 
@@ -457,7 +464,8 @@ Field rules:
   finished. One handoff, one consume; git keeps the history. Only `active` handoffs are resume
   candidates.
 - **capsule** — which consumption queue the handoff sits in: `active-work` (the default),
-  `awaiting-alignment`, or `external-pending`. `handoff-state.py publish` validates it; an
+  `awaiting-alignment`, or `external-pending`. The handoff skill's `scripts/handoff-state.py publish`
+  validates it; an
   unknown capsule refuses publish.
 - **generation** — optional for legacy v2 files; `handoff-state.py publish` stamps a new value on
   each publication. `snapshot --path` and `locate` return the whole-file version hash for conditional
@@ -565,7 +573,7 @@ yq --front-matter=extract '.blocked_by[]' .scratch/balance/issues/02-api.md
 To inspect effective delivered behavior without loading history bodies:
 
 ```bash
-python <skills-root>/workflow-state.py inspect . balance --format human
+python ../workflow-state.py inspect . balance --format human
 ```
 
 ## Machine gate

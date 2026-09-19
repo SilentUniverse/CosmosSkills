@@ -42,7 +42,7 @@ Append the record to `## Comments` first, then flip the card mechanically:
 Then flip the card mechanically:
 
 ```text
-python <skills-root>/workflow-state.py close <repo-root> <feat> <slug> --execution <id>
+python ../workflow-state.py close <repo-root> <feat> <slug> --execution <id>
 ```
 
 Use `python3` only when `python` is absent. `close` refuses a card without its `### 完成` record or
@@ -85,7 +85,7 @@ or several named issue receipts; batch-level full/build evidence stays at batch 
 ## Gate and failure
 
 For experience-review issues, write structured evidence first and run
-`python <skills-root>/verify-artifacts.py <repo-root> --feature <feat>` (`python3` only when `python` is absent)
+`python ../verify-artifacts.py <repo-root> --feature <feat>` (`python3` only when `python` is absent)
 before accepting `done`. A gate failure
 restores only that issue to `ready`.
 

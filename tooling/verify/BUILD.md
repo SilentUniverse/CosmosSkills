@@ -7,7 +7,7 @@ Inspect the target project before selecting files, dependencies or a driver.
 
 Identify the user surface, its existing launch path, required data and access, available control
 mechanism, observable result and isolation limits. Read the installed tool's help or owning docs when
-its capability is uncertain. For UI work, load `<skills-root>/tdd/UI-TESTING.md` before choosing a
+its capability is uncertain. For UI work, load `../tdd/UI-TESTING.md` before choosing a
 driver; the parent skill defines the shared root. A platform-specific recipe must come from the
 actual project and tools.
 

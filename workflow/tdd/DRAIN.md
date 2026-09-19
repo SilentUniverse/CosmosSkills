@@ -40,7 +40,7 @@ The retry budget stops a chronically failing issue from re-entering waves foreve
 way. A `/spec` revision changes the recorded contract digest and resets the count; the first
 revision buys a fresh budget, the second locks the slug until park or a redo issue, so rewriting
 the AC alone cannot release the guard. Parking
-(`python <skills-root>/workflow-state.py park <repo-root> <feat> <slug> --reason TEXT`) moves
+(`python ../workflow-state.py park <repo-root> <feat> <slug> --reason TEXT`) moves
 the card to `pending` with its recorded reason, out of dispatch and visible in 未竟.
 `green` closes the card; `aborted` and `conflict` outcomes do not consume the budget. Packets
 carry the derived `retry_summary` so the next worker sees the accumulated failure pattern.
@@ -136,7 +136,7 @@ follow the host's required branch prefix. Merge in dependency order, resolve con
 
 ## Worker brief contract (waves)
 
-`python <skills-root>/workflow-state.py briefs <repo-root> <feat> --compact` renders the mechanical half of
+`python ../workflow-state.py briefs <repo-root> <feat> --compact` renders the mechanical half of
 every outstanding worker brief: packet, receipt-hit token(s) when the ledger recorded them, and the
 derived tests-so-far manifest (done cards' `test_paths`, archived history included, derived per
 call). Generation, launch, and supervision live in [DRAIN-PARALLEL.md](DRAIN-PARALLEL.md). The

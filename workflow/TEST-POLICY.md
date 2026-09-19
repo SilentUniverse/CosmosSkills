@@ -59,10 +59,10 @@ Do not count skipped tests as passed or use test count/coverage percentage as a 
 `test-governance.py` supports these read/measurement operations:
 
 ```text
-python <skills-root>/test-governance.py report --root ROOT --receipts RECEIPT... --output NEW_REPORT.json
-python <skills-root>/test-governance.py report --root ROOT --batch ID
-python <skills-root>/test-governance.py baseline --report REPORT.json --group KEY --statistic p50 --min-samples N --relative-tolerance R --absolute-tolerance-seconds S --output NEW_BASELINE.json
-python <skills-root>/test-governance.py compare --report CANDIDATE.json --baseline BASELINE.json
+python ../test-governance.py report --root ROOT --receipts RECEIPT... --output NEW_REPORT.json
+python ../test-governance.py report --root ROOT --batch ID
+python ../test-governance.py baseline --report REPORT.json --group KEY --statistic p50 --min-samples N --relative-tolerance R --absolute-tolerance-seconds S --output NEW_BASELINE.json
+python ../test-governance.py compare --report CANDIDATE.json --baseline BASELINE.json
 ```
 
 Choose samples and tolerances from the project's evidence; no universal millisecond bar applies.

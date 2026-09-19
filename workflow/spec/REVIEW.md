@@ -29,7 +29,7 @@ browser, prints the structured result JSON to stdout, and exits. Use it whenever
 wait on an ordinary local CLI.
 
 Fallback path: when the harness cannot hold a long tool call, cannot open a browser, or forbids
-a localhost listener, `spec-review.py render` writes the same page as static HTML with a
+a localhost listener, `scripts/spec-review.py render` writes the same page as static HTML with a
 copy-feedback template; the user pastes the filled JSON back. `render` is the compatibility
 fallback, not the default.
 
@@ -51,9 +51,9 @@ agent's job against the current draft.
 ## Acceptance and materialization
 
 `Approve current design` (bridge) or an explicit human approval in the harness records acceptance:
-`spec-review.py accept` stamps `accepted_digest` in `spec-review.json`. Materialize issues,
+`scripts/spec-review.py accept` stamps `accepted_digest` in `spec-review.json`. Materialize issues,
 verifier profiles and preflights only after acceptance. Gate with
-`spec-review.py validate <repo-root> <feature> --require-accepted`
+`scripts/spec-review.py validate <repo-root> <feature> --require-accepted`
 (`accepted_digest == current PRD digest`). The artifact gate additionally rejects a reviewed
 feature whose materialized issues lack a matching accepted digest; it also rejects an accepted
 snapshot that was edited after acceptance. A later requirement change follows the existing

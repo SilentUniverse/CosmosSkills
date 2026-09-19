@@ -11,7 +11,7 @@ argument-hint: "Issue path, feature slug, -s, -p, -all, -log, or nothing to cont
 
 - `/tdd <issue-path>` — run that issue after the status/review guard.
   Use a caller-supplied packet and execution ID directly. Otherwise, after the status/review guard,
-  run `python <skills-root>/workflow-state.py start <repo-root> <feat> <slug>` (`python3` when
+  run `python ../workflow-state.py start <repo-root> <feat> <slug>` (`python3` when
   `python` is absent). This admits the card and returns its packet, execution ID and baseline
   digest. `packet` remains a read-only inspection command. If source/status/hash is observed
   stale, pause writes and return one attention event; never redispatch or refresh a worker's input silently.

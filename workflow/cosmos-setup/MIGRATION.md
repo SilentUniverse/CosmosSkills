@@ -47,11 +47,11 @@ Steps:
 3. **Execute resolved mappings.** For each bare-`Status:` file, derive fields from the [issue schema](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd): `type: issue`; `feature` from the directory; `status` from the resolved mapping. For `ready-for-human`, retain its hands-on check in the PRD's 端到端验证 and set `ready` only after current readiness requirements pass. Infer `category` from the issue's purpose; `blocked_by` from existing dependency references; `created` from one `git log --diff-filter=A --name-only --format=%as -- <issues dir>` pass (today if unseen by git). Leave ambiguous dependencies or status unresolved. Remove the redundant bare `Status:` line only on migrated files; preserve the body except the explicitly relocated hands-on check.
 4. **Keep issue paths stable.** Do not move newly migrated done issues. Existing archive files stay
    supported by the resolver and gate.
-5. **Retire legacy SUMMARY.** Compare `workflow-state.py inspect` against the delivered slugs, then
+5. **Retire legacy SUMMARY.** Compare `../workflow-state.py inspect` against the delivered slugs, then
     delete SUMMARY only if it is fully derived and removal is covered by the migration request.
     Preserve unique user content and untracked files unless their removal is explicitly authorized.
 
-Run `verify-artifacts.py <repo-root>` and report changes plus unresolved schema gaps. If `refines`
+Run `../verify-artifacts.py <repo-root>` and report changes plus unresolved schema gaps. If `refines`
 cannot be proven, leave it unset and resolve intent through `/spec`; GC never hides it. Preserve
 historical completion bodies; active-batch failure recovery follows [DRAIN](../tdd/DRAIN.md), not migration.
 

@@ -45,7 +45,7 @@ Look for the originating spec, in this order:
 
 1. A path the user (or caller) passed as an argument — an issue file or PRD.
 2. The issue referenced by the branch / feature slug: `.scratch/<feat>/issues/NN-*.md`; its `## 验收标准（AC）` block is the spec. Read it from
-   `python <skills-root>/workflow-state.py packet <repo-root> <feat> <slug>` (the packet's `acceptance` field) instead of re-parsing the issue markdown. For a `redo`/`fix` issue, also read the parent named by `refines:`. Review a multi-issue batch per issue; ask only when a requirement cannot be attributed after lookup.
+   `python ../workflow-state.py packet <repo-root> <feat> <slug>` (the packet's `acceptance` field) instead of re-parsing the issue markdown. For a `redo`/`fix` issue, also read the parent named by `refines:`. Review a multi-issue batch per issue; ask only when a requirement cannot be attributed after lookup.
 3. The feature's live PRD: inspect `PRD.md` and `PRD-vN.md` frontmatter and follow `supersedes` to
    the unique live head. Do not default to v1 or guess between multiple heads. If a supplied source
    was superseded, retain any requested historical comparison and identify the current contract.
