@@ -56,19 +56,22 @@ jobs:
       - name: Parallel runner dependencies
         run: python -m pip install pytest pytest-xdist
       - name: Behavior and integration regressions
-        run: python workflow/tdd/scripts/test-supervisor.py --cwd . --receipt .scratch/ci/receipts/regression.json --log .scratch/tmp/regression.log --scope full --timeout 600 --measurement-context "${{ runner.os }}-hosted-py39-default-concurrency" -- python scripts/run-tests.py --durations-file .scratch/tmp/test-durations.json
+        run: python workflow/tdd/scripts/test-supervisor.py --cwd . --receipt .scratch/ci/receipts/regression.json --log .scratch/tmp/regression.log --scope full --timeout 600 --measurement-context "${{ runner.os }}-hosted-py39-parallel" -- python scripts/run-tests.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: regression-${{ matrix.os }}
           path: |
             .scratch/ci/receipts/regression.json
-            .scratch/tmp/test-durations.json
             .scratch/tmp/regression.log
+      # Corpus legs stay Linux-only here: natural-unix on Linux plus the forced
+      # msys profile exercise both platform branches and the force mechanism;
+      # natural msys on a Windows host is covered by the windows-gate job.
+      # GUARD_SHELL_FORCE_MSYS=0 (score unix on an msys host) keeps no CI leg;
+      # run that corpus manually when touching the platform gate.
       - name: Shell guardrails corpus (unix profile)
+        if: runner.os == 'Linux'
         run: python tooling/shell-guardrails/run_corpus.py tooling/shell-guardrails/scripts/guard-shell.py --platform unix
-      # Only this leg forces msys on a Unix host: the other three reach their
-      # profile by host detection or by forcing the gate off.
       - name: Shell guardrails corpus (msys profile forced on a Unix host)
         if: runner.os == 'Linux'
         run: python tooling/shell-guardrails/run_corpus.py tooling/shell-guardrails/scripts/guard-shell.py --platform msys
