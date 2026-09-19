@@ -26,18 +26,28 @@ from pathlib import Path
 REVIEW_STATE = "spec-review.json"
 REVIEW_HTML = "spec-review.html"
 R_BULLET = re.compile(r"^\s*[-*]\s+(R\d+)\s*[—\-–]\s*(.+)$")
+BEFORE_LINE = re.compile(r"^\s+Before\s*[:：]\s*(.+)$", re.IGNORECASE)
 D_HEAD = re.compile(r"^#{2,4}\s+(D\d+)\s*[—\-–:>]?\s*(.*)$")
 REFS_LINE = re.compile(r"^\s*Refs\s*[:：]\s*(.+)$")
-DOOR_LINE = re.compile(r"^\s*Door\s*[:：]\s*(one-way|two-way)\s*$", re.IGNORECASE)
-BLAST_LINE = re.compile(r"^\s*Blast\s+radius\s*[:：]\s*([^\s].*?)\s*$", re.IGNORECASE)
-S_ROW = re.compile(r"^\|\s*(S\d+)\s*\|([^|]*)\|([^|]*)\|([^|]*)\|([^|]*)\|\s*$")
+META_LINE = re.compile(
+    r"^\s*(Refs\s*[:：]|Door\s*[:：]|Blast\s+radius\s*[:：]|Review\s*[:：])", re.IGNORECASE
+)
+META_DOOR = re.compile(r"Door\s*[:：]\s*(one-way|two-way)", re.IGNORECASE)
+META_BLAST = re.compile(r"Blast\s+radius\s*[:：]\s*([^\s;；]+)", re.IGNORECASE)
+META_HUMAN = re.compile(r"Review\s*[:：]\s*human\s*$", re.IGNORECASE)
+S_ROW = re.compile(r"^\|\s*(S\d+)\s*([^|]*)\|([^|]*)\|([^|]*)\|([^|]*)\|([^|]*)\|\s*$")
+S_CANDIDATE = re.compile(r"^\|\s*S\d+")
+WHY_LINE = re.compile(r"^\s*(Why|理由|依据)\s*[:：]", re.IGNORECASE)
 TEST_ROW = re.compile(r"^\|\s*(R\d+)\s*\|")
-WHY_LINE = re.compile(r"^\s*Why\s*[:：]?\s*$", re.IGNORECASE)
+C_BULLET = re.compile(r"^\s*[-*]\s+(C\d+)\s*[—\-–]\s*(.+)$")
+SCOPE_LINE = re.compile(r"^\s*[-*]\s+(IN|OUT)\s*[:：]\s*(.+)$", re.IGNORECASE)
 PRD_NAME = re.compile(r"^PRD(-v\d+)?\.md$")
 ID_TOKEN = re.compile(r"^(R|D|S)(\d+)$")
+NOTE_TOKEN = re.compile(r"^(C|K|Q)\d+$")
 REVIEW_TOKENS = ("key", "routine", "verification")
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 SUBMIT_CAP = 65536
+ACCEPTED_SNAPSHOT = "spec-accepted.md"
 
 
 def normalized_text(path):
@@ -80,22 +90,20 @@ def ref_tokens(value):
     return [token for token in re.split(r"[\s,，、;；]+", (value or "").strip()) if token]
 
 
-def first_line(section):
-    for line in section or []:
-        stripped = line.strip()
-        if stripped:
-            return stripped
-    return ""
-
-
 class Model(object):
     """Parsed R/D/S anchors. Empty families are legal (draft PRDs)."""
 
     def __init__(self):
         self.requirements = []   # {"id", "text"}
-        self.decisions = []      # {"id", "title", "lines", "refs", "door", "blast"}
-        self.slices = []         # {"id", "outcome", "covers", "depends", "review"}
+        self.decisions = []      # {"id", "title", "lines", "refs", "door", "blast", "human"}
+        self.slices = []         # {"id", "label", "outcome", "covers", "depends", "review"}
         self.test_rows = []      # {"id", "cells"}
+        self.scope_in = []       # in-scope lines
+        self.scope_out = []      # out-of-scope lines (范围 OUT, or 不在本次范围内 fallback)
+        self.contracts = []      # {"id", "text"}
+        self.risks = []          # bullet texts (风险)
+        self.questions = []      # bullet texts (尚未明确)
+        self.slice_candidates = 0
         self.has_ids = False
 
     def item_ids(self):
@@ -139,7 +147,13 @@ def parse_model(text):
         for line in scenarios:
             match = R_BULLET.match(line)
             if match:
-                model.requirements.append({"id": match.group(1), "text": match.group(2).strip()})
+                model.requirements.append({"id": match.group(1),
+                                           "text": match.group(2).strip(),
+                                           "before": ""})
+                continue
+            before = BEFORE_LINE.match(line)
+            if before and model.requirements:
+                model.requirements[-1]["before"] = before.group(1).strip()
 
     decisions = find_section(sections, "实现决策")
     if decisions:
@@ -154,35 +168,43 @@ def parse_model(text):
                     "refs": [],
                     "door": "",
                     "blast": "",
+                    "human": False,
                 }
                 model.decisions.append(current)
                 continue
             if current is None:
                 continue
             current["lines"].append(line.rstrip())
+            if not META_LINE.match(line):
+                continue
             refs = REFS_LINE.match(line)
             if refs and not current["refs"]:
                 current["refs"] = ref_tokens(refs.group(1))
-            door = DOOR_LINE.match(line)
+            door = META_DOOR.search(line)
             if door and not current["door"]:
                 current["door"] = door.group(1).lower()
-            blast = BLAST_LINE.match(line)
+            blast = META_BLAST.search(line)
             if blast and not current["blast"]:
                 current["blast"] = blast.group(1).strip()
+            if META_HUMAN.match(line):
+                current["human"] = True
 
     slices = find_section(sections, "实施切片")
     if slices:
         for line in slices:
+            if S_CANDIDATE.match(line):
+                model.slice_candidates += 1
             match = S_ROW.match(line)
             if not match:
                 continue
-            depends = ref_tokens(match.group(4))
+            depends = ref_tokens(match.group(5))
             model.slices.append({
                 "id": match.group(1),
-                "outcome": match.group(2).strip(),
-                "covers": ref_tokens(match.group(3)),
+                "label": match.group(2).strip(),
+                "outcome": match.group(3).strip(),
+                "covers": ref_tokens(match.group(4)),
                 "depends": [] if depends == ["-"] else depends,
-                "review": match.group(5).strip().lower() or "routine",
+                "review": match.group(6).strip().lower() or "routine",
             })
 
     testing = find_section(sections, "测试决策")
@@ -195,6 +217,37 @@ def parse_model(text):
                 "id": match.group(1),
                 "cells": [cell.strip() for cell in line.strip().strip("|").split("|")],
             })
+
+    scope = find_section(sections, "范围")
+    if scope:
+        for line in scope:
+            match = SCOPE_LINE.match(line)
+            if not match:
+                continue
+            if match.group(1).upper() == "IN":
+                model.scope_in.append(match.group(2).strip())
+            else:
+                model.scope_out.append(match.group(2).strip())
+    if not model.scope_out:
+        out_section = find_section(sections, "不在本次范围内")
+        model.scope_out = [
+            re.sub(r"^[-*]\s+", "", line.strip())
+            for line in out_section or [] if line.strip()
+        ]
+
+    contracts = find_section(sections, "不变量")
+    if contracts:
+        for line in contracts:
+            match = C_BULLET.match(line)
+            if match:
+                model.contracts.append({"id": match.group(1), "text": match.group(2).strip()})
+
+    for word, target in (("风险", model.risks), ("尚未明确", model.questions)):
+        section = find_section(sections, word)
+        for line in section or []:
+            stripped = re.sub(r"^[-*]\s+", "", line.strip())
+            if stripped:
+                target.append(stripped)
 
     model.has_ids = bool(model.requirements or model.decisions or model.slices)
     return model
@@ -226,6 +279,12 @@ def validate_model(model):
     requirement_ids = {item["id"] for item in model.requirements}
     decision_ids = {item["id"] for item in model.decisions}
     slice_ids = {item["id"] for item in model.slices}
+    if model.slice_candidates != len(model.slices):
+        problems.append(
+            "实施切片: %d of %d slice row(s) failed to parse; expected "
+            "'| S# [label] | outcome | covers | depends | review |'" % (
+                model.slice_candidates - len(model.slices), model.slice_candidates)
+        )
     for item in model.decisions:
         for token in item["refs"]:
             match = ID_TOKEN.match(token)
@@ -330,43 +389,121 @@ def save_state(feature_dir, state):
 
 
 def render_state(model, prd_name, digest, previous):
-    """Next spec-review.json: keep accepted_digest, refresh the rendered half."""
+    """Next spec-review.json: keep the acceptance half, refresh the rendered half."""
     return {
         "schema_version": 1,
         "spec": prd_name,
         "last_rendered_digest": digest,
         "last_rendered_items": model.hashes(),
         "accepted_digest": previous.get("accepted_digest"),
+        "accepted_spec": previous.get("accepted_spec"),
+        "accepted_items": previous.get("accepted_items"),
     }
 
 
-CSS = """body{font-family:system-ui,'Microsoft YaHei',sans-serif;margin:0;color:#1c2733;background:#f6f8fa}
-main{max-width:980px;margin:0 auto;padding:24px}
-h1{font-size:22px;margin:0 0 4px}h2{font-size:17px;margin:28px 0 8px;border-bottom:1px solid #d5dde5;padding-bottom:4px}
-.badge{display:inline-block;font-size:12px;padding:2px 8px;border-radius:10px;background:#dce8f5;margin-left:8px}
-.badge.delta{background:#f5e3c8}.cards{display:grid;gap:12px}
-.card{background:#fff;border:1px solid #d5dde5;border-radius:8px;padding:12px 14px}
-.card .title{font-weight:600}.card .meta{font-size:12px;color:#5a6b7b;margin-top:6px}
+def record_acceptance(state, feature_dir, prd_path, digest, model):
+    """Pin the accepted bytes: digest, item ledger, and a durable snapshot file.
+
+    The snapshot stores the normalized PRD text so its own prd_digest equals
+    accepted_digest; editing it in place is detectable by any gate.
+    """
+    state["accepted_digest"] = digest
+    state["accepted_spec"] = os.path.basename(prd_path)
+    state["accepted_items"] = model.hashes()
+    snapshot = os.path.join(feature_dir, ACCEPTED_SNAPSHOT)
+    with open(snapshot, "w", encoding="utf-8", newline="\n") as handle:
+        handle.write(normalized_text(prd_path))
+    return state
+
+
+def acceptance_barrier(feature_dir):
+    """None when dispatch may proceed, else the blocking message.
+
+    Binds only features with recorded acceptance; legacy features without
+    review state pass unchanged.
+    """
+    feature_dir = Path(feature_dir)
+    state = load_state(feature_dir)
+    accepted = state.get("accepted_digest")
+    if not isinstance(accepted, str) or not HEX64.match(accepted):
+        return None
+    try:
+        prd_name = resolve_head_prd(feature_dir)
+    except ValueError as exc:
+        return "cannot verify acceptance binding: %s" % exc
+    digest = prd_digest(os.path.join(feature_dir, prd_name))
+    if digest == accepted:
+        return None
+    return (
+        "%s drifted from accepted_digest %s… (current %s…); run spec-review.py validate "
+        "<repo-root> <feature> --require-accepted for the item delta, re-review, then "
+        "dispatch again" % (prd_name, accepted[:12], digest[:12])
+    )
+
+
+CSS = """*{box-sizing:border-box}
+body{font-family:system-ui,'Microsoft YaHei',sans-serif;margin:0;color:#1c2733;background:#eef2f6;font-size:18px;line-height:1.8}
+main{padding:0 28px 48px}
+.topnav{position:sticky;top:0;z-index:10;display:flex;gap:18px;align-items:center;background:#fffffff2;backdrop-filter:blur(6px);border-bottom:1px solid #d5dde5;padding:12px 0;font-size:15.5px}
+.topnav .brand{font-weight:700;color:#2b5c8a}
+.topnav a{color:#5a6b7b;text-decoration:none}
+.topnav a b{color:#a23b3b}
+h1{font-size:26px;margin:16px 0 2px;display:flex;align-items:center}
+h2{font-size:19.5px;margin:36px 0 14px;padding-bottom:6px;border-bottom:2px solid #d5dde5}
+h3{font-size:16.5px;margin:18px 0 8px;color:#5a6b7b;font-weight:600}
+.badge{display:inline-block;font-size:13px;padding:2px 10px;border-radius:10px;background:#dce8f5;margin-left:8px;font-weight:400}
+.badge.delta{background:#f5e3c8}
+.hero{background:#fff;border:1px solid #d5dde5;border-radius:10px;padding:16px 18px;margin-top:14px}
+.counts{margin:4px 0 0;color:#345;font-size:16px}
+.counts.delta{color:#8a6d1a}
+.card.contract{border-left:4px solid #2b5c8a}
+.card.note{border-left:4px solid #8a6d1a}
+.cards{display:grid;gap:16px;grid-template-columns:1fr;align-items:stretch}
+@media(min-width:1000px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.card{background:#fff;border:1px solid #d5dde5;border-radius:10px;padding:15px 20px;display:flex;flex-direction:column}
+.card.decide{border-left:4px solid #a23b3b}
+.card.decide.keyslice{border-left-color:#8a6d1a}
+.card .title{font-weight:600;font-size:18px}
+.card .meta{font-size:14.5px;color:#5a6b7b;margin-top:6px}
+.card summary{cursor:pointer;font-weight:600;font-size:16px;color:#345}
+.q{font-size:19.5px;font-weight:700;line-height:1.5;margin:0 0 2px}
+.q .door,.q .risk{margin-left:6px;font-size:12.5px}
+.body{margin-top:10px;line-height:1.9;font-size:17.5px}
+.body p{margin:0 0 12px}
+.body p:last-child{margin-bottom:0}
+.body ul{margin:0 0 12px;padding-left:22px}
+.body li{margin:0 0 6px}
+.body ul:last-child{margin-bottom:0}
 .door{color:#a23b3b;font-weight:600}.risk{color:#8a6d1a}
-table{border-collapse:collapse;width:100%;background:#fff;font-size:14px}
-th,td{border:1px solid #d5dde5;padding:6px 10px;text-align:left;vertical-align:top}
+a.ref{display:inline-block;font-size:14px;padding:1px 8px;border-radius:9px;background:#dce8f5;color:#2b5c8a;text-decoration:none;margin-right:4px}
+.scopecols{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.scopecols>div>b{display:block;font-size:13px;color:#5a6b7b;margin-bottom:6px}
+.scopecols .in,.scopecols .out{margin:4px 0}
+.scopecols .in{color:#2c6e49}.scopecols .out{color:#8a5a2b}
+table{border-collapse:collapse;width:100%;background:#fff;font-size:16px;border:1px solid #d5dde5}
+th,td{border:0;border-bottom:1px solid #e3e9ef;padding:10px 12px;text-align:left;vertical-align:top}
+th{font-size:13.5px;color:#5a6b7b;border-bottom:2px solid #d5dde5}
+tr:last-child td{border-bottom:0}
 details{margin-top:6px}summary{cursor:pointer;font-size:13px;color:#345}
-textarea{width:100%;min-height:72px;font-family:ui-monospace,monospace;font-size:12px;box-sizing:border-box}
-.controls{margin-top:8px;font-size:13px}.controls label{margin-right:14px}
-button{margin-top:10px;padding:6px 18px;border-radius:6px;border:1px solid #345;background:#2b5c8a;color:#fff;cursor:pointer}
-.foot{margin-top:30px;font-size:12px;color:#5a6b7b}
-.first{background:#fff;border:1px solid #d5dde5;border-radius:8px;padding:16px;margin-bottom:8px}
-.first .row{display:flex;gap:24px;flex-wrap:wrap;margin-top:8px}
-.first .stat b{display:block;font-size:20px}.first .stat span{font-size:12px;color:#5a6b7b}
-.muted{color:#5a6b7b;font-size:13px}
-.state{font-size:12px;padding:1px 6px;border-radius:8px;margin-right:6px}
+textarea{width:100%;min-height:72px;font-family:ui-monospace,monospace;font-size:13.5px;padding:8px;border:1px solid #d5dde5;border-radius:8px}
+.comment textarea{min-height:60px;font-family:inherit;font-size:16.5px}
+.comment{margin-top:auto;padding-top:12px}
+.before{color:#8a5a2b}.after{color:#2c6e49;font-weight:600}
+#feedback-text{min-height:110px}
+button{margin-top:10px;padding:7px 20px;border-radius:8px;border:1px solid #2b5c8a;background:#2b5c8a;color:#fff;cursor:pointer;font-size:14px}
+button:disabled{opacity:.5}
+.foot{margin-top:30px;font-size:13.5px;color:#5a6b7b}
+.state{font-size:13px;padding:1px 7px;border-radius:9px;margin-right:6px}
 .state.MODIFIED,.state.AFFECTED{background:#f5e3c8}.state.ADDED{background:#d9ecd9}
 .state.REMOVED{background:#f2d4d4}.state.UNCHANGED{background:#e8edf2}
+.muted{color:#5a6b7b;font-size:15px}
 """
 
 
-def svg_design_map(model):
-    """Layered SVG of the S# dependency DAG; deterministic coordinates."""
+def svg_design_map(model, highlight=()):
+    """Layered SVG of the S# dependency DAG; deterministic coordinates.
+
+    highlight: slice ids carrying a contract change — drawn with a red fill."""
     slices = {item["id"]: item for item in model.slices}
     if len(slices) <= 1:
         return ""
@@ -397,14 +534,21 @@ def svg_design_map(model):
             x = offset + index * (box_w + gap_x)
             y = depth * (box_h + gap_y)
             centers[item_id] = (x + box_w // 2, y + box_h // 2)
-            label = html.escape(slices[item_id]["outcome"][:10] or item_id)
+            label = html.escape(
+                (slices[item_id]["label"] or slices[item_id]["outcome"])[:12] or item_id
+            )
+            if item_id in highlight:
+                fill = "#f2c8c8"
+            elif slices[item_id]["review"] == "key":
+                fill = "#f5e3c8"
+            else:
+                fill = "#e8edf2"
             parts.append(
                 '<rect x="%d" y="%d" width="%d" height="%d" rx="6" fill="%s"/>'
                 '<text x="%d" y="%d" text-anchor="middle" font-size="13" fill="#1c2733">%s</text>'
                 '<text x="%d" y="%d" text-anchor="middle" font-size="11" fill="#5a6b7b">%s</text>'
                 % (
-                    x, y, box_w, box_h,
-                    "#f5e3c8" if slices[item_id]["review"] == "key" else "#e8edf2",
+                    x, y, box_w, box_h, fill,
                     x + box_w // 2, y + 18, html.escape(item_id),
                     x + box_w // 2, y + 34, label,
                 )
@@ -427,41 +571,13 @@ def svg_design_map(model):
     return "".join(parts)
 
 
-def first_screen(feature, mode, model, delta, sections):
-    goal = first_line(find_section(sections, "问题")) or "（PRD 无 问题 段）"
-    success = first_line(find_section(sections, "方案")) or "（PRD 无 方案 段）"
-    one_way = [item["id"] for item in model.decisions if item["door"] == "one-way"]
-    blasts = [item["blast"] for item in model.decisions if item["blast"]]
-    key_slices = [
-        item["id"] for item in model.slices if item["review"] in ("key", "verification")
-    ]
-    proofs = []
-    for row in model.test_rows:
-        observable = row["cells"][3] if len(row["cells"]) > 3 else (
-            row["cells"][1] if len(row["cells"]) > 1 else ""
-        )
-        if observable and observable not in proofs:
-            proofs.append(observable)
-    if mode == "delta":
-        changed = len(delta["ADDED"]) + len(delta["MODIFIED"]) + len(delta["AFFECTED"])
-        counts = "%d 项 changed / %d removed / %d unchanged" % (
-            changed, len(delta["REMOVED"]), len(delta["UNCHANGED"])
-        )
-    else:
-        counts = "R %d · D %d · S %d" % (
-            len(model.requirements), len(model.decisions), len(model.slices)
-        )
-    return {
-        "feature": feature,
-        "mode": mode,
-        "goal": goal,
-        "success": success,
-        "counts": counts,
-        "one_way": one_way,
-        "blast": "、".join(sorted(set(blasts))) or "未标注",
-        "decide": len(one_way) + len(key_slices),
-        "proofs": proofs[:3],
-    }
+def delta_line(mode, delta):
+    if mode != "delta":
+        return ""
+    return "较上次：+%d 新增 · %d 变更 · %d 移除 · %d 不变" % (
+        len(delta["ADDED"]), len(delta["MODIFIED"]),
+        len(delta["REMOVED"]), len(delta["UNCHANGED"]),
+    )
 
 
 def state_badge(mode, delta, item_id):
@@ -473,121 +589,359 @@ def state_badge(mode, delta, item_id):
     return ""
 
 
+def review_items(model):
+    """The decision area: direction decisions (`Review: human`) plus one-way contract doors."""
+    posed, seen = [], set()
+    for item in model.decisions:
+        if item["human"]:
+            posed.append(item)
+            seen.add(item["id"])
+    for item in model.decisions:
+        if item["door"] == "one-way" and item["id"] not in seen:
+            posed.append(item)
+            seen.add(item["id"])
+    return posed
+
+
+def decision_body(item):
+    """(summary paragraph, remaining lines) with machine-readable meta lines removed."""
+    body = [line for line in item["lines"][1:] if not META_LINE.match(line)]
+    start = 0
+    while start < len(body) and not body[start].strip():
+        start += 1
+    end = start
+    while end < len(body) and body[end].strip():
+        end += 1
+    return body[start:end], body[end:]
+
+
+HARD_ENDERS = "。；？！"
+ASCII_ENDERS = ".;?!"
+SOFT_ENDERS = "，、→"
+SOFT_LIMIT = 90
+
+
+def _break_points(line, enders, space_gated=False, parens=True, code=True):
+    """Split offsets after ender chars, outside backtick spans (and parentheses)."""
+    points, in_code, depth = [], False, 0
+    for index, ch in enumerate(line):
+        if code and ch == "`":
+            in_code = not in_code
+            continue
+        if code and in_code:
+            continue
+        if ch in "（(":
+            depth += 1
+        elif ch in "）)":
+            depth = max(0, depth - 1)
+        elif (depth == 0 or not parens) and ch in enders:
+            if space_gated and ch in ASCII_ENDERS:
+                nxt = line[index + 1] if index + 1 < len(line) else ""
+                if nxt and not nxt.isspace():
+                    continue
+            points.append(index + 1)
+    return points
+
+
+def _cut(line, points):
+    parts, start = [], 0
+    for stop in points:
+        parts.append(line[start:stop])
+        start = stop
+    parts.append(line[start:])
+    return parts
+
+
+def split_sentences(line):
+    """Hard breaks at sentence enders; over-long sentences also break at ，、."""
+    out = []
+    for piece in _cut(line, _break_points(line, HARD_ENDERS + ASCII_ENDERS, space_gated=True)):
+        piece = piece.strip()
+        if not piece:
+            continue
+        if len(piece) > SOFT_LIMIT:
+            soft = [part.strip() for part in
+                    _cut(piece, _break_points(piece, SOFT_ENDERS, parens=False, code=False))
+                    if part.strip()]
+            out.extend(soft if len(soft) > 1 else [piece])
+        else:
+            out.append(piece)
+    return out
+
+
+def paragraphs_html(lines, by_line=False):
+    """One <p> per sentence (or per source line with by_line); bullet blocks become <ul>."""
+    blocks, current = [], []
+    for line in lines:
+        if line.strip():
+            current.append(line.strip())
+        elif current:
+            blocks.append(current)
+            current = []
+    if current:
+        blocks.append(current)
+    parts = []
+    for block in blocks:
+        if all(re.match(r"^[-*]\s+", item) for item in block):
+            parts.append("<ul>%s</ul>" % "".join(
+                "<li>%s</li>" % html.escape(re.sub(r"^[-*]\s+", "", item))
+                for item in block))
+        else:
+            for line in block:
+                if by_line:
+                    parts.append("<p>%s</p>" % html.escape(line))
+                    continue
+                for sentence in split_sentences(line):
+                    parts.append("<p>%s</p>" % html.escape(sentence))
+    return "".join(parts)
+
+
+def item_comment(item_id, placeholder="有异议写在这里；留空即同意"):
+    """One always-visible box: text is feedback, empty is silent approval."""
+    return (
+        '<div class="comment" data-id="%s">'
+        '<textarea placeholder="%s"></textarea></div>' % (item_id, placeholder)
+    )
+
+
+def decision_card(item, mode, delta, hashes, pose=False, number=0):
+    """pose=True: the decision area — one question, body fully typeset. Else: collapsed reference."""
+    badge = state_badge(mode, delta, item["id"])
+    refs = "".join('<a class="ref" href="#%s">%s</a>' % (r, r) for r in item["refs"])
+    chips = []
+    if item["door"] == "one-way":
+        chips.append('<span class="door">one-way</span>')
+    if item["blast"]:
+        chips.append('<span class="risk">%s</span>' % html.escape(item["blast"]))
+    meta = ""
+    if refs or chips:
+        meta = '<div class="meta">%s</div>' % " ".join([refs] + chips)
+    head = "%s%s %s" % (badge, html.escape(item["id"]), html.escape(item["title"]))
+    anchor = "%s · %s" % (item["id"], hashes.get(item["id"], "")[:12])
+    first, rest = decision_body(item)
+    if pose:
+        mark = "%s%d. " % (badge, number) if number else badge
+        return (
+            '<div class="card decide" title="%s">'
+            '<div class="q">%s%s %s %s</div>'
+            '<div class="body">%s</div>%s%s</div>'
+            % (anchor, mark, html.escape(item["id"]), html.escape(item["title"]),
+               " ".join(chips), paragraphs_html(first + rest), meta,
+               item_comment(item["id"]))
+        )
+    summary_chips = (" " + " ".join(chips)) if chips else ""
+    return (
+        '<div class="card"><details title="%s"><summary>%s%s</summary>'
+        '<div class="body">%s</div>%s</details></div>'
+        % (anchor, head, summary_chips, paragraphs_html(first + rest), meta)
+    )
+
+
+def behavior_card(row, mode, delta, before=""):
+    cells = row["cells"]
+    scenario = cells[1] if len(cells) > 1 else row["id"]
+    observable = cells[3] if len(cells) > 3 else ""
+    change = '<div class="body">%s</div>' % paragraphs_html([observable])
+    if before:
+        change = (
+            '<div class="body"><p class="before">Before：%s</p>'
+            '<p class="after">After：%s</p></div>'
+            % (html.escape(before), html.escape(observable))
+        )
+    return (
+        '<div class="card" id="%s"><div class="title">%s%s</div>%s</div>'
+        % (row["id"], state_badge(mode, delta, row["id"]), html.escape(scenario), change)
+    )
+
+
+def contract_card(item):
+    return (
+        '<div class="card contract"><div class="title">%s</div>'
+        '<div class="body">%s</div></div>'
+        % (html.escape(item["id"]), paragraphs_html([item["text"]]))
+    )
+
+
+def note_card(prefix, number, text, answerable=False):
+    head = "%s%d" % (prefix, number)
+    box = ""
+    if answerable:
+        box = item_comment(head, "你的回答（可选）")
+    return (
+        '<div class="card note"><div class="title">%s</div>'
+        '<div class="body">%s</div>%s</div>'
+        % (head, paragraphs_html([text]), box)
+    )
+
+
 def review_html(feature, prd_name, prd_text, digest, model, delta, mode, bridge, token="", url=""):
     sections = h2_sections(prd_text)
-    screen = first_screen(feature, mode, model, delta, sections)
     hashes = model.hashes()
+    decide_items = review_items(model)
+    decide_ids = {item["id"] for item in decide_items}
+    other_items = [item for item in model.decisions if item["id"] not in decide_ids]
+    acceptance = find_section(sections, "端到端验证") or []
+    acceptance = [line for line in acceptance if line.strip() and line.strip() != "（无）"]
+    problem = [line for line in (find_section(sections, "问题") or []) if line.strip()]
+    outcome = [line for line in (find_section(sections, "方案") or []) if line.strip()]
+    counts = []
+    if decide_items:
+        counts.append("%d 项决策" % len(decide_items))
+    if model.test_rows:
+        counts.append("%d 项行为" % len(model.test_rows))
+    if model.contracts:
+        counts.append("%d 条不变量" % len(model.contracts))
+    if model.risks or model.questions:
+        counts.append("%d 条风险/疑问" % (len(model.risks) + len(model.questions)))
     out = []
     add = out.append
     add('<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">')
     add("<title>%s — spec review</title><style>%s</style></head><body><main>" % (
         html.escape(feature), CSS))
-    add('<div class="first"><h1>%s<span class="badge %s">%s Review</span></h1>' % (
+    add('<nav class="topnav"><span class="brand">%s · %s Review</span>' % (
+        html.escape(feature), "Delta" if mode == "delta" else "Full"))
+    add('<a href="#problem">问题</a>')
+    if model.scope_in or model.scope_out:
+        add('<a href="#scope">范围</a>')
+    if model.test_rows or model.requirements:
+        add('<a href="#behavior">行为 %d</a>' % len(model.test_rows))
+    if model.contracts:
+        add('<a href="#contracts">不变量 %d</a>' % len(model.contracts))
+    if acceptance:
+        add('<a href="#acceptance">验收</a>')
+    if model.risks:
+        add('<a href="#notes">风险 %d</a>' % len(model.risks))
+    add('<a href="#tech">技术细节</a>')
+    if decide_items or model.questions:
+        add('<a href="#decide"><b>填写 %d</b></a>'
+            % (len(decide_items) + len(model.questions)))
+    add('<a href="#submit"><b>提交</b></a>')
+    add("</nav>")
+    add('<section class="hero"><h1>%s<span class="badge %s">%s Review</span></h1>' % (
         html.escape(feature),
         "delta" if mode == "delta" else "",
         "Delta" if mode == "delta" else "Full"))
-    add('<div class="muted">目标：%s</div>' % html.escape(screen["goal"]))
-    add('<div class="muted">成功定义：%s</div>' % html.escape(screen["success"]))
-    add('<div class="row">')
-    add('<div class="stat"><b>%s</b><span>本次变化</span></div>' % html.escape(screen["counts"]))
-    add('<div class="stat"><b>%d</b><span>one-way door</span></div>' % len(screen["one_way"]))
-    add('<div class="stat"><b>%s</b><span>Blast Radius</span></div>' % html.escape(screen["blast"]))
-    add('<div class="stat"><b>%d</b><span>需要你决定</span></div>' % screen["decide"])
-    add("</div></div>")
+    add('<p class="counts">%s</p>' % html.escape(" · ".join(counts) or "（无锚点）"))
+    if mode == "delta":
+        add('<p class="counts delta">%s</p>' % html.escape(delta_line(mode, delta)))
+    add("</section>")
     if mode == "delta" and delta["REMOVED"]:
         add('<details open><summary>本次移除（%d）：%s</summary></details>' % (
             len(delta["REMOVED"]), html.escape("、".join(delta["REMOVED"]))))
-    add("<h2>什么与为什么</h2>")
-    add('<div class="cards">')
-    for word, label in (("问题", "问题"), ("方案", "方案"), ("不在本次范围内", "不做什么")):
-        body = find_section(sections, word)
-        if body is None:
-            continue
-        add('<div class="card"><div class="title">%s</div><div class="muted">%s</div></div>' % (
-            label, html.escape(first_line(body))))
-    add("</div>")
-    if len(model.slices) > 1:
-        add("<h2>Design Map</h2>")
-        add(svg_design_map(model))
-    add("<h2>Requirements</h2>")
-    add("<table><tr><th>行为</th><th>期望结果</th><th>怎么证明</th></tr>")
-    for row in model.test_rows:
-        cells = row["cells"]
-        scenario = cells[1] if len(cells) > 1 else row["id"]
-        seam = cells[2] if len(cells) > 2 else "—"
-        observable = cells[3] if len(cells) > 3 else ""
-        evidence = cells[4] if len(cells) > 4 else (cells[-1] if len(cells) > 2 else "")
-        detail = "%s · 接缝 %s" % (row["id"], seam)
-        proof = "%s（%s）" % (observable, evidence) if evidence else observable
-        add(
-            "<tr><td>%s%s<details><summary>技术细节</summary><div class=\"muted\">%s</div></details></td>"
-            "<td>%s</td><td>%s</td></tr>" % (
-                state_badge(mode, delta, row["id"]), html.escape(scenario),
-                html.escape(detail), html.escape(observable), html.escape(proof)))
-    add("</table>")
-    if not model.test_rows:
+    add('<h2 id="problem">要解决的问题</h2>')
+    if problem:
+        add('<div class="card"><div class="title">问题</div><div class="body">%s</div></div>'
+            % paragraphs_html(problem))
+    if outcome:
+        add('<div class="card"><div class="title">预期结果</div><div class="body">%s</div></div>'
+            % paragraphs_html(outcome))
+    if model.scope_in or model.scope_out:
+        add('<h2 id="scope">范围</h2><div class="card scopecard"><div class="scopecols">')
+        add('<div><b>IN</b>%s</div>' % "".join(
+            '<div class="in">✓ %s</div>' % html.escape(line) for line in model.scope_in))
+        add('<div><b>OUT</b>%s</div>' % "".join(
+            '<div class="out">— %s</div>' % html.escape(line) for line in model.scope_out))
+        add("</div></div>")
+    if model.test_rows or model.requirements:
+        add('<h2 id="behavior">行为 · %d</h2><div class="cards">' % len(model.test_rows))
+        before_of = {item["id"]: item.get("before", "")
+                     for item in model.requirements}
+        for row in model.test_rows:
+            add(behavior_card(row, mode, delta, before_of.get(row["id"], "")))
         for item in model.requirements:
-            add('<div class="card"><div class="title">%s%s</div><div class="muted">%s</div></div>' % (
-                state_badge(mode, delta, item["id"]), html.escape(item["text"]),
-                html.escape(item["id"])))
-    add("<h2>Key Decisions</h2><div class=\"cards\">")
-    for item in model.decisions:
-        body = [line for line in item["lines"][1:] if line.strip()]
-        decision = html.escape(body[0].strip()) if body else ""
-        why = ""
-        for index, line in enumerate(body):
-            if WHY_LINE.match(line) and index + 1 < len(body):
-                why = html.escape(body[index + 1].strip())
-                break
-        door = '<span class="door">Door: %s</span>' % item["door"] if item["door"] else ""
-        blast = (
-            '<span class="risk">Blast Radius: %s</span>' % html.escape(item["blast"])
-            if item["blast"] else ""
-        )
-        controls = ""
-        if bridge:
-            controls = (
-                '<div class="controls">'
-                '<label><input type="radio" name="%s" value="approve" checked>通过</label>'
-                '<label><input type="radio" name="%s" value="change">需要修改</label>'
-                '<label><input type="radio" name="%s" value="question">有问题</label>'
-                '<textarea name="%s-comment" placeholder="批注（可选）"></textarea></div>'
-                % (item["id"], item["id"], item["id"], item["id"])
-            )
-        add(
-            '<div class="card"><div class="title">%s%s %s</div><div>%s</div>'
-            '<div class="muted">Why：%s</div><div class="meta">%s %s</div>%s'
-            '<details><summary>锚点</summary><div class="muted">%s · %s</div></details></div>'
-            % (
-                state_badge(mode, delta, item["id"]), html.escape(item["id"]),
-                html.escape(item["title"]), decision, why, door, blast, controls,
-                html.escape(item["id"]), hashes.get(item["id"], "")[:12],
-            )
-        )
-    add("</div>")
-    add("<h2>Implementation Slices</h2>")
-    add("<table><tr><th>Slice</th><th>Outcome</th><th>Covers</th><th>Depends</th><th>Review</th></tr>")
-    for item in model.slices:
-        add("<tr><td>%s%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>" % (
-            state_badge(mode, delta, item["id"]), html.escape(item["id"]),
-            html.escape(item["outcome"]), html.escape(" ".join(item["covers"])),
-            html.escape(" ".join(item["depends"]) or "—"), html.escape(item["review"])))
-    add("</table>")
-    for item in model.slices:
-        if item["review"] == "routine":
-            add('<details><summary>%s（routine，默认折叠）</summary><div class="muted">%s</div></details>' % (
-                html.escape(item["id"]), html.escape(item["outcome"])))
-    add("<h2>验证方式</h2><div class=\"cards\">")
-    for proof in screen["proofs"]:
-        add('<div class="card"><div class="muted">%s</div></div>' % html.escape(proof))
-    if not screen["proofs"]:
-        add('<div class="card"><div class="muted">PRD 测试决策段无可观察结果行</div></div>')
-    add("</div>")
+            if not any(row["id"] == item["id"] for row in model.test_rows):
+                add('<div class="card" id="%s"><div class="title">%s%s</div>'
+                    '<div class="body">%s</div></div>' % (
+                        item["id"], state_badge(mode, delta, item["id"]),
+                        html.escape(item["id"]), paragraphs_html([item["text"]])))
+        add("</div>")
+    if model.contracts:
+        add('<h2 id="contracts">不变量 · %d</h2><div class="cards">' % len(model.contracts))
+        for item in model.contracts:
+            add(contract_card(item))
+        add("</div>")
+    if acceptance:
+        add('<h2 id="acceptance">验收</h2>')
+        add('<div class="card"><div class="body">%s</div></div>'
+            % paragraphs_html(acceptance, by_line=True))
+    if model.risks:
+        add('<h2 id="notes">风险</h2><div class="cards">')
+        for number, text in enumerate(model.risks, 1):
+            add(note_card("K", number, text))
+        add("</div>")
+    add('<h2 id="tech">技术细节</h2>')
+    if len(model.slices) > 1:
+        add('<h3>切片依赖图（黄 = key）</h3>')
+        add(svg_design_map(model))
+    if model.slices:
+        add('<h3>切片表 · %d</h3>' % len(model.slices))
+        add('<table><tr><th>Slice</th><th>Outcome</th><th>Covers</th><th>Depends</th><th>Review</th></tr>')
+        for item in model.slices:
+            name = "%s %s" % (item["id"], item["label"]) if item["label"] else item["id"]
+            add("<tr><td>%s%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>" % (
+                state_badge(mode, delta, item["id"]), html.escape(name),
+                html.escape(item["outcome"]), html.escape(" ".join(item["covers"])),
+                html.escape(" ".join(item["depends"]) or "—"), html.escape(item["review"])))
+        add("</table>")
+    if other_items:
+        add('<h3>工程决策 · %d</h3><div class="cards">' % len(other_items))
+        for item in other_items:
+            add(decision_card(item, mode, delta, hashes))
+        add("</div>")
+    if model.test_rows:
+        add('<h3>证明表（接缝与证据形态）</h3>')
+        covering = {}
+        for item in model.slices:
+            for ref in item["covers"]:
+                covering.setdefault(ref, []).append(item["id"])
+        add('<table><tr><th>R</th><th>接缝</th><th>证据形态</th><th>切片</th></tr>')
+        for row in model.test_rows:
+            cells = row["cells"]
+            seam = cells[2] if len(cells) > 2 else "—"
+            evidence = cells[4] if len(cells) > 4 else "—"
+            add('<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>' % (
+                html.escape(row["id"]), html.escape(seam), html.escape(evidence),
+                html.escape("、".join(covering.get(row["id"], [])) or "—")))
+        add("</table>")
+    if decide_items or model.questions:
+        fill_count = len(decide_items) + len(model.questions)
+        add('<h2 id="decide">决策与疑问 · %d</h2>' % fill_count)
+        number = 0
+        human_items = [item for item in decide_items if item["human"]]
+        contract_items = [item for item in decide_items if not item["human"]]
+        if human_items:
+            add('<h3>方向与边界</h3><div class="cards">')
+            for item in human_items:
+                number += 1
+                add(decision_card(item, mode, delta, hashes, pose=True, number=number))
+            add("</div>")
+        if contract_items:
+            add('<h3>接口与架构变动（one-way）</h3>')
+            contract_ids = {item["id"] for item in contract_items}
+            for item in contract_items:
+                contract_ids |= set(item["refs"])
+            touched = {
+                sl["id"] for sl in model.slices if set(sl["covers"]) & contract_ids
+            }
+            chart = svg_design_map(model, highlight=touched)
+            if chart:
+                add('<div class="muted">整体架构切片图 — 红 = 本次契约变动涉及，黄 = key</div>')
+                add(chart)
+            add('<div class="cards">')
+            for item in contract_items:
+                number += 1
+                add(decision_card(item, mode, delta, hashes, pose=True, number=number))
+            add("</div>")
+        if model.questions:
+            add('<h3>疑问回答</h3><div class="cards">')
+            for index, text in enumerate(model.questions, 1):
+                add(note_card("Q", index, text, answerable=True))
+            add("</div>")
+    add('<h2 id="submit">反馈</h2>')
+    add('<div class="card"><textarea id="global-feedback" placeholder="GLOBAL 反馈（可选）"></textarea>')
     if bridge:
-        add("<h2>提交</h2>")
-        add('<div class="card"><textarea id="global-feedback" placeholder="全局反馈（可选）"></textarea>')
-        add('<button id="approve">Approve current design</button> ')
-        add('<button id="feedback">Submit feedback</button><div id="result" class="muted"></div></div>')
+        add('<button id="approve" type="button">确定</button> ')
+        add('<button id="feedback" type="button">提交反馈</button><div id="result" class="muted"></div></div>')
         add('<script type="application/json" id="bridge-data">%s</script>' % json.dumps(
             {"token": token, "url": url, "spec": prd_name, "spec_digest": digest,
              "items": {item_id: value for item_id, value in hashes.items()}},
@@ -595,13 +949,15 @@ def review_html(feature, prd_name, prd_text, digest, model, delta, mode, bridge,
         ).replace("</", "<\\/"))
         add("<script>%s</script>" % BRIDGE_JS)
     else:
-        add("<h2>复制反馈（fallback）</h2>")
-        add('<div class="card"><div class="muted">把要改的条目按模板填好后整体复制回 Harness；'
-            "digest 与当前 PRD 不一致时反馈视为过期。</div>")
-        add('<textarea readonly>{"status":"feedback","spec":"%s","spec_digest":"%s",\n'
-            ' "items":[{"id":"D1","hash":"…","action":"change","comment":"…"}],\n'
-            ' "global_feedback":"…"}\n</textarea>' % (prd_name, digest))
-        add("</div>")
+        add('<div class="muted">无异议时直接在 Harness 说明通过；有异议则点对应条目的'
+            '「需要修改 / 提问」，复制下面的反馈文本贴回 Harness。</div>')
+        add('<textarea id="feedback-text" readonly></textarea>')
+        add('<button id="copy-feedback" type="button">复制反馈</button></div>')
+        add('<script type="application/json" id="feedback-data">%s</script>' % json.dumps(
+            {"spec": prd_name, "spec_digest": digest, "items": hashes},
+            ensure_ascii=False,
+        ).replace("</", "<\\/"))
+        add("<script>%s</script>" % STATIC_JS)
     add('<div class="foot">spec %s · digest %s · %s</div>' % (
         html.escape(prd_name), digest[:12], "one-shot bridge" if bridge else "static render"))
     add("</main></body></html>")
@@ -612,12 +968,12 @@ BRIDGE_JS = """
 var data=JSON.parse(document.getElementById('bridge-data').textContent);
 function collect(action){
  var items=[];
- document.querySelectorAll('.controls').forEach(function(box){
-  var comment=box.querySelector('textarea').value.trim();
-  var choice=box.querySelector('input[type=radio]:checked');
-  if(choice&&(choice.value!=='approve'||comment)){
-   items.push({id:choice.name,hash:data.items[choice.name],action:choice.value,comment:comment||''});
-  }
+ document.querySelectorAll('.comment').forEach(function(box){
+  var text=box.querySelector('textarea').value.trim();
+  if(!text){return;}
+  var id=box.getAttribute('data-id');
+  items.push({id:id,hash:data.items[id]||'',
+              action:id.charAt(0)==='Q'?'answer':'change',comment:text});
  });
  return {token:data.token,spec_digest:data.spec_digest,action:action,items:items,
          global_feedback:document.getElementById('global-feedback').value.trim()};
@@ -640,6 +996,39 @@ document.getElementById('feedback').addEventListener('click',function(){
   document.getElementById('result').textContent='没有可提交的反馈';return;
  }
  post(payload,this);});
+})();
+"""
+
+STATIC_JS = """
+(function(){
+var data=JSON.parse(document.getElementById('feedback-data').textContent);
+var out=document.getElementById('feedback-text');
+function build(){
+ var lines=['SPEC FEEDBACK','Spec: '+data.spec,'Digest: '+data.spec_digest,''];
+ document.querySelectorAll('.comment').forEach(function(box){
+  var text=box.querySelector('textarea').value.trim();
+  if(!text){return;}
+  lines.push(box.getAttribute('data-id'));
+  lines.push(text);
+  lines.push('');
+ });
+ var global=document.getElementById('global-feedback').value.trim();
+ if(global){lines.push('GLOBAL');lines.push(global);lines.push('');}
+ lines.push('END FEEDBACK');
+ out.textContent=lines.join('\\n');
+}
+document.querySelectorAll('.comment textarea,#global-feedback')
+ .forEach(function(el){el.addEventListener('input',build);});
+build();
+document.getElementById('copy-feedback').addEventListener('click',function(){
+ out.focus();out.select();
+ var copied=false;
+ try{copied=document.execCommand('copy');}catch(e){}
+ if(!copied&&navigator.clipboard){navigator.clipboard.writeText(out.value);}
+ this.textContent='已复制';
+ var button=this;
+ setTimeout(function(){button.textContent='复制反馈';},1500);
+});
 })();
 """
 
@@ -788,13 +1177,14 @@ def make_handler(prd_path, prd_name, digest, model, html_text, token, result):
                 self.respond(400, {"status": "error", "message": "items must be a list"})
                 return
             for item in items:
-                if not isinstance(item, dict) or item.get("id") not in known:
+                item_id = item.get("id") if isinstance(item, dict) else None
+                if item_id not in known and not NOTE_TOKEN.match(str(item_id or "")):
                     self.respond(400, {"status": "error", "message": "unknown item id"})
                     return
-                if item.get("action") not in ("approve", "change", "question"):
+                if item.get("action") not in ("approve", "change", "question", "answer"):
                     self.respond(400, {"status": "error", "message": "invalid item action"})
                     return
-                item["hash"] = known[item["id"]]
+                item["hash"] = known.get(item_id, "")
             if action == "approve":
                 answer = {"status": "accepted", "spec": prd_name, "spec_digest": digest}
             elif action == "feedback":
@@ -880,7 +1270,13 @@ def serve_bridge(server, result, timeout, prepared):
     answer = dict(result["value"])
     if answer["status"] == "accepted":
         state = prepared["state"]
-        state["accepted_digest"] = prepared["digest"]
+        record_acceptance(
+            state,
+            prepared["feature_dir"],
+            os.path.join(prepared["feature_dir"], prepared["prd_name"]),
+            prepared["digest"],
+            prepared["model"],
+        )
         save_state(prepared["feature_dir"], state)
     return answer
 
@@ -928,13 +1324,35 @@ def cmd_validate(root, feature, require_accepted):
         state = load_state(feature_dir)
         accepted = state.get("accepted_digest")
         digest = prd_digest(prd_path)
+        snapshot = os.path.join(feature_dir, ACCEPTED_SNAPSHOT)
         if not isinstance(accepted, str) or not HEX64.match(accepted):
             problems.append("%s has no recorded human acceptance" % prd_name)
-        elif accepted != digest:
-            problems.append(
-                "accepted_digest %s… != current %s digest %s…; re-review before materializing"
-                % (accepted[:12], prd_name, digest[:12])
-            )
+        else:
+            if os.path.isfile(snapshot):
+                if prd_digest(snapshot) != accepted:
+                    problems.append(
+                        "%s no longer matches accepted_digest" % ACCEPTED_SNAPSHOT
+                    )
+            elif state.get("accepted_items") is not None:
+                problems.append(
+                    "acceptance ledger exists but %s is missing" % ACCEPTED_SNAPSHOT
+                )
+            if accepted != digest:
+                problems.append(
+                    "accepted_digest %s… != current %s digest %s…; re-review before materializing"
+                    % (accepted[:12], prd_name, digest[:12])
+                )
+                items = state.get("accepted_items")
+                if isinstance(items, dict) and items:
+                    delta = classify_delta(model, items)
+                    moved = sorted(
+                        set(delta["ADDED"]) | set(delta["MODIFIED"]) | set(delta["REMOVED"])
+                    )
+                    problems.append(
+                        "changed since acceptance: %s"
+                        % (", ".join(moved) if moved
+                           else "no R/D/S item moved; the edit is outside the item ledger")
+                    )
     if problems:
         print("spec-review validate: %d violation(s)" % len(problems))
         for problem in problems:
@@ -965,14 +1383,19 @@ def cmd_accept(root, feature):
     state.update({
         "schema_version": 1,
         "spec": prd_name,
-        "accepted_digest": digest,
     })
     if not state.get("last_rendered_digest"):
         state["last_rendered_digest"] = digest
         state["last_rendered_items"] = model.hashes()
+    record_acceptance(state, feature_dir, prd_path, digest, model)
     save_state(feature_dir, state)
     print(json.dumps(
-        {"status": "accepted", "spec": prd_name, "spec_digest": digest}, ensure_ascii=False))
+        {
+            "status": "accepted",
+            "spec": prd_name,
+            "spec_digest": digest,
+            "snapshot": ACCEPTED_SNAPSHOT,
+        }, ensure_ascii=False))
     return 0
 
 

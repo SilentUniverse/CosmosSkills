@@ -206,9 +206,9 @@ class RenderDeltaTests(unittest.TestCase):
             html_text = (root / ".scratch" / "import" / "spec-review.html").read_text(
                 encoding="utf-8"
             )
-            self.assertIn("Design Map", html_text)
+            self.assertIn("技术细节", html_text)
             self.assertIn("<svg", html_text)
-            self.assertIn("routine，默认折叠", html_text)
+            self.assertIn("SPEC FEEDBACK", html_text)
             self.assertIn("复制反馈", html_text)
             self.assertNotIn("bridge-data", html_text)
             state = json.loads(
@@ -383,6 +383,83 @@ class AcceptGateTests(unittest.TestCase):
             code, _, _ = run_cli("accept", str(root), "import")
             self.assertEqual(1, code)
 
+    def test_accept_pins_snapshot_and_item_ledger(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_feature(root)
+            code, _, _ = run_cli("accept", str(root), "import")
+            self.assertEqual(0, code)
+            feature_dir = root / ".scratch" / "import"
+            state = json.loads(
+                (feature_dir / "spec-review.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(
+                ["D1", "R1", "R2", "S1", "S2", "S3"], sorted(state["accepted_items"])
+            )
+            self.assertEqual("PRD.md", state["accepted_spec"])
+            snapshot = feature_dir / "spec-accepted.md"
+            self.assertTrue(snapshot.is_file())
+            self.assertEqual(spec_review.prd_digest(snapshot), state["accepted_digest"])
+
+    def test_validate_reports_item_delta_after_edit(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            prd = plant_feature(root)
+            run_cli("accept", str(root), "import")
+            prd.write_text(
+                PRD.replace("- R1 — 导入取消后必须进入 cancelled。", "- R1 — 改动的条目。"),
+                encoding="utf-8",
+            )
+            code, output, _ = run_cli("validate", str(root), "import", "--require-accepted")
+            self.assertEqual(1, code)
+            self.assertIn("re-review before materializing", output)
+            self.assertIn("changed since acceptance: R1", output)
+
+    def test_validate_reports_edits_outside_the_item_ledger(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            prd = plant_feature(root)
+            run_cli("accept", str(root), "import")
+            prd.write_text(PRD + "\n## 后记\n\n- 一句改动。\n", encoding="utf-8")
+            code, output, _ = run_cli("validate", str(root), "import", "--require-accepted")
+            self.assertEqual(1, code)
+            self.assertIn("changed since acceptance: no R/D/S item moved", output)
+
+    def test_validate_flags_edited_or_missing_snapshot(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_feature(root)
+            run_cli("accept", str(root), "import")
+            snapshot = root / ".scratch" / "import" / "spec-accepted.md"
+            snapshot.write_text("被篡改的快照。\n", encoding="utf-8")
+            code, output, _ = run_cli("validate", str(root), "import", "--require-accepted")
+            self.assertEqual(1, code)
+            self.assertIn("spec-accepted.md no longer matches accepted_digest", output)
+            snapshot.unlink()
+            code, output, _ = run_cli("validate", str(root), "import", "--require-accepted")
+            self.assertEqual(1, code)
+            self.assertIn("spec-accepted.md is missing", output)
+
+    def test_render_preserves_acceptance_ledger(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_feature(root)
+            run_cli("accept", str(root), "import")
+            accepted = json.loads(
+                (root / ".scratch" / "import" / "spec-review.json").read_text(encoding="utf-8")
+            )
+            prd = root / ".scratch" / "import" / "PRD.md"
+            prd.write_text(PRD + "\n## 后记\n\n- 一句改动。\n", encoding="utf-8")
+            run_cli("render", str(root), "import")
+            state = json.loads(
+                (root / ".scratch" / "import" / "spec-review.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(accepted["accepted_digest"], state["accepted_digest"])
+            self.assertEqual(accepted["accepted_items"], state["accepted_items"])
+            self.assertNotEqual(
+                state["last_rendered_digest"], state["accepted_digest"]
+            )
+
 
 def post(url, payload):
     request = Request(
@@ -457,10 +534,17 @@ class BridgeTests(unittest.TestCase):
             self.assertEqual("accepted", body["status"])
             thread.join(5)
             self.assertEqual("accepted", result[0]["status"])
+            feature_dir = root / ".scratch" / "import"
             state = json.loads(
-                (root / ".scratch" / "import" / "spec-review.json").read_text(encoding="utf-8")
+                (feature_dir / "spec-review.json").read_text(encoding="utf-8")
             )
             self.assertEqual(prepared["digest"], state["accepted_digest"])
+            self.assertEqual(
+                sorted(prepared["model"].hashes()), sorted(state["accepted_items"])
+            )
+            self.assertEqual(
+                prepared["digest"], spec_review.prd_digest(feature_dir / "spec-accepted.md")
+            )
 
     def test_wrong_token_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
