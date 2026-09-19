@@ -32,6 +32,10 @@ ISSUE_NAME = re.compile(r"^(\d+)-.+\.md$")
 PROFILE_NAME = re.compile(r"\bprofile:([A-Za-z][A-Za-z0-9_-]*)\b")
 MAPPED_ACTION = re.compile(r"^(\s*-\s*#\d+\s*(?:→|->)\s*)`([^`]+)`")
 ATTEMPT_HEAD = re.compile(r"^###\s+(?:尝试|失败|Attempt)(?:\s|—|-|$)", re.IGNORECASE)
+# Lean-issue parent pointer: Parent: PRD-v3.md · S1 · R1/R2 · D1
+PARENT_POINTER = re.compile(
+    r"^Parent:\s*(PRD(?:-v\d+)?\.md)\s*[·•]\s*(S\d+)(?:\s*[·•]\s*(.+))?$"
+)
 
 
 def scalar(value):
@@ -295,6 +299,18 @@ def find_issue(root, feature, slug):
 _PROFILE_UNSET = object()
 
 
+def parse_parent_pointer(raw):
+    """Structured lean parent anchor from the 上级 section's first pointer line."""
+    for line in section_lines(raw, "上级", limit=3):
+        match = PARENT_POINTER.match(line)
+        if match:
+            refs = [
+                token for token in re.split(r"[\s/·•、，,]+", match.group(3) or "") if token
+            ]
+            return {"spec": match.group(1), "slice": match.group(2), "refs": refs}
+    return None
+
+
 def _issue_packet(root, feature, slug, path, raw, issue_data, profile=_PROFILE_UNSET):
     data = dict(issue_data)
     verification = section_body(raw, "验证设计")
@@ -317,6 +333,9 @@ def _issue_packet(root, feature, slug, path, raw, issue_data, profile=_PROFILE_U
         "contract_sha256": issue_contract_digest(raw),
         "source": path.relative_to(root).as_posix(),
     }
+    parent_ref = parse_parent_pointer(raw)
+    if parent_ref:
+        packet["parent_ref"] = parent_ref
     if data.get("contract_version"):
         packet["contract_version"] = data["contract_version"]
     if data.get("experience_review"):

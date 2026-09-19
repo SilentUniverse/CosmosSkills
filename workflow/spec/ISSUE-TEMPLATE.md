@@ -16,17 +16,23 @@ Write issues in dependency order (blockers first) so `blocked_by` can reference 
 # a fresh slice defaults to status: ready, category: enhancement
 ---
 
-## 上级
+## 上级（Parent）
 
-When a parent PRD exists, give its path and extract the scenario, decisions, and constraints needed
-by this slice. `detail` / `redo` / `fix` give the parent issue path and relevant AC instead. Without
-a parent artifact, record the settled goal and constraints here; do not invent a PRD or a path.
-Keep the extract compact without dropping a controlling constraint. TDD starts from this card and
-opens a named parent section only if the extract cannot resolve a discovered ambiguity.
+When a parent PRD exists, write one pointer line plus the controlling constraints, never copied
+PRD prose:
+
+- `Parent: PRD-v3.md · S1 · R1/R2 · D1`
+- 最多 3 条 cold worker 不知道就会做错的控制约束（没有就全部省略）
+
+The worker opens the named PRD sections only on an unresolved ambiguity; scenarios and decisions
+stay in the PRD. `detail` / `redo` / `fix` give the parent issue path and relevant AC instead.
+Without a parent artifact, record the settled goal and constraints here; do not invent a PRD or a
+path.
 
 ## 做什么（What to build）
 
-≤3 sentences of end-to-end behavior, not layer-by-layer implementation. Never paste PRD text; point to its section. `## 上级` carries the extract.
+≤3 sentences of end-to-end behavior: this slice's delta on its blockers, not a recap of the PRD
+scenario. Never paste PRD text; point to its section. `## 上级` carries the anchor.
 
 Name concrete paths/interfaces when needed to remove ambiguity. Include a small schema/type shape
 only when it defines the contract more precisely than prose; omit implementation recipes.
@@ -68,8 +74,9 @@ Two or more non-graphical cards sharing a schema-2 `verifier.json` use the lean 
 frontmatter `verifier_schema: 2`, and the
 per-card boilerplate moves into `.scratch/<feat>/verifier.json` (cwd、fingerprint、prerequisites、
 prepare、named commands — schema in [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md)). Write the profile
-before its cards. Each card keeps only `profile: verifier.json`, seam, per-AC mapping, preflight
-evidence, and true deviations:
+before its cards. Shared cwd、runtime、tools、prerequisites、prepare 与命令文本只存在于
+verifier.json，卡片不复制。Each card keeps only `profile: verifier.json`, seam, per-AC mapping,
+preflight evidence, and true deviations:
 
 ```markdown
 ## 验证设计（Verification Design）

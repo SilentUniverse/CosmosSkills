@@ -427,6 +427,54 @@ class WorkflowStateTests(unittest.TestCase):
             )
             self.assertNotIn("digest", packet)
             self.assertNotIn("dependencies", packet)
+
+    def test_packet_projects_lean_parent_pointer_as_structured_anchor(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issue_dir = root / ".scratch" / "demo" / "issues"
+            issue_dir.mkdir(parents=True)
+            (issue_dir / "01-base.md").write_text(
+                "---\ncontract_version: 3\ntype: issue\nfeature: demo\nstatus: ready\n"
+                "---\n\n## 上级\n\n"
+                "Parent: PRD-v3.md · S1 · R1/R2 · D1\n"
+                "- 取消后的迟到 success 不得改写已落盘终态\n\n"
+                "## 做什么（What to build）\n\nLet cancelled become terminal.\n\n"
+                "## 验收标准（Acceptance Criteria）\n\n- [ ] Cancel ends cancelled.\n\n"
+                "## 验证设计（Verification Design）\n\n- profile: verifier.json\n\n"
+                "## Comments\n",
+                encoding="utf-8",
+            )
+            packet = workflow_state._issue_packet(
+                root, "demo", "01-base", issue_dir / "01-base.md",
+                (issue_dir / "01-base.md").read_text(encoding="utf-8"), {"type": "issue"},
+            )
+            self.assertEqual(
+                {"spec": "PRD-v3.md", "slice": "S1", "refs": ["R1", "R2", "D1"]},
+                packet["parent_ref"],
+            )
+            self.assertEqual(
+                ["Parent: PRD-v3.md · S1 · R1/R2 · D1",
+                 "- 取消后的迟到 success 不得改写已落盘终态"],
+                packet["parent"],
+            )
+
+    def test_packet_omits_parent_ref_for_prose_parents(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issue_dir = root / ".scratch" / "demo" / "issues"
+            issue_dir.mkdir(parents=True)
+            (issue_dir / "01-base.md").write_text(
+                "---\ntype: issue\nfeature: demo\nstatus: ready\n---\n\n"
+                "## 上级\n\nPRD #billing 的场景与决策摘录。\n\n"
+                "## 做什么（What to build）\n\nDeliver base behavior.\n\n"
+                "## Comments\n",
+                encoding="utf-8",
+            )
+            raw = (issue_dir / "01-base.md").read_text(encoding="utf-8")
+            packet = workflow_state._issue_packet(
+                root, "demo", "01-base", issue_dir / "01-base.md", raw, {"type": "issue"},
+            )
+            self.assertNotIn("parent_ref", packet)
             self.assertEqual(".scratch/demo/issues/01-base.md", packet["source"])
 
     def test_packet_preserves_optional_manual_checks_without_a_prd(self):

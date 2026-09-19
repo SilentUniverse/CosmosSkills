@@ -49,7 +49,9 @@ Read the selected handoff once, then route by its `capsule`:
 For `active-work`, load in execution order:
 
 1. Read `Continue` to identify the action, then `Decisions` and `State` for its objective,
-   authorization, and constraints. Current user instructions take precedence.
+   authorization, and constraints. `State` is an anchor block: resolve its PRD/issue pointers to
+   the authoritative artifacts instead of expecting inline design prose. Current user instructions
+   take precedence.
 2. Consult `Avoid` before trying a related approach; follow evidence pointers only as needed.
 3. Verify the claims controlling the action, then execute READ/RUN/CONFIRM. `CONFIRM` is an
    observable check, not another approval. Continue toward the remaining objective.

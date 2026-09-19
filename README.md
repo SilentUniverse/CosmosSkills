@@ -24,7 +24,7 @@ CosmosSkills 是一套给单人开发者的 AI 编程工程方法论：30 个跨
 
 - **九条定律**：从 Hoare、Dijkstra、Parnas、Ousterhout 等软件工程经典提炼的九个问题。不给规范，让 AI 自己推导出好代码
 - **机器门**：`verify-artifacts.py` 校验每份工件——完成记录点名的测试文件必须真实存在于磁盘，误删当场红灯；依赖图有环、PRD 版本链多头或缺头、需求记录源哈希漂移都会红灯
-- **闭环工作流**：`/spec` 滚动规划需求与验证，`/tdd` 在同一任务中持续实现和举证，`/tidy` 清理有明确归属的临时文件并保留测试经验。计划请求等审核；直接实施请求按已有授权继续
+- **闭环工作流**：`/spec` 滚动规划需求与验证——consequential PRD 带 R/D/S 稳定锚点，经 `spec-review.py` 确定性投影成人审页（首轮 Full、反馈后 Delta，一次性本地 bridge 或静态页复制回流），批准绑定 digest 后才拆卡；`/tdd` 在同一任务中持续实现和举证；`/tidy` 清理有明确归属的临时文件、把上一代工件整理成当前模型并保留测试经验。计划请求等审核；直接实施请求按已有授权继续
 - **按需行为 eval**：默认关闭；项目内保留 previous / candidate / no-skill 配对实验，跨项目则导出同一份独立公开考卷，比较 Verified Success、速度、同口径成本与交接摩擦
 - **单人本地优先**：本地 markdown 队列（pending | ready | done），零外部服务；中文沟通、沿用代码术语；面向人的输出以结果、证据和待决定事项为主
 
@@ -95,8 +95,10 @@ tracker/路径、遗留状态、旧 `docs/agents/domain.md` 折叠。
 **围绕可验证、可试用的用户场景持续交付。AI 在同一目标下推进实现、验证和反馈修复，人在需要判断产品效果或作实质决定时介入。**
 
 Spec、TDD、TIDY 分别负责规划、执行和整理，在同一任务中接续。小而明确的修改直接实施，文件数不是规划门槛；
-复杂需求由 Spec 先自主收敛（AFK grill：自查可答的问题、自担安全默认、自攻一版草案），人只审一份接近最终形态的 PRD，
-接受后才拆 Issue。需要持久任务队列时才拆 Issue，需要维护共享产品决定时才写 PRD，需要固定验收或持续批次协调时才启用 managed batch。
+复杂需求由 Spec 先自主收敛（AFK grill：自查可答的问题、自担安全默认、自攻一版草案），产出带 R/D/S 稳定锚点的
+PRD；consequential 方案经 `spec-review.py` 确定性投影成人审页：目标、风险聚合与变化项一屏可扫，人按锚点反馈，
+AI 只重推受影响子树并重渲 Delta，批准写入 `accepted_digest`，机器门拒绝未批准先物化与批准后改稿。
+需要持久任务队列时才拆 Issue，需要维护共享产品决定时才写 PRD，需要固定验收或持续批次协调时才启用 managed batch。
 
 工程完成、人工通过和目标完成分别记录：Issue `done` 表示工程证据完整；人工接受绑定实际版本和场景；
 当前目标只有在全部适用的工程、人工和清理义务满足后才完成。PRD、Issue、审查点不一一对应。
@@ -105,25 +107,25 @@ Spec、TDD、TIDY 分别负责规划、执行和整理，在同一任务中接�
 ### 主流程与人工审查
 
 图中的分支允许并行推进：人审固定版本 A 时，TDD 可以继续独立增量 B；依赖审查决定的工作等待该决定。
-普通任务不必经过人工验收节点；明确只要方案时，Spec 交出方案等待审核。
+consequential 方案走确定性 review 页（Full→Delta）；普通方案在对话中审核即可，不必经过人工验收节点；明确只要方案时，Spec 交出方案等待审核。
 
 ```mermaid
 flowchart TD
   goal["目标、约束与已有授权"]
-  spec["/spec：AFK grill 自主收敛，人审收敛后的 PRD"]
-  plan["方案审核或未决决定"]
+  spec["/spec：AFK grill 自主收敛，R/D/S 锚定 PRD"]
+  review["方案审核：确定性 review 页（Full → Delta）或未决决定回执"]
   tdd["/tdd：持续实现与验证（默认并行许可）"]
   fixed["固定候选，构建并实测 release"]
   human["人工审版本 A 的指定场景"]
   close["最终组合检查与全部适用义务核对"]
-  tidy["/tidy：整理待办，清理临时文件"]
+  tidy["/tidy：整理待办，清理临时文件，整理上一代工件"]
   done["当前目标完成，历史与资产保留"]
 
   goal -->|"需求需要规划"| spec
   goal -->|"修改明确，已授权实施"| tdd
-  spec -->|"仅要方案或存在实质未决选择"| plan
-  plan -->|"需要调整约定"| spec
-  plan -->|"实施获授权，相关决定明确"| tdd
+  spec -->|"仅要方案、有实质未决选择，或 consequential 待审"| review
+  review -->|"反馈按 R/D/S 锚点改稿，重渲 Delta"| spec
+  review -->|"实施获授权，方案已批准（accepted_digest）"| tdd
   spec -->|"已有实施授权，相关约定明确"| tdd
   tdd -->|"场景前置完成，需要正式人审"| fixed
   fixed -->|"机器检查、实际入口与交付准备完成"| human
@@ -141,9 +143,9 @@ flowchart TD
 
 | 入口 | AI 负责 | 你主要提供 |
 |---|---|---|
-| [Spec](workflow/spec/SKILL.md) | 自主收敛需求树（可答自答、可默认自默认、对抗自审一次），人审收敛后的 PRD；接受后才拆卡和跑预检；需求变化保留原完成历史并关联修订 | 目标、约束、优先场景与必要产品决定 |
+| [Spec](workflow/spec/SKILL.md) | 自主收敛需求树（可答自答、可默认自默认、对抗自审一次），产出 R/D/S 锚点 PRD；consequential 方案经确定性 review 页人审（Full→Delta、一次性本地 bridge），批准绑定 accepted_digest 后才拆卡和跑预检；需求变化保留原完成历史并关联修订 | 目标、约束、优先场景与必要产品决定；review 页上按锚点的反馈或批准 |
 | [TDD](workflow/tdd/SKILL.md) | 实现、验证、协调 worker、准备可审版本、定位并修复反馈 | 实际试用观察和明确版本的场景结论 |
-| [TIDY](workflow/tidy/SKILL.md) | 展示工程与人工待办，清理已释放且无消费者的临时文件；保留测试、经验、交付版本和必要证据 | 查看或清理的目标范围 |
+| [TIDY](workflow/tidy/SKILL.md) | 展示工程与人工待办，清理已释放且无消费者的临时文件，把上一代工件整理成当前模型；保留测试、经验、交付版本和必要证据 | 查看或清理的目标范围 |
 
 源码预览直接运行原仓库，使用现有依赖，允许继续写入，适合快速看效果。正式接受绑定已实测 release 的产物哈希。
 构建安排在交付或必要的包验证节点；同一份已交付产物反复查看和导出直接复用。人工主要判断产品行为、体验及必要的真实业务操作，
@@ -185,7 +187,7 @@ stateDiagram-v2
 - **围绕场景反馈。** 说明试用版本、操作、实际现象和期望结果，AI 定位相关 Issue。需求完成后发生变化，追加关联修订；只有活动批次既定的失败恢复路径可以重新打开相关完成卡。
 - **按影响范围验证，在交付边界汇总。** 局部修改跑相关用例，模块完成检查消费者，审查点验证场景与实际产物，最终候选完成全部适用检查。未知影响扩大范围；显式全量绕过筛选。
 - **主控收口共享工作。** worker 只做写集和运行资源独立的工作，主控协调共享验证与交付；受管批次合并相同活动检查，完成证据只在有效性条件满足时复用。没有安全工作就等待事件。
-- **阶段结束整理，同一目标持续接续。** `/tidy inspect 目标` 只查看；`/tidy 目标` 清理确认无用的临时文件。确需跨会话时使用 handoff/resume，保留测试、可复用经验和历史证据。
+- **阶段结束整理，同一目标持续接续。** `/tidy inspect 目标` 只查看；`/tidy 目标` 清理确认无用的临时文件；`/tidy normalize <范围>` 把上一代工件整理成当前模型（旧 handoff 正文、复制式的卡片上级、被取代的草稿）。确需跨会话时使用 handoff/resume，保留测试、可复用经验和历史证据。
 
 裸 `/tdd`、`/tidy` 默认当前目标；全仓操作需要明确范围，`/tdd -all` 表示全量检查。
 `/tdd` 排空默认带并行许可：多张独立就绪卡组成 wave，单卡或 `/tdd -s` 走串行。
@@ -209,6 +211,8 @@ stateDiagram-v2
 
 **上下文按需加载。** `SKILL.md` 保留共同路径；互斥或低频分支在决策点直接链接到 references/scripts/assets。约 100 行只触发披露复查，不是机械拆分门槛。先读任务点名文件、卡片或地图入口，发现依赖再展开；保留精简证据。只在真实会话边界交接，不按卡片数量强制换会话。
 
+**一个语义真值，多种投影。** PRD 是共享设计真值：规划 AI 读完整当前快照，一个文件恢复全部设计，不重放 delta 历史；人经 `spec-review.py` 的确定性投影看意义与变化：首轮 Full、反馈后 Delta，反馈按 R/D/S 锚点回流，digest 过期即拒；worker 只读切片合同（Parent 指针 + packet 投影），歧义时才开命名的 PRD 小节；机器只读结构化状态与回执。固定转换全部脚本化，模型推理只花在不可机械化的判断上；不让一种消费者为另一种支付上下文税。
+
 **深模块：接口留给品味，实现交给 AI。** 大量行为收进一个小接口，测试锁死接口行为——实现随便 AI 怎么写，红灯会说话。接口在文件置顶（类型先行，实现后看）；目录结构就是模块地图，地图和目录对不上，本身就是架构问题。
 
 **人是裁决者，不是流水线工人。** AI 自己解决可查事实和有确定验证器的局部决策；只有结果会分叉时才问人。人读的是一屏决策面：目标、反例、公共边界、证据与待裁决；AI 读的是卡、路径、命令、摘要和机器收据。给人的文本优先可判断性，给 AI 的文本优先精确、短、低 token。默认不写解释型代码注释，只保留代码无法表达的契约、why 和外部约束。
@@ -225,9 +229,10 @@ stateDiagram-v2
 |---|---|---|---|
 | 人 | 真实决策前沿、公共契约、证据摘要、待裁决项 | 一次集中选择或授权 | 已确定需求的复述、实现流水账、机器分类号 |
 | AI | resident `AGENTS.md` / `CLAUDE.md`、当前任务或卡、点名路径、验证命令；续跑再读 handoff `Continue` | 源文件、必要时的 issue/PRD、执行证据、必要不变量 | 全仓扫描、重复 SUMMARY、长日志入上下文 |
+| 机器 | frontmatter、`spec-review.json`、receipts 等结构化状态 | 确定性状态投影与证据，不写自然语言 | 自然语言解释、第二份反馈历史 |
 | 代码维护者 | 接口、测试、代码无法表达的 why/约束 | 语义必要注释 | 翻译代码、改动叙述、教程、装饰分隔注释 |
 
-派生状态统一走 `workflow-state.py inspect`；测试输出统一走 supervisor；跨 session 状态统一走带 worktree digest 的 handoff。三者提供摘要及原始证据指针。handoff 的 capsule 分为 `active-work`、`awaiting-alignment`、`external-pending`，resume 按类型路由。
+派生状态统一走 `workflow-state.py inspect`；测试输出统一走 supervisor；跨 session 状态统一走带 worktree digest 的 handoff；人审投影统一走 `spec-review.py`（Full→Delta、一次性 bridge）。四者提供摘要及原始证据指针。handoff 的 capsule 分为 `active-work`、`awaiting-alignment`、`external-pending`，resume 按类型路由。
 
 ---
 
@@ -315,7 +320,7 @@ rg '^status: ready' -g '**/issues/*.md' .scratch
 |---|---|---|
 | 项目级 | 仓库根 | `CONTEXT.md` 术语、`CODEBASE.md` 结构地图 |
 | 长期 | `docs/` | `docs/adr/`；命令缓存在 CODEBASE.md 的 Verifier commands 区，`docs/agents/` 仅非默认 tracker 存在 |
-| 工作态 | `.scratch/<feat>/` | `PRD.md`、`issues/`、按需 `handoff.md`；`tmp/` 被 ignore，不新建 `SUMMARY.md` |
+| 工作态 | `.scratch/<feat>/` | `PRD.md`（R/D/S 锚点）、`issues/`、`spec-review.json`（review 状态；`spec-review.html` 为可删投影）、按需 `handoff.md`；`tmp/` 被 ignore，不新建 `SUMMARY.md` |
 | 方法评测 | skills 仓库 `evals/` | 真实 regression/capability/routing case、rubric、calibration；runner 结果按 revision 另存 |
 
 完整目录契约（一棵树 + 命名规则）：[ARTIFACT-FORMAT.md](workflow/ARTIFACT-FORMAT.md)。
@@ -384,13 +389,13 @@ git_base: 7af387c
 | [cosmos-setup](workflow/cosmos-setup/SKILL.md) | 偏离处理：非默认 tracker/路径、遗留状态迁移、domain.md 折叠、schema 升级 |
 | [grill](workflow/grill/SKILL.md) | 拷问方案并维护已有领域记录。[domain-modeling](workflow/domain-modeling/SKILL.md) |
 | [prototype](workflow/prototype/SKILL.md) | `/spec` 前造一次性原型 |
-| [spec](workflow/spec/SKILL.md) | 自主收敛复杂需求（AFK grill），人审 PRD 后物化 issue 并跑验证预检 |
+| [spec](workflow/spec/SKILL.md) | 自主收敛复杂需求（AFK grill），R/D/S 锚点 PRD 经确定性 review 页（一次性 bridge）人审，批准后物化 issue 并跑验证预检 |
 | [eval](workflow/eval/SKILL.md) | 手动打开评测；保留项目内 previous/candidate A/B，也可导出独立包与任意外部 workflow 比较；默认关闭 |
 | [atk](workflow/atk/SKILL.md) | 对抗审查自己的产出；工作流只调审查方向，手动默认讲解，`-r` 纯审查且不改文件 |
 | [tdd](workflow/tdd/SKILL.md) | 写代码；`-all` 跑全量，`-log` 读设备 log。[DRAIN.md](workflow/tdd/DRAIN.md) |
 | [cpp-oop-style](workflow/cpp-oop-style/SKILL.md) | 写、改、审 C++/CMake 时覆盖默认风格：抽象类/数据类/值类型、RAII、依赖注入、现代 CMake；源自 [agent-skills](https://github.com/archibate/agent-skills)（CC BY-NC-SA 4.0） |
 | [pr](workflow/pr/SKILL.md) | 只提交本任务已验证路径并落地；PR 附三段式正文（Summary/Evidence/Merge Danger）；`-local` 仅建本地提交 |
-| [tidy](workflow/tidy/SKILL.md) | 工程／人工状态查询 + 有归属的临时文件 GC；保留测试、经验、历史证据 |
+| [tidy](workflow/tidy/SKILL.md) | 工程／人工状态查询 + 有归属的临时文件 GC + 上一代工件整理到当前模型；保留测试、经验、历史证据 |
 | [diagnose](workflow/diagnose/SKILL.md) | 硬 bug / 性能回归 |
 | [verify](tooling/verify/SKILL.md) | 缺少操作或观察能力时补建工具；`-maintain <area>` 修复工具漂移；已有检查直接运行，见[验证闭环](workflow/README.md#application-verification-loop) |
 | [conflicts](workflow/conflicts/SKILL.md) | 解决 Git merge / rebase 冲突 |

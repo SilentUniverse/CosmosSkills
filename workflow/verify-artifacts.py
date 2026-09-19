@@ -6,6 +6,7 @@
 # Do not retry python3 after a non-zero gate exit (that is a contract violation).
 #
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -17,6 +18,24 @@ ENGINEERING_ROOT = Path(__file__).resolve().parent
 if str(ENGINEERING_ROOT) not in sys.path:
     sys.path.insert(0, str(ENGINEERING_ROOT))
 from workflow_contract import effective_verifier, load_verifier_profile, validate_v3_completion
+
+_SPEC_REVIEW = None
+
+
+def spec_review_module():
+    """The R/D/S parser lives once in spec/scripts/spec-review.py."""
+    global _SPEC_REVIEW
+    if _SPEC_REVIEW is None:
+        try:
+            spec = importlib.util.spec_from_file_location(
+                "spec_review", ENGINEERING_ROOT / "spec" / "scripts" / "spec-review.py"
+            )
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+        except Exception as exc:  # a broken install reports as a violation, not a traceback
+            raise ValueError("cannot load spec/scripts/spec-review.py: %s" % exc)
+        _SPEC_REVIEW = module
+    return _SPEC_REVIEW
 
 SKIP_DIRS = {
     ".git",
@@ -320,6 +339,80 @@ def validate_requirements_source(root, prd_path, lines, err):
         err(
             "%s: compressed PRD requirements source SHA-256 mismatch: expected %s, observed %s"
             % (prd_path, expected, observed)
+        )
+
+
+def validate_prd_anchors(prd_path, err, warn):
+    """R/D/S anchor validation; PRDs without declared IDs stay compatible."""
+    try:
+        review_mod = spec_review_module()
+        model = review_mod.parse_model(review_mod.normalized_text(prd_path))
+    except (OSError, ValueError) as exc:
+        err("%s: %s" % (prd_path, exc))
+        return
+    for problem in review_mod.validate_model(model):
+        err("%s: %s" % (prd_path, problem))
+    for advisory in review_mod.model_warnings(model):
+        warn("%s: %s" % (prd_path, advisory))
+
+
+def check_spec_review_state(fd, prd_files, state, err):
+    """Review-state integrity plus the materialization acceptance gate."""
+    if not isinstance(state.get("schema_version"), int) or isinstance(
+        state.get("schema_version"), bool
+    ) or state.get("schema_version") != 1:
+        err("%s: spec-review.json schema_version must be 1" % fd)
+    spec_name = str(state.get("spec", ""))
+    if not re.match(r"^PRD(-v\d+)?\.md$", spec_name):
+        err("%s: spec-review.json spec must name PRD.md/PRD-vN.md, got '%s'" % (fd, spec_name))
+    elif not any(os.path.basename(p) == spec_name for p in prd_files):
+        err("%s: spec-review.json spec '%s' not found in this directory" % (fd, spec_name))
+    rendered = state.get("last_rendered_digest")
+    if rendered is not None and not re.match(r"^[0-9a-f]{64}\Z", str(rendered)):
+        err("%s: spec-review.json last_rendered_digest must be a 64-character SHA-256" % fd)
+    items = state.get("last_rendered_items")
+    if items is not None:
+        if not isinstance(items, dict):
+            err("%s: spec-review.json last_rendered_items must be an object" % fd)
+        else:
+            for key, value in items.items():
+                if not re.match(r"^[RDS]\d+\Z", str(key)) or not re.match(
+                    r"^[0-9a-f]{64}\Z", str(value)
+                ):
+                    err(
+                        "%s: spec-review.json last_rendered_items entry '%s' is malformed" % (fd, key)
+                    )
+    accepted = state.get("accepted_digest")
+    if accepted is not None and not re.match(r"^[0-9a-f]{64}\Z", str(accepted)):
+        err("%s: spec-review.json accepted_digest must be null or a 64-character SHA-256" % fd)
+        return
+    issues_dir = os.path.join(fd, "issues")
+    issue_names = os.listdir(issues_dir) if os.path.isdir(issues_dir) else []
+    archive_dir = os.path.join(issues_dir, "archive")
+    archive_names = os.listdir(archive_dir) if os.path.isdir(archive_dir) else []
+    materialized = os.path.isfile(os.path.join(fd, "verifier.json")) or any(
+        name.endswith(".md") for name in issue_names
+    ) or any(name.endswith(".md") for name in archive_names)
+    if not materialized:
+        return
+    if not accepted:
+        err(
+            "%s: issues materialized before spec acceptance; record acceptance via "
+            "`spec-review.py accept` first" % fd
+        )
+        return
+    digests = set()
+    try:
+        review_mod = spec_review_module()
+        for p in prd_files:
+            digests.add(review_mod.prd_digest(p))
+    except (OSError, ValueError) as exc:
+        err("%s: %s" % (fd, exc))
+        return
+    if accepted not in digests:
+        err(
+            "%s: accepted PRD snapshot no longer matches accepted_digest; edited-after-acceptance "
+            "needs a superseding PRD and a new review" % fd
         )
 
 
@@ -882,6 +975,7 @@ def main(argv):
                     if str(sup) not in names:
                         err("%s: supersedes '%s' not found in this directory" % (p, sup))
                 validate_requirements_source(root, p, prd_lines, err)
+                validate_prd_anchors(p, err, warn)
             if len(prd_files) > 1:
                 superseded = {}
                 for e in parsed.values():
@@ -890,6 +984,12 @@ def main(argv):
                 live = [os.path.basename(p) for p in prd_files if os.path.basename(p) not in superseded]
                 if len(live) != 1:
                     err("%s: PRD chain must leave exactly one live head, found: %s" % (fd, ", ".join(live)))
+
+        sr_path = os.path.join(fd, "spec-review.json")
+        if os.path.isfile(sr_path):
+            state = load_json_object(sr_path, "spec review state", err)
+            if state is not None:
+                check_spec_review_state(fd, prd_files, state, err)
 
         sum_path = os.path.join(fd, "SUMMARY.md")
         if os.path.isfile(sum_path):

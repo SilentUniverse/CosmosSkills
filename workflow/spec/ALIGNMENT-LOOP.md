@@ -63,13 +63,22 @@ items still needing a human decision, and load-bearing defaults the agent took. 
 implementation details are not listed. A blocker that cannot be resolved is shown as a blocker;
 it is never guessed away to satisfy a round count.
 
+The converged PRD carries stable R/D/S anchors
+([PRD-TEMPLATE.md](PRD-TEMPLATE.md)); the review page itself is the deterministic projection of
+[scripts/spec-review.py](scripts/spec-review.py): Full on round one, Delta
+(ADDED/MODIFIED/REMOVED/AFFECTED, unchanged collapsed) afterwards. Hashing, delta classification,
+the slice graph and rendering belong to the script; the agent never hand-assembles the review page.
+A consequential PRD presents through that surface ([REVIEW.md](REVIEW.md)); a chat projection
+remains acceptable only where the harness cannot run local tooling.
+
 ## Feedback: prune and re-run locally
 
-Review feedback locates the affected node, prunes that subtree, recomputes its dependents, and
-re-verifies acceptance and verification for that subtree only. The next review is a delta listing
-Changed, Removed, New consequence and Still valid, not a full PRD reread; resend the complete
-PRD only when the structural change exceeds what a delta can express. Never re-grill the whole
-requirement, regenerate the PRD, or re-ask an answered question.
+Review feedback arrives as structured items (id + hash + action + comment, plus optional global
+feedback) or as prose naming the affected R/D/S. Locate that item, prune its subtree, recompute its
+dependents, and re-verify acceptance and verification for that subtree only — the next review
+is a delta (ADDED/MODIFIED/REMOVED/AFFECTED, unchanged collapsed), rendered by the script, not a
+full PRD reread. Feedback bound to an older PRD digest is stale: re-render instead of applying it.
+Never re-grill the whole requirement, regenerate the PRD, or re-ask an answered question.
 
 Budget: one full review plus at most one delta review is the target, not a hard guarantee. A
 third round requires a material reason: the user changed the goal, a new repository fact overturns

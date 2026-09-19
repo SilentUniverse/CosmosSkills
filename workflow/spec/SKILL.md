@@ -94,11 +94,18 @@ Load each selected instruction once; reuse it across cards until it changes.
 
 When the plan requires human review, present the PRD before materializing the execution queue:
 review judges the converged PRD (five-part projection plus the counts of human decisions and
-load-bearing defaults), never the internal tree or a stack of ready issues. Materialize issues,
-verifier profiles and preflights after acceptance; that engineering preparation needs no second
-review unless it surfaces a new consequential decision: a changed public contract, a verifier
-that cannot prove the requirement, or a new major dependency. Such a decision returns to review
-as one delta on it alone.
+load-bearing defaults), never the internal tree or a stack of ready issues. A consequential PRD
+with R/D/S anchors presents through the deterministic review surface
+([REVIEW.md](REVIEW.md)): `spec-review.py review` runs the one-shot local bridge when the harness
+can wait on a local CLI; otherwise `render` writes the static page and the user copies feedback
+back. Feedback maps to its R/D/S anchors, revises the same draft, and the next page is the delta.
+Acceptance is recorded by the page's Approve or `spec-review.py accept`; before materializing run
+`spec-review.py validate <repo-root> <feat> --require-accepted`; the artifact gate also rejects
+materialized issues without a matching accepted digest. Materialize issues, verifier profiles and
+preflights after acceptance; that engineering preparation needs no second review unless it surfaces
+a new consequential decision: a changed public contract, a verifier that cannot prove the
+requirement, or a new major dependency. Such a decision returns to review as one delta on the
+affected R/D/S alone.
 
 Before marking an issue ready:
 
