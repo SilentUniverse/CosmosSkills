@@ -338,7 +338,11 @@ class WorkflowBatchTests(unittest.TestCase):
         processes = [subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                       text=True, encoding="utf-8") for command in commands]
         results = [process.communicate(timeout=15) for process in processes]
-        self.assertEqual([0, 13], sorted(process.returncode for process in processes), results)
+        # The losing request is refused wherever the race catches it: stale at
+        # admission (exit 2, invalid_state) or at commit (exit 13, revision_conflict).
+        codes = sorted(process.returncode for process in processes)
+        self.assertEqual(0, codes[0], results)
+        self.assertIn(codes[1], (2, 13), results)
         winner = json.loads(results[next(i for i, process in enumerate(processes) if process.returncode == 0)][0])
         self.assertEqual(winner, self.cli("batch-recover", "--batch", opened["batch_id"]))
 
