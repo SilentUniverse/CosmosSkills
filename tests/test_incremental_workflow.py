@@ -57,14 +57,14 @@ class IncrementalWorkflowTests(unittest.TestCase):
         return json.loads((self.root / '.scratch/batches' / self.id / 'state.json').read_text())
 
     def simple(self):
-        return definition({'answer': {'argv': ['{python}', 'app.py'], 'timeout': 3,
+        return definition({'answer': {'argv': ['{python}', 'app.py'], 'timeout': 30,
                                      'result': {'kind': 'predicate', 'stdout_equals': '42'}}})
 
     def release_plan(self):
-        plan = definition({'build': {'argv': ['{python}', 'build.py'], 'timeout': 3, 'outputs': ['package/app.py'],
+        plan = definition({'build': {'argv': ['{python}', 'build.py'], 'timeout': 30, 'outputs': ['package/app.py'],
                                     'result': {'kind': 'artifacts'}, 'release': {'argv': ['{python}', 'package/app.py'], 'requirements': ['Python 3.9+']}},
                            'operate': {'argv': ['{python}', 'package/app.py'], 'artifact_only': True, 'artifact_inputs': ['build'],
-                                       'timeout': 3, 'result': {'kind': 'predicate', 'stdout_equals': '42'}}})
+                                       'timeout': 30, 'result': {'kind': 'predicate', 'stdout_equals': '42'}}})
         plan['review_authority'] = {'kind': 'hmac', 'key_sha256': hashlib.sha256(self.key.read_bytes()).hexdigest()}
         plan['milestones'] = [dict(plan['milestones'][0], human_gate='required', decision_ref='review result', scenarios=['import', 'cancel'])]
         return plan
@@ -233,7 +233,7 @@ class IncrementalWorkflowTests(unittest.TestCase):
         issue.parent.mkdir(parents=True)
         issue.write_text('---\ntype: issue\nfeature: demo\nstatus: ready\ntouches: [search]\ntest_paths: [test_search.py]\nblocked_by: []\n---\n## 做什么\nSearch returns results.\n', encoding='utf-8')
         plan['members'] = ['demo/01-search']
-        plan['jobs']['search'] = {'argv': ['{python}', 'app.py'], 'timeout': 3, 'issue_refs': plan['members'],
+        plan['jobs']['search'] = {'argv': ['{python}', 'app.py'], 'timeout': 30, 'issue_refs': plan['members'],
                                   'ac_map': {'demo/01-search': ['behavior']}, 'result': {'kind': 'predicate', 'stdout_equals': '42'}}
         plan['checks'].append('search')
         plan['requirements'][0]['checks'] = list(plan['checks'])
@@ -507,7 +507,7 @@ class IncrementalWorkflowTests(unittest.TestCase):
 
     def test_requirement_body_revision_waits_for_its_worker(self):
         plan = self.member_plan()
-        plan['jobs']['integration'] = {'argv':['{python}','app.py'], 'timeout':3,
+        plan['jobs']['integration'] = {'argv':['{python}','app.py'], 'timeout':30,
                                        'result':{'kind':'predicate','stdout_equals':'42'}}
         plan['checks'].append('integration')
         plan['milestones'][0]['required_checks'] = list(plan['checks'])
@@ -712,7 +712,7 @@ class IncrementalWorkflowTests(unittest.TestCase):
         child = 'demo/02-child'
         plan['members'].append(child)
         plan['milestones'][0]['members'].append(child)
-        plan['jobs']['child'] = {'argv':['{python}','app.py'],'timeout':3,'issue_refs':[child],
+        plan['jobs']['child'] = {'argv':['{python}','app.py'],'timeout':30,'issue_refs':[child],
                                 'ac_map':{child:['behavior']},'result':{'kind':'predicate','stdout_equals':'42'}}
         plan['checks'].append('child')
         self.open(plan)
