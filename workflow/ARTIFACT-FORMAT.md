@@ -501,11 +501,11 @@ and `R#` ID rows in 测试决策. Declared anchors are gate-validated: family-un
 review token. A PRD without anchors stays compatible. Anchored PRDs feed the deterministic review
 surface ([spec/REVIEW.md](spec/REVIEW.md)).
 
-## Spec review state — `.scratch/<feat>/spec-review.json`
+## Spec review state — `.scratch/<feat>/spec-review.json` + `spec-accepted.md`
 
 Minimal machine state of the human review bridge, written only by
-`spec/scripts/spec-review.py` (`render`/`review`/`accept`); it never stores feedback history or PRD
-content. Schema 1:
+`spec/scripts/spec-review.py` (`render`/`review`/`accept`); the JSON never stores feedback history
+or PRD content. Schema 1:
 
 ```json
 {
@@ -513,16 +513,27 @@ content. Schema 1:
   "spec": "PRD-v3.md",
   "last_rendered_digest": "<64-hex>",
   "last_rendered_items": {"R1": "<64-hex>", "D1": "<64-hex>", "S1": "<64-hex>"},
-  "accepted_digest": null
+  "accepted_digest": null,
+  "accepted_spec": "PRD-v3.md",
+  "accepted_items": {"R1": "<64-hex>", "D1": "<64-hex>", "S1": "<64-hex>"}
 }
 ```
 
-`last_rendered_*` drives the next Delta review; `accepted_digest` records human acceptance of the
-named snapshot. The gate requires schema 1, `spec` naming an existing PRD in the directory, and
-well-formed digests and `[RDS]\d+` item keys. Once any issue or `verifier.json` is materialized in
-the feature, `accepted_digest` must be non-null and match an intact PRD file; an unaccepted review
-therefore cannot materialize, and an accepted snapshot cannot be edited in place. The rendered
-`spec-review.html` is a disposable projection: deletable, rebuildable, never evidence.
+`last_rendered_*` drives the next Delta review; the `accepted_*` half records human acceptance of
+exact bytes: the digest, the PRD name, and the item-level ledger at accept time. Acceptance also
+writes the accepted PRD text to `.scratch/<feat>/spec-accepted.md`; its own digest equals
+`accepted_digest`, so in-place edits of the snapshot are detectable. The ledger and snapshot are
+the recovery path for an edited-after-acceptance alarm:
+`spec-review.py validate <repo-root> <feature> --require-accepted` prints the item-level delta
+against `accepted_items` (or states the edit is outside the item ledger), and `spec-accepted.md`
+holds the bytes to diff against. `drain-wave.py dispatch` refuses a feature whose head PRD no
+longer matches `accepted_digest`. The gate requires schema 1, `spec` naming an existing PRD in the
+directory, and well-formed digests and `[RDS]\d+` item keys; `accepted_items` without the snapshot
+file, or a snapshot whose digest drifted, are violations. Once any issue or `verifier.json` is
+materialized in the feature, `accepted_digest` must be non-null and match an intact PRD file; an
+unaccepted review therefore cannot materialize, and an accepted snapshot cannot be edited in
+place. The rendered `spec-review.html` is a disposable projection: deletable, rebuildable from
+`spec-accepted.md`, never evidence.
 
 ## Current-reality projection
 
@@ -547,6 +558,7 @@ repo/
     └── <feat>/
         ├── PRD.md / PRD-vN.md
         ├── spec-review.json             ← review bridge state (spec-review.py only)
+        ├── spec-accepted.md             ← accepted PRD bytes, written at accept (spec-review.py only)
         ├── handoff.md                ← this feature's rolling handoff
         └── issues/
             ├── NN-slug.md            ← active issues

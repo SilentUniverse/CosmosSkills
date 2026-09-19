@@ -99,9 +99,13 @@ with R/D/S anchors presents through the deterministic review surface
 ([REVIEW.md](REVIEW.md)): `scripts/spec-review.py review` runs the one-shot local bridge when the harness
 can wait on a local CLI; otherwise `render` writes the static page and the user copies feedback
 back. Feedback maps to its R/D/S anchors, revises the same draft, and the next page is the delta.
-Acceptance is recorded by the page's Approve or `scripts/spec-review.py accept`; before materializing run
+Acceptance is recorded by the page's Approve or `scripts/spec-review.py accept`; it pins the
+accepted bytes — digest, item ledger, and the `spec-accepted.md` snapshot. Before materializing run
 `scripts/spec-review.py validate <repo-root> <feat> --require-accepted`; the artifact gate also rejects
-materialized issues without a matching accepted digest. Materialize issues, verifier profiles and
+materialized issues without a matching accepted digest, and drain dispatch refuses the feature while
+the PRD drifts from it. After acceptance never edit the PRD in place: a change surfaces as the
+`validate` item delta and returns to review, or takes the superseding-PRD branch. Materialize issues,
+verifier profiles and
 preflights after acceptance; that engineering preparation needs no second review unless it surfaces
 a new consequential decision: a changed public contract, a verifier that cannot prove the
 requirement, or a new major dependency. Such a decision returns to review as one delta on the

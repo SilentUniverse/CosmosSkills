@@ -386,6 +386,36 @@ def check_spec_review_state(fd, prd_files, state, err):
     if accepted is not None and not re.match(r"^[0-9a-f]{64}\Z", str(accepted)):
         err("%s: spec-review.json accepted_digest must be null or a 64-character SHA-256" % fd)
         return
+    accepted_spec = state.get("accepted_spec")
+    if accepted_spec is not None and not re.match(r"^PRD(-v\d+)?\.md$", str(accepted_spec)):
+        err("%s: spec-review.json accepted_spec must name PRD.md/PRD-vN.md, got '%s'" % (fd, accepted_spec))
+    accepted_items = state.get("accepted_items")
+    if accepted_items is not None:
+        if not isinstance(accepted_items, dict) or not accepted_items:
+            err("%s: spec-review.json accepted_items must be a non-empty object" % fd)
+        else:
+            for key, value in accepted_items.items():
+                if not re.match(r"^[RDS]\d+\Z", str(key)) or not re.match(
+                    r"^[0-9a-f]{64}\Z", str(value)
+                ):
+                    err(
+                        "%s: spec-review.json accepted_items entry '%s' is malformed" % (fd, key)
+                    )
+    snapshot = os.path.join(fd, "spec-accepted.md")
+    snapshot_present = os.path.isfile(snapshot)
+    if accepted_items is not None and not snapshot_present:
+        err("%s: accepted_items recorded but spec-accepted.md is missing" % fd)
+    if snapshot_present and accepted:
+        try:
+            snap_digest = spec_review_module().prd_digest(snapshot)
+        except (OSError, ValueError) as exc:
+            err("%s: %s" % (fd, exc))
+        else:
+            if snap_digest != accepted:
+                err(
+                    "%s: spec-accepted.md no longer matches accepted_digest; the acceptance "
+                    "record is inconsistent - re-record acceptance" % fd
+                )
     issues_dir = os.path.join(fd, "issues")
     issue_names = os.listdir(issues_dir) if os.path.isdir(issues_dir) else []
     archive_dir = os.path.join(issues_dir, "archive")
@@ -412,7 +442,9 @@ def check_spec_review_state(fd, prd_files, state, err):
     if accepted not in digests:
         err(
             "%s: accepted PRD snapshot no longer matches accepted_digest; edited-after-acceptance "
-            "needs a superseding PRD and a new review" % fd
+            "needs a superseding PRD and a new review (item delta: "
+            "`spec-review.py validate <repo-root> <feature> --require-accepted`; accepted bytes: "
+            "spec-accepted.md)" % fd
         )
 
 
