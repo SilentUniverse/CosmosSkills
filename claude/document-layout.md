@@ -24,6 +24,14 @@ At a real resume, follow `/resume`'s minimal boot chain before unrelated orienta
 Issue state is queried on demand: live roster via `rg '^status:' -g '**/issues/*.md' .scratch`;
 effective delivered behavior via `workflow-state.py inspect`. Neither creates `SUMMARY.md`.
 
+## Promoted knowledge
+
+Facts confirmed by an accepted plan live at their narrowest useful scope: task-local in the
+PRD/issue (not auto-loaded later), feature-local in the feature PRD's implementation decisions,
+area/project invariants in ADR/CODEBASE/CONTEXT only when they pass `/map`'s two-axis test and
+record scope, source and reason. When the code, schema or decision a promoted fact cites changes,
+revalidate or supersede it; past acceptance does not keep a stale fact true.
+
 `AGENTS.md`/`CLAUDE.md` is the always-loaded doorplate: what this repo is, the pointer block, deviation declarations, repo-specific constraints. Content the workflow adds there is additive-only and never restates process behavior the skills define.
 
 ## Immutability rules

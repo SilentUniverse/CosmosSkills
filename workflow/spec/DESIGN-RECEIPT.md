@@ -23,6 +23,8 @@ For a broad architectural choice, add the smallest useful requirement/evidence/s
 Show only affected rows after feedback. Reprint the complete design only when interactions changed
 so much that a delta would be misleading. Persist settled choices once in the PRD/issue contract.
 Card count, multiple files, and internal slice-DAG changes do not by themselves require approval.
+Feedback prunes the affected subtree instead of restarting alignment; the review-round budget and
+delta shape are owned by [ALIGNMENT-LOOP.md](ALIGNMENT-LOOP.md).
 
 ## Timing and authority
 

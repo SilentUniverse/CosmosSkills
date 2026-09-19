@@ -1,7 +1,7 @@
 ---
 name: spec
 description: >-
-  Use when the user explicitly asks for a plan or specification, or when a durable work queue or consequential product-boundary decision needs planning. Plans requirements and execution readiness; honors plan-only review and continues authorized implementation through tdd.
+  Use when the user explicitly asks for a plan or specification, or when a durable work queue or consequential product-boundary decision needs planning. Plans requirements and execution readiness; converges decision-heavy requirements autonomously before one batched human review; honors plan-only review and continues authorized implementation through tdd.
 argument-hint: "The need — anything from one line to a full design"
 ---
 
@@ -19,18 +19,29 @@ Running issues still have `ready` status. Prepare a revision separately and appl
 workers return; independent additions continue. Preserve completed contracts and proofs. New details
 use detail issues, changed contracts use redo, and defects after delivery use linked fix issues.
 
-This phase may run declared setup and representative verifier preflights; it does not write product
-behavior. Resolve routine details and finish the reviewable plan before waiting.
+This phase may run declared setup, read-only analysis and representative verifier preflights; it
+writes planning artifacts (`.scratch` PRD/issues/verifier) and confirmed engineering facts
+(ADR/CONTEXT/CODEBASE). It never edits product source or product behavior tests, and never
+implements the request through a convenience fix. A missing verifier or tool becomes a stated
+prerequisite in the plan; the code change itself belongs to TDD.
 
 Intent has two paths:
 
 - **Settled intake.** The request itself is alignment when its outcome and constraints are clear
   from the request, prior decisions, and repository evidence. Choose routine implementation details
   and a suitable deterministic verifier autonomously; report material reversible assumptions.
-- **Decision intake.** Only an unresolved material ambiguity about outcome, scope, public contract,
-  irreversible effects, significant cost, or authority loads [DESIGN-RECEIPT.md](DESIGN-RECEIPT.md).
-  Ask the remaining decisions together and hold only their dependent work. Missing implementation
-  detail, card boundaries, or a previously authorized change does not reopen alignment.
+  File count, module reach, or expected card count alone never turns settled work into decision
+  intake; such a request routes straight to TDD.
+- **Decision intake.** An unresolved material ambiguity about outcome, scope, public contract
+  (API/ABI/schema/protocol), measurement semantics, irreversible effects, significant cost, or
+  authority, including two visibly different product outcomes, key decisions shared across
+  slices, an irreversible migration, or an explicit request for a plan or PRD. Load
+  [ALIGNMENT-LOOP.md](ALIGNMENT-LOOP.md) and converge the requirement tree first: answer
+  repo-answerable questions, take safe reversible defaults, attack the draft once, and stop only on
+  the convergence predicate. What survives is one batched receipt
+  ([DESIGN-RECEIPT.md](DESIGN-RECEIPT.md)) asking exactly the remaining decisions together;
+  hold only their dependent work. Missing implementation detail, card boundaries, or a previously
+  authorized change does not reopen alignment.
 
 The receipt is conversation state, separate from issue engineering status. Confidence never closes a decision
 frontier. A settled request already supplies the decision. Only graphical UI loads
@@ -81,6 +92,14 @@ For a queue or delegated work, read [CARD-TEST.md](CARD-TEST.md) to choose indep
 [issue schema](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd) when writing cards.
 Load each selected instruction once; reuse it across cards until it changes.
 
+When the plan requires human review, present the PRD before materializing the execution queue:
+review judges the converged PRD (five-part projection plus the counts of human decisions and
+load-bearing defaults), never the internal tree or a stack of ready issues. Materialize issues,
+verifier profiles and preflights after acceptance; that engineering preparation needs no second
+review unless it surfaces a new consequential decision: a changed public contract, a verifier
+that cannot prove the requirement, or a new major dependency. Such a decision returns to review
+as one delta on it alone.
+
 Before marking an issue ready:
 
 1. Resolve code/environment facts and consequential open decisions. An `UNVERIFIED:` claim cannot
@@ -124,3 +143,23 @@ Return written paths or the inline plan, material assumptions, actual evidence, 
 decisions. Honor the request’s planning or execution scope when handing the cards or inline contract to TDD.
 When the user requested plan review, present the complete plan. Otherwise continue authorized work
 in the same task without another confirmation or session reset.
+
+Spec ends in exactly one of: `PLAN_ONLY_COMPLETE` (plan-only request: the reviewable plan is
+delivered), `PLAN_ACCEPTED`, `READY_FOR_TDD` (implementation already authorized: route to `/tdd`
+in the same task; this is skill routing, not Spec implementing), or `BLOCKED_ON_DECISION`. It
+never ends implemented.
+
+## 5. Promote confirmed facts
+
+After acceptance, classify what the review newly confirmed by scope:
+
+- **Task-local** — stays in the current PRD/issue; later specs do not auto-load it.
+- **Feature-local** — stays in the feature PRD's 实现决策 or its existing knowledge entry.
+- **Area/project invariant** — a future spec would design wrongly without it: ADR, CODEBASE or
+  CONTEXT under `/map`'s two-axis test.
+
+Promotion requires one of: the user declared it a long-term rule, the same consequential decision
+has recurred, multiple features consume the invariant, or omitting it would repeat a wrong design.
+Each promoted fact records scope, source and reason. A promoted fact travels as accepted fact plus
+source, never as unattributed truth: when the code, schema or decision it cites changes,
+revalidate or supersede it — past acceptance does not keep a stale fact true.

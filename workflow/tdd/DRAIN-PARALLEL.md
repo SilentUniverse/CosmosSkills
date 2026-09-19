@@ -1,12 +1,13 @@
-# Parallel waves (`-p`)
+# Parallel waves
 
-Loaded only for a `-p` drain; a serial batch never loads this file. It extends
+Loaded only for a wave-mode drain; an explicitly serial batch (`-s`, or one eligible card) never
+loads this file. It extends
 [DRAIN.md](DRAIN.md): driver, preflight receipts, the worker brief contract, collect, and batch
 close stay there and stay loaded. The caller owns the whole batch exactly as in serial mode.
 
 ## Collision-free waves
 
-For `-p`, use the driver's computed collision-free wave. Overlapping `touches`, `test_paths`, or
+For wave dispatch, use the driver's computed collision-free wave. Overlapping `touches`, `test_paths`, or
 exact `exclusive_resources` IDs serialize, and missing path declarations run alone. Declare shared
 root/config paths explicitly. SPEC names exclusive devices, databases, build outputs, and constrained
 runners on every card that uses them; do not rely on a prose warning the driver cannot enforce.

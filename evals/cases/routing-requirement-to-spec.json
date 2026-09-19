@@ -26,7 +26,7 @@
   "requirements": [
     {
       "id": "R1",
-      "criterion": "Inspect the existing contract and route consequential planning through /spec. Deliver the complete reviewable plan and readiness evidence, then wait for user acceptance before production edits. General implementation intent does not waive review.",
+      "criterion": "Inspect the existing contract and route consequential planning through /spec. Deliver the complete reviewable plan, then wait for user acceptance before production edits or issue materialization. General implementation intent does not waive review.",
       "grader_ids": [
         "route-trace"
       ]
@@ -43,7 +43,7 @@
     {
       "id": "route-trace",
       "kind": "deterministic",
-      "procedure": "Inspect the trace for existing PRD/issues and additive/supersede classification before affected writes. Require a complete plan and readiness evidence presented for user review. With no acceptance or explicit waiver in this case, fail production edits or automatic /tdd dispatch; a planning-only ending that clearly awaits review passes."
+      "procedure": "Inspect the trace for existing PRD/issues and additive/supersede classification before affected writes. Require a complete plan presented for user review. With no acceptance or explicit waiver in this case, fail production edits or automatic /tdd dispatch; a planning-only ending that clearly awaits review passes."
     }
   ]
 }

@@ -40,6 +40,61 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertIn("public contract", spec)
         self.assertIn("deterministic verifier", spec)
 
+    def test_small_settled_task_routes_directly_to_tdd(self):
+        spec = " ".join(text("workflow/spec/SKILL.md").lower().split())
+        tdd = " ".join(text("workflow/tdd/SKILL.md").lower().split())
+        self.assertIn("never turns settled work into decision", spec)
+        self.assertIn("routes straight to tdd", spec)
+        self.assertIn("file count does not decide this", tdd)
+
+    def test_public_contract_change_requires_spec(self):
+        spec = " ".join(text("workflow/spec/SKILL.md").lower().split())
+        self.assertIn("public contract (api/abi/schema/protocol)", spec)
+        self.assertIn("measurement semantics", spec)
+
+    def test_spec_cannot_write_product_source_or_tests(self):
+        spec = " ".join(text("workflow/spec/SKILL.md").lower().split())
+        self.assertIn("never edits product source or product behavior tests", spec)
+        self.assertIn("the code change itself belongs to tdd", spec)
+        self.assertIn("never ends implemented", spec)
+
+    def test_alignment_loop_owns_states_predicate_and_review_budget(self):
+        loop = text("workflow/spec/ALIGNMENT-LOOP.md")
+        for state in ("EVIDENCED", "DEFAULTABLE", "HUMAN_DECISION", "FOG"):
+            self.assertIn(state, loop)
+        compact = " ".join(loop.lower().split())
+        self.assertIn("at most two autonomous passes", compact)
+        self.assertIn("convergence predicate", compact)
+        self.assertIn("is a delta", compact)
+        self.assertIn("third round requires a material reason", compact)
+        self.assertIn("ALIGNMENT-LOOP.md", text("workflow/spec/SKILL.md"))
+
+    def test_issues_materialize_after_plan_acceptance(self):
+        spec = " ".join(text("workflow/spec/SKILL.md").lower().split())
+        card = " ".join(text("workflow/spec/CARD-TEST.md").lower().split())
+        self.assertIn("materialize issues, verifier profiles and preflights after acceptance", spec)
+        self.assertIn("needs no second review unless it surfaces a new consequential decision", spec)
+        self.assertIn("after plan acceptance", card)
+
+    def test_accepted_facts_promote_by_scope_with_source(self):
+        spec = text("workflow/spec/SKILL.md")
+        layout = text("claude/document-layout.md")
+        for scope in ("Task-local", "Feature-local", "Area/project invariant"):
+            self.assertIn(scope, spec)
+        self.assertIn("scope, source and reason", spec)
+        self.assertIn("revalidate or supersede", layout)
+        self.assertIn("promoted from an accepted spec", text("workflow/map/SKILL.md"))
+
+    def test_tdd_drain_defaults_to_parallel_permission_with_serial_flag(self):
+        tdd = " ".join(text("workflow/tdd/SKILL.md").lower().split())
+        drain = " ".join(text("workflow/tdd/DRAIN.md").lower().split())
+        self.assertIn("parallel is a permission, not an obligation", tdd)
+        self.assertIn("force serial", tdd)
+        self.assertIn("compatibility alias for the default parallel drain", tdd)
+        self.assertIn("drains all active features with parallel permission", drain)
+        self.assertIn("forces the serial path", drain)
+        self.assertIn("returns the collision-free wave by default", drain)
+
 
 
     def test_preflight_cache_accepts_execution_receipts_not_self_reports(self):

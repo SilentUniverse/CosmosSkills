@@ -98,6 +98,10 @@ criterion: every named item rewritten or parked; every real design tie recorded.
 
 Give shared user scenarios stable IDs and independent contract versions. Each review point names the
 scenes to judge, concrete human questions, engineering prerequisites and decision dependencies.
+The review presentation — five-part projection plus human-decision and load-bearing-default counts,
+delta shape, and the round budget — is owned by [ALIGNMENT-LOOP.md](ALIGNMENT-LOOP.md).
 Review points may cover several issues; PRDs, issues and review points are not one-to-one.
 Prefer the first usable vertical slice. Do not require review after an arbitrary issue count.
-Keep scenario requirements here; executable jobs and runtime state belong to the batch plan.
+Issues materialize after the review point accepts the plan, so pruning a branch does not orphan
+cards, dependencies or test mappings. Keep scenario requirements here; executable jobs and runtime
+state belong to the batch plan.

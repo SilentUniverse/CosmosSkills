@@ -2,6 +2,8 @@
 
 Loaded on demand by [`/spec`](SKILL.md) when writing
 `.scratch/<feat>/issues/<NN>-<slug>.md`. Frontmatter follows [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd); the body uses the template below.
+Issues materialize from an accepted PRD or a settled inline contract; writing them is engineering
+preparation after acceptance, not a second review gate.
 
 Write issues in dependency order (blockers first) so `blocked_by` can reference real filenames.
 `blocked_by` is the single dependency source; do not repeat it in a body section.

@@ -1,8 +1,9 @@
 # Drain mode
 
-Bare `/tdd` drains all active features serially; `<feat>` scopes one feature; `-p` enables
-independent worker waves, at most four issues per wave (mechanics in
-[DRAIN-PARALLEL.md](DRAIN-PARALLEL.md)). `-log` always runs one issue per wave.
+Bare `/tdd` drains all active features with parallel permission; `<feat>` scopes one feature;
+`-p` is a compatibility alias for that default. Independent worker waves hold at most four issues
+(mechanics in [DRAIN-PARALLEL.md](DRAIN-PARALLEL.md)); `-s` forces the serial path, and a single
+eligible card runs serially either way. `-log` always runs one issue per wave.
 The caller owns the entire requested batch through implementation, integration, and remaining fixes.
 
 ## Driver and inputs
@@ -17,11 +18,11 @@ and review obligations.
 Start each scheduling round with:
 
 ```text
-python <tdd-skill-dir>/scripts/drain-wave.py step <repo-root> [<feat>] [-p]
+python <tdd-skill-dir>/scripts/drain-wave.py step <repo-root> [<feat>] [-s]
 ```
 
-Without `-p`, `step` returns one issue even when several do not collide; `-p` returns the
-collision-free wave. Declared candidates rank by the longest downstream ready dependency chain
+`step` returns the collision-free wave by default; `-s` returns one issue even when several do
+not collide. Declared candidates rank by the longest downstream ready dependency chain
 before the slug tie-break, so capacity or collision choices prefer the issue that unlocks the
 longest chain. Undeclared cards stay in a lower-priority solo queue but use the same ranking within
 that queue. This is a deterministic duration-free heuristic, not a measured critical-path
@@ -98,12 +99,13 @@ covers readiness only; RED/GREEN and final behavior evidence are not cached.
 
 ## Execute serially or dispatch a wave
 
-Serial mode runs one issue at a time through [SKILL.md](SKILL.md)'s autonomous loop. Use the same
+Run one issue at a time through [SKILL.md](SKILL.md)'s autonomous loop when `-s` is passed or
+only one card is eligible. Use the same
 per-issue evidence and recovery rules as parallel work; no subagent or worktree is required.
 After serial dispatch, call `workflow-state.py packets <repo-root> <feat> <slug>` once and execute
 that bound packet with its execution ID. Do not invoke `start` again or load parallel brief rules.
 
-For `-p`, load [DRAIN-PARALLEL.md](DRAIN-PARALLEL.md) for collision-free waves, packet and brief
+For wave dispatch, load [DRAIN-PARALLEL.md](DRAIN-PARALLEL.md) for collision-free waves, packet and brief
 generation, worker launch, supervision, and the open-wave barrier; this file stays loaded alongside it.
 
 Before execution record:
@@ -129,7 +131,7 @@ requested or necessary for authorized isolation, while honoring the driver's col
 follow the host's required branch prefix. Merge in dependency order, resolve conflicts through
 `/conflicts`, and verify on the integrated tree. Worktrees cannot write shared stash/tmp state.
 
-## Worker brief contract (`-p`)
+## Worker brief contract (waves)
 
 `python <skills-root>/workflow-state.py briefs <repo-root> <feat> --compact` renders the mechanical half of
 every outstanding worker brief: packet, receipt-hit token(s) when the ledger recorded them, and the

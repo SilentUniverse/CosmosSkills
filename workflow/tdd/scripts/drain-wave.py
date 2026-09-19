@@ -902,7 +902,7 @@ def cmd_next(root, feat):
 
 
 @reading
-def cmd_step(root, feat, parallel=False):
+def cmd_step(root, feat, parallel=True):
     batch_result = batch_projection(root)
     if batch_result is not None:
         return batch_result
@@ -1854,7 +1854,7 @@ def _main(argv):
         except (AttributeError, ValueError):
             pass
     usage = (
-        "usage: drain-wave.py step <repo-root> [<feat>] [-p|--parallel] | next <repo-root> [<feat>] | "
+        "usage: drain-wave.py step <repo-root> [<feat>] [-s|--serial] | next <repo-root> [<feat>] | "
         "dispatch <repo-root> <slug>... | "
         "collect <repo-root> <slug>=<result|conflict@evidence.json>[,...] | audit <repo-root> [<feat>] | "
         "dismiss-conflict <repo-root> <feat> <slug> <evidence.json> | selftest"
@@ -1871,13 +1871,17 @@ def _main(argv):
         return 2
     if cmd == "step":
         step_args = argv[3:]
-        parallel = "-p" in step_args or "--parallel" in step_args
-        step_args = [value for value in step_args if value not in ("-p", "--parallel")]
+        serial = "-s" in step_args or "--serial" in step_args
+        step_args = [
+            value
+            for value in step_args
+            if value not in ("-s", "--serial", "-p", "--parallel")
+        ]
         feat = step_args[0] if len(step_args) == 1 else None
         if len(step_args) > 1:
             print(usage, file=sys.stderr)
             return 2
-        return cmd_step(root, feat, parallel=parallel)
+        return cmd_step(root, feat, parallel=not serial)
     if cmd == "next":
         feat = argv[3] if len(argv) == 4 else None
         if len(argv) > 4:

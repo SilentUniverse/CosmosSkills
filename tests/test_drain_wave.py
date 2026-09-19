@@ -333,7 +333,7 @@ raise SystemExit(wave.cmd_dispatch(str(root), [sys.argv[3]]))
             ledger = json.loads((issues.parent / "wave-ledger.json").read_text(encoding="utf-8"))
             self.assertEqual([["01-one"]], [w["dispatched"] for w in ledger["waves"]])
 
-    def test_serial_step_does_not_compute_parallel_collisions(self):
+    def test_serial_step_opt_in_does_not_compute_parallel_collisions(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             issues = root / ".scratch" / "demo" / "issues"
@@ -343,7 +343,7 @@ raise SystemExit(wave.cmd_dispatch(str(root), [sys.argv[3]]))
                     issue_body("pkg/%d" % number), encoding="utf-8"
                 )
             with patch.object(wave, "collides", wraps=wave.collides) as collision:
-                code, output = self.call(wave.cmd_step, str(root), "demo")
+                code, output = self.call(wave.cmd_step, str(root), "demo", False)
             self.assertEqual(0, code, output)
             self.assertIn("action: dispatch 01-task\n", output)
             self.assertEqual(0, collision.call_count)
@@ -1043,7 +1043,7 @@ raise SystemExit(wave.cmd_dispatch(str(root), [sys.argv[3]]))
             self.assertIn("action: close", output)
             self.assertIn("workflow-state.py gc", output)
 
-    def test_step_is_serial_by_default_and_parallel_only_when_requested(self):
+    def test_step_is_parallel_by_default_and_serial_only_when_forced(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             issues = root / ".scratch" / "demo" / "issues"
@@ -1051,16 +1051,41 @@ raise SystemExit(wave.cmd_dispatch(str(root), [sys.argv[3]]))
             (issues / "01-one.md").write_text(issue_body("pkg-a"), encoding="utf-8")
             (issues / "02-two.md").write_text(issue_body("pkg-b"), encoding="utf-8")
 
-            serial_code, serial = self.call(wave.cmd_step, str(root), "demo")
-            parallel_code, parallel = self.call(
-                wave.cmd_step, str(root), "demo", True
+            parallel_code, parallel = self.call(wave.cmd_step, str(root), "demo")
+            serial_code, serial = self.call(
+                wave.cmd_step, str(root), "demo", False
             )
 
+            self.assertEqual(0, parallel_code)
+            self.assertIn("action: dispatch 01-one 02-two", parallel)
             self.assertEqual(0, serial_code)
             self.assertIn("action: dispatch 01-one", serial)
             self.assertNotIn("02-two", serial)
-            self.assertEqual(0, parallel_code)
-            self.assertIn("action: dispatch 01-one 02-two", parallel)
+
+    def test_step_cli_defaults_to_wave_and_accepts_serial_and_parallel_alias_flags(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "demo" / "issues"
+            issues.mkdir(parents=True)
+            (issues / "01-one.md").write_text(issue_body("pkg-a"), encoding="utf-8")
+            (issues / "02-two.md").write_text(issue_body("pkg-b"), encoding="utf-8")
+
+            default_code, default = self.call(
+                wave.main, ["drain-wave.py", "step", str(root), "demo"]
+            )
+            serial_code, serial = self.call(
+                wave.main, ["drain-wave.py", "step", str(root), "demo", "-s"]
+            )
+            alias_code, alias = self.call(
+                wave.main, ["drain-wave.py", "step", str(root), "demo", "-p"]
+            )
+
+            self.assertEqual(0, default_code, default)
+            self.assertIn("action: dispatch 01-one 02-two", default)
+            self.assertEqual(0, serial_code, serial)
+            self.assertIn("action: dispatch 01-one\n", serial)
+            self.assertEqual(0, alias_code, alias)
+            self.assertIn("action: dispatch 01-one 02-two", alias)
 
     def test_step_does_not_treat_an_all_blocked_queue_as_complete(self):
         with tempfile.TemporaryDirectory() as directory:
