@@ -9,7 +9,7 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from test_incremental_workflow import IncrementalWorkflowTests
+import test_incremental_workflow as incremental_workflow
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -357,7 +357,7 @@ class ManagedRunnerTests(unittest.TestCase):
     """Borrow the incremental CLI fixtures without re-collecting their tests."""
 
     def setUp(self):
-        fixture = IncrementalWorkflowTests('setUp')
+        fixture = incremental_workflow.IncrementalWorkflowTests('setUp')
         fixture.setUp()
         self.addCleanup(fixture.doCleanups)
         self.fixture = fixture
