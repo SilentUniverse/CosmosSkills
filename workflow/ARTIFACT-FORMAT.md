@@ -65,8 +65,9 @@ command cache. It is born only when a reusable adapter cannot be cheaply recover
 configuration; create the frontmatter stub plus that section when needed. One exact
 replayable line per reused adapter command; common categories are full suite + build, scoped
 test, static gate, perf measurement, module boundary enforcement, evidence retention, and
-impact detection. Omit what the stack does not have. `/map` regeneration and `verify-artifacts.py` leave the hand
-zone untouched. A legacy `docs/agents/domain.md` still present is a fallback source: read it
+impact detection. Omit what the stack does not have. `verify-artifacts.py` leaves the hand
+zone untouched; every `/map` run re-validates its commands and repairs or reports dead ones
+(the `/map` skill owns the procedure). A legacy `docs/agents/domain.md` still present is a fallback source: read it
 once, then `/cosmos-setup` folds its real lines here and removes the file only when nothing
 non-template remains (else renames it `domain.md.bak`).
 
@@ -97,7 +98,7 @@ generated: 2026-06-24
 - `<path>/` — <≤10 词职责>
 
 ## Verifier commands
-<!-- hand-maintained zone: the only non-generated section; lazy-born; /map regen and the gate leave it alone -->
+<!-- hand-maintained zone: the only non-generated section; lazy-born; the gate leaves it alone; /map validates every command and repairs or reports dead ones -->
 - Full suite + build: `<exact command>`
 - Scoped test: `<pattern with placeholder>`
 ```
