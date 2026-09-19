@@ -51,6 +51,10 @@ A fact is recorded only if **both** hold:
 
 Decisions → ADR. Vocabulary → CONTEXT.md.
 
+Facts promoted from an accepted spec enter through this same test and carry their recorded scope,
+source and reason; when the code, schema or decision a promoted fact cites changes, revalidate or
+supersede it rather than trusting past acceptance.
+
 ## Writing CODEBASE.md
 
 **Schema, templates, and budgets are owned by [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#codebasemd--structural-map-generated-not-authored)**. Read the relevant section before writing. Use its deterministic checks; a preview-only request returns the proposed blocks without writes.

@@ -94,8 +94,9 @@ tracker/路径、遗留状态、旧 `docs/agents/domain.md` 折叠。
 
 **围绕可验证、可试用的用户场景持续交付。AI 在同一目标下推进实现、验证和反馈修复，人在需要判断产品效果或作实质决定时介入。**
 
-Spec、TDD、TIDY 分别负责规划、执行和整理，在同一任务中接续。小而明确的修改直接实施；
-需要持久任务队列时才拆 Issue，需要维护共享产品决定时才写 PRD，需要固定验收或持续批次协调时才启用 managed batch。
+Spec、TDD、TIDY 分别负责规划、执行和整理，在同一任务中接续。小而明确的修改直接实施，文件数不是规划门槛；
+复杂需求由 Spec 先自主收敛（AFK grill：自查可答的问题、自担安全默认、自攻一版草案），人只审一份接近最终形态的 PRD，
+接受后才拆 Issue。需要持久任务队列时才拆 Issue，需要维护共享产品决定时才写 PRD，需要固定验收或持续批次协调时才启用 managed batch。
 
 工程完成、人工通过和目标完成分别记录：Issue `done` 表示工程证据完整；人工接受绑定实际版本和场景；
 当前目标只有在全部适用的工程、人工和清理义务满足后才完成。PRD、Issue、审查点不一一对应。
@@ -109,9 +110,9 @@ Spec、TDD、TIDY 分别负责规划、执行和整理，在同一任务中接�
 ```mermaid
 flowchart TD
   goal["目标、约束与已有授权"]
-  spec["/spec：场景、必要 Issue、验证约定"]
+  spec["/spec：AFK grill 自主收敛，人审收敛后的 PRD"]
   plan["方案审核或未决决定"]
-  tdd["/tdd：持续实现与验证"]
+  tdd["/tdd：持续实现与验证（默认并行许可）"]
   fixed["固定候选，构建并实测 release"]
   human["人工审版本 A 的指定场景"]
   close["最终组合检查与全部适用义务核对"]
@@ -140,7 +141,7 @@ flowchart TD
 
 | 入口 | AI 负责 | 你主要提供 |
 |---|---|---|
-| [Spec](workflow/spec/SKILL.md) | 明确成功标准、依赖和验证方式；按需拆卡；需求变化保留原完成历史并关联修订 | 目标、约束、优先场景与必要产品决定 |
+| [Spec](workflow/spec/SKILL.md) | 自主收敛需求树（可答自答、可默认自默认、对抗自审一次），人审收敛后的 PRD；接受后才拆卡和跑预检；需求变化保留原完成历史并关联修订 | 目标、约束、优先场景与必要产品决定 |
 | [TDD](workflow/tdd/SKILL.md) | 实现、验证、协调 worker、准备可审版本、定位并修复反馈 | 实际试用观察和明确版本的场景结论 |
 | [TIDY](workflow/tidy/SKILL.md) | 展示工程与人工待办，清理已释放且无消费者的临时文件；保留测试、经验、交付版本和必要证据 | 查看或清理的目标范围 |
 
@@ -190,6 +191,7 @@ stateDiagram-v2
 - **阶段结束整理，同一目标持续接续。** `/tidy inspect 目标` 只查看；`/tidy 目标` 清理确认无用的临时文件。确需跨会话时使用 handoff/resume，保留测试、可复用经验和历史证据。
 
 裸 `/tdd`、`/tidy` 默认当前目标；全仓操作需要明确范围，`/tdd -all` 表示全量检查。
+`/tdd` 排空默认带并行许可：多张独立就绪卡组成 wave，单卡或 `/tdd -s` 走串行。
 未决选择只阻塞其消费者；等待期间继续不受影响的工作。外部发布等行动缺授权时，先完成可审阅的准备再请求授权。
 跨会话不可用时采用能力等价的路径，缺失验证如实报告。
 `ready` 要求真实验证器预检，派发还须满足授权、依赖和资源条件；队列空或模型退出不能代替目标完成。
@@ -216,7 +218,7 @@ stateDiagram-v2
 
 **全集必清零。** 任何"全部 / 所有 / 逐个"任务，先用工具枚举全集（rg / rg --files / git diff），绝不凭记忆；每项要么完成、要么写明不动的原因；收尾重跑枚举命令检查未处理项，报告覆盖 N/N 及未解决项。每个结论带 file:line 或命令输出作证据。
 
-**只并行真正独立的工作。** 默认 inline。`/tdd -p` 只并行写集和运行资源不冲突的卡；独立盲审保留独立上下文；大量多源研究必须有窄输出且主线程仍有可做工作。单文件、单次搜索、慢命令、大输出、顺序依赖和上下文清理都不是委派理由。全量 suite 由当前会话启动 supervisor；Standards / Spec 独立审查仍可并行。
+**只并行真正独立的工作。** 默认 inline。`/tdd` 排空的并行是许可不是义务：只有多张独立就绪卡才组 wave（写集和运行资源不冲突），单卡由主 agent 直做，`-s` 强制串行；独立盲审保留独立上下文；大量多源研究必须有窄输出且主线程仍有可做工作。单文件、单次搜索、慢命令、大输出、顺序依赖和上下文清理都不是委派理由。全量 suite 由当前会话启动 supervisor；Standards / Spec 独立审查仍可并行。
 
 30 个技能、工件门、按需行为 eval、九个词——目标是**先保证可逐条审查的产品质量，再缩短交付时间，最后降低 Token 消耗**；是否做到由 [evals](evals/README.md) 的真实对照结果回答，不由 README 宣称。
 
@@ -239,7 +241,7 @@ stateDiagram-v2
 |---|---|
 | 新需求 / 改已有需求 | `/spec <需求>` |
 | 做一条 issue | `/tdd <path>` |
-| 排空一个 feature 的 ready | `/tdd <feat>` |
+| 排空一个 feature 的 ready | `/tdd <feat>`（默认并行许可；`/tdd -s <feat>` 强制串行） |
 | 全量测试与构建 | `/tdd -all` |
 | 车机 / 设备，验收在 log 里 | `/tdd -log` |
 | 过夜无人值守跑批 | `python scripts/overnight.py [feat]`（各平台通用）；省略范围接续活动目标，全仓显式 `--repo` |
@@ -385,7 +387,7 @@ git_base: 7af387c
 | [cosmos-setup](workflow/cosmos-setup/SKILL.md) | 偏离处理：非默认 tracker/路径、遗留状态迁移、domain.md 折叠、schema 升级 |
 | [grill](workflow/grill/SKILL.md) | 拷问方案并维护已有领域记录。[domain-modeling](workflow/domain-modeling/SKILL.md) |
 | [prototype](workflow/prototype/SKILL.md) | `/spec` 前造一次性原型 |
-| [spec](workflow/spec/SKILL.md) | 规划并跑通验证环境预检，再写 PRD / issue |
+| [spec](workflow/spec/SKILL.md) | 自主收敛复杂需求（AFK grill），人审 PRD 后物化 issue 并跑验证预检 |
 | [eval](workflow/eval/SKILL.md) | 手动打开评测；保留项目内 previous/candidate A/B，也可导出独立包与任意外部 workflow 比较；默认关闭 |
 | [atk](workflow/atk/SKILL.md) | 对抗审查自己的产出；工作流只调审查方向，手动默认讲解，`-r` 纯审查且不改文件 |
 | [tdd](workflow/tdd/SKILL.md) | 写代码；`-all` 跑全量，`-log` 读设备 log。[DRAIN.md](workflow/tdd/DRAIN.md) |

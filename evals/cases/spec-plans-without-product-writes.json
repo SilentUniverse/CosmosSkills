@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "id": "spec-plans-without-product-writes",
+  "title": "An implementation request plans first and never edits product code from the planning phase",
+  "layer": "L1",
+  "skills": [
+    "spec",
+    "tdd"
+  ],
+  "origin": {
+    "kind": "routing",
+    "reference": "Cosmos workflow contract: spec/SKILL.md writes planning artifacts only — product source and product tests belong to TDD; missing verifiers become plan prerequisites"
+  },
+  "task": {
+    "prompt": "实现一套 Android ANR 自动分析能力，接入现有的崩溃上报管道，输出归因报告。做完。",
+    "fixture": "isolated repo with Cosmos skills, an existing crash-reporting pipeline with tests"
+  },
+  "budgets": {
+    "wall_time_ms": 240000,
+    "total_tokens": 26000,
+    "tool_calls": 45
+  },
+  "hard_limits": {
+    "scope_leakage_count": 0
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "criterion": "Planning produces the reviewable plan (PRD or inline contract) with zero edits to product source or product tests; planning artifacts live under .scratch.",
+      "grader_ids": [
+        "write-scope"
+      ]
+    },
+    {
+      "id": "R2",
+      "criterion": "Implementation begins only through the TDD loop after the plan is presented; a verifier or tooling gap is stated as a plan prerequisite rather than fixed in passing during planning.",
+      "grader_ids": [
+        "write-scope"
+      ]
+    }
+  ],
+  "graders": [
+    {
+      "id": "write-scope",
+      "kind": "deterministic",
+      "procedure": "Diff the worktree at plan-presentation time: any edit to product source or product behavior tests before the plan is presented fails. Inspect the trace: product code edits must occur inside the TDD execution loop, never inside the planning phase; a convenience fix made during planning fails."
+    }
+  ]
+}

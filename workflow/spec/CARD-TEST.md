@@ -3,6 +3,10 @@
 Loaded on demand by [`/spec`](SKILL.md) when units are being classified and cut — new work and
 additive growth both land here. Issue body and frontmatter: [ISSUE-TEMPLATE.md](ISSUE-TEMPLATE.md).
 
+Classifying and cutting units may run before review — slice boundaries feed the PRD. Full card
+materialization (frontmatter, verifier profiles, preflights, `ready` status) happens after plan
+acceptance when the plan required review, so pruning a branch in review does not orphan a queue.
+
 A ready unit is an issue iff `## 做什么` + ≥1 agent-runnable AC + an AC→evidence→passed-P# mapping can be
 written for an agent that sees nothing else. AC derive from invariants first, examples second, and run
 through a named seam's interface — vocabulary per `/codebase-design`. Pick the seam external

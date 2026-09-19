@@ -213,13 +213,13 @@ Field rules:
   returns to `/spec`; GC never guesses it.
 - **touches** — top-level dirs/modules this slice is expected to edit, at directory granularity.
   One exception: repo-root shared surfaces a slice edits (workspace manifest, any
-  root config file) are declared verbatim as file paths. `/tdd -p` serializes on any overlap.
+  root config file) are declared verbatim as file paths. `/tdd` waves serialize on any overlap.
   A lockfile is never declared: SPEC prepares it before dispatch and fingerprints it; drift during
   a behavior wave is fatal rather than repaired by an install (`tdd/DRAIN.md`, "Execute serially or
   dispatch a wave"). Written by `/spec` from its impact
-  probe; `/tdd -p` groups waves by overlap. Optional.
+  probe; `/tdd` groups waves by overlap. Optional.
 - **test_paths** — test files this slice will create or modify, repo-relative with `/` separators.
-  Declared by `/spec` from the AC. This field owns the `-p` wave semantics: wave eligibility
+  Declared by `/spec` from the AC. This field owns the wave semantics: wave eligibility
   needs `touches:` + `test_paths:`; overlapping `touches:` or colliding `test_paths:` serialize
   into successive waves; an issue missing either runs alone in its own wave. Completed at green
   by the run that wrote the files. Appending a newly written test
@@ -228,7 +228,7 @@ Field rules:
   `### 完成` 新增测试 files against it only in legacy records that still carry that line. Optional.
 - **exclusive_resources** — exact stable IDs for runtime resources that cannot be shared safely
   (`device:<id>`, `database:<name>`, `build-output:<path>`, or a project-specific equivalent).
-  `/tdd -p` serializes cards sharing an ID even when paths are disjoint. Omit when none; SPEC writes
+  `/tdd` waves serialize cards sharing an ID even when paths are disjoint. Omit when none; SPEC writes
   the field from observed verifier/runtime requirements rather than guessing during dispatch.
 - **created** — ISO date, set once at creation, never changed.
 

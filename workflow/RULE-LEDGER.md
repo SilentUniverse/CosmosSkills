@@ -46,7 +46,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | §1·c | 用户没跟上 → 补上下文，不发明术语 | 过程 | 自审 | 未溯源 |
 | §1·d | 交付物按用户与已核实内容封闭清单组织，不扩大、逐项一次 | 过程·经济 | 自审 | 注水与模板膨胀；agent-skills artifact-restraint 对标借入；未溯源 |
 | §2·b | 可查事实不问人 | 过程 | 自审 | 未溯源（近邻探针：research-marks-unverified-and-ignores-injection） |
-| §2·c | 结果与约束已定即可推进；实现和验证细节由 agent 补足 | 过程·经济 | 流程 | 仪式性确认税；7be5338 压缩摄入、51a7d4a fast path / spec-alignment-before-write |
+| §2·c | 结果与约束已定即可推进；实现和验证细节由 agent 补足；文件数不触发规划 | 过程·经济 | 流程 | 仪式性确认税；7be5338 压缩摄入、51a7d4a fast path / spec-alignment-before-write |
 | §2·d | 既有授权在接受范围内继承；spec 默认保留用户 review | 权威 | 流程 | 结果分叉未问人；DESIGN-RECEIPT / spec-holds-alignment-under-pressure |
 | §4·a | 扩展列表/表格/固定格式前先查 2–3 个同类条目并对齐结构 | 过程 | 自审 | 条目格式漂移；agent-skills AGENTS.md 对标借入；未溯源 |
 | §4·b | 回答插问后继续；纠正与行动请求更新当前目标 | 过程 | 流程 | 顺手扩权修改；dev-skills 对标借入（just-ask）；未溯源 |
@@ -69,7 +69,11 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 
 | 定位 | 要旨 | 性质 | 层级 | 防什么失败 · 出处 / 探针 |
 |---|---|---|---|---|
-| 头部 | 规划不写产品码；完整方案经用户 review 后交接，明确连续执行可豁免 | 权威 | 流程 | 用户要求先方案、review 再实现；静态冲突：spec 末尾与 caller 自动续跑 / routing-requirement-to-spec |
+| 头部 | 规划不写产品码与业务测试；verifier 缺口入计划前置；终态不含 IMPLEMENTED；完整方案经用户 review 后交接，明确连续执行可豁免 | 权威 | 流程 | 用户要求先方案、review 再实现；spec AFK grill 方案（docs/cosmosskills_spec_afk_grill_implementation.md）；静态冲突：spec 末尾与 caller 自动续跑 / routing-requirement-to-spec |
+| 头部 | 决策类需求先 AFK grill 两 pass 自收敛，按收敛判据停止，人只审收敛后的 PRD | 过程·经济 | 流程 | 逐节点人审 BFS 的问答税；ALIGNMENT-LOOP.md；未溯源 |
+| 头部 | review 预算：全量一次 + delta 一次；第三轮需实质理由，否则修 workflow 而非再审 | 过程·经济 | 流程 | 无界 review 轮次；ALIGNMENT-LOOP.md；未溯源 |
+| §3 | 需 review 的计划先审 PRD，接受后才物化卡与预检；无新实质决定不二审 | 过程·经济 | 流程 | 剪枝后 issues/依赖/测试映射的连带 churn；AFK grill 方案 §15–16；未溯源 |
+| §5 | 接受后按 task/feature/area 作用域晋升新事实；两轴法 + scope/source/reason；引用漂移即复验 | 过程·经济 | 流程 | 同类需求重复问已答问题；AFK grill 方案 §11–14；未溯源 |
 | Prepare and write | settled intake 直接推进；卡片自足，共享决策才建 PRD | 过程·经济 | 流程 | spec intake 与 ISSUE-TEMPLATE 的无 PRD 分支；spec-alignment-before-write |
 | 头部 | 仅未解决的实质选择用回执，独立工作继续 | 权威 | 流程 | 7be5338（compressed intake）/ spec-holds-alignment-under-pressure |
 | 回执·决策点 | 问实际决定并给建议；回答即对齐，不追问口令 | 权威 | 流程 | 应答成本税与越权代答；dev-skills 对标借入（lowband）；未溯源 |
@@ -84,6 +88,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | 定位 | 要旨 | 性质 | 层级 | 防什么失败 · 出处 / 探针 |
 |---|---|---|---|---|
 | Invocation | 有持久消费者才建卡；显式方案/新实质选择经 spec review；ready 不等于接受 | 过程 | 流程 | routing-requirement-to-spec（origin: routing） |
+| Invocation·drain | `/tdd`/`<feat>` 默认并行许可（permission 非 must_spawn）；`-s` 串行；单卡主 agent 直做 | 过程·经济 | 流程 | 串行默认浪费独立就绪卡的并行度；AFK grill 方案 §18；未溯源 |
 | §2–3 | 一次一测试、先红后绿、不预写未来 ◆ | 过程 | 流程 | TDD 方法论（无事故出处）/ tdd-holds-red-under-pressure |
 | §3 | 不写解释型注释；契约或原因只写在人读的接口处；单条注释块超限即红灯 | 过程 | 机器+自审 | 注释腐烂、复述代码；comment-gate.py 长度门 + lint/references/code-comments.md 删除测试；未溯源 |
 | §1 | 预检声明：先重算指纹、重放 P#、报 2–3 行 | 过程 | 机器+流程 | 7be5338（preflight receipts）、0bf346b（executable spec validation）/ spec-verifier-preflight |
@@ -92,7 +97,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | §1 | 同模块反复追加补丁是设计信号 → 停止打补丁，改为从需求重新推导并提案 | 过程 | 流程 | 补丁跑步机致架构衰减；agent-skills AGENTS.md + fresh-arch 对标借入；未溯源 |
 | §5 | 全量批末一次，经 supervisor | 过程·经济 | 机器+流程 | c4e34f2、51a7d4a（test-supervisor） |
 
-## D. DRAIN — workflow/tdd/DRAIN.md（每批付费；`-p` 另载 DRAIN-PARALLEL.md）
+## D. DRAIN — workflow/tdd/DRAIN.md（每批付费；wave 模式另载 DRAIN-PARALLEL.md）
 
 | 定位 | 要旨 | 性质 | 层级 | 防什么失败 · 出处 / 探针 |
 |---|---|---|---|---|

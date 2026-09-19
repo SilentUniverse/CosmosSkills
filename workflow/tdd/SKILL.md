@@ -2,7 +2,7 @@
 name: tdd
 description: >-
   Use when implementing a named issue or feature test-first, running red-green-refactor, draining ready issues, or recording TDD evidence. Owns implementation and validation; substantial unresolved requirements route through spec, while unknown failures route through diagnose.
-argument-hint: "Issue path, feature slug, -p, -all, -log, or nothing to continue the current goal"
+argument-hint: "Issue path, feature slug, -s, -p, -all, -log, or nothing to continue the current goal"
 ---
 
 # Test-Driven Development
@@ -18,25 +18,34 @@ argument-hint: "Issue path, feature slug, -p, -all, -log, or nothing to continue
 - Bare `/tdd` continues the current accepted goal. Without a unique current scope, show the compact
   candidate scopes before dispatch. Repository-wide drain requires an explicit whole-repository
   request; missing parameters never enlarge authorization.
-- `/tdd <feat>` — drain scoped to one feature's `issues/` directory.
-- `/tdd -p [<feat>]` — **drain (parallel)**: up to four concurrent issues including the main agent's. The main agent normally owns the highest-priority issue and supervises delegated work. Declared collisions serialize; undeclared issues run alone. Rules: [DRAIN.md](DRAIN.md) plus [DRAIN-PARALLEL.md](DRAIN-PARALLEL.md).
+- `/tdd <feat>` — drain scoped to one feature's `issues/` directory, parallel permission by default.
+- `/tdd -p [<feat>]` — compatibility alias for the default parallel drain.
+- `/tdd -s [<feat>]` — **force serial**: one issue at a time, no worker waves.
+- Parallel is a permission, not an obligation. With one eligible task the main agent runs it
+  directly; with several independent declared tasks it dispatches native-subagent waves of at most
+  four concurrent issues including the main agent's. The main agent normally owns the
+  highest-priority issue and supervises delegated work. Declared collisions serialize; undeclared
+  issues run alone; workers never nest a workflow. Rules: [DRAIN.md](DRAIN.md) plus
+  [DRAIN-PARALLEL.md](DRAIN-PARALLEL.md).
 - `/tdd -all` — run build + the whole suite now (§5); combines with any form above. During an
   open `-p` wave it defers to the wave collect and never launches a live-tree suite against
   open workers.
 - `/tdd -log` — the verdict is a command's log file, not test runs: [LOG.md](LOG.md). Also applies to device runs judged by a log; combines with other forms.
 - Task-scoped entry without an issue: keep a settled outcome, constraints, authorization, and proof
   inline when no queue, delegation, dependency, or contract-history consumer needs a card. File count
-  does not decide this. A requested plan or consequential unresolved choice uses `/spec`, then resumes
+  does not decide this; `/spec`'s routing conditions do — a settled small task lands here directly,
+  a new public contract or measurement-semantics change routes to `/spec` first. A requested plan or consequential unresolved choice uses `/spec`, then resumes
   within the existing authorization; only unresolved material choices hold dependent work. Unknown failures use `/diagnose`.
   Before editing, inspect relevant ready work and open assignments through `workflow-state.py survey`;
   use the existing card when it owns the work, and coordinate any active execution before touching its scope.
 
 ### Drain mode
 
-Load [DRAIN.md](DRAIN.md) only for an explicit batch; `-p` additionally loads
-[DRAIN-PARALLEL.md](DRAIN-PARALLEL.md). Its driver owns enumeration, dependency order,
-wave packets, receipts, recovery, and batch close. Serial is the default; `-p` enables independent
-worker waves. Keep conversation summaries out of subsequent issue briefs.
+Load [DRAIN.md](DRAIN.md) only for an explicit batch; wave dispatch additionally loads
+[DRAIN-PARALLEL.md](DRAIN-PARALLEL.md) (`-s` stays serial). Its driver owns enumeration, dependency order,
+wave packets, receipts, recovery, and batch close. Parallel permission is the default: several
+independent ready cards may run as a worker wave, while a single eligible card or `-s` keeps the
+main agent on the serial path. Keep conversation summaries out of subsequent issue briefs.
 When changing an external runner or provider adapter, load [SESSION-REUSE.md](SESSION-REUSE.md).
 
 ### Status guard (issue-driven invocation)

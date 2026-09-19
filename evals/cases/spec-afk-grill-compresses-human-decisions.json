@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "id": "spec-afk-grill-compresses-human-decisions",
+  "title": "Decision-heavy planning answers repo-answerable questions itself before asking the human",
+  "layer": "L1",
+  "skills": [
+    "spec"
+  ],
+  "origin": {
+    "kind": "routing",
+    "reference": "Cosmos workflow contract: spec/SKILL.md decision intake loads ALIGNMENT-LOOP.md — converge the requirement tree autonomously, ask only surviving HUMAN_DECISION items as one batched receipt"
+  },
+  "task": {
+    "prompt": "为这个仓库实现一套导出对账单的能力：支持 CSV 和 Excel 两种格式，导出失败要能重试。请先给方案。",
+    "fixture": "isolated repo with Cosmos skills, an existing orders module with settled export helpers and documented conventions"
+  },
+  "budgets": {
+    "wall_time_ms": 240000,
+    "total_tokens": 26000,
+    "tool_calls": 45
+  },
+  "hard_limits": {
+    "scope_leakage_count": 0
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "criterion": "The agent inspects the repository to answer questions the repo already answers (existing helpers, conventions, verifiers) and takes reversible implementation defaults itself instead of asking the user.",
+      "grader_ids": [
+        "grill-trace"
+      ]
+    },
+    {
+      "id": "R2",
+      "criterion": "Questions to the human, if any, arrive once as a small batched set of genuinely product-changing decisions; the agent does not run a per-node question stream or re-ask an answered question.",
+      "grader_ids": [
+        "grill-trace"
+      ]
+    }
+  ],
+  "graders": [
+    {
+      "id": "grill-trace",
+      "kind": "deterministic",
+      "procedure": "Inspect the trace: count user-facing questions before plan presentation. Fail if a question is answerable by repository inspection (existing module, convention, verifier or test), if questions arrive as more than one batch, or if planning edits product source or product tests. Pass if the presented plan states adopted defaults with sources and batches only product-changing decisions."
+    }
+  ]
+}

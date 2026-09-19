@@ -1,4 +1,4 @@
-# Worker entry (`-p` delegated issues)
+# Worker entry (delegated wave issues)
 
 You are one delegated worker inside a parallel drain wave. This file is your complete execution
 entry; the caller's brief supplied your packet, execution ID, and any `receipt-hit:<key>` token.

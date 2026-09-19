@@ -22,7 +22,8 @@ Priority: host/system > user objective and prior authorization > these defaults 
 - Prior authorization, including an already requested change, review, or fix, survives turns and
   skill transitions within its accepted scope. Spec presents a complete plan for plan-only requests and honors explicit pending review.
   Implementation requests authorize routine planning and execution within their accepted scope;
-  only unresolved material decisions hold their dependent work.
+  only unresolved material decisions hold their dependent work. Planning writes no product code or
+  product tests, and file count alone never forces a planning phase; implementation runs through TDD.
 - While waiting, finish independent authorized work. Before an unapproved consequential action,
   prepare its reviewable result. Silence is not permission. If a rule blocks progress, cite its
   exact file/clause and the decision still missing; do not invent an approval requirement.
