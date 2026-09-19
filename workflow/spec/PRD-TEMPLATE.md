@@ -19,9 +19,15 @@ The problem the user is facing, from the user's perspective.
 
 The solution from the user's perspective.
 
+## 范围（Scope）
+
+Optional `- IN：…` / `- OUT：…` bullets, one matter per line; OUT 缺省时回退 不在本次范围内 段。
+review 页面据此渲染 IN/OUT 双栏，人只查缺漏与顺手扩大。
+
 ## 用户场景（User Stories）
 
 Stable requirement anchors, one observable assertion per bullet: `- R1 — <可观察结果或不变量>`.
+可选下一行缩进 `Before：<现状>`，review 页面渲染为 Before → After 对照。
 场景要具体，覆盖边界情况。R# 是 review 反馈、Delta Review 与 issue 追溯的锚点；声明了
 R/D/S 锚点的 PRD 由 artifact gate 校验 ID 唯一性与引用闭合，不带锚点的 PRD 不受影响。
 
@@ -31,11 +37,19 @@ Lead with invariants: what must always be true; the design derives from them. Fl
 schema, and wire protocol separately as one-way doors. They get the hardest review.
 
 每个承重决策一个小节，`### D1 — <短标题>`；可选 `Refs: R1 R2`（引用 R#）、`Door: one-way|two-way`、
-`Blast radius: <module|feature|project>` 三行机器可读标注，供 review 页面首屏聚合风险。
+`Blast radius: <module|feature|project>`、`Review: human` 机器可读标注（首屏聚合风险）；分行写或
+Door/Blast 合写一行均可。`Review: human` 标在方向性决策上（目的、边界、产品行为方向、红线）。
+review 页面的决策区 = 方向性决策 + 全部 one-way 公共契约变动（接口/架构），整段展开、逐句分行
+请你表态；其余工程决策折叠为参考。
 
 The modules built/modified, their interfaces, architectural decisions, schema changes, API
 contracts, specific interactions. Name paths or a compact schema/type shape when they remove
 contract ambiguity; keep implementation detail in the code or owning issue.
+
+## 不变量（Contracts）
+
+Optional `- C1 — <绝不能被破坏的行为/API/数据约束>`。review 页面渲染为高亮不变量卡，C# 参与
+反馈定位；可再选 `## 风险（Risks）` 段（`- <一条真实风险>`，页面自动编号 K#）。
 
 ## 测试决策（Testing Decisions）
 
@@ -81,9 +95,10 @@ Depends。
 | S1 | state transition | R1 R2 D1 | - | key |
 | S2 | UI binding | R1 D1 | S1 | routine |
 
-Covers 引用已声明的 R#/D#；Depends 引用 S#（`-` 表示无，门拒绝环）；Review 取
-`key | routine | verification`，省略即 routine。两个以上 S# 时 review 页面据 Depends
-确定性生成依赖图；routine 切片在人审页面默认折叠。
+Slice 列可写 `S1` 或 `S1 短标题`（短标题进依赖图节点）。Covers 引用已声明的 R#/D#；Depends 引用
+S#（`-` 表示无，门拒绝环）；Review 取 `key | routine | verification`，省略即 routine。两个以上
+S# 时 review 页面据 Depends 确定性生成依赖图；解析不了或列数不对的切片行会被门拒绝，而不是
+静默丢行。
 
 ## 端到端验证（End-to-End Verification）
 
