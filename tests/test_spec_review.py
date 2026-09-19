@@ -400,25 +400,19 @@ def post(url, payload):
 
 class BridgeTests(unittest.TestCase):
     def bridge(self, root, timeout=3.0):
+        # The listener starts synchronously; only the accept loop runs in a
+        # thread, so a slow runner cannot race the test past bridge startup.
         prepared = spec_review.prepare_review(root, "import")
-        holder = {}
-
-        def started(url, token):
-            holder.update(url=url, token=token)
-
-        result = []
+        server, url, token, result = spec_review.start_bridge(prepared)
+        holder = {"url": url, "token": token}
+        outcome = []
         thread = threading.Thread(
-            target=lambda: result.append(
-                spec_review.run_bridge(prepared, timeout, False, on_started=started)
+            target=lambda: outcome.append(
+                spec_review.serve_bridge(server, result, timeout, prepared)
             )
         )
         thread.start()
-        for _ in range(100):
-            if holder:
-                break
-            thread.join(0.05)
-        self.assertTrue(holder, "bridge never started")
-        return prepared, holder, thread, result
+        return prepared, holder, thread, outcome
 
     def test_feedback_submit_returns_structured_json(self):
         with tempfile.TemporaryDirectory() as directory:
