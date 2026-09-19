@@ -30,7 +30,7 @@ relationships, and validation pointers here. Transfer verified reusable knowledg
 retrieval surface before consuming the handoff; completed exploration has no place in the bridge.
 
 For creation, run
-`python <handoff-skill-dir>/scripts/handoff-state.py new <repo-root> <draft-path> --feature <slug> [--capsule <type>]`
+`python scripts/handoff-state.py new <repo-root> <draft-path> --feature <slug> [--capsule <type>]`
 once (`python3` only when `python` is absent). It writes the draft skeleton below with the current
 `git_base` and `worktree_digest` already stamped and reports the `target` and the version to pass as
 `--expected`; fill the body only and never hand-copy hashes. For a rolling update, snapshot both
@@ -98,11 +98,11 @@ Update only fields that moved: snapshot both baselines, replace `Continue`, adva
 `State`, and add only new non-derivable decisions or failed paths. Drop a decision line once its
 PRD/issue/ADR records it. Do not append history. Read the
 current version and baselines with
-`python <handoff-skill-dir>/scripts/handoff-state.py snapshot <repo-root> --path <handoff-path>`.
+`python scripts/handoff-state.py snapshot <repo-root> --path <handoff-path>`.
 Write the draft under `.scratch/tmp/`, then publish it through the version check:
 
 ```text
-python <handoff-skill-dir>/scripts/handoff-state.py publish <repo-root> <handoff-path> --expected <version> --source <draft-path>
+python scripts/handoff-state.py publish <repo-root> <handoff-path> --expected <version> --source <draft-path>
 ```
 
 The helper verifies the draft baseline, stamps a new generation, and atomically replaces only the

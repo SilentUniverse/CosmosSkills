@@ -17,7 +17,7 @@ runners on every card that uses them; do not rely on a prose warning the driver 
 After dispatch, generate briefs in one read-only call per feature:
 
 ```text
-python <skills-root>/workflow-state.py briefs <repo-root> <feat> --compact
+python ../workflow-state.py briefs <repo-root> <feat> --compact
 ```
 
 This validates outstanding assignments and the dispatch binding, includes their packets, and emits

@@ -52,7 +52,7 @@ below.
   workers' hunks), append new test files within admitted `touches` to `test_paths`, then write the
   completion record and close with your execution ID per
   [COMPLETION-RECORD.md](COMPLETION-RECORD.md):
-  `python <skills-root>/workflow-state.py close <repo-root> <feat> <slug> --execution <id>`.
+  `python ../workflow-state.py close <repo-root> <feat> <slug> --execution <id>`.
   An assigned batch does not close the card itself; its controller writes the
   managed-proof completion ([BATCH-PROOF.md](BATCH-PROOF.md)).
 - Return one terminal outcome, then stop; no polling, status prose, or follow-up writes. The

@@ -96,11 +96,11 @@ When the plan requires human review, present the PRD before materializing the ex
 review judges the converged PRD (five-part projection plus the counts of human decisions and
 load-bearing defaults), never the internal tree or a stack of ready issues. A consequential PRD
 with R/D/S anchors presents through the deterministic review surface
-([REVIEW.md](REVIEW.md)): `spec-review.py review` runs the one-shot local bridge when the harness
+([REVIEW.md](REVIEW.md)): `scripts/spec-review.py review` runs the one-shot local bridge when the harness
 can wait on a local CLI; otherwise `render` writes the static page and the user copies feedback
 back. Feedback maps to its R/D/S anchors, revises the same draft, and the next page is the delta.
-Acceptance is recorded by the page's Approve or `spec-review.py accept`; before materializing run
-`spec-review.py validate <repo-root> <feat> --require-accepted`; the artifact gate also rejects
+Acceptance is recorded by the page's Approve or `scripts/spec-review.py accept`; before materializing run
+`scripts/spec-review.py validate <repo-root> <feat> --require-accepted`; the artifact gate also rejects
 materialized issues without a matching accepted digest. Materialize issues, verifier profiles and
 preflights after acceptance; that engineering preparation needs no second review unless it surfaces
 a new consequential decision: a changed public contract, a verifier that cannot prove the
@@ -141,8 +141,7 @@ Keep valid pending cards visible with their missing readiness. Repair malformed 
 never manufacture passed preflight for pending work. Ready requires a complete contract and observed
 preflight. Engineering dependencies and manual obligations remain separate from this three-state vocabulary.
 
-After corrections, run `python <skills-root>/verify-artifacts.py <repo-root> --feature <feat>`.
-Here `<skills-root>` contains `ARTIFACT-FORMAT.md`; in this checkout it is `workflow/`. Use `python3`
+After corrections, run `python ../verify-artifacts.py <repo-root> --feature <feat>`. Use `python3`
 only if `python` is missing, never as a retry for a gate failure. Re-run only after relevant fixes.
 The whole-tree form remains the batch-close/CI/migration gate.
 

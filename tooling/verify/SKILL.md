@@ -70,11 +70,7 @@ needs its own implementation work, complete that bounded unit before claiming th
 ready. A plan-only caller receives the proposed tooling work. Preflight exercises an existing smoke
 path or representative harness action; the future behavior remains TDD's RED/GREEN obligation.
 
-For shared contracts, `<skills-root>` is the directory containing `ARTIFACT-FORMAT.md`: `workflow/`
-in the CosmosSkills source checkout, or the shared installed skills directory. Use that root directly;
-parent traversal across installed skill links is not portable to Windows junctions.
-
-For a managed batch, load `<skills-root>/tdd/BATCH-FORMAT.md` when wiring the tool's command and
+For a managed batch, load `../tdd/BATCH-FORMAT.md` when wiring the tool's command and
 result to a job. Reuse its run identity, resource lifecycle, budget and proof consumer.
 The tool emits observed state and evidence; it does not create a second queue, receipt authority or
 completion state. Shared devices require the caller's resource ownership even during diagnosis.
@@ -82,7 +78,7 @@ Verify that the selected result adapter consumes the actual runner output and re
 assertion. A tool's success flag or exploratory transcript cannot replace that check. Source-preview
 results remain diagnostic; final proof must exercise the actual fixed candidate or produced artifact.
 
-Load `<skills-root>/TEST-POLICY.md` when choosing maintenance checks or recurring cost.
+Load `../TEST-POLICY.md` when choosing maintenance checks or recurring cost.
 New recurring runs require the user's request. Model-run evaluation remains explicit through `/eval`;
 tool availability changes are whole-system comparisons, with no skill-only performance attribution.
 

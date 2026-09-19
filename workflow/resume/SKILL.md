@@ -16,7 +16,7 @@ Resume is the inverse of `/handoff`; it layers one bounded packet over session-s
 Run once:
 
 ```text
-python <handoff-skill-dir>/scripts/handoff-state.py locate <repo-root> [<feature>]
+python ../handoff/scripts/handoff-state.py locate <repo-root> [<feature>]
 ```
 
 Use `python3` only when `python` is absent. The helper checks only `.scratch/handoff.md` and
@@ -60,7 +60,7 @@ Do not reopen completed issues, broad logs, or the full diff. Confirm live any c
 edit. The handoff is routing plus decisions, not proof.
 
 For feature work, query live cards only when the next action needs dispatch:
-`python <skills-root>/workflow-state.py survey <repo-root> --feature <feat> --format human`. It
+`python ../workflow-state.py survey <repo-root> --feature <feat> --format human`. It
 parses frontmatter and separates ready from blocked; do not enumerate cards with `rg`.
 
 ## 3. Consume
@@ -68,7 +68,7 @@ parses frontmatter and separates ready from blocked; do not enumerate cards with
 Consume the selected version only when its objective is complete or explicitly abandoned:
 
 ```text
-python <handoff-skill-dir>/scripts/handoff-state.py consume <repo-root> <handoff-path> --expected <version>
+python ../handoff/scripts/handoff-state.py consume <repo-root> <handoff-path> --expected <version>
 ```
 
 A mismatch preserves newer work; inspect and reconcile it without blind deletion or hash refresh.

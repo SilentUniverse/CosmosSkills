@@ -472,9 +472,43 @@ def run(inputs: Iterable[str], cwd: Path) -> tuple[list[str], int, int]:
             if markdown_file in catalog_markdown_files:
                 errors.extend(validate_retired_references(markdown_file))
             errors.extend(validate_skill_calls(markdown_file, known_names))
+            errors.extend(validate_shared_refs(markdown_file, cwd))
         except (OSError, UnicodeError) as exc:
             errors.append(str(exc))
     return errors, len(skill_files), len(markdown_files)
+
+
+SHARED_REF_RE = re.compile(r"`(\.\./[A-Za-z0-9_./-]+)`")
+
+
+def validate_shared_refs(markdown_file: Path, cwd: Path) -> list[str]:
+    """Backticked `../<name>` references must resolve. They name the shared contracts one
+    directory above the skill (ARTIFACT-FORMAT.md pins the layout): textual resolution against
+    the file's own directory for workflow skills; a tooling skill maps them to the sibling
+    workflow tree, matching the merged installed roots."""
+    try:
+        relative = markdown_file.relative_to(cwd)
+    except ValueError:
+        return []
+    if len(relative.parts) < 3 or relative.parts[0] not in DEFAULT_ROOTS:
+        return []
+    tooling = relative.parts[0] == "tooling"
+    errors: list[str] = []
+    in_fence = False
+    for line_number, line in enumerate(markdown_file.read_text(encoding="utf-8").splitlines(), 1):
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        for match in SHARED_REF_RE.finditer(line):
+            ref = match.group(1)
+            target = (cwd / "workflow" / ref[3:]) if tooling else (markdown_file.parent / ref)
+            if not target.exists():
+                errors.append(
+                    f"{markdown_file}:{line_number}: shared reference does not resolve: {ref}"
+                )
+    return errors
 
 
 def main(argv: list[str] | None = None) -> int:
