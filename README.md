@@ -161,7 +161,6 @@ stateDiagram-v2
   state "/atk 对抗审查" as ATK
   state "/code-review 代码审查" as Review
   state "/diagnose 故障诊断" as Diagnose
-  state "/lint 文档与注释整理" as Lint
   state "/handoff 保存未完工作" as Handoff
   state "/resume 核对并恢复" as Resume
 
@@ -172,8 +171,6 @@ stateDiagram-v2
   Review --> TDD: 修复发现或继续交付
   TDD --> Diagnose: 失败原因不明
   Diagnose --> TDD: 根因明确，继续修复验证
-  TDD --> Lint: 需要整理文档或注释
-  Lint --> TDD: 整理完成，接续目标
   TDD --> Handoff: 未完成工作必须跨会话
   Handoff --> Resume: 新会话接续
   Resume --> TDD: 核对工作区与未完义务后继续
