@@ -195,7 +195,7 @@ class TestGovernanceTests(unittest.TestCase):
         self.assertEqual(2, subprocess.run(command, capture_output=True).returncode)
         source.unlink()
         result = subprocess.run(command[:-2], capture_output=True, text=True)
-        self.assertEqual(2, result.returncode)
+        self.assertEqual(2, result.returncode, result.stdout + result.stderr)
         self.assertIn('no tests', result.stderr)
 
     def test_interrupted_receipt_remains_failure_with_unknown_whole_job_cost(self):

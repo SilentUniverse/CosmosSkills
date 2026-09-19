@@ -31,12 +31,15 @@ command. `next` calculates eligible waves; `dispatch` records
 intent before work; `collect` closes assignments; `audit` checks test ownership before batch close.
 Exit meanings: 0 dispatchable; 1 invalid argument or state; 2 usage error; 3 uncollected work;
 4 no dispatchable work; 5 missing shared preflight receipt; 6 unresolved contract conflict;
-7 retry budget exceeded. Exit 4 alone does not prove all requested work shipped.
+7 retry budget exceeded; 8 parked/pending work remains (not complete). Exit 4 alone does not
+prove all requested work shipped.
 
 The retry budget stops a chronically failing issue from re-entering waves forever: three
 `red`/`blocked` closures since the card's dispatch contract last changed make it ineligible,
 `step`/`next` report exit 7 with a revise-or-park action, and `dispatch` refuses it the same
-way. A `/spec` revision changes the recorded contract digest and resets the count; parking
+way. A `/spec` revision changes the recorded contract digest and resets the count; the first
+revision buys a fresh budget, the second locks the slug until park or a redo issue, so rewriting
+the AC alone cannot release the guard. Parking
 (`python <skills-root>/workflow-state.py park <repo-root> <feat> <slug> --reason TEXT`) moves
 the card to `pending` with its recorded reason, out of dispatch and visible in 未竟.
 `green` closes the card; `aborted` and `conflict` outcomes do not consume the budget. Packets

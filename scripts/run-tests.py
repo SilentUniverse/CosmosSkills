@@ -53,6 +53,15 @@ def main():
         if missing:
             parser.error('parallel run needs %s; install with "python -m pip install pytest pytest-xdist", '
                          'or pass --jobs 1 to run the serial unittest loader' % ' and '.join(missing))
+        # Empty selection is this runner's own contract; pytest's exit code for it
+        # varies across pytest/xdist versions. Mirror pytest's default collection
+        # names when no pattern is given.
+        start = Path(args.start_directory)
+        patterns = (args.pattern,) if args.pattern else ('test*.py', '*test.py')
+        if start.is_dir() and not any(
+            match for pattern in patterns for match in start.rglob(pattern)
+        ):
+            parser.error('selection collected no tests')
         print('runner=parallel workers=%d dist=loadfile cpu=%s' % (jobs, os.cpu_count()), flush=True)
         code = subprocess.run(parallel_argv(jobs, args.start_directory, args.pattern)).returncode
         if code == 5:  # pytest's empty selection; keep one loud usage-error contract

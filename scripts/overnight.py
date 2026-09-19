@@ -307,6 +307,14 @@ def _main(argv):
                 else start_prompt
             )
             detail = "drain session"
+        elif code == 8:
+            print("overnight: %s" % out, file=sys.stderr)
+            print(
+                "overnight: parked/pending work remains — batch NOT complete; resolve park"
+                " reasons or revise via /spec before rerunning",
+                file=sys.stderr,
+            )
+            return 3
         else:
             print(
                 "overnight: drain-wave next exit %d — aborting. %s" % (code, out),
