@@ -43,7 +43,7 @@ class ManagedWorkflowTests(unittest.TestCase):
 
     def test_admitted_run_prevents_abort_and_can_be_cancelled_without_launch(self):
         (self.root / "check.py").write_text("print(42)\n", encoding="utf-8")
-        definition = plan({"check": {"argv": ["{python}", "check.py"], "timeout": 5,
+        definition = plan({"check": {"argv": ["{python}", "check.py"], "timeout": 30,
                                     "result": {"kind": "predicate", "stdout_equals": "42"}}}, ["check.py"])
         batch_id = self.open(definition)["batch_id"]
         self.cli("batch-prepare", "--batch", batch_id)
@@ -60,7 +60,7 @@ class ManagedWorkflowTests(unittest.TestCase):
 
     def test_frozen_runtime_continues_after_a_different_installation_changes(self):
         (self.root / "check.py").write_text("print(42)\n", encoding="utf-8")
-        definition = plan({"check": {"argv": ["{python}", "check.py"], "timeout": 5,
+        definition = plan({"check": {"argv": ["{python}", "check.py"], "timeout": 30,
                                     "result": {"kind": "predicate", "stdout_equals": "42"}}}, ["check.py"])
         batch_id = self.open(definition)["batch_id"]
         state = json.loads((self.root / ".scratch/batches" / batch_id / "state.json").read_text())
@@ -78,7 +78,7 @@ class ManagedWorkflowTests(unittest.TestCase):
 
     def test_external_runner_drives_verification_without_a_model_or_nested_lock(self):
         (self.root / "check.py").write_text("print(42)\n", encoding="utf-8")
-        definition = plan({"check": {"argv": ["{python}", "check.py"], "timeout": 5,
+        definition = plan({"check": {"argv": ["{python}", "check.py"], "timeout": 30,
                                     "result": {"kind": "predicate", "stdout_equals": "42"}}}, ["check.py"])
         batch_id = self.open(definition)["batch_id"]
         result = subprocess.run([sys.executable, "-B", str(ROOT / "scripts/overnight.py"), "", str(self.root)],
@@ -107,7 +107,11 @@ elif action=='assert_recovered': assert not active.exists() and not busy.exists(
 print(action)
 """, encoding="utf-8")
         actions = ("inspect_identity", "prepare", "assert_baseline", "stop", "assert_terminal", "cleanup", "assert_recovered")
-        job = {"argv": ["{python}", "device.py", "scenario", str(resource)], "timeout": 2,
+        # Budget reservation is timeout x (1 + lifecycle actions): 7 actions here,
+        # so a 30s timeout would reserve 240s per run and exhaust the 600s root
+        # budget after two admissions. The actions are sub-second; 5s stays far
+        # above hosted-runner spawn cost.
+        job = {"argv": ["{python}", "device.py", "scenario", str(resource)], "timeout": 5,
                "resources": ["fixture-device"], "result": {"kind": "predicate", "stdout_equals": "result 42"},
                "lifecycle": {name: {"argv": ["{python}", "device.py", name, str(resource)], "expect": name} for name in actions}}
         batch_id = self.open(plan({"device": job}, ["device.py"]))["batch_id"]
@@ -128,7 +132,7 @@ print(action)
         marker = self.root / "started"
         code = "from pathlib import Path\nimport time\nPath(%r).write_text('started')\ntime.sleep(0.7)\nprint(42)\n" % str(marker)
         (self.root / "check.py").write_text(code, encoding="utf-8")
-        definition = plan({"check": {"argv": ["{python}", "check.py"], "timeout": 5,
+        definition = plan({"check": {"argv": ["{python}", "check.py"], "timeout": 30,
                                     "result": {"kind": "predicate", "stdout_equals": "42"}}}, ["check.py"])
         batch_id = self.open(definition)["batch_id"]
         self.cli("batch-prepare", "--batch", batch_id)
@@ -167,7 +171,7 @@ print(action)
             "import unittest\nfrom app import answer\nclass TestAnswer(unittest.TestCase):\n"
             "    def test_answer(self): self.assertEqual(42, answer())\n", encoding="utf-8")
         definition = plan({"unit": {"argv": ["{python}", "-m", "unittest", "-q"],
-                                     "timeout": 5, "result": {"kind": "unittest"}}}, ["app.py", "test_app.py"])
+                                     "timeout": 30, "result": {"kind": "unittest"}}}, ["app.py", "test_app.py"])
         opened = self.open(definition)
         closed = self.cli("batch-run", "--batch", opened["batch_id"])
         self.assertEqual("closed", closed["status"])
@@ -185,9 +189,9 @@ print(action)
         reader = "from pathlib import Path; import urllib.request; port=Path(r'{run_dir}/application.raw.log').read_text().splitlines()[0]; print(urllib.request.urlopen('http://127.0.0.1:'+port).read().decode())"
         ready = "from pathlib import Path\nimport time\np=Path(r'{run_dir}/application.raw.log')\nwhile not p.read_text().strip(): time.sleep(.01)\nprint('ready')"
         definition = plan({
-            "build": {"argv": ["{python}", "-c", "print('package')"], "timeout": 5, "outputs": ["server.py"], "result": {"kind": "artifacts"},
+            "build": {"argv": ["{python}", "-c", "print('package')"], "timeout": 30, "outputs": ["server.py"], "result": {"kind": "artifacts"},
                       "release": {"argv": launch, "requirements": ["Python 3.9+"]}},
-            "browser-harness": {"application": {"argv": launch}, "argv": ["{python}", "-c", reader], "timeout": 5,
+            "browser-harness": {"application": {"argv": launch}, "argv": ["{python}", "-c", reader], "timeout": 30,
                                 "artifact_only": True, "artifact_inputs": ["build"],
                                 "lifecycle": {"assert_baseline": {"argv": ["{python}", "-c", ready], "expect": "ready"}},
                                 "result": {"kind": "predicate", "stdout_equals": "42"}}}, ["server.py"])
@@ -221,10 +225,10 @@ print(action)
         definition = plan({
             "build": {"argv": ["{python}", "build.py"], "outputs": ["dist/candidate.pyz"],
                       "release": {"argv": ["{python}", "-I", "dist/candidate.pyz"], "requirements": ["Python 3.9 or newer"]},
-                      "timeout": 5, "result": {"kind": "artifacts"}},
+                      "timeout": 30, "result": {"kind": "artifacts"}},
             "packaged-behavior": {"argv": ["{python}", "-I", "dist/candidate.pyz"], "artifact_inputs": ["build"],
                                   "artifact_only": True,
-                                  "timeout": 5, "result": {"kind": "predicate", "stdout_equals": "42"}},
+                                  "timeout": 30, "result": {"kind": "predicate", "stdout_equals": "42"}},
         }, ["main.py", "shared.py", "build.py"])
         opened = self.open(definition)
         closed = self.cli("batch-run", "--batch", opened["batch_id"])
@@ -266,7 +270,7 @@ print(action)
         (self.root / "check.py").write_text(
             "from pathlib import Path\np=Path('count')\n"
             "n=int(p.read_text())+1 if p.exists() else 1\np.write_text(str(n))\nprint(n)\n", encoding="utf-8")
-        definition = plan({"once": {"argv": ["{python}", "check.py"], "timeout": 5,
+        definition = plan({"once": {"argv": ["{python}", "check.py"], "timeout": 30,
                                       "result": {"kind": "predicate", "stdout_equals": "1"}}}, ["check.py"])
         opened = self.open(definition)
         batch_id = opened["batch_id"]
@@ -280,7 +284,7 @@ print(action)
 
     def test_zero_tests_cannot_close_an_empty_queue(self):
         (self.root / "app.py").write_text("answer = 42\n", encoding="utf-8")
-        definition = plan({"unit": {"argv": ["{python}", "-m", "unittest", "-q"], "timeout": 5,
+        definition = plan({"unit": {"argv": ["{python}", "-m", "unittest", "-q"], "timeout": 30,
                                      "result": {"kind": "unittest"}}}, ["app.py"])
         opened = self.open(definition)
         result = self.cli("batch-run", "--batch", opened["batch_id"])
@@ -291,7 +295,7 @@ print(action)
 
     def test_a_new_run_cannot_reuse_an_already_sealed_final_proof(self):
         (self.root / "check.py").write_text("print(42)\n", encoding="utf-8")
-        opened = self.open(plan({"check": {"argv": ["{python}", "check.py"], "timeout": 5,
+        opened = self.open(plan({"check": {"argv": ["{python}", "check.py"], "timeout": 30,
                                            "result": {"kind": "predicate", "stdout_equals": "42"}}}, ["check.py"]))
         batch_id = opened["batch_id"]
         self.cli("batch-prepare", "--batch", batch_id)
@@ -303,7 +307,7 @@ print(action)
     def test_final_source_drift_reopens_repair_without_reusing_old_green(self):
         source = self.root / "check.py"
         source.write_text("print(42)\n", encoding="utf-8")
-        batch_id = self.open(plan({"check": {"argv": ["{python}", "check.py"], "timeout": 5,
+        batch_id = self.open(plan({"check": {"argv": ["{python}", "check.py"], "timeout": 30,
                                             "result": {"kind": "predicate", "stdout_equals": "42"}}}, ["check.py"]))["batch_id"]
         self.cli("batch-prepare", "--batch", batch_id)
         run = self.cli("check-admit", "--batch", batch_id, "--check", "check", "--request-id", "first")
@@ -322,7 +326,7 @@ print(action)
             "class Failing(unittest.TestCase):\n def test_bad(self): self.assertTrue(False)\n"
             "for case in (Passing, Failing):\n unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(case))\n",
             encoding="utf-8")
-        opened = self.open(plan({"check": {"argv": ["{python}", "check.py"], "timeout": 5,
+        opened = self.open(plan({"check": {"argv": ["{python}", "check.py"], "timeout": 30,
                                            "result": {"kind": "unittest"}}}, ["check.py"]))
         result = self.cli("batch-run", "--batch", opened["batch_id"])
         self.assertEqual("repair", result["phase"])
@@ -339,10 +343,10 @@ print(action)
     def review_package(self, definition):
         entry = ["{python}", "-I", "review.pyz"]
         definition["jobs"]["review-build"] = {"argv": ["{python}", "-c", "from zipfile import ZipFile; z=ZipFile('review.pyz','w'); z.write('check.py','__main__.py'); z.close()"],
-            "timeout": 5, "result": {"kind": "artifacts"}, "outputs": ["review.pyz"],
+            "timeout": 30, "result": {"kind": "artifacts"}, "outputs": ["review.pyz"],
             "release": {"argv": entry, "requirements": ["Python 3.9+"]}}
         definition["jobs"]["review-behavior"] = {"argv": entry, "artifact_inputs": ["review-build"], "artifact_only": True,
-            "timeout": 5, "result": {"kind": "predicate", "stdout_equals": "42"}}
+            "timeout": 30, "result": {"kind": "predicate", "stdout_equals": "42"}}
         definition["checks"] = list(definition["jobs"])
         definition["requirements"][0]["checks"] = definition["checks"]
         definition["milestones"][-1]["required_checks"] = definition["checks"]
@@ -361,7 +365,7 @@ print(action)
 
     def test_signed_budget_extension_retains_consumed_cost_and_replay_identity(self):
         (self.root / "check.py").write_text("print(0)\n", encoding="utf-8")
-        definition = plan({"check": {"argv": ["{python}", "check.py"], "timeout": 5,
+        definition = plan({"check": {"argv": ["{python}", "check.py"], "timeout": 30,
                                       "result": {"kind": "predicate", "stdout_equals": "42"}}}, ["check.py"])
         definition["budget"]["runs"] = 1
         self.review_authority(definition)
@@ -396,7 +400,7 @@ print(action)
 
     def test_manual_obligations_need_actual_version_bound_operator_observations(self):
         (self.root / "check.py").write_text("print(42)\n", encoding="utf-8")
-        definition = plan({"check": {"argv": ["{python}", "check.py"], "timeout": 5,
+        definition = plan({"check": {"argv": ["{python}", "check.py"], "timeout": 30,
                                       "result": {"kind": "predicate", "stdout_equals": "42"}}}, ["check.py"])
         definition["manual_checks"] = {"operator-demo": {"instruction": "Operate the specified candidate and confirm the displayed result."}}
         self.review_authority(definition)
@@ -416,7 +420,7 @@ print(action)
 
     def test_observation_preserves_pending_review_and_a_later_pause(self):
         (self.root / "check.py").write_text("print(42)\n", encoding="utf-8")
-        definition = plan({"check": {"argv": ["{python}", "check.py"], "timeout": 5,
+        definition = plan({"check": {"argv": ["{python}", "check.py"], "timeout": 30,
                                       "result": {"kind": "predicate", "stdout_equals": "42"}}}, ["check.py"])
         self.review_authority(definition)
         self.review_package(definition)
@@ -447,7 +451,7 @@ print(action)
 
     def test_red_request_remains_diagnostic_until_fixed_runnable_review(self):
         (self.root / "check.py").write_text("print(0)\n", encoding="utf-8")
-        definition = plan({"check": {"argv": ["{python}", "check.py"], "timeout": 5,
+        definition = plan({"check": {"argv": ["{python}", "check.py"], "timeout": 30,
                                       "result": {"kind": "predicate", "stdout_equals": "42"}}}, ["check.py"])
         self.review_authority(definition)
         self.review_package(definition)
@@ -480,7 +484,7 @@ print(action)
         issue.write_text("---\ntype: issue\nfeature: demo\nstatus: ready\ntouches: [app.py]\n"
                          "test_paths: [test_app.py]\nblocked_by: []\n---\n## 做什么\nReturn the answer.\n"
                          "## 验收标准\n- [ ] answer() returns 42.\n", encoding="utf-8")
-        definition = plan({"unit": {"argv": ["{python}", "-m", "unittest", "-q"], "timeout": 5,
+        definition = plan({"unit": {"argv": ["{python}", "-m", "unittest", "-q"], "timeout": 30,
                                     "issue_refs": ["demo/01-answer"], "ac_map": {"demo/01-answer": [1]},
                                     "result": {"kind": "unittest"}}}, ["app.py", "test_app.py"], ["demo/01-answer"])
         if v3:
@@ -519,7 +523,7 @@ preflight.record(root/row['receipt'],cwd=row['cwd'],action=row['declared_action'
         (self.root / "test_app.py").write_text("import unittest\nfrom app import answer\nclass Check(unittest.TestCase):\n"
                                                " def test_answer(self): self.assertEqual(42, answer())\n", encoding="utf-8")
         local = self.root / "local-check.json"
-        local.write_text(json.dumps({"argv": ["{python}", "-B", "-m", "unittest", "test_app", "-q"], "timeout": 5,
+        local.write_text(json.dumps({"argv": ["{python}", "-B", "-m", "unittest", "test_app", "-q"], "timeout": 30,
                                      "result": {"kind": "unittest"}}), encoding="utf-8")
         red = self.cli("check-local", "--batch", batch_id, "--execution", started["execution"],
                        "--member", "demo/01-answer", "--request-id", "local-red", "--job", local)
@@ -563,7 +567,7 @@ preflight.record(root/row['receipt'],cwd=row['cwd'],action=row['declared_action'
             issue.write_text("---\ntype: issue\nfeature: demo\nstatus: ready\ntouches: [%s.py]\n"
                              "test_paths: [%s.py]\n---\n## 做什么\nReturn answer.\n## 验收标准\n- [ ] Return 42.\n" % (name, name), encoding="utf-8")
             (self.root / (name + ".py")).write_text("print(0)\n", encoding="utf-8")
-            jobs[name] = {"argv": ["{python}", name + ".py"], "timeout": 5, "issue_refs": [reference],
+            jobs[name] = {"argv": ["{python}", name + ".py"], "timeout": 30, "issue_refs": [reference],
                           "ac_map": {reference: [1]}, "result": {"kind": "predicate", "stdout_equals": "42"}}
         definition = plan(jobs, ["one.py", "two.py"], members)
         definition["source_preview"] = {"argv": ["{python}", "one.py"], "requirements": ["existing local Python environment"]}
@@ -623,7 +627,7 @@ preflight.record(root/row['receipt'],cwd=row['cwd'],action=row['declared_action'
                              "## 验收标准\n- [ ] Return the expected answer.\n" % (module, module, "demo/01-one" if number == 2 and split else "01-one" if number == 2 else ""), encoding="utf-8")
             for filename in (module + ".py", "test_" + module + ".py"):
                 (self.root / filename).write_text("pass\n", encoding="utf-8")
-            jobs[module] = {"argv": ["{python}", "-m", "unittest", "test_" + module, "-q"], "timeout": 5,
+            jobs[module] = {"argv": ["{python}", "-m", "unittest", "test_" + module, "-q"], "timeout": 30,
                             "issue_refs": [reference], "ac_map": {reference: [1]}, "result": {"kind": "unittest"}}
         definition = plan(jobs, ["one.py", "two.py", "test_one.py", "test_two.py"], ["demo/01-one", "demo/02-two"])
         if split:
