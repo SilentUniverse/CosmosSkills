@@ -14,7 +14,9 @@ Start with named inputs. For unfamiliar nontrivial work, use `CODEBASE.md` routi
 `CONTEXT.md` terms; read ADR titles and open only decisions governing the affected area. Issue or
 handoff pointers are the initial read set, not a ban on investigating a discovered dependency.
 Skip missing orientation files. Create/refresh a map only when navigation or a changed invariant
-needs it; no bootstrap offer or full-map drift scan on every session.
+needs it; no bootstrap offer or full-map drift scan on every session. A generated block whose
+`git_base` is behind HEAD is a lead, not fact: re-verify its named facts before relying on it and
+fix, drop, or re-stamp the affected lines in place; do not re-derive the map for it.
 
 A host may inject per-area `CLAUDE.md` blocks automatically; where it does not, read the relevant
 referenced blocks explicitly when needed. Do not assume one host's automatic loading applies to
