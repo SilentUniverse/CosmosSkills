@@ -23,8 +23,8 @@ A complete engineering methodology for your coding agent — nine laws, an artif
 CosmosSkills 是一套给单人开发者的 AI 编程工程方法论：30 个跨宿主技能、九条设计定律、一道工件门和一套按需行为 eval。连续会话复用已核实的上下文，跨会话保留可校验的恢复入口；AI 的自我汇报不能代替证据。定律给方向，机器与可重放证据给结论。所有权衡按字典序处理：产品质量与正确性 > 交付速度 > Token 消耗；后两项不得削弱前一项的证据、安全或可访问性。
 
 - **九条定律**：从 Hoare、Dijkstra、Parnas、Ousterhout 等软件工程经典提炼的九个问题。不给规范，让 AI 自己推导出好代码
-- **机器门**：`verify-artifacts.py` 校验每份工件——完成记录点名的测试文件必须真实存在于磁盘，误删当场红灯；依赖图有环、PRD 版本链多头或缺头、需求记录源哈希漂移都会红灯
-- **闭环工作流**：`/spec` 滚动规划需求与验证——consequential PRD 带 R/D/S 稳定锚点，经 `spec-review.py` 确定性投影成人审页（首轮 Full、反馈后 Delta，一次性本地 bridge 或静态页复制回流），批准绑定 digest 后才拆卡；`/tdd` 在同一任务中持续实现和举证；`/tidy` 清理有明确归属的临时文件、把上一代工件整理成当前模型并保留测试经验。计划请求等审核；直接实施请求按已有授权继续
+- **机器门**：`verify-artifacts.py` 校验每份工件——完成记录点名的测试文件必须真实存在于磁盘，误删当场红灯；依赖图有环、PRD 版本链多头或缺头、需求记录源哈希漂移、R/D/S 锚点引用悬空、review 未批准先物化都会红灯
+- **闭环工作流**：`/spec` 滚动规划需求与验证——consequential PRD 带 R/D/S 稳定锚点，经确定性 review 页人审，批准绑定 digest 后才拆卡；`/tdd` 在同一任务中持续实现和举证；`/tidy` 清理有明确归属的临时文件、把上一代工件整理成当前模型并保留测试经验。计划请求等审核；直接实施请求按已有授权继续
 - **按需行为 eval**：默认关闭；项目内保留 previous / candidate / no-skill 配对实验，跨项目则导出同一份独立公开考卷，比较 Verified Success、速度、同口径成本与交接摩擦
 - **单人本地优先**：本地 markdown 队列（pending | ready | done），零外部服务；中文沟通、沿用代码术语；面向人的输出以结果、证据和待决定事项为主
 
@@ -107,7 +107,7 @@ AI 只重推受影响子树并重渲 Delta，批准写入 `accepted_digest`，�
 ### 主流程与人工审查
 
 图中的分支允许并行推进：人审固定版本 A 时，TDD 可以继续独立增量 B；依赖审查决定的工作等待该决定。
-consequential 方案走确定性 review 页（Full→Delta）；普通方案在对话中审核即可，不必经过人工验收节点；明确只要方案时，Spec 交出方案等待审核。
+consequential 方案走确定性 review 页（Full→Delta）；settled 小改动不经方案审核、直接实施，也不必人工验收；明确只要方案时，Spec 交出方案等待审核。
 
 ```mermaid
 flowchart TD
@@ -143,7 +143,7 @@ flowchart TD
 
 | 入口 | AI 负责 | 你主要提供 |
 |---|---|---|
-| [Spec](workflow/spec/SKILL.md) | 自主收敛需求树（可答自答、可默认自默认、对抗自审一次），产出 R/D/S 锚点 PRD；consequential 方案经确定性 review 页人审（Full→Delta、一次性本地 bridge），批准绑定 accepted_digest 后才拆卡和跑预检；需求变化保留原完成历史并关联修订 | 目标、约束、优先场景与必要产品决定；review 页上按锚点的反馈或批准 |
+| [Spec](workflow/spec/SKILL.md) | 自主收敛需求树（可答自答、可默认自默认、对抗自审一次），产出 R/D/S 锚点 PRD；consequential 方案经确定性 review 页人审，批准绑定 accepted_digest 后才拆卡和跑预检；需求变化保留原完成历史并关联修订 | 目标、约束、优先场景与必要产品决定；review 页上按锚点的反馈或批准 |
 | [TDD](workflow/tdd/SKILL.md) | 实现、验证、协调 worker、准备可审版本、定位并修复反馈 | 实际试用观察和明确版本的场景结论 |
 | [TIDY](workflow/tidy/SKILL.md) | 展示工程与人工待办，清理已释放且无消费者的临时文件，把上一代工件整理成当前模型；保留测试、经验、交付版本和必要证据 | 查看或清理的目标范围 |
 
@@ -168,7 +168,7 @@ stateDiagram-v2
 
   Spec --> ATK: 高风险决策、公共边界或证据不稳
   ATK --> Spec: 处理审查发现
-  Spec --> TDD: 约定明确且已授权
+  Spec --> TDD: 约定明确（consequential：已批准）且已授权
   TDD --> Review: 候选需要代码审查
   Review --> TDD: 修复发现或继续交付
   TDD --> Diagnose: 失败原因不明
@@ -225,12 +225,14 @@ stateDiagram-v2
 
 ### 读写控制面
 
-| 面向谁 | 必读 | 必写 | 禁止默认生成 |
+第一列是**面**（读写的对象），括号里是主要读者——同一个"人"出现在决策面和源码面，读的是不同的东西：
+
+| 面（主要读者） | 必读 | 必写 | 禁止默认生成 |
 |---|---|---|---|
-| 人 | 真实决策前沿、公共契约、证据摘要、待裁决项 | 一次集中选择或授权 | 已确定需求的复述、实现流水账、机器分类号 |
-| AI | resident `AGENTS.md` / `CLAUDE.md`、当前任务或卡、点名路径、验证命令；续跑再读 handoff `Continue` | 源文件、必要时的 issue/PRD、执行证据、必要不变量 | 全仓扫描、重复 SUMMARY、长日志入上下文 |
-| 机器 | frontmatter、`spec-review.json`、receipts 等结构化状态 | 确定性状态投影与证据，不写自然语言 | 自然语言解释、第二份反馈历史 |
-| 代码维护者 | 接口、测试、代码无法表达的 why/约束 | 语义必要注释 | 翻译代码、改动叙述、教程、装饰分隔注释 |
+| 决策面（人） | 真实决策前沿、公共契约、证据摘要、待裁决项 | 一次集中选择或授权 | 已确定需求的复述、实现流水账、机器分类号 |
+| 执行面（AI） | resident `AGENTS.md` / `CLAUDE.md`、当前任务或卡、点名路径、验证命令；续跑再读 handoff `Continue` | 源文件、必要时的 issue/PRD、执行证据、必要不变量 | 全仓扫描、重复 SUMMARY、长日志入上下文 |
+| 状态面（机器） | frontmatter、`spec-review.json`、receipts 等结构化状态 | 确定性状态投影与证据，不写自然语言 | 自然语言解释、第二份反馈历史 |
+| 源码面（未来的维护者：人或 AI） | 接口、测试、代码无法表达的 why/约束 | 语义必要注释 | 翻译代码、改动叙述、教程、装饰分隔注释 |
 
 派生状态统一走 `workflow-state.py inspect`；测试输出统一走 supervisor；跨 session 状态统一走带 worktree digest 的 handoff；人审投影统一走 `spec-review.py`（Full→Delta、一次性 bridge）。四者提供摘要及原始证据指针。handoff 的 capsule 分为 `active-work`、`awaiting-alignment`、`external-pending`，resume 按类型路由。
 
