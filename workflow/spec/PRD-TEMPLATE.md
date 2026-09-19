@@ -21,13 +21,17 @@ The solution from the user's perspective.
 
 ## 用户场景（User Stories）
 
-A numbered list of concrete scenarios: `1. <角色>需要<能力>（<场景或动机>）`. 避免
-"As a..., I want..., so that..." 直译；场景要具体，覆盖边界情况。
+Stable requirement anchors, one observable assertion per bullet: `- R1 — <可观察结果或不变量>`.
+场景要具体，覆盖边界情况。R# 是 review 反馈、Delta Review 与 issue 追溯的锚点；声明了
+R/D/S 锚点的 PRD 由 artifact gate 校验 ID 唯一性与引用闭合，不带锚点的 PRD 不受影响。
 
 ## 实现决策（Implementation Decisions）
 
 Lead with invariants: what must always be true; the design derives from them. Flag public ABI,
 schema, and wire protocol separately as one-way doors. They get the hardest review.
+
+每个承重决策一个小节，`### D1 — <短标题>`；可选 `Refs: R1 R2`（引用 R#）、`Door: one-way|two-way`、
+`Blast radius: <module|feature|project>` 三行机器可读标注，供 review 页面首屏聚合风险。
 
 The modules built/modified, their interfaces, architectural decisions, schema changes, API
 contracts, specific interactions. Name paths or a compact schema/type shape when they remove
@@ -43,7 +47,8 @@ runs, or environment fingerprints. Those live once in the executing issue or `ve
 |---|---|---|---|---|
 | R1 | ... | ... | ... | case + exit/tally, log/trace/screenshot path |
 
-Every user scenario and invariant maps to a row. Deterministic evidence comes first; AI or human
+ID 列引用 用户场景 已声明的 R#。Every user scenario and invariant maps to a row; 缺行的
+R# 得到 advisory warning。Deterministic evidence comes first; AI or human
 judgment follows [VERIFICATION-DESIGN.md](VERIFICATION-DESIGN.md).
 
 When the feature creates or materially changes a graphical UI, reference the aligned single-source
@@ -65,6 +70,20 @@ or untracked sources use the ordinary template; issue/profile readiness still ap
 The section uses three bullets: ``- 路径：`docs/requirements/<name>.md` ``,
 ``- SHA-256：`<64 lowercase hex characters>` ``, and a one-line `- 完整性：...`. The artifact gate
 verifies that the source exists, is Git-tracked, and still matches the hash.
+
+## 实施切片（Execution Slices）
+
+PRD 级 review-worthy 切片投影；卡片执行时的依赖源是 frontmatter `blocked_by`，不是本表的
+Depends。
+
+| Slice | Outcome | Covers | Depends | Review |
+|---|---|---|---|---|
+| S1 | state transition | R1 R2 D1 | - | key |
+| S2 | UI binding | R1 D1 | S1 | routine |
+
+Covers 引用已声明的 R#/D#；Depends 引用 S#（`-` 表示无，门拒绝环）；Review 取
+`key | routine | verification`，省略即 routine。两个以上 S# 时 review 页面据 Depends
+确定性生成依赖图；routine 切片在人审页面默认折叠。
 
 ## 端到端验证（End-to-End Verification）
 
@@ -99,8 +118,10 @@ criterion: every named item rewritten or parked; every real design tie recorded.
 Give shared user scenarios stable IDs and independent contract versions. Each review point names the
 scenes to judge, concrete human questions, engineering prerequisites and decision dependencies.
 The review presentation — five-part projection plus human-decision and load-bearing-default counts,
-delta shape, and the round budget — is owned by [ALIGNMENT-LOOP.md](ALIGNMENT-LOOP.md).
-Review points may cover several issues; PRDs, issues and review points are not one-to-one.
+delta shape, and the round budget — is owned by [ALIGNMENT-LOOP.md](ALIGNMENT-LOOP.md); the page
+itself is the deterministic projection of [scripts/spec-review.py](scripts/spec-review.py)
+(Full first round, Delta afterwards), never hand-assembled prose. Review points may cover several
+issues; PRDs, issues and review points are not one-to-one.
 Prefer the first usable vertical slice. Do not require review after an arbitrary issue count.
 Issues materialize after the review point accepts the plan, so pruning a branch does not orphan
 cards, dependencies or test mappings. Keep scenario requirements here; executable jobs and runtime

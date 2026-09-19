@@ -482,6 +482,36 @@ backticked repo-relative Git-tracked file and `- SHA-256：` with its 64-charact
 The gate reads and hashes the source on demand. Ordinary PRDs omit this section and pay no Git/hash
 probe.
 
+A PRD may carry stable review anchors: `R#` requirement bullets in 用户场景, `D#` decision
+subsections (optional `Refs:`/`Door:`/`Blast radius:` lines) in 实现决策, `S#` rows in 实施切片,
+and `R#` ID rows in 测试决策. Declared anchors are gate-validated: family-unique IDs, closed refs
+(D→R, S covers→R/D, S depends→S, 测试决策→R), acyclic `Depends`, and a `key|routine|verification`
+review token. A PRD without anchors stays compatible. Anchored PRDs feed the deterministic review
+surface ([spec/REVIEW.md](spec/REVIEW.md)).
+
+## Spec review state — `.scratch/<feat>/spec-review.json`
+
+Minimal machine state of the human review bridge, written only by
+`spec/scripts/spec-review.py` (`render`/`review`/`accept`); it never stores feedback history or PRD
+content. Schema 1:
+
+```json
+{
+  "schema_version": 1,
+  "spec": "PRD-v3.md",
+  "last_rendered_digest": "<64-hex>",
+  "last_rendered_items": {"R1": "<64-hex>", "D1": "<64-hex>", "S1": "<64-hex>"},
+  "accepted_digest": null
+}
+```
+
+`last_rendered_*` drives the next Delta review; `accepted_digest` records human acceptance of the
+named snapshot. The gate requires schema 1, `spec` naming an existing PRD in the directory, and
+well-formed digests and `[RDS]\d+` item keys. Once any issue or `verifier.json` is materialized in
+the feature, `accepted_digest` must be non-null and match an intact PRD file; an unaccepted review
+therefore cannot materialize, and an accepted snapshot cannot be edited in place. The rendered
+`spec-review.html` is a disposable projection: deletable, rebuildable, never evidence.
+
 ## Current-reality projection
 
 `workflow-state.py inspect <repo-root> <feat> --format json|human` derives effective delivered
@@ -504,6 +534,7 @@ repo/
     ├── handoff.md                    ← cross-feature rolling handoff
     └── <feat>/
         ├── PRD.md / PRD-vN.md
+        ├── spec-review.json             ← review bridge state (spec-review.py only)
         ├── handoff.md                ← this feature's rolling handoff
         └── issues/
             ├── NN-slug.md            ← active issues
@@ -545,7 +576,9 @@ V2 readiness/P# mappings, V3 verifier profiles (`verifier.json` JSON, strict dev
 zero unexpected runtime counters, graded thresholds),
 `NN` uniqueness per directory, `blocked_by` / `refines` resolution + acyclicity, `feature` vs
 directory name, PRD `version` vs filename, `supersedes` target existence, single live PRD head,
-handoff field shape. CODEBASE.md leaves: root `type`/`generated` + body budget (excl. roster
+declared PRD R/D/S anchors (uniqueness, closed refs, acyclic slice `Depends`, review token) and
+spec-review.json shape plus the acceptance gate (materialized issues require an intact accepted
+snapshot), handoff field shape. CODEBASE.md leaves: root `type`/`generated` + body budget (excl. roster
 lines; `budget:` frontmatter override), nested generated-block marker pairs + `git_base` + block
 budget, roster placeholder syntax rejected, roster↔directory bidirectional check. Missing `.scratch/` and absent `CODEBASE.md` pass
 clean. Run it wherever state could drift: `/spec` post-write, before workflow GC, or any time the

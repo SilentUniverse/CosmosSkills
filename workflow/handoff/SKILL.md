@@ -61,7 +61,10 @@ date: YYYY-MM-DD
 3. CONFIRM `<observable predicate>`; THEN `<next edit/decision>`
 
 ## State
-<objective still owed + current node + pointers to authoritative artifacts/evidence>
+- PRD: `<governing PRD path + its R/D/S anchors when present>`
+- active: `<the one active issue/plan file>`
+- remaining: `<slices/issues still owed>`
+<one line on the objective still owed, only if the pointers cannot say it>
 
 ## Decisions
 - <decision, authorization, or invariant> — <scope and constraint a future agent must preserve>
@@ -70,9 +73,12 @@ date: YYYY-MM-DD
 - <failed or rejected path> — <evidence>; omit this section when empty
 ```
 
-`Continue` is machine-facing execution input: terse, ordered, exact. `State` and `Decisions` are the
-human review surface: plain language, only facts that affect the next choice. Never duplicate PRDs,
-issues, ADRs, completion records, receipts, logs, commits, or diffs.
+`Continue` is machine-facing execution input: terse, ordered, exact. `State` is the anchor block —
+one pointer line each for the governing PRD, the active issue, and the remaining work; narrative
+history stays out. `Decisions` carries only decisions not yet recorded in a PRD, issue, or ADR;
+once a decision lands in its authoritative artifact, the next rolling update drops it. `Avoid`
+names the failed path and its evidence pointer, nothing else. Never duplicate PRDs,
+issues, ADRs, completion records, receipts, logs, commits, or diffs; reference them by path.
 `CONFIRM` means observe the predicate, not request user approval. The chain is an entry to the
 remaining objective; finishing its first action does not complete that objective.
 
@@ -89,7 +95,8 @@ remaining objective; finishing its first action does not complete that objective
 ## Rolling update
 
 Update only fields that moved: snapshot both baselines, replace `Continue`, advance the one-line
-`State`, and add only new non-derivable decisions or failed paths. Do not append history. Read the
+`State`, and add only new non-derivable decisions or failed paths. Drop a decision line once its
+PRD/issue/ADR records it. Do not append history. Read the
 current version and baselines with
 `python <handoff-skill-dir>/scripts/handoff-state.py snapshot <repo-root> --path <handoff-path>`.
 Write the draft under `.scratch/tmp/`, then publish it through the version check:

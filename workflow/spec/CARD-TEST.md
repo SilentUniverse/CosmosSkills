@@ -10,7 +10,10 @@ acceptance when the plan required review, so pruning a branch in review does not
 A ready unit is an issue iff `## 做什么` + ≥1 agent-runnable AC + an AC→evidence→passed-P# mapping can be
 written for an agent that sees nothing else. AC derive from invariants first, examples second, and run
 through a named seam's interface — vocabulary per `/codebase-design`. Pick the seam external
-callers enter; prefer existing seams to new ones; use the fewest that cover the ACs. Evidence
+callers enter; prefer existing seams to new ones; use the fewest that cover the ACs. A PRD-backed
+card's `## 上级` is the Parent pointer plus at most three controlling constraints
+([ISSUE-TEMPLATE.md](ISSUE-TEMPLATE.md)); PRD scenarios and decisions are never copied into the
+card; the worker brief projects the pointer. Evidence
 and SPEC-stage environment readiness follow
 [VERIFICATION-DESIGN.md](VERIFICATION-DESIGN.md). Look up facts and run preflights; do not ask the
 user for discoverable environment facts.

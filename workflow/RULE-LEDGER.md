@@ -30,6 +30,19 @@
   过程要求可依据静态证据，不强制启动模型实验。
 - 评测由用户显式请求启动；模型代际变化是建议比较的理由，不是普通修订的批准门。
 
+## 失败晋升（Failure promotion）
+
+单次事故就地修复，不晋升为规则。同类失败复发或结构性复现时先分类，再决定去处：
+
+- **mechanical** → deterministic check（测试 / lint / hook / 脚本）
+- **judgement** → reviewer rule / reference
+- **navigation** → CODEBASE
+- **missing information** → tool / access
+- **one-off** → nowhere（不持久化）
+
+AI 不永久记住机械错误；只有真正被 CI / hook / workflow 消费的检查才算 machine gate。
+本节与收录范围共同生效：晋升进本表的条目仍按退役阶梯老化。
+
 ## 收录范围
 
 入表：① 性质为过程 / 过程·经济的规则（退役候选本体）；② 层级为流程且无机器红灯兜底的
@@ -73,6 +86,8 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | 头部 | 决策类需求先 AFK grill 两 pass 自收敛，按收敛判据停止，人只审收敛后的 PRD | 过程·经济 | 流程 | 逐节点人审 BFS 的问答税；ALIGNMENT-LOOP.md；未溯源 |
 | 头部 | review 预算：全量一次 + delta 一次；第三轮需实质理由，否则修 workflow 而非再审 | 过程·经济 | 流程 | 无界 review 轮次；ALIGNMENT-LOOP.md；未溯源 |
 | §3 | 需 review 的计划先审 PRD，接受后才物化卡与预检；无新实质决定不二审 | 过程·经济 | 流程 | 剪枝后 issues/依赖/测试映射的连带 churn；AFK grill 方案 §15–16；未溯源 |
+| §3 | consequential PRD 带 R/D/S 稳定锚点；review 页面由 spec-review.py 确定性投影（Full→Delta）；物化前 accepted_digest == 当前 PRD digest，机器门拒绝未批准先物化与批准后篡改 | 权威+产物 | 机器+流程 | 聊天流 review 的锚点漂移、过期反馈、接受后被静默改稿；human_ai_io v2 方案 §6–11/§21–23；未溯源 |
+| ISSUE-TEMPLATE | 精简卡片：上级 = Parent 指针 + ≤3 控制约束；共享验证环境只活在 verifier.json；AC 完整保留 | 过程·经济 | 流程 | PRD↔Issue 重复语义税与 cold worker 冗余上下文；human_ai_io v2 方案 §16–18；未溯源 |
 | §5 | 接受后按 task/feature/area 作用域晋升新事实；两轴法 + scope/source/reason；引用漂移即复验 | 过程·经济 | 流程 | 同类需求重复问已答问题；AFK grill 方案 §11–14；未溯源 |
 | Prepare and write | settled intake 直接推进；卡片自足，共享决策才建 PRD | 过程·经济 | 流程 | spec intake 与 ISSUE-TEMPLATE 的无 PRD 分支；spec-alignment-before-write |
 | 头部 | 仅未解决的实质选择用回执，独立工作继续 | 权威 | 流程 | 7be5338（compressed intake）/ spec-holds-alignment-under-pressure |
@@ -146,4 +161,7 @@ run-tests 空选集判定改为 runner 自带（pytest/xdist 对空收集的退�
 与本地 3.12 不同，F1）；全部 parked/pending 返回 exit 8 不再报批完成；重试预算加修订上限——
 第一次修订给新预算、第二次修订即锁（F4）。出处 docs/cosmos_efficiency_review_ee52421_2026-09-19.md；
 comment-gate 机器门未接线，按同文 §四降级为 diff review 提示。
+human/AI I/O v2 落地：R/D/S 锚点 + 确定性 review 投影（spec-review.py render/review/validate/accept）
++ 物化前 acceptance 机器门 + 精简卡片上级（Parent 指针 + ≤3 控制约束）+ handoff State 收敛为
+指针锚块。出处 docs/cosmosskills_human_ai_io_final_plan_v2_2026-09-19.md。
 这些是可直接定位的指令冲突修复；速度、token、成功率尚无本次配对实验结论。

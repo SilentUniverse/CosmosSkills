@@ -1353,5 +1353,252 @@ class OpenRefinesAdvisoryTests(unittest.TestCase):
         self.assertNotIn("advisory warning", output)
 
 
+ANCHOR_PRD = """---
+type: prd
+feature: demo
+version: 1
+created: 2026-09-19
+---
+
+## 用户场景（User Stories）
+
+- R1 — 导入取消后必须进入 cancelled。
+- R2 — cancel 后迟到 success 不得覆盖 cancelled。
+
+## 实现决策（Implementation Decisions）
+
+### D1 — State ownership
+
+Refs: R1 R2
+
+终态由 ImportSession 持有。
+
+## 测试决策（Testing Decisions）
+
+| ID | 场景 / 不变量 | 公共接缝 | 可观察结果 | 证据形态 |
+|---|---|---|---|---|
+| R1 | 取消任务 | ImportSession | cancel → cancelled | behavior |
+| R2 | 迟到 success | ImportSession | 状态不变化 | regression |
+
+## 实施切片（Execution Slices）
+
+| Slice | Outcome | Covers | Depends | Review |
+|---|---|---|---|---|
+| S1 | state transition | R1 R2 D1 | - | key |
+| S2 | UI binding | R1 D1 | S1 | routine |
+"""
+
+LEGACY_CARD = """---
+type: issue
+feature: demo
+status: ready
+category: enhancement
+created: 2026-09-19
+---
+
+## 做什么（What to build）
+
+Deliver the slice.
+"""
+
+
+def plant_reviewed_feature(root, prd_text=ANCHOR_PRD, *, issues=0):
+    feature = root / ".scratch" / "demo"
+    feature.mkdir(parents=True)
+    (feature / "PRD.md").write_text(prd_text, encoding="utf-8")
+    if issues:
+        (feature / "issues").mkdir()
+        for index in range(issues):
+            (feature / "issues" / ("0%d-slice.md" % (index + 1))).write_text(
+                LEGACY_CARD, encoding="utf-8"
+            )
+
+
+SPEC_REVIEW_MODULE = None
+
+
+def spec_review_tool():
+    global SPEC_REVIEW_MODULE
+    if SPEC_REVIEW_MODULE is None:
+        spec = importlib.util.spec_from_file_location(
+            "spec_review_gate", ROOT / "workflow" / "spec" / "scripts" / "spec-review.py"
+        )
+        SPEC_REVIEW_MODULE = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(SPEC_REVIEW_MODULE)
+    return SPEC_REVIEW_MODULE
+
+
+def write_review_state(root, *, accepted=False, **overrides):
+    tool = spec_review_tool()
+    prd = root / ".scratch" / "demo" / "PRD.md"
+    digest = tool.prd_digest(prd)
+    state = {
+        "schema_version": 1,
+        "spec": "PRD.md",
+        "last_rendered_digest": digest,
+        "last_rendered_items": tool.parse_model(tool.normalized_text(prd)).hashes(),
+        "accepted_digest": digest if accepted else None,
+    }
+    state.update(overrides)
+    (root / ".scratch" / "demo" / "spec-review.json").write_text(
+        json.dumps(state), encoding="utf-8"
+    )
+    return state
+
+
+class PrdAnchorTests(unittest.TestCase):
+    def run_gate(self, root):
+        output = io.StringIO()
+        with redirect_stdout(output):
+            result = verify_artifacts.main(["verify-artifacts.py", str(root)])
+        return result, output.getvalue()
+
+    def test_valid_anchors_pass(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_reviewed_feature(root)
+            result, output = self.run_gate(root)
+            self.assertEqual(0, result, output)
+
+    def test_legacy_prd_without_anchors_stays_compatible(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_reviewed_feature(
+                root,
+                "---\ntype: prd\nfeature: demo\nversion: 1\ncreated: 2026-09-19\n---\n\n"
+                "## 问题（Problem）\n\n旧式 PRD 正文。\n",
+            )
+            result, output = self.run_gate(root)
+            self.assertEqual(0, result, output)
+
+    def test_duplicate_anchor_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_reviewed_feature(root, ANCHOR_PRD.replace("- R2 —", "- R1 —"))
+            result, output = self.run_gate(root)
+            self.assertEqual(1, result)
+            self.assertIn("duplicate id R1", output)
+
+    def test_unknown_anchor_ref_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_reviewed_feature(root, ANCHOR_PRD.replace("Refs: R1 R2", "Refs: R1 R7"))
+            result, output = self.run_gate(root)
+            self.assertEqual(1, result)
+            self.assertIn("undeclared R7", output)
+
+    def test_slice_cycle_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_reviewed_feature(
+                root,
+                ANCHOR_PRD.replace(
+                    "| S1 | state transition | R1 R2 D1 | - | key |",
+                    "| S1 | state transition | R1 R2 D1 | S2 | key |",
+                ),
+            )
+            result, output = self.run_gate(root)
+            self.assertEqual(1, result)
+            self.assertIn("Depends cycle", output)
+
+
+class SpecReviewAcceptanceGateTests(unittest.TestCase):
+    def run_gate(self, root, feature=None):
+        output = io.StringIO()
+        argv = ["verify-artifacts.py", str(root)]
+        if feature:
+            argv += ["--feature", feature]
+        with redirect_stdout(output):
+            result = verify_artifacts.main(argv)
+        return result, output.getvalue()
+
+    def test_rendered_state_without_issues_passes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_reviewed_feature(root)
+            write_review_state(root)
+            result, output = self.run_gate(root)
+            self.assertEqual(0, result, output)
+
+    def test_issues_without_review_state_stay_compatible(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_reviewed_feature(root, issues=1)
+            result, output = self.run_gate(root)
+            self.assertEqual(0, result, output)
+
+    def test_issues_require_recorded_acceptance(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_reviewed_feature(root, issues=1)
+            write_review_state(root)
+            result, output = self.run_gate(root, "demo")
+            self.assertEqual(1, result)
+            self.assertIn("before spec acceptance", output)
+
+    def test_accepted_state_with_intact_prd_passes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_reviewed_feature(root, issues=1)
+            write_review_state(root, accepted=True)
+            result, output = self.run_gate(root, "demo")
+            self.assertEqual(0, result, output)
+
+    def test_edited_accepted_prd_fails(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_reviewed_feature(root, issues=1)
+            write_review_state(root, accepted=True)
+            (root / ".scratch" / "demo" / "PRD.md").write_text(
+                ANCHOR_PRD + "\n## 后记\n\n- 编辑过。\n", encoding="utf-8"
+            )
+            result, output = self.run_gate(root, "demo")
+            self.assertEqual(1, result)
+            self.assertIn("no longer matches accepted_digest", output)
+
+    def test_superseding_draft_keeps_accepted_snapshot_valid(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_reviewed_feature(root, issues=1)
+            write_review_state(root, accepted=True)
+            (root / ".scratch" / "demo" / "PRD-v2.md").write_text(
+                ANCHOR_PRD.replace("version: 1", "version: 2").replace(
+                    "created: 2026-09-19", "created: 2026-09-19\nsupersedes: PRD.md"
+                ),
+                encoding="utf-8",
+            )
+            result, output = self.run_gate(root, "demo")
+            self.assertEqual(0, result, output)
+
+    def test_archived_issues_also_require_acceptance(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_reviewed_feature(root)
+            archive = root / ".scratch" / "demo" / "issues" / "archive"
+            archive.mkdir(parents=True)
+            (archive / "01-shipped.md").write_text(
+                LEGACY_CARD.replace("status: ready", "status: done")
+                + "\n### 完成 — 2026-09-19\n\n- 验证命令：`pytest -q` → exit 0\n",
+                encoding="utf-8",
+            )
+            write_review_state(root)
+            result, output = self.run_gate(root, "demo")
+            self.assertEqual(1, result)
+            self.assertIn("before spec acceptance", output)
+
+    def test_malformed_review_state_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_reviewed_feature(root, issues=1)
+            (root / ".scratch" / "demo" / "spec-review.json").write_text(
+                json.dumps({"schema_version": 2, "spec": "PRD.md", "accepted_digest": "zz"}),
+                encoding="utf-8",
+            )
+            result, output = self.run_gate(root, "demo")
+            self.assertEqual(1, result)
+            self.assertIn("schema_version must be 1", output)
+            self.assertIn("accepted_digest", output)
+
+
 if __name__ == "__main__":
     unittest.main()
