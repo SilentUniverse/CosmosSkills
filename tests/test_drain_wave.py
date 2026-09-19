@@ -1460,6 +1460,73 @@ class RetryBudgetTests(unittest.TestCase):
 
             self.assertEqual(0, code, output)
 
+    def test_all_parked_queue_is_not_reported_complete(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "demo" / "issues"
+            issues.mkdir(parents=True)
+            for name in ("01-one.md", "02-two.md"):
+                (issues / name).write_text(
+                    "---\nstatus: pending\npending_reason: waiting\n---\n# x\n",
+                    encoding="utf-8",
+                )
+
+            code, output = self.call(wave.cmd_next, str(root), "demo")
+            self.assertEqual(8, code, output)
+            self.assertIn("2 pending", output)
+            self.assertNotIn("batch complete", output)
+
+            code, output = self.call(wave.cmd_step, str(root), "demo")
+            self.assertEqual(8, code, output)
+            self.assertNotIn("action: close", output)
+
+    def test_third_contract_for_a_slug_stays_spent(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "demo" / "issues"
+            issues.mkdir(parents=True)
+            issue = issues / "01-one.md"
+            issue.write_text(issue_body("pkg"), encoding="utf-8")
+            for _ in range(2):
+                self._red_once(root)
+            issue.write_text(issue_body("pkg") + "<!-- rev2 -->\n", encoding="utf-8")
+            self._red_once(root)
+
+            issue.write_text(issue_body("pkg") + "<!-- rev3 -->\n", encoding="utf-8")
+            code, output = self.call(wave.cmd_step, str(root), "demo")
+            self.assertEqual(7, code, output)
+            self.assertIn("retry-budget: 01-one", output)
+
+            code, output = self.call(wave.cmd_dispatch, str(root), ["01-one"])
+            self.assertEqual(7, code, output)
+            self.assertIn("redo", output)
+
+    def test_paths_growth_neither_resets_nor_spends_the_revision_budget(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "demo" / "issues"
+            issues.mkdir(parents=True)
+            issue = issues / "01-one.md"
+            issue.write_text(issue_body("pkg"), encoding="utf-8")
+            grown = issue_body("pkg").replace(
+                "test_paths: [pkg/test_feature.py]",
+                "test_paths: [pkg/test_feature.py, pkg/test_extra.py]",
+            )
+
+            self._red_once(root)
+            issue.write_text(grown, encoding="utf-8")
+            self._red_once(root)  # execution-state growth buys no reset and no revision
+            issue.write_text(issue_body("pkg"), encoding="utf-8")
+            self._red_once(root)  # shrinking back is also churn: strikes keep counting
+
+            code, output = self.call(wave.cmd_step, str(root), "demo")
+            self.assertEqual(7, code, output)
+            self.assertIn("retry-budget: 01-one", output)
+
+            issue.write_text(issue_body("pkg") + "<!-- rev -->\n", encoding="utf-8")
+            code, output = self.call(wave.cmd_step, str(root), "demo")
+            self.assertEqual(0, code, output)
+
     def test_step_and_next_report_revise_or_park_when_only_exhausted_work_remains(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -1470,7 +1537,6 @@ class RetryBudgetTests(unittest.TestCase):
                 self._red_once(root)
 
             code, output = self.call(wave.cmd_step, str(root), "demo")
-
             self.assertEqual(7, code, output)
             self.assertIn("revise-or-park", output)
             self.assertIn("retry-budget: 01-one", output)

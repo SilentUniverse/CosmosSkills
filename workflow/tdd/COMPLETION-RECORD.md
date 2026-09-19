@@ -16,9 +16,8 @@ record; execution receipts and tests hold machine evidence. Do not narrate the i
    project configuration cannot cheaply supply it.
 5. Challenge the most plausible failure and trace it to evidence. A review with no finding is
    valid; do not invent a defect, new test, or extra round to create a record line.
-6. Gate added comments: `python <skills-root>/comment-gate.py <repo-root> --base HEAD
-   --paths <declared touches>` (`python3` only when `python` is absent). Trim a failing block to
-   its contract/why core or delete it per the [code-comment gate](../lint/references/code-comments.md).
+6. Review added comments against the [code-comment gate](../lint/references/code-comments.md):
+   apply its deletion test to each new or changed block; trim to the contract/why core or delete.
 
 Hands-on checks an agent cannot run belong in the PRD's 端到端验证 or, without a parent PRD, the
 issue's `## 手动验证` projected as `manual_verification`. Keep them outside agent-runnable ACs.

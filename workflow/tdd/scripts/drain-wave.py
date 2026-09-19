@@ -18,7 +18,8 @@
 #
 # Exit: 0 ok, 1 violation, 2 usage, 3 zombies (recovery first), 4 nothing ready,
 # 5 shared preflight receipt must be prepared before dispatch, 6 receipt conflict
-# requires /spec realignment, 7 retry budget exceeded (revise via /spec or park).
+# requires /spec realignment, 7 retry budget exceeded (revise via /spec or park),
+# 8 parked/pending work remains (not complete).
 import hashlib
 import importlib.util
 import io
@@ -45,6 +46,16 @@ from workflow_runtime import load_baseline, reading, read_text
 RESULTS = ("green", "red", "blocked", "conflict", "aborted")
 MAX_IN_FLIGHT = 4
 RETRY_BUDGET = 3
+# A digest change resets the strike count, but a third contract for the same slug
+# is the rewrite treadmill signature: it stays ineligible until park or a redo issue.
+RETRY_REVISION_CAP = 2
+
+
+def retry_spent(debt):
+    return debt and (
+        debt.get("count", 0) >= RETRY_BUDGET
+        or debt.get("revisions", 0) > RETRY_REVISION_CAP
+    )
 SKIP_DIRS = {
     ".git", "node_modules", ".scratch", ".venv", "venv", "target",
     "dist", "build", "out", ".next", "__pycache__", "coverage", "lib",
@@ -725,10 +736,12 @@ def chain_depths(issues):
 def retry_debts(root, feature=None, issues=None):
     """(feat, slug) -> {count, last} of red/blocked closures since the last change.
 
-    The count resets when a wave records a different dispatch contract for the
-    slug (/spec revised the slice) or when the live card's digest differs from
-    the last dispatched one. Green closes the card; aborted and conflict
-    outcomes leave the count untouched.
+    The count and revision tally key on the behavior digest (`behavior_contracts`):
+    appendable execution state — `test_paths` growth, status, Comments — neither
+    resets strikes nor spends a revision; only a real contract change does.
+    Green closes the card; aborted and conflict outcomes leave the count
+    untouched. Past RETRY_REVISION_CAP the slug stays spent regardless of its
+    strike count.
     """
     scratch = os.path.join(root, ".scratch")
     feats = []
@@ -744,12 +757,14 @@ def retry_debts(root, feature=None, issues=None):
         counts = {}
         lasts = {}
         digests = {}
+        changes = {}
         for wave in load_ledger(root, feat)["waves"]:
-            contracts = wave.get("contracts") or {}
+            contracts = wave.get("behavior_contracts") or wave.get("contracts") or {}
             for slug in wave.get("dispatched", []):
                 digest = contracts.get(slug)
                 if digests.get(slug) != digest:
                     digests[slug] = digest
+                    changes[slug] = changes.get(slug, 0) + 1
                     counts[slug] = 0
             for slug, result in (wave.get("closed") or {}).items():
                 if result in ("red", "blocked"):
@@ -760,14 +775,21 @@ def retry_debts(root, feature=None, issues=None):
                 entry = issues.get(slug)
                 if entry is not None and entry[0] == feat:
                     try:
-                        live = dispatch_contract_sha256(entry[1])
+                        with open(entry[1], "r", encoding="utf-8-sig") as stream:
+                            live = execution_contract_digest(stream.read())
                     except OSError:
                         live = None
                     if live is not None and live != digests.get(slug):
                         counts[slug] = 0
+                        changes[slug] = changes.get(slug, 0) + 1
         for slug, count in counts.items():
-            if count:
-                debts[(feat, slug)] = {"count": count, "last": lasts.get(slug, "")}
+            revisions = changes.get(slug, 0)
+            if count or revisions > RETRY_REVISION_CAP:
+                debts[(feat, slug)] = {
+                    "count": count,
+                    "last": lasts.get(slug, ""),
+                    "revisions": revisions,
+                }
     return debts
 
 
@@ -776,11 +798,12 @@ def plan_waves(issues, archived_done, parallel=True, debts=None):
         s for s, (_, _, fm) in issues.items() if fm.get("status") == "done"
     } | archived_done
     ready = {s for s, (_, _, fm) in issues.items() if fm.get("status") == "ready"}
+    pending = {s for s, (_, _, fm) in issues.items() if fm.get("status") == "pending"}
     debts = debts or {}
     exhausted = sorted(
-        (s, debts[(issues[s][0], s)]["count"])
+        (s, debts.get((issues[s][0], s), {}).get("count", 0))
         for s in ready
-        if debts.get((issues[s][0], s), {}).get("count", 0) >= RETRY_BUDGET
+        if retry_spent(debts.get((issues[s][0], s)))
     )
     dispatchable = ready - {s for s, _ in exhausted}
     blocked = []
@@ -801,6 +824,7 @@ def plan_waves(issues, archived_done, parallel=True, debts=None):
         return {
             "done": done,
             "ready": ready,
+            "pending": pending,
             "blocked": blocked,
             "exhausted": exhausted,
             "wave": [first] if first else [],
@@ -823,6 +847,7 @@ def plan_waves(issues, archived_done, parallel=True, debts=None):
     return {
         "done": done,
         "ready": ready,
+        "pending": pending,
         "blocked": blocked,
         "exhausted": exhausted,
         "wave": wave,
@@ -872,8 +897,15 @@ def cmd_next(root, feat):
     if not issues:
         print("drain-wave: no issues found under .scratch/%s" % (feat or "*/issues"))
         return 4
-    plan = plan_waves(issues, archived_done, debts=retry_debts(root, feat, issues=issues))
+    debts = retry_debts(root, feat, issues=issues)
+    plan = plan_waves(issues, archived_done, debts=debts)
     if not plan["ready"]:
+        if plan["pending"]:
+            print(
+                "drain-wave: nothing ready (%d done, %d pending) - parked/pending work remains,"
+                " not complete" % (len(plan["done"]), len(plan["pending"]))
+            )
+            return 8
         print("drain-wave: nothing ready (%d done) - batch complete" % len(plan["done"]))
         return 4
     nf = feat if feat else "all features"
@@ -892,9 +924,10 @@ def cmd_next(root, feat):
     for s, missing in plan["blocked"]:
         print("deferred: %s blocked by %s" % (s, ", ".join(missing)))
     for s, count in plan["exhausted"]:
+        revisions = debts.get((issues[s][0], s), {}).get("revisions", 0)
         print(
-            "retry-budget: %s (%d red/blocked since its last contract change - revise via /spec or park it)"
-            % (s, count)
+            "retry-budget: %s (%d red/blocked since its last contract change, %d contract"
+            " revisions - park it or redo via /spec)" % (s, count, revisions)
         )
     if not plan["wave"] and not plan["solo_now"] and plan["exhausted"]:
         return 7
@@ -934,6 +967,12 @@ def cmd_step(root, feat, parallel=True):
         issues, archived_done, parallel=parallel, debts=retry_debts(root, feat, issues=issues)
     )
     if not plan["ready"]:
+        if plan["pending"]:
+            print(
+                "action: pending-remaining - %d parked/pending issue(s); resolve each via /spec"
+                " or its park reason" % len(plan["pending"])
+            )
+            return 8
         print("action: close - nothing ready (%d done)" % len(plan["done"]))
         print(
             "run: drain-wave.py audit <repo-root> %s --execution <batch-id> [...]; close per FULL-SUITE.md via"
@@ -957,7 +996,8 @@ def cmd_step(root, feat, parallel=True):
     if plan["exhausted"]:
         print("action: revise-or-park - retry budget exceeded")
         print(
-            "run: revise the card contract via /spec, or"
+            "run: revise the card contract via /spec (a third contract for the same slug stays"
+            " spent - park or redo), or"
             " workflow-state.py park <repo-root> <feat> <slug> --reason TEXT"
         )
         return 7
@@ -1158,11 +1198,14 @@ def _dispatch(root, slugs, direct=False, feature=None):
     debts = retry_debts(root, feature, issues=issues)
     for s in slugs:
         debt = debts.get((issues[s][0], s))
-        if debt and debt["count"] >= RETRY_BUDGET:
+        if retry_spent(debt):
             print(
                 "drain-wave: %s exceeded the retry budget (%d red/blocked since its last"
-                " contract change) - revise its contract via /spec or park it with"
-                " workflow-state.py park" % (s, debt["count"]),
+                " contract change, %d contract revisions) - revise its contract via /spec"
+                " (a third contract stays spent), park it with workflow-state.py park, or"
+                " redo it as a new issue" % (
+                    s, debt["count"], debt.get("revisions", 0)
+                ),
                 file=sys.stderr,
             )
             return 7

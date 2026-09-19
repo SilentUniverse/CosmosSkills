@@ -77,6 +77,36 @@ class OvernightTests(unittest.TestCase):
             finally:
                 overnight._session.reset(token)
 
+    def test_parked_pending_queue_never_reports_complete(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / ".scratch/demo/issues").mkdir(parents=True)
+
+            def tool(_script, args):
+                return {
+                    "selftest": (0, "ok"),
+                    "next": (
+                        8,
+                        "drain-wave: nothing ready (0 done, 2 pending) - parked/pending work"
+                        " remains, not complete",
+                    ),
+                }[args[0]]
+
+            output = io.StringIO()
+            with (
+                patch.object(overnight, "MAX_SESSIONS", 2),
+                patch.object(overnight.shutil, "which", return_value="claude"),
+                patch.object(overnight, "run_tool", side_effect=tool),
+                patch.object(overnight, "launch", return_value=0) as launch,
+                redirect_stdout(output),
+                redirect_stderr(output),
+            ):
+                code = overnight.main(["overnight.py", "demo", str(root)])
+
+            self.assertEqual(3, code)
+            launch.assert_not_called()
+            self.assertIn("NOT complete", output.getvalue())
+
     def test_session_cap_is_incomplete_not_success(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

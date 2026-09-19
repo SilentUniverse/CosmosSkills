@@ -90,7 +90,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | Invocation | 有持久消费者才建卡；显式方案/新实质选择经 spec review；ready 不等于接受 | 过程 | 流程 | routing-requirement-to-spec（origin: routing） |
 | Invocation·drain | `/tdd`/`<feat>` 默认并行许可（permission 非 must_spawn）；`-s` 串行；单卡主 agent 直做 | 过程·经济 | 流程 | 串行默认浪费独立就绪卡的并行度；AFK grill 方案 §18；未溯源 |
 | §2–3 | 一次一测试、先红后绿、不预写未来 ◆ | 过程 | 流程 | TDD 方法论（无事故出处）/ tdd-holds-red-under-pressure |
-| §3 | 不写解释型注释；契约或原因只写在人读的接口处；单条注释块超限即红灯 | 过程 | 机器+自审 | 注释腐烂、复述代码；comment-gate.py 长度门 + lint/references/code-comments.md 删除测试；未溯源 |
+| §3 | 不写解释型注释；契约或原因只写在人读的接口处；新增块在 diff review 过删除测试与长度上限 | 过程 | 自审 | 注释腐烂、复述代码；lint/references/code-comments.md；comment-gate 机器门未接线已退役（效率审查 §四）；未溯源 |
 | §1 | 预检声明：先重算指纹、重放 P#、报 2–3 行 | 过程 | 机器+流程 | 7be5338（preflight receipts）、0bf346b（executable spec validation）/ spec-verifier-preflight |
 | §1 | 行为波次暂停后由 caller 恢复声明环境，真实新授权才问 | 产物 | 流程 | 46a7646（execution contracts 加固） |
 | §4 | RED 期禁止重构；意外红 → 固化不变量 | 过程 | 流程 | refactoring.md、6b411d8 |
@@ -142,4 +142,8 @@ DRAIN 按卡数轮换、done 不变与批末回退相冲突。对应条目按有
 继续执行；显式讨论后才写工件的 `spec-alignment-before-write` 保留该用户要求。
 误报的 conflict 通过带 wave/issue/contract 与证据绑定的 dismiss-conflict 纠错，保留账本历史，
 不弱化真实冲突屏障。确定性回归覆盖可恢复、无效证据拒绝、单项隔离。
+run-tests 空选集判定改为 runner 自带（pytest/xdist 对空收集的退出码随版本漂移，CI 的 py3.9
+与本地 3.12 不同，F1）；全部 parked/pending 返回 exit 8 不再报批完成；重试预算加修订上限——
+第一次修订给新预算、第二次修订即锁（F4）。出处 docs/cosmos_efficiency_review_ee52421_2026-09-19.md；
+comment-gate 机器门未接线，按同文 §四降级为 diff review 提示。
 这些是可直接定位的指令冲突修复；速度、token、成功率尚无本次配对实验结论。

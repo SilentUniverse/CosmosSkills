@@ -21,7 +21,7 @@ Delete code translation, branch narration, session history, tutorials, section d
 speculation. Rewrite hard-to-read code instead of explaining it. Do not enforce a comment ratio.
 
 **Length cap:** a surviving comment block is at most 3 lines and 240 characters; anything longer
-belongs in a name, a test, or the knowledge surface. `workflow/comment-gate.py <repo-root>
---base HEAD --paths <declared touches>` mechanically fails an added block over the cap unless it
-carries a banner marker (SPDX/copyright/generated) or a workaround naming its removal
-condition. The exemptions are mechanical, so the deletion test above still governs semantics.
+belongs in a name, a test, or the knowledge surface. Enforce the cap in diff review of added
+comments; a block over it needs a banner marker (SPDX/copyright/generated) or a workaround naming
+its removal condition. The exemptions are mechanical, so the deletion test above still governs
+semantics.

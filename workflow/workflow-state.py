@@ -596,8 +596,9 @@ def _attach_retry_summaries(root, feature, packets):
         debt = debts.get((feature, packet["slug"]))
         if debt:
             packet["retry_summary"] = (
-                "%d red/blocked since the last contract change; last result: %s"
-                % (debt["count"], debt["last"])
+                "%d red/blocked since the last contract change; %d contract revisions"
+                " recorded; last result: %s"
+                % (debt["count"], debt.get("revisions", 0), debt["last"])
             )
     return packets
 
