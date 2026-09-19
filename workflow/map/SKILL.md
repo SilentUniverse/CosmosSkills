@@ -19,7 +19,8 @@ authorizes writing the map unless preview-only. Missing maps are not prerequisit
 **When:** `CODEBASE.md` is absent or empty, or holds only the hand-maintained `## Verifier
 commands` zone, or is a legacy monolith (per-area sections, no roster), and the user wants a map
 of the *whole* project, not one area (`/map` with no path, or `/map -all`). A hand zone already
-present is preserved verbatim; the generated skeleton is assembled around it.
+present is preserved except dead commands, which the run repairs or reports (Hand zone below);
+the generated skeleton is assembled around it.
 
 **Steps:**
 
@@ -80,3 +81,13 @@ Re-running on a mapped area, or refreshing after drift:
 - **Consumption:** a block whose `git_base` is behind HEAD is a lead, not fact. Re-verify its named
   facts before relying on it, then fix, drop, or re-stamp the affected lines in place; escalate to
   a scoped refresh only when the area's structure itself moved.
+
+## Hand zone (Verifier commands)
+
+The `## Verifier commands` zone is hand-maintained and `verify-artifacts.py` never inspects it;
+this skill is its only freshness check. Every map run — first pass or refresh — re-validates each
+command: run it in its cheapest form when one exists, otherwise check that the paths, binaries and
+suite enumerations it names still resolve in the repo. A dead command is never carried forward
+silently: replace it with a verified equivalent in the same run when one was found (and report the
+change), otherwise report the dead entry with its failure evidence for the owner. A command that
+cannot be validated cheaply is reported as unverified, not assumed healthy.

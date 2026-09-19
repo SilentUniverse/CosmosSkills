@@ -335,7 +335,7 @@ rg '^status: ready' -g '**/issues/*.md' .scratch
 _Avoid_: Wallet, balance-holder
 ```
 
-`CODEBASE.md` 双区：`## Verifier commands` 手维护区（测试/构建/性能命令缓存，懒出生，`/map` 再生与门禁都不动它）+ 生成区。生成区包含综合段（≤5 句）、非显然路由和分区 roster（一行一区、≤10 词，索引豁免两轴法）。正文 ≤40 行。细节在 `src/<area>/CLAUDE.md` 生成块（≤8 行）。事实行：`rg` 不出来 **且** 缺了会咬人。
+`CODEBASE.md` 双区：`## Verifier commands` 手维护区（测试/构建/性能命令缓存，懒出生，门禁不动它，`/map` 每次运行校验命令并修复或报告失效项）+ 生成区。生成区包含综合段（≤5 句）、非显然路由和分区 roster（一行一区、≤10 词，索引豁免两轴法）。正文 ≤40 行。细节在 `src/<area>/CLAUDE.md` 生成块（≤8 行）。事实行：`rg` 不出来 **且** 缺了会咬人。
 
 ```markdown
 <!-- BEGIN GENERATED codebase (/map) -->
