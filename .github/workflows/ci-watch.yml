@@ -20,7 +20,7 @@ jobs:
         run: |
           python - <<'PYCODE'
           import json, os, urllib.request
-          url = 'https://api.github.com/repos/%s/actions/workflows/ci/runs?branch=main&status=completed&per_page=1' % os.environ['GITHUB_REPOSITORY']
+          url = 'https://api.github.com/repos/%s/actions/workflows/ci.yml/runs?branch=main&status=completed&per_page=1' % os.environ['GITHUB_REPOSITORY']
           req = urllib.request.Request(url, headers={
               'Authorization': 'bearer %s' % os.environ['GH_TOKEN'],
               'Accept': 'application/vnd.github+json',
