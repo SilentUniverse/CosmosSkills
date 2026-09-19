@@ -411,13 +411,19 @@ class IncrementalWorkflowTests(unittest.TestCase):
                 process.communicate()
 
     def test_background_verification_returns_before_long_process(self):
-        (self.root/'app.py').write_text('import time\ntime.sleep(1)\nprint(42)\n')
-        self.open(self.simple())
+        # 8s process, 30s job timeout, 8s bound: the property under test is
+        # that --background returns before the process completes, so the bound
+        # must leave room for hosted-runner CLI startup, and the job timeout
+        # must leave room for the bound.
+        (self.root/'app.py').write_text('import time\ntime.sleep(8)\nprint(42)\n')
+        plan = self.simple()
+        plan['jobs']['answer']['timeout'] = 30
+        self.open(plan)
         started = time.monotonic()
         result = self.cli('batch-run', '--batch', self.id, '--background')
-        self.assertLess(time.monotonic()-started, 1)
+        self.assertLess(time.monotonic()-started, 8)
         self.assertEqual('reconcile_run', result['action'])
-        deadline = time.monotonic()+10
+        deadline = time.monotonic()+30
         while time.monotonic()<deadline:
             status = self.cli('batch-step', '--batch', self.id)
             if status['action'] != 'reconcile_run':

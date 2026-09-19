@@ -837,8 +837,8 @@ class _Unavailable(BaseHTTPRequestHandler):
         pass
 
 
-def run_bridge(prepared, timeout, open_browser, port=0, on_started=None):
-    """One-shot 127.0.0.1 listener; returns the stdout payload dict."""
+def start_bridge(prepared, port=0):
+    """Create the one-shot listener and page synchronously; no accept loop yet."""
     feature_dir = prepared["feature_dir"]
     prd_path = feature_dir / prepared["prd_name"]
     token = secrets.token_urlsafe(32)
@@ -856,16 +856,17 @@ def run_bridge(prepared, timeout, open_browser, port=0, on_started=None):
             html_text, token, result,
         )
         save_state(feature_dir, prepared["state"])
-        if on_started:
-            on_started(url, token)
-        print("spec-review: %s" % url, file=sys.stderr)
-        if open_browser:
-            try:
-                webbrowser.open(url)
-            except Exception:  # best effort; the URL is on stderr either way
-                pass
-        deadline = time.monotonic() + timeout
-        server.timeout = 1.0
+    except Exception:
+        server.server_close()
+        raise
+    return server, url, token, result
+
+
+def serve_bridge(server, result, timeout, prepared):
+    """Accept loop until one submit or the deadline; records acceptance on approve."""
+    server.timeout = 1.0
+    deadline = time.monotonic() + timeout
+    try:
         while not result["done"]:
             if time.monotonic() >= deadline:
                 return {
@@ -880,8 +881,25 @@ def run_bridge(prepared, timeout, open_browser, port=0, on_started=None):
     if answer["status"] == "accepted":
         state = prepared["state"]
         state["accepted_digest"] = prepared["digest"]
-        save_state(feature_dir, state)
+        save_state(prepared["feature_dir"], state)
     return answer
+
+
+def run_bridge(prepared, timeout, open_browser, port=0, on_started=None):
+    """One-shot 127.0.0.1 review bridge; returns the stdout payload dict."""
+    server, url, token, result = start_bridge(prepared, port)
+    try:
+        if on_started:
+            on_started(url, token)
+        print("spec-review: %s" % url, file=sys.stderr)
+        if open_browser:
+            try:
+                webbrowser.open(url)
+            except Exception:  # best effort; the URL is on stderr either way
+                pass
+        return serve_bridge(server, result, timeout, prepared)
+    finally:
+        server.server_close()
 
 
 def cmd_review(root, feature, force_full, timeout, open_browser, port=0):
