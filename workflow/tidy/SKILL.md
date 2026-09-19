@@ -2,7 +2,7 @@
 name: tidy
 description: >-
   Use when the user wants workflow status or temporary work files cleaned up, or artifacts from an earlier workflow generation normalized into the current model. Shows outstanding engineering and human obligations, deletes proven disposable artifacts, and preserves tests, experience and retained releases.
-argument-hint: "[inspect|-old] [feature]; default to the current goal"
+argument-hint: "[inspect|old] [feature]; default to the current goal"
 ---
 
 # Tidy
@@ -15,7 +15,7 @@ implementation or Spec.
 
 - `/tidy [feature]`: inspect and clean the named feature or current goal's proven disposable files.
 - `/tidy inspect [feature]`, or an explicit inspect-only request: show state and preview, without deletion.
-- `/tidy -old <feature|repo>`: reorganize artifacts an earlier workflow generation produced
+- `/tidy old <feature|repo>`: reorganize artifacts an earlier workflow generation produced
   into the current model (see below); explicit scope required.
 - With no identifiable current goal, survey only. Whole-repository cleanup requires explicit scope.
 
@@ -58,7 +58,7 @@ run tests, classify semantic duplicates from filenames, or delete tests through 
 
 ## Legacy artifact normalization
 
-`/tidy -old` reorganizes artifacts an earlier workflow generation produced into the current
+`/tidy old` reorganizes artifacts an earlier workflow generation produced into the current
 model. Judgement stays routed: anchoring a PRD with R/D/S is requirement-tree work and goes to
 `/spec`; tidy owns file-shape normalization and disposal only. Migrate what the scope has, then
 run `../verify-artifacts.py` over the scope:
