@@ -340,8 +340,11 @@ other feature ledger references them.
 
 ## Managed batch — `.scratch/batches/<batch_id>/`
 
-Only explicit `batch-open` uses [the managed batch format](tdd/BATCH-FORMAT.md).
-Schema 3 adds immutable plan revisions, scoped human reviews, consumed-input bindings and portable proof to executed candidate closure. Schema 2 retains sequential milestones; schema 1 is admission-only. New incremental plans use schema 3.
+Only explicit `batch-open` uses [the managed batch format](tdd/BATCH-FORMAT.md). Plans pin
+`schema_version: 3`, which carries immutable plan revisions, scoped human reviews, consumed-input
+bindings and portable proof to executed candidate closure. State in the retired formats (schema 1
+or 2) is refused; `workflow-state.py batch-prune` disposes their directories (schema 1 in any
+phase, schema 2 once terminal).
 
 ## Batch preflight receipt — `.scratch/<feat>/preflight-receipt.json`
 

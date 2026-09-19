@@ -27,7 +27,7 @@ def normalize(plan):
             raise ValueError("host notification adapter must acknowledge and deduplicate event IDs")
     for requirement in plan["requirements"]:
         if not isinstance(requirement.get("body"), str) or not requirement["body"].strip():
-            raise ValueError("schema-3 requirements retain their actual body, not just an ID")
+            raise ValueError("requirements retain their actual body, not just an ID")
     points = {p["id"]: p for p in plan["milestones"]}
     assigned_manual = {name for point in points.values() for name in managed.manual_for(plan, point)}
     if assigned_manual != set(plan.get("manual_checks", {})):
@@ -219,7 +219,7 @@ def project(state, plan, opened=(), root=None):
     uncovered = [r["id"] for r in plan["requirements"] if not r["checks"]]
     ready = [ref for ref, row in state["members"].items() if row["lane"] == "implement" and eligible(state, plan, ref)]
     # A captured candidate is independent of subsequent implementation writes.
-    if state["candidate_point"] and state["phase"] != "repair" and not active_runs:
+    if state["candidate_point"] and state["phase"] not in ("repair", "blocked") and not active_runs:
         point = plan["milestones"][state["milestone_index"]]
         from workflow_members import eligible_checks
         checks = eligible_checks(state, plan, point)
@@ -670,8 +670,8 @@ def resolve_feedback(root, batch_id, payload):
 
 def revise(root, batch_id, proposed, request_id, expected_revision, reason):
     proposed = batch.normalize_plan(proposed)
-    if proposed["schema_version"] != 3 or not reason or not request_id:
-        raise ValueError("revision needs a schema-3 plan, authorization reason and stable request ID")
+    if not reason or not request_id:
+        raise ValueError("revision needs an accepted plan, authorization reason and stable request ID")
     with managed.operation(root), transaction(root):
         state, old = batch.load_batch(root, batch_id)
         identity = batch.digest(proposed)
@@ -867,7 +867,7 @@ def drive(root, batch_id, max_steps=100, background=False):
 
 
 def register_run_artifacts(root, state, run, receipt):
-    if state['schema_version'] != 3 or not receipt['resources']['recovered']:
+    if not receipt['resources']['recovered']:
         return
     feature = next(iter(state['members']), 'workflow-runs/none').split('/')[0]
     directory = batch._path(root, state['batch_id']) / 'run-data' / run['run_id']

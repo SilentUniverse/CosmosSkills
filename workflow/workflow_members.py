@@ -30,17 +30,11 @@ def readiness(root, reference):
             raise ValueError("readiness evidence is missing or changed; execute the declared preflight before opening a batch: " + reference)
 
 
-def ready_members(state, milestone):
-    return [ref for ref in milestone["members"] if state["members"][ref]["lane"] == "implement"
-            and all(dep in state["member_proofs"] or dep in state["members"][ref].get("external_done", [])
-                    for dep in state["members"][ref].get("blocked_by", []))]
-
-
 def eligible_checks(state, plan, milestone):
     unfinished = any(state["members"][ref]["lane"] == "implement" for ref in milestone["members"])
     from workflow_incremental import eligible
     return [check for check in milestone["required_checks"]
-            if (state["schema_version"] != 3 or all(eligible(state, plan, ref) for ref in plan["jobs"][check]["issue_refs"]))
+            if all(eligible(state, plan, ref) for ref in plan["jobs"][check]["issue_refs"])
             and (not unfinished or plan["jobs"][check]["issue_refs"])
             and all(state["members"][ref]["lane"] == "verify" for ref in plan["jobs"][check]["issue_refs"])]
 
@@ -52,13 +46,12 @@ def contracts(root, state, plan, freeze=False):
         if execution_contract_digest(raw) != member["behavior_digest"]:
             raise ValueError("batch member contract changed: " + reference)
         data = _frontmatter(raw, path)
-        if state["schema_version"] == 3 and data.get("status") == "pending":
+        if data.get("status") == "pending":
             deps = [value.strip().strip("\"'") for value in str(data.get("blocked_by", "[]")).strip("[]").split(",") if value.strip()]
             member.update(status="pending", blocked_by=[dep if "/" in dep else reference.split("/")[0] + "/" + dep for dep in deps],
                           contract_ref=snapshots.put(managed.store(root), raw.encode("utf-8")))
             continue
-        if state["schema_version"] == 3:
-            member["status"] = data["status"]
+        member["status"] = data["status"]
         manual = "\n".join(_section(raw, "手动验证")).strip()
         if manual and not any(reference in row.get("issue_refs", []) and row["instruction"].strip() == manual
                               for row in plan.get("manual_checks", {}).values()):
@@ -124,10 +117,9 @@ def contracts(root, state, plan, freeze=False):
             identity = batch.digest({"contract": execution_contract_digest(other_raw), "proof": proof})
             if freeze:
                 member.setdefault("external_proofs", {})[dependency] = identity
-                if state['schema_version'] == 3:
-                    record = {'contract_ref': snapshots.put(managed.store(root), other_raw.encode('utf-8')),
-                              'completion': proof}
-                    member.setdefault('external_evidence', {})[dependency] = snapshots.put(managed.store(root), snapshots.encoded(record))
+                record = {'contract_ref': snapshots.put(managed.store(root), other_raw.encode('utf-8')),
+                          'completion': proof}
+                member.setdefault('external_evidence', {})[dependency] = snapshots.put(managed.store(root), snapshots.encoded(record))
             elif member.get("external_proofs", {}).get(dependency) != identity:
                 raise ValueError("external dependency completion changed: " + dependency)
 
@@ -171,17 +163,15 @@ def yield_wave(root, batch_id, execution, continuation_path):
                            for row in terminal.values())
                     or len({row["worker_id"] for row in terminal.values()}) != len(terminal)):
                 raise ValueError("harness yield needs current-execution terminal results for every distinct worker")
-        stale_inputs = set()
-        if state['schema_version'] == 3:
-            from workflow_jobs import member_inputs
-            admitted = state.get('execution_inputs', {}).get(execution, {}).get('members', {})
-            stale_inputs = {ref for ref in references if admitted.get(ref) != member_inputs(state, plan, ref)}
+        from workflow_jobs import member_inputs
+        admitted = state.get('execution_inputs', {}).get(execution, {}).get('members', {})
+        stale_inputs = {ref for ref in references if admitted.get(ref) != member_inputs(state, plan, ref)}
         for reference, row in payload["members"].items():
             if (not isinstance(row, dict) or row.get("lane") not in ("implement", "verify")
                     or not isinstance(row.get("reason"), str) or not row["reason"].strip()):
                 raise ValueError("continuation needs implement/verify lane and remaining work")
             state["members"][reference]["lane"] = row["lane"]
-            if state["schema_version"] == 3 and reference in state["rechecks"]:
+            if reference in state["rechecks"]:
                 state["members"][reference]["lane"] = "verify" if row["lane"] == "verify" else "implement"
         for ref in stale_inputs:
             state['members'][ref]['lane'] = 'implement'
@@ -216,10 +206,9 @@ def record_proofs(root, state, plan):
     for reference, member in state["members"].items():
         if member["lane"] != "verify" or member.get("status") == "pending":
             continue
-        if state["schema_version"] == 3:
-            from workflow_incremental import eligible
-            if not eligible(state, plan, reference):
-                continue
+        from workflow_incremental import eligible
+        if not eligible(state, plan, reference):
+            continue
         relevant = [name for name in milestone["required_checks"] if reference in plan["jobs"][name]["issue_refs"]]
         if any(name in failed for name in relevant):
             continue
@@ -239,14 +228,12 @@ def record_proofs(root, state, plan):
         proof = {"kind": "issue_proof", "batch_id": state["batch_id"], "member": reference,
                  "behavior_digest": member["behavior_digest"], "verifier_digest": member["verifier_digest"],
                  "source_digest": candidate, "ac": member["ac"], "checks": proofs}
-        if state["schema_version"] == 3:
-            bound = batch._json(batch._path(root, state["batch_id"]) / "runs" / (proofs[checks[0]] + ".json"))["member_inputs"][reference]
-            proof["upstream"], proof["decisions"] = bound["proofs"], bound["decisions"]
-            proof['external_proofs'] = bound['external_proofs']
+        bound = batch._json(batch._path(root, state["batch_id"]) / "runs" / (proofs[checks[0]] + ".json"))["member_inputs"][reference]
+        proof["upstream"], proof["decisions"] = bound["proofs"], bound["decisions"]
+        proof['external_proofs'] = bound['external_proofs']
         proof_ref = snapshots.put(managed.store(root), snapshots.encoded(proof))
-        if state["schema_version"] == 3:
-            snapshots.publish_proof(root, reference, proof_ref, proof, plan, state, checks)
-        if state["schema_version"] == 3 and reference in state["rechecks"]:
+        snapshots.publish_proof(root, reference, proof_ref, proof, plan, state, checks)
+        if reference in state["rechecks"]:
             state["rechecks"].remove(reference)
         state["member_proofs"][reference] = proof_ref
         completed = True
@@ -266,8 +253,7 @@ def record_proofs(root, state, plan):
     milestone = plan["milestones"][state["milestone_index"]]
     if completed and any(state["members"][ref]["lane"] == "implement" for ref in milestone["members"]):
         state["phase"], state["candidate_ref"], state["verification"] = "work", None, {}
-        if state["schema_version"] == 3:
-            state["candidate_point"] = None
+        state["candidate_point"] = None
 
 
 def validate_proof(root, reference, proof_ref, raw):
@@ -295,24 +281,6 @@ def validate_proof(root, reference, proof_ref, raw):
         if proof["verifier_digest"] != verifier["effective_sha256"]:
             raise ValueError("managed proof's accepted verifier changed")
     return proof
-
-
-def reopen_failed(root, state, plan):
-    from workflow_runtime import write_state
-    references = plan["milestones"][state["milestone_index"]]["members"]
-    if state["incidents"] and state["incidents"][-1].get("run_id"):
-        run = batch._json(batch._path(root, state["batch_id"]) / "runs" / (state["incidents"][-1]["run_id"] + ".json"))
-        from workflow_jobs import job_for
-        references = job_for(plan, run)["issue_refs"] or references
-    for reference in references:
-        path = batch.member_path(root, reference)
-        raw = read_text(path, encoding="utf-8-sig")
-        if execution_contract_digest(raw) != state["members"][reference]["behavior_digest"]:
-            raise ValueError("repair scope changed its accepted contract")
-        raw = re.sub(r"(?m)^status: done[ \t]*(\r?)$", r"status: ready\1", raw, count=1)
-        write_state(root, path, raw)
-        state["member_proofs"].pop(reference, None)
-        state["members"][reference]["lane"] = "implement"
 
 
 def export_proofs(root, batch_id):

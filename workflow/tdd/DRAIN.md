@@ -8,7 +8,7 @@ The caller owns the entire requested batch through implementation, integration, 
 
 ## Driver and inputs
 
-An active schema-2 or schema-3 batch uses [BATCH-FORMAT.md](BATCH-FORMAT.md) as its execution core;
+An active managed batch uses [BATCH-FORMAT.md](BATCH-FORMAT.md) as its execution core;
 human review, revisions, delivery and manual observations load [BATCH-REVIEW.md](BATCH-REVIEW.md)
 at their boundary, and durable proof, budget and managed close load [BATCH-PROOF.md](BATCH-PROOF.md).
 Follow `batch-step` and `batch-run`; its implementation yields, local checks and proof-driven

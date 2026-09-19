@@ -95,7 +95,7 @@ worker ID；旧波结果、部分结果和“我觉得做完了”不能替代�
 
 ## 可复现的入口
 
-项目准备 schema-3 计划后，宿主主要消费结构化动作：
+项目准备增量批次计划后，宿主主要消费结构化动作：
 
 ```text
 python workflow/workflow-state.py batch-open PROJECT --plan PLAN.json --request-id goal-1

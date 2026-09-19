@@ -1184,7 +1184,7 @@ def _dispatch(root, slugs, direct=False, feature=None):
             print("drain-wave: %s is '%s', not ready" % (s, fm.get("status")), file=sys.stderr)
             return 1
         missing = [d for d in as_list(fm.get("blocked_by")) if d and d not in done]
-        if managed_batch and managed_batch["schema_version"] in (2, 3):
+        if managed_batch:
             member = managed_batch["members"].get(issues[s][0] + "/" + s, {})
             missing = [d for d in member.get("blocked_by", [])
                        if d not in managed_batch["member_proofs"] and d not in member.get("external_done", [])]

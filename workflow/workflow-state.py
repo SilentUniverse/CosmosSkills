@@ -412,13 +412,12 @@ def bind_packet_inputs(root, packets, binding):
         return
     from workflow_batch import load_batch
     state, plan = load_batch(root, binding['batch_id'])
-    if state['schema_version'] == 3:
-        from workflow_incremental import execution_packets
-        references = [packet['feature'] + '/' + packet['slug'] for packet in packets]
-        inputs = execution_packets(root, state, plan, binding['execution'], references)
-        for packet in packets:
-            reference = packet['feature'] + '/' + packet['slug']
-            packet['execution_context'] = inputs[reference]
+    from workflow_incremental import execution_packets
+    references = [packet['feature'] + '/' + packet['slug'] for packet in packets]
+    inputs = execution_packets(root, state, plan, binding['execution'], references)
+    for packet in packets:
+        reference = packet['feature'] + '/' + packet['slug']
+        packet['execution_context'] = inputs[reference]
 
 
 def current_dispatch(root, feature, states, payload=None):
@@ -887,7 +886,7 @@ def incremental_view(root, feature, result):
         return
     import workflow_batch as batch
     active = batch.active_batch(root)
-    if not active or active['schema_version'] != 3:
+    if not active:
         return
     owners = {ref.split('/')[0] for ref in active['members']} or {'workflow-runs'}
     if feature in owners:
@@ -1131,7 +1130,7 @@ def survey_states(root, history=False, features=None):
     if not features and (Path(root) / '.scratch/batches/active.json').exists():
         import workflow_batch as batch
         active = batch.active_batch(root)
-        if active and active['schema_version'] == 3 and not active['members'] and 'workflow-runs' not in names:
+        if active and not active['members'] and 'workflow-runs' not in names:
             names.append('workflow-runs')
     return [project(root, feature) for feature in names]
 

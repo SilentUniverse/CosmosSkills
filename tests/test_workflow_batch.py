@@ -19,12 +19,19 @@ import workflow_batch as batch
 
 
 def verification_plan(members=()):
+    members = list(members)
+    job = {"argv": ["{python}", "check.py"], "timeout": 30,
+           "result": {"kind": "predicate", "stdout_equals": "42"}}
+    if members:
+        job.update(issue_refs=members, ac_map={reference: ["behavior"] for reference in members})
     return {
-        "schema_version": 1,
-        "members": list(members),
-        "requirements": [{"id": "R1", "checks": ["regression"]}],
+        "schema_version": 3,
+        "members": members,
+        "requirements": [{"id": "R1", "body": "Retain the regression obligation.", "checks": ["regression"]}],
         "checks": ["regression"],
-        "milestones": [{"id": "final", "purpose": "final", "members": list(members),
+        "jobs": {"regression": job},
+        "inputs": ["check.py"],
+        "milestones": [{"id": "final", "purpose": "final", "members": members,
                         "required_checks": ["regression"]}],
         "budget": {"dispatches": 3},
     }
@@ -35,6 +42,7 @@ class WorkflowBatchTests(unittest.TestCase):
         self.directory = tempfile.TemporaryDirectory(prefix="cosmos 空格 ")
         self.addCleanup(self.directory.cleanup)
         self.root = Path(self.directory.name).resolve()
+        (self.root / "check.py").write_text("print(42)\n", encoding="utf-8")
 
     def cli(self, command, *args, expected=0):
         result = subprocess.run(
@@ -65,12 +73,47 @@ class WorkflowBatchTests(unittest.TestCase):
         self.assertEqual(expected, result.returncode, result.stdout + result.stderr)
         return result.stdout + result.stderr
 
+    def write_legacy_batch(self, batch_id, schema, phase):
+        directory = self.root / ".scratch/batches" / batch_id
+        (directory / "plans").mkdir(parents=True, exist_ok=True)
+        (directory / "state.json").write_text(json.dumps(
+            {"schema_version": schema, "protocol_version": 2, "batch_id": batch_id,
+             "phase": phase, "revision": 1, "members": {}}), encoding="utf-8")
+        return directory
+
+    def test_batch_prune_disposes_retired_formats_and_keeps_live_schema2(self):
+        terminal = self.write_legacy_batch("a" * 32, 2, "closed")
+        admitted = self.write_legacy_batch("b" * 32, 1, "work")
+        live = self.write_legacy_batch("c" * 32, 2, "work")
+        opened = self.open()
+        preview = self.cli("batch-prune")
+        self.assertEqual([terminal.name, admitted.name],
+                         [entry["batch_id"] for entry in preview["removable"]])
+        self.assertEqual([live.name], [entry["batch_id"] for entry in preview["retained"]])
+        applied = self.cli("batch-prune", "--apply")
+        self.assertEqual([terminal.name, admitted.name], applied["removed"])
+        self.assertFalse(terminal.exists())
+        self.assertFalse(admitted.exists())
+        self.assertTrue(live.exists())
+        # The live legacy directory does not block the current format.
+        self.assertEqual(opened["batch_id"], self.cli("batch-status", "--batch", opened["batch_id"])["batch_id"])
+        # Deleting the directory named by a stale active index clears the index.
+        (self.root / ".scratch/batches/active.json").write_text(
+            json.dumps({"batch_id": live.name}), encoding="utf-8")
+        live.joinpath("state.json").write_text(json.dumps(
+            {"schema_version": 2, "protocol_version": 2, "batch_id": live.name,
+             "phase": "aborted", "revision": 1, "members": {}}), encoding="utf-8")
+        guarded = self.cli("batch-prune", "--apply")
+        self.assertEqual([live.name], guarded["removed"])
+        self.assertFalse(live.exists())
+        self.assertIsNone(json.loads((self.root / ".scratch/batches/active.json").read_text())["batch_id"])
+
     def test_restart_with_empty_queue_retains_final_obligation(self):
         opened = self.open()
         batch_id = opened["batch_id"]
         recovered = self.cli("batch-recover", "--batch", batch_id)
         self.assertEqual("prepare_checkpoint", recovered["action"])
-        self.assertEqual(["regression"], recovered["required_checks"])
+        self.assertEqual("final", recovered["milestone"])
         self.assertEqual("pending", recovered["status"])
         self.assertEqual(opened["revision"], recovered["revision"])
         refused = self.cli("batch-close", "--batch", batch_id,
@@ -143,7 +186,7 @@ class WorkflowBatchTests(unittest.TestCase):
         self.collect(started["execution"], "demo/01-init=red")
         status = self.cli("batch-recover", "--batch", opened["batch_id"])
         self.assertEqual("repair", status["phase"])
-        self.assertEqual("budget_exhausted", status["reason_code"])
+        self.assertEqual("verification_failed", status["reason_code"])
         self.assertEqual([], status["open_executions"])
         repeated = self.open(plan)
         self.assertEqual(status["revision"], repeated["revision"])
@@ -156,18 +199,19 @@ class WorkflowBatchTests(unittest.TestCase):
         args = ("--batch", opened["batch_id"], "--milestone", "final", "--request-id", "view-1",
                 "--expected-revision", opened["revision"])
         requested = self.cli("checkpoint-request", *args)
-        self.assertEqual("checkpoint_requested", requested["reason_code"])
-        self.assertEqual(requested, self.cli("checkpoint-request", *args))
+        self.assertEqual("requested_observation", requested["reason_code"])
+        repeated = self.cli("checkpoint-request", *args)
+        self.assertEqual(requested["revision"], repeated["revision"])
         refused = subprocess.run([sys.executable, "-B", str(STATE), "start", str(self.root), "demo", "01-init"],
                                  capture_output=True, text=True, encoding="utf-8", timeout=15)
         self.assertNotEqual(0, refused.returncode)
-        self.assertIn("checkpoint_requested", refused.stderr)
+        self.assertIn("requested_observation", refused.stderr)
         self.assertFalse((self.root / ".scratch/demo/wave-ledger.json").exists())
         stale = self.cli("checkpoint-request", "--batch", opened["batch_id"], "--milestone", "final",
-                         "--request-id", "view-2", "--expected-revision", opened["revision"], expected=13)
-        self.assertEqual("revision_conflict", stale["reason_code"])
+                         "--request-id", "view-2", "--expected-revision", opened["revision"], expected=2)
+        self.assertEqual("invalid_state", stale["reason_code"])
 
-    def test_active_batch_protects_gc_and_legacy_completion_paths(self):
+    def test_active_batch_protects_gc_while_the_external_runner_drives_it(self):
         self.issue(status="done")
         ledger = self.root / ".scratch/demo/wave-ledger.json"
         ledger.write_text('{"waves": []}', encoding="utf-8")
@@ -176,10 +220,9 @@ class WorkflowBatchTests(unittest.TestCase):
         self.assertEqual([], gc["removed"])
         self.assertTrue(ledger.exists())
         result = subprocess.run([sys.executable, "-B", str(ROOT / "scripts/overnight.py"), "demo", str(self.root)],
-                                capture_output=True, text=True, encoding="utf-8", timeout=15)
-        self.assertNotEqual(0, result.returncode)
-        self.assertIn("active batch", result.stdout + result.stderr)
-        self.assertEqual("prepare_checkpoint", self.cli("batch-step", "--batch", opened["batch_id"])["action"])
+                                capture_output=True, text=True, encoding="utf-8", timeout=60)
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertEqual("closed", self.cli("batch-status", "--batch", opened["batch_id"])["phase"])
 
     def test_active_batch_rejects_raw_supervisor_before_starting_command(self):
         self.open()
@@ -315,9 +358,8 @@ class WorkflowBatchTests(unittest.TestCase):
         self.assertEqual(batch.workspace_identity(self.root), batch.workspace_identity(alias))
 
     def test_uncovered_requirement_stays_outstanding(self):
-        self.issue()
-        plan = verification_plan(["demo/01-init"])
-        plan["requirements"].append({"id": "not-yet-designed", "checks": []})
+        plan = verification_plan()
+        plan["requirements"].append({"id": "not-yet-designed", "body": "The design is still open.", "checks": []})
         opened = self.open(plan)
         self.assertEqual("uncovered_requirements", opened["reason_code"])
         self.assertEqual(["not-yet-designed"], opened["outstanding_requirements"])

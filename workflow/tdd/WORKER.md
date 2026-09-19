@@ -7,7 +7,7 @@ Wave driving, supervision, collect and recovery belong to the orchestrator in
 file for execution rules. No nested agents.
 Use `python` for workflow scripts; `python3` only when `python` is absent.
 
-An assigned schema-2/3 batch branches here, before execution: development feedback runs through
+An assigned batch branches here, before execution: development feedback runs through
 `check-local` and the controller's continuation protocol in [BATCH-FORMAT.md](BATCH-FORMAT.md),
 not this file's pytest loop; local green never closes the card. Every other packet continues
 below.
@@ -53,7 +53,7 @@ below.
   completion record and close with your execution ID per
   [COMPLETION-RECORD.md](COMPLETION-RECORD.md):
   `python <skills-root>/workflow-state.py close <repo-root> <feat> <slug> --execution <id>`.
-  An assigned schema-2/3 batch does not close the card itself; its controller writes the
+  An assigned batch does not close the card itself; its controller writes the
   managed-proof completion ([BATCH-PROOF.md](BATCH-PROOF.md)).
 - Return one terminal outcome, then stop; no polling, status prose, or follow-up writes. The
   four values and their evidence shapes are owned by DRAIN.md's worker result table; in brief:
