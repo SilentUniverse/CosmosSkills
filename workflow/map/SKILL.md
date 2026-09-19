@@ -63,9 +63,20 @@ supersede it rather than trusting past acceptance.
 
 Re-running on a mapped area, or refreshing after drift:
 
-- **Drift check:** diff each block's `git_base` against HEAD.
-  - **Code gone** (file/symbol deleted) → delete the block and its roster line.
-  - **Code drifted** → refresh + re-stamp `git_base`.
-  - **Duplicate** → merge.
+- **Drift check:** diff each block's `git_base` against HEAD. `git_base` at HEAD → reuse the block
+  untouched. A whole-map rerun stops here for every current block; it re-derives nothing that
+  still verifies.
+  - Code gone (file/symbol deleted) → delete the block and its roster line.
+  - Code drifted → refresh + re-stamp `git_base`.
+  - Duplicate → merge.
+- **Incremental refresh:** a refresh re-applies the two-axis filter and re-verifies the block's
+  surviving lines in place — each named fact is one cheap rg or check, verification not
+  re-derivation — then rewrites only lines that fail, deletes lines whose code is gone, drops
+  lines that still verify but became rg-able or stopped biting, and appends newly earned facts.
+  Unchanged lines stay byte-identical; re-deriving a whole block when some lines drifted is a
+  defect.
 - **Same-change refresh:** a change that alters an area's seam or invariant refreshes that area's
   block in the same change (duty rule in ARTIFACT-FORMAT.md).
+- **Consumption:** a block whose `git_base` is behind HEAD is a lead, not fact. Re-verify its named
+  facts before relying on it, then fix, drop, or re-stamp the affected lines in place; escalate to
+  a scoped refresh only when the area's structure itself moved.
