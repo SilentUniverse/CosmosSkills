@@ -24,8 +24,11 @@ PRD prose:
 - `Parent: PRD-v3.md · S1 · R1/R2 · D1`
 - 最多 3 条 cold worker 不知道就会做错的控制约束（没有就全部省略）
 
+The pointer's R#/D# refs cover the named slice's Covers; its PRD file and anchors must exist.
 The worker opens the named PRD sections only on an unresolved ambiguity; scenarios and decisions
-stay in the PRD. `detail` / `redo` / `fix` give the parent issue path and relevant AC instead.
+stay in the PRD. `detail` / `redo` / `fix` also give the parent issue path and relevant AC; keep their
+current design pointer when a reviewed PRD governs the feature. `refines` records issue lineage,
+not acceptance of a changed design.
 Without a parent artifact, record the settled goal and constraints here; do not invent a PRD or a
 path.
 

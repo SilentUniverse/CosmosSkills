@@ -17,7 +17,7 @@ from pathlib import Path
 ENGINEERING_ROOT = Path(__file__).resolve().parent
 if str(ENGINEERING_ROOT) not in sys.path:
     sys.path.insert(0, str(ENGINEERING_ROOT))
-from workflow_contract import effective_verifier, load_verifier_profile, validate_v3_completion
+from workflow_contract import effective_verifier, load_verifier_profile, validate_v3_completion, parse_parent_pointer
 
 _SPEC_REVIEW = None
 
@@ -358,49 +358,15 @@ def validate_prd_anchors(prd_path, err, warn):
 
 def check_spec_review_state(fd, prd_files, state, err):
     """Review-state integrity plus the materialization acceptance gate."""
-    if not isinstance(state.get("schema_version"), int) or isinstance(
-        state.get("schema_version"), bool
-    ) or state.get("schema_version") != 1:
-        err("%s: spec-review.json schema_version must be 1" % fd)
-    spec_name = str(state.get("spec", ""))
-    if not re.match(r"^PRD(-v\d+)?\.md$", spec_name):
-        err("%s: spec-review.json spec must name PRD.md/PRD-vN.md, got '%s'" % (fd, spec_name))
-    elif not any(os.path.basename(p) == spec_name for p in prd_files):
+    for problem in spec_review_module().state_problems(state):
+        err("%s: %s" % (fd, problem))
+    spec_name = state.get("spec")
+    if isinstance(spec_name, str) and not any(os.path.basename(p) == spec_name for p in prd_files):
         err("%s: spec-review.json spec '%s' not found in this directory" % (fd, spec_name))
-    rendered = state.get("last_rendered_digest")
-    if rendered is not None and not re.match(r"^[0-9a-f]{64}\Z", str(rendered)):
-        err("%s: spec-review.json last_rendered_digest must be a 64-character SHA-256" % fd)
-    items = state.get("last_rendered_items")
-    if items is not None:
-        if not isinstance(items, dict):
-            err("%s: spec-review.json last_rendered_items must be an object" % fd)
-        else:
-            for key, value in items.items():
-                if not re.match(r"^[RDS]\d+\Z", str(key)) or not re.match(
-                    r"^[0-9a-f]{64}\Z", str(value)
-                ):
-                    err(
-                        "%s: spec-review.json last_rendered_items entry '%s' is malformed" % (fd, key)
-                    )
     accepted = state.get("accepted_digest")
-    if accepted is not None and not re.match(r"^[0-9a-f]{64}\Z", str(accepted)):
-        err("%s: spec-review.json accepted_digest must be null or a 64-character SHA-256" % fd)
+    if accepted is not None and (not isinstance(accepted, str) or not re.fullmatch(r"[0-9a-f]{64}", accepted)):
         return
-    accepted_spec = state.get("accepted_spec")
-    if accepted_spec is not None and not re.match(r"^PRD(-v\d+)?\.md$", str(accepted_spec)):
-        err("%s: spec-review.json accepted_spec must name PRD.md/PRD-vN.md, got '%s'" % (fd, accepted_spec))
     accepted_items = state.get("accepted_items")
-    if accepted_items is not None:
-        if not isinstance(accepted_items, dict) or not accepted_items:
-            err("%s: spec-review.json accepted_items must be a non-empty object" % fd)
-        else:
-            for key, value in accepted_items.items():
-                if not re.match(r"^[RDS]\d+\Z", str(key)) or not re.match(
-                    r"^[0-9a-f]{64}\Z", str(value)
-                ):
-                    err(
-                        "%s: spec-review.json accepted_items entry '%s' is malformed" % (fd, key)
-                    )
     snapshot = os.path.join(fd, "spec-accepted.md")
     snapshot_present = os.path.isfile(snapshot)
     if accepted_items is not None and not snapshot_present:
@@ -1140,6 +1106,16 @@ def main(argv):
                         err("%s: pending requires pending_reason and a concrete engineering goal" % f)
                     graph[Path(f).stem] = as_list(fm.get("blocked_by", ""))
                     continue
+                if fm.get("status") == "ready":
+                    try:
+                        if parse_parent_pointer(issue_raw) is not None:
+                            spec_review_module().parent_contract(fd, issue_raw)
+                        if os.path.exists(os.path.join(fd, "spec-review.json")):
+                            blocked = spec_review_module().acceptance_barrier(fd, [(Path(f).stem, issue_raw)])
+                            if blocked:
+                                err("%s: %s" % (f, blocked))
+                    except (OSError, ValueError) as exc:
+                        err("%s: %s" % (f, exc))
                 contract_version = str(fm.get("contract_version", ""))
                 if contract_version == "3":
                     profile_in_use = True

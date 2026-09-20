@@ -31,14 +31,16 @@ Intent has two paths:
   from the request, prior decisions, and repository evidence. Choose routine implementation details
   and a suitable deterministic verifier autonomously; report material reversible assumptions.
   File count, module reach, or expected card count alone never turns settled work into decision
-  intake; such a request routes straight to TDD.
+  intake. An implementation request with no durable planning consumer routes straight to TDD;
+  a plan-only request returns the reviewable plan, inline unless shared decisions need a PRD.
 - **Decision intake.** An unresolved material ambiguity about outcome, scope, public contract
   (API/ABI/schema/protocol), measurement semantics, irreversible effects, significant cost, or
   authority, including two visibly different product outcomes, key decisions shared across
-  slices, an irreversible migration, or an explicit request for a plan or PRD. Load
-  [ALIGNMENT-LOOP.md](ALIGNMENT-LOOP.md) and converge the requirement tree first: answer
-  repo-answerable questions, take safe reversible defaults, attack the draft once, and stop only on
-  the convergence predicate. What survives is one batched receipt
+  slices, or an irreversible migration. A request for a plan alone does not imply an unresolved
+  decision. Load [ALIGNMENT-LOOP.md](ALIGNMENT-LOOP.md) and converge the requirement tree first: answer
+  repo-answerable questions, take safe reversible defaults, and attack the draft once. The
+  convergence predicate separates reviewable decisions from missing evidence. What survives is one
+  batched receipt
   ([DESIGN-RECEIPT.md](DESIGN-RECEIPT.md)) asking exactly the remaining decisions together;
   hold only their dependent work. Missing implementation detail, card boundaries, or a previously
   authorized change does not reopen alignment.
@@ -93,23 +95,11 @@ For a queue or delegated work, read [CARD-TEST.md](CARD-TEST.md) to choose indep
 Load each selected instruction once; reuse it across cards until it changes.
 
 When the plan requires human review, present the PRD before materializing the execution queue:
-review judges the converged PRD (five-part projection plus the counts of human decisions and
-load-bearing defaults), never the internal tree or a stack of ready issues. A consequential PRD
-with R/D/S anchors presents through the deterministic review surface
-([REVIEW.md](REVIEW.md)): `scripts/spec-review.py review` runs the one-shot local bridge when the harness
-can wait on a local CLI; otherwise `render` writes the static page and the user copies feedback
-back. Feedback maps to its R/D/S anchors, revises the same draft, and the next page is the delta.
-Acceptance is recorded by the page's Approve or `scripts/spec-review.py accept`; it pins the
-accepted bytes — digest, item ledger, and the `spec-accepted.md` snapshot. Before materializing run
-`scripts/spec-review.py validate <repo-root> <feat> --require-accepted`; the artifact gate also rejects
-materialized issues without a matching accepted digest, and drain dispatch refuses the feature while
-the PRD drifts from it. After acceptance never edit the PRD in place: a change surfaces as the
-`validate` item delta and returns to review, or takes the superseding-PRD branch. Materialize issues,
-verifier profiles and
-preflights after acceptance; that engineering preparation needs no second review unless it surfaces
-a new consequential decision: a changed public contract, a verifier that cannot prove the
-requirement, or a new major dependency. Such a decision returns to review as one delta on the
-affected R/D/S alone.
+load [REVIEW.md](REVIEW.md) for the human reading/feedback surfaces, deterministic rendering,
+acceptance binding and materialization gate. Keep the requirement tree transient. Review an anchored
+consequential PRD through that surface; a settled inline plan uses the conversation.
+Materialize issues, verifier profiles and preflights after acceptance when review is required.
+This preparation needs no second review unless it surfaces a new consequential decision.
 
 Before marking an issue ready:
 
@@ -137,9 +127,15 @@ Before marking an issue ready:
 
 Read each written card from only its declared inputs. Check 做什么 against every AC, the passed P#
 mapping and exact final action/evidence, required parent constraints, and dependencies. Reuse the
-recorded preflight; TDD replays it before editing. A new public seam, irreversible change, coupled
-slice DAG, or uncertain proof calls `/atk` on those artifacts. Fix contract-preserving defects
-directly; reopen only decisions whose outcome, public contract, cost, authority, or proof changes.
+existing Parent R/D/S pointer to verify that 做什么 and AC preserve the cited scenario and decision
+meaning; mechanical source/coverage checks cannot establish this. For incremental managed batches,
+set each milestone's existing `requirements` field to the requirements it reviews; omitted membership
+conservatively covers the whole plan. Keep slices independently useful and prove only their new behavior.
+Reuse the recorded preflight under TDD's drift guard. A new public seam, irreversible change, coupled
+slice DAG, or uncertain proof calls `/atk` on those artifacts. Reuse the alignment attack for an
+unchanged decision; inspect only newly materialized contracts and findings that could invalidate it.
+Fix contract-preserving defects directly; reopen only decisions whose outcome, public contract,
+cost, authority, or proof changes.
 
 Keep valid pending cards visible with their missing readiness. Repair malformed fields separately;
 never manufacture passed preflight for pending work. Ready requires a complete contract and observed

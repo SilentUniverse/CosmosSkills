@@ -21,6 +21,9 @@ DEVIATION_PREFIX = re.compile(r"^\s*-\s*偏差[ \t]+")
 PROFILE_ACTION = re.compile(r"^profile:([A-Za-z][A-Za-z0-9_-]*)$")
 AC_ACTION = re.compile(r"^\s*-\s*#(\d+)\s*(?:→|->)\s*`([^`]+)`")
 DONE_HEAD = re.compile(r"^#{2,3}\s*完成(?:[^\w]|$)")
+PARENT_POINTER = re.compile(
+    r"^Parent\s*[:：]\s*(PRD(?:-v\d+)?\.md)\s*[·•]\s*(S\d+)(?:\s*[·•]\s*(.+))?$"
+)
 
 
 def _frontmatter(raw: str, path: Path) -> Dict[str, str]:
@@ -49,6 +52,24 @@ def _section(raw: str, heading_word: str) -> List[str]:
         if active:
             result.append(line)
     return result
+
+
+def parse_parent_pointer(raw: str):
+    pointers = []
+    for line in _section(raw, "上级"):
+        line = re.sub(r"^[-*]\s+", "", line.strip()).strip("`")
+        if not re.match(r"^Parent\s*[:：]", line):
+            continue
+        match = PARENT_POINTER.fullmatch(line)
+        if not match:
+            raise ValueError("malformed Parent pointer; expected PRD.md · S# · R#/D#")
+        refs = [token for token in re.split(r"[\s/·•、，,]+", match.group(3) or "") if token]
+        if any(not re.fullmatch(r"[RD]\d+", token) for token in refs):
+            raise ValueError("Parent refs must name R# or D#")
+        pointers.append({"spec": match.group(1), "slice": match.group(2), "refs": refs})
+    if len(pointers) > 1:
+        raise ValueError("issue must have only one Parent design pointer")
+    return pointers[0] if pointers else None
 
 
 def _bullet(lines: Sequence[str], label: str) -> str:

@@ -40,7 +40,9 @@ schema, and wire protocol separately as one-way doors. They get the hardest revi
 `Blast radius: <module|feature|project>`、`Review: human` 机器可读标注（首屏聚合风险）；分行写或
 Door/Blast 合写一行均可。`Review: human` 标在方向性决策上（目的、边界、产品行为方向、红线）。
 review 页面的决策区 = 方向性决策 + 全部 one-way 公共契约变动（接口/架构），整段展开、逐句分行
-请你表态；其余工程决策折叠为参考。
+请你表态；其余工程决策留在 PRD 供 AI 执行，不进入人审正文。
+需要人表态的决定用可理解的结果命名，写清建议、实际取舍，以及对用户、兼容性或撤回成本的影响。
+不要把模块名、任务清单或测试命令当作需要人拍板的问题。
 
 The modules built/modified, their interfaces, architectural decisions, schema changes, API
 contracts, specific interactions. Name paths or a compact schema/type shape when they remove
@@ -122,22 +124,14 @@ What is explicitly excluded, with a one-line reason each.
 
 </prd-template>
 
-Adversarial self-review before hand-off: name the vaguest 用户场景 and the shakiest 实现决策.
-Tighten them or move them to 尚未明确. Equivalent designs: keep the shorter correctness
-argument; a real tie gets one line in 实现决策 naming the candidates and why the kept one
-argues shorter. Any decision made for an imagined future: justify it or park it. Done
-criterion: every named item rewritten or parked; every real design tie recorded.
-
 ## Incremental scenes and human review
 
 Give shared user scenarios stable IDs and independent contract versions. Each review point names the
 scenes to judge, concrete human questions, engineering prerequisites and decision dependencies.
-The review presentation — five-part projection plus human-decision and load-bearing-default counts,
-delta shape, and the round budget — is owned by [ALIGNMENT-LOOP.md](ALIGNMENT-LOOP.md); the page
-itself is the deterministic projection of [scripts/spec-review.py](scripts/spec-review.py)
-(Full first round, Delta afterwards), never hand-assembled prose. Review points may cover several
+The review presentation and acceptance gate live in [REVIEW.md](REVIEW.md); autonomous convergence
+and the review-round budget live in [ALIGNMENT-LOOP.md](ALIGNMENT-LOOP.md). Review points may cover several
 issues; PRDs, issues and review points are not one-to-one.
 Prefer the first usable vertical slice. Do not require review after an arbitrary issue count.
-Issues materialize after the review point accepts the plan, so pruning a branch does not orphan
+When plan review is required, issues materialize after acceptance, so pruning a branch does not orphan
 cards, dependencies or test mappings. Keep scenario requirements here; executable jobs and runtime
 state belong to the batch plan.

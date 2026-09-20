@@ -1560,7 +1560,7 @@ class SpecReviewAcceptanceGateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             plant_reviewed_feature(root, issues=1)
-            write_review_state(root, accepted=True)
+            self.recorded_acceptance(root)
             (root / ".scratch" / "demo" / "PRD-v2.md").write_text(
                 ANCHOR_PRD.replace("version: 1", "version: 2").replace(
                     "created: 2026-09-19", "created: 2026-09-19\nsupersedes: PRD.md"
@@ -1601,10 +1601,26 @@ class SpecReviewAcceptanceGateTests(unittest.TestCase):
 
     def recorded_acceptance(self, root):
         tool = spec_review_tool()
+        for card in (root / ".scratch/demo/issues").glob("*.md"):
+            card.write_text(card.read_text(encoding="utf-8") +
+                            "\n## 上级\n- `Parent: PRD.md · S1 · R1/R2 · D1`\n", encoding="utf-8")
         output = io.StringIO()
         with redirect_stdout(output):
             self.assertEqual(0, tool.main(["spec-review.py", "accept", str(root), "demo"]))
         return root / ".scratch" / "demo"
+
+    def test_parent_source_and_declared_coverage_are_required(self):
+        for pointer in ("", "Parent: PRD.md · S9 · R1/R2 · D1",
+                        "Parent: PRD.md · S1 · R1", "Parent: PRD-v99.md · S1 · R1/R2 · D1"):
+            with self.subTest(pointer=pointer), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                plant_reviewed_feature(root, issues=1)
+                feature = self.recorded_acceptance(root)
+                (feature / "issues/01-slice.md").write_text(
+                    LEGACY_CARD + "\n## 上级\n" + pointer + "\n", encoding="utf-8")
+                result, output = self.run_gate(root, "demo")
+                self.assertEqual(1, result, output)
+                self.assertIn("Parent", output)
 
     def test_recorded_acceptance_with_snapshot_passes(self):
         with tempfile.TemporaryDirectory() as directory:

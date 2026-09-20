@@ -68,6 +68,21 @@ def plant_wave_baseline(root):
 
 
 class WorkflowStateTests(unittest.TestCase):
+    def test_start_rejects_a_plan_awaiting_human_acceptance(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_issue(root, "01-one", status="ready")
+            feature = root / ".scratch/demo"
+            (feature / "PRD.md").write_text("## 问题\n\nPending plan.\n", encoding="utf-8")
+            (feature / "spec-review.json").write_text(
+                json.dumps({"schema_version": 1, "spec": "PRD.md", "accepted_digest": None}),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "acceptance barrier"):
+                workflow_state.start_issue(root, "demo", "01-one")
+            self.assertFalse((feature / "wave-ledger.json").exists())
+            self.assertIn("status: ready", (feature / "issues/01-one.md").read_text(encoding="utf-8"))
+
     def test_profile_drift_is_rejected_before_issuing_worker_inputs(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
