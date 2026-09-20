@@ -39,7 +39,7 @@ if str(ENGINEERING_ROOT) not in sys.path:
     sys.path.insert(0, str(ENGINEERING_ROOT))
 from workflow_contract import (
     issue_contract_digest, execution_contract_digest, validate_v3_completion,
-    effective_verifier, load_verifier_profile,
+    effective_verifier, load_verifier_profile, parse_parent_pointer,
 )
 from workflow_runtime import load_baseline, reading, read_text
 
@@ -99,8 +99,7 @@ def preflight_api():
 
 
 def spec_review_api():
-    """Load the spec skill's review module for the acceptance binding, or None
-    when this install has no spec skill beside tdd (the barrier then skips)."""
+    """Load the acceptance checker for a feature with review state."""
     global _SPEC_REVIEW_API
     if _SPEC_REVIEW_API is None:
         path = os.path.normpath(os.path.join(
@@ -1191,10 +1190,31 @@ def _dispatch(root, slugs, direct=False, feature=None):
             file=sys.stderr,
         )
         return 1
-    review = spec_review_api()
-    if review is not None:
-        for feat in sorted({issues[s][0] for s in slugs}):
-            blocked = review.acceptance_barrier(os.path.join(root, ".scratch", feat))
+    for s in slugs:
+        if s not in issues:
+            print("drain-wave: unknown slug '%s'" % s, file=sys.stderr)
+            return 1
+    for feat in sorted({issues[s][0] for s in slugs}):
+        selected = [(s, read_text(issues[s][1])) for s in slugs if issues[s][0] == feat]
+        try:
+            has_parent = any([parse_parent_pointer(raw) is not None for _, raw in selected])
+        except ValueError as exc:
+            print("drain-wave: %s" % exc, file=sys.stderr)
+            return 1
+        feature_dir = os.path.join(root, ".scratch", feat)
+        if has_parent or os.path.exists(os.path.join(feature_dir, "spec-review.json")):
+            review = spec_review_api()
+            if review is None:
+                print("drain-wave: acceptance barrier - spec-review.py is missing; "
+                      "reinstall the spec skill before dispatch", file=sys.stderr)
+                return 1
+            try:
+                if not os.path.exists(os.path.join(feature_dir, "spec-review.json")):
+                    for _, raw in selected:
+                        review.parent_contract(feature_dir, raw)
+                blocked = review.acceptance_barrier(feature_dir, selected)
+            except (OSError, ValueError) as exc:
+                blocked = str(exc)
             if blocked:
                 print(
                     "drain-wave: acceptance barrier - %s: %s" % (feat, blocked),
@@ -1207,9 +1227,6 @@ def _dispatch(root, slugs, direct=False, feature=None):
     from workflow_batch import active_batch
     managed_batch = active_batch(root)
     for s in slugs:
-        if s not in issues:
-            print("drain-wave: unknown slug '%s'" % s, file=sys.stderr)
-            return 1
         fm = issues[s][2]
         if fm.get("status") != "ready":
             print("drain-wave: %s is '%s', not ready" % (s, fm.get("status")), file=sys.stderr)

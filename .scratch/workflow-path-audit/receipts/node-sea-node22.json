@@ -1,0 +1,35 @@
+{
+  "argv": [
+    "/tmp/cosmosskills-checks-20260921/bin/python",
+    "scripts/check-native-packaging.py",
+    "--kind",
+    "node-sea",
+    "--output",
+    ".scratch/tmp/workflow-path-node22"
+  ],
+  "argv_style": "posix",
+  "cwd": "/Users/hys/Code/CosmosSkills",
+  "duration_class": "normal",
+  "duration_seconds": 25.113834,
+  "ended_at": "2026-09-20T20:53:28.149346+00:00",
+  "exit_code": 0,
+  "git": {
+    "dirty": true,
+    "dirty_digest": "3edd03278f6dd20378a760145a80666486ff04d41ab7ed94a00c4369a54abe50",
+    "head": "bfa3a5b4ea79fea046ab1e54c59f819f99ab75ff"
+  },
+  "log": "/Users/hys/Code/CosmosSkills/.scratch/tmp/workflow-path-node22.log",
+  "log_sha256": "3c7e9db3216fc2a99d2f86cef89acab60178c9f5d40bbaf8f9e3f965d147f945",
+  "outcome": "pass",
+  "performance": {
+    "status": "unmeasured"
+  },
+  "runtime": {
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "python": "3.9.6"
+  },
+  "schema_version": 1,
+  "scope": "build",
+  "started_at": "2026-09-20T20:53:03.035180+00:00",
+  "timeout_seconds": 360.0
+}

@@ -1,0 +1,35 @@
+{
+  "argv": [
+    "/tmp/cosmosskills-checks-20260921/bin/python",
+    "-m",
+    "pytest",
+    "-q",
+    "tests/test_spec_review.py",
+    "tests/test_spec_review_encoding.py"
+  ],
+  "argv_style": "posix",
+  "cwd": "/Users/hys/Code/CosmosSkills",
+  "duration_class": "normal",
+  "duration_seconds": 12.817562,
+  "ended_at": "2026-09-20T21:31:50.683690+00:00",
+  "exit_code": 0,
+  "git": {
+    "dirty": true,
+    "dirty_digest": "dd255fb68c098a4d1baf8565b03d11ddf95a6926d82dc2131e776c27b369bd70",
+    "head": "bfa3a5b4ea79fea046ab1e54c59f819f99ab75ff"
+  },
+  "log": "/Users/hys/Code/CosmosSkills/.scratch/tmp/review-display.log",
+  "log_sha256": "0c487cc78f67d24e58278971a59ba13587582853f62f85eb2ba31c181431bfee",
+  "outcome": "pass",
+  "performance": {
+    "status": "unmeasured"
+  },
+  "runtime": {
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "python": "3.9.6"
+  },
+  "schema_version": 1,
+  "scope": "other",
+  "started_at": "2026-09-20T21:31:37.865856+00:00",
+  "timeout_seconds": 120.0
+}

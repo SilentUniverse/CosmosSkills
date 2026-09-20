@@ -91,6 +91,39 @@ def run_cli(*argv):
 
 
 class ParseValidateTests(unittest.TestCase):
+    def test_scope_heading_and_case_insensitive_refs_cannot_hide_design_changes(self):
+        original = PRD + "\n## 范围\n- Export API\n"
+        old = spec_review.parse_model(original)
+        new = spec_review.parse_model(original.replace("## 范围", "## 不在本次范围内"))
+        self.assertIn("section:scope", spec_review.classify_delta(new, old.hashes())["MODIFIED"])
+        self.assertFalse(spec_review._design_matches(new, old, {"S1"}))
+        lower = spec_review.parse_model(PRD.replace("Refs: R1 R2", "refs: R1 R2"))
+        self.assertEqual({"R1", "R2"}, lower.refs_of("D1"))
+        repeated = spec_review.parse_model(PRD.replace("Refs: R1 R2", "Refs: R1\nrefs: R2"))
+        self.assertTrue(any("repeats Refs" in problem for problem in spec_review.validate_model(repeated)))
+
+    def test_delta_covers_observations_and_transitive_slice_impact(self):
+        base = PRD.replace("R1 R2 D1 | -", "D1 | -").replace("R1 D1 | S1", "D1 | S1")
+        old = spec_review.parse_model(base)
+        changed = spec_review.parse_model(base.replace("cancel → cancelled |", "cancel → success |"))
+        delta = spec_review.classify_delta(changed, old.hashes())
+        self.assertIn("R1", delta["MODIFIED"])
+        self.assertTrue({"D1", "S1", "S2", "S3"} <= set(delta["AFFECTED"]))
+
+    def test_delta_covers_global_review_content_and_unclassified_text(self):
+        base = PRD + "\n## 不变量\n- C1 — 保留数据。\n## 端到端验证\n检查 cancelled。\n"
+        for before, after in (("保留数据", "删除数据"), ("检查 cancelled", "跳过验证"),
+                              ("导入取消后仍可能显示成功", "导入必须支持离线")):
+            with self.subTest(before=before):
+                delta = spec_review.classify_delta(spec_review.parse_model(base.replace(before, after)),
+                                                   spec_review.parse_model(base).hashes())
+                self.assertTrue(delta["MODIFIED"])
+                self.assertIn("S2", delta["AFFECTED"])
+        delta = spec_review.classify_delta(spec_review.parse_model(base + "\n## 外部约束\n必须离线。\n"),
+                                           spec_review.parse_model(base).hashes())
+        self.assertTrue(delta["MODIFIED"] or delta["ADDED"])
+        self.assertIn("S1", delta["AFFECTED"])
+
     def test_parse_reads_all_families_and_refs(self):
         model = spec_review.parse_model(PRD)
         self.assertEqual(["R1", "R2"], [item["id"] for item in model.requirements])
@@ -191,6 +224,106 @@ class ParseValidateTests(unittest.TestCase):
 
 
 class RenderDeltaTests(unittest.TestCase):
+    def test_delta_cannot_hide_previously_human_decision_by_changing_flags(self):
+        old = spec_review.parse_model(PRD)
+        text = PRD.replace("Door: one-way", "Door: two-way").replace("终态由 ImportSession 持有。", "允许丢弃取消终态。")
+        new = spec_review.parse_model(text)
+        page = spec_review.review_html("import", "PRD-v2.md", text, "a" * 64, new,
+                                      spec_review.classify_delta(new, old.hashes()), "delta", False, baseline=old)
+        self.assertIn('class="comment" data-id="D1"', page)
+        self.assertIn("终态由 ImportSession 持有。", page)
+        self.assertIn("允许丢弃取消终态。", page)
+
+    def test_freeform_constraints_in_structured_sections_remain_visible(self):
+        text = PRD.replace("- R1 —", "用户场景的补充权限限制。\n\n- R1 —", 1)
+        text += "\n## 范围\n只允许读取选中的目录，禁止网络传输。\n\n## 不变量\n用户的数据不能被删除。\n"
+        model = spec_review.parse_model(text)
+        page = spec_review.review_html("import", "PRD.md", text, "a" * 64, model, None, "full", False)
+        for constraint in ("用户场景的补充权限限制。", "只允许读取选中的目录，禁止网络传输。", "用户的数据不能被删除。"):
+            self.assertIn(constraint, page)
+
+    def test_delta_shows_changed_before_and_observation(self):
+        original = PRD.replace("- R1 — 导入取消后必须进入 cancelled。", "- R1 — 导入取消后必须进入 cancelled。\n  Before：原始现状。")
+        revised = original.replace("原始现状。", "修正现状。").replace("cancel → cancelled |", "显示取消原因 |")
+        old, new = spec_review.parse_model(original), spec_review.parse_model(revised)
+        page = spec_review.review_html("import", "PRD-v2.md", revised, "a" * 64, new,
+                                      spec_review.classify_delta(new, old.hashes()), "delta", False, baseline=old)
+        for evidence in ("原始现状。", "修正现状。", "cancel → cancelled", "显示取消原因"):
+            self.assertIn(evidence, page)
+
+    def test_review_keeps_human_contract_without_execution_mirrors(self):
+        text = PRD.replace("| ImportSession |", "| internal_seam_only |")
+        text = text.replace("## 测试决策", "### D2 — internal-selector\n\nRefs: R1\nDoor: two-way\nImplementation detail only.\n\n## 测试决策")
+        text += "\n## 补充约束\n\n必须兼容旧客户端。\n<script>alert('unsafe')</script>\n"
+        text += "\n## 风险\n- 首项风险。\n\n## 风险补充\n- 不得漏掉第二段约束。\n"
+        text = text.replace("## 问题", "前言中的边界也要保留。\n\n## 问题", 1)
+        model = spec_review.parse_model(text)
+        page = spec_review.review_html("import", "PRD.md", text, "a" * 64,
+                                      model, None, "full", False)
+        self.assertEqual(1, page.count("导入取消后必须进入 cancelled。"))
+        self.assertIn("cancel → cancelled", page)
+        self.assertIn("State ownership", page)
+        self.assertIn("必须兼容旧客户端。", page)
+        self.assertIn("不得漏掉第二段约束。", page)
+        self.assertIn("前言中的边界也要保留。", page)
+        self.assertIn("&lt;script&gt;", page)
+        for noise in ("完整需求", "切片表", "证明表", "internal_seam_only", "internal-selector", "state transition", "created: 2026"):
+            self.assertNotIn(noise, page)
+        self.assertIn('class="comment" data-id="D1"', page)
+        self.assertIn('id="global-feedback"', page)
+        self.assertNotIn("<details", page)
+
+    def test_repeated_render_keeps_accepted_baseline_and_visible_requirement(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_feature(root)
+            run_cli("accept", str(root), "import")
+            feature = root / ".scratch/import"
+            draft = PRD.replace("version: 1", "version: 2\nsupersedes: PRD.md").replace(
+                "- R1 — 导入取消后必须进入 cancelled。", "- R1 — 取消后保留终态且显示原因。")
+            (feature / "PRD-v2.md").write_text(draft, encoding="utf-8")
+            first = spec_review.prepare_review(root, "import")
+            run_cli("render", str(root), "import")
+            second = spec_review.prepare_review(root, "import")
+            self.assertEqual(first["delta"], second["delta"])
+            self.assertEqual(["R1"], second["delta"]["MODIFIED"])
+            self.assertEqual({"D1", "S1", "S2", "S3"}, set(second["delta"]["AFFECTED"]))
+            html_text = (feature / "spec-review.html").read_text(encoding="utf-8")
+            self.assertIn("已接受 · PRD.md", html_text)
+            self.assertIn("导入取消后必须进入 cancelled", html_text)
+            self.assertIn("取消后保留终态且显示原因", html_text)
+            self.assertNotIn("<details", html_text)
+            self.assertIn('id="R2"', html_text)
+            self.assertLess(html_text.index('id="behavior"'), html_text.index('id="decide"'))
+            self.assertNotIn('class="comment"', html_text[:html_text.index('id="decide"')])
+
+    def test_all_content_and_feedback_fields_stay_visible_in_both_modes(self):
+        text = PRD + "\n## 尚未明确\n- 是否显示取消原因？\n"
+        model = spec_review.parse_model(text)
+        for bridge in (False, True):
+            for mode in ("full", "delta"):
+                with self.subTest(bridge=bridge, mode=mode):
+                    delta = spec_review.classify_delta(model, model.hashes()) if mode == "delta" else None
+                    page = spec_review.review_html("import", "PRD.md", text, "a" * 64,
+                                                   model, delta, mode, bridge)
+                    self.assertNotIn("<details", page)
+                    self.assertEqual({"D1", "Q1"}, set(re.findall(r'class="comment" data-id="([^"]+)"', page)))
+                    self.assertEqual(1, page.count('id="global-feedback"'))
+                    self.assertEqual(1, page.count('id="approve"'))
+                    self.assertIn('>全部确定</button>', page)
+                    self.assertIn("需要你拍板", page)
+
+    def test_legacy_render_hashes_require_full_review(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_feature(root)
+            run_cli("render", str(root), "import")
+            feature = root / ".scratch/import"
+            state = spec_review.load_state(feature)
+            state["last_rendered_items"] = {"R1": "a" * 64}
+            spec_review.save_state(feature, state)
+            self.assertEqual("full", spec_review.prepare_review(root, "import")["mode"])
+
     def render(self, root):
         return run_cli("render", str(root), "import")
 
@@ -206,8 +339,8 @@ class RenderDeltaTests(unittest.TestCase):
             html_text = (root / ".scratch" / "import" / "spec-review.html").read_text(
                 encoding="utf-8"
             )
-            self.assertIn("技术细节", html_text)
-            self.assertIn("<svg", html_text)
+            self.assertIn("需要你拍板", html_text)
+            self.assertNotIn("<svg", html_text)
             self.assertIn("SPEC FEEDBACK", html_text)
             self.assertIn("复制反馈", html_text)
             self.assertNotIn("bridge-data", html_text)
@@ -218,7 +351,8 @@ class RenderDeltaTests(unittest.TestCase):
             self.assertEqual("PRD.md", state["spec"])
             self.assertEqual(payload["spec_digest"], state["last_rendered_digest"])
             self.assertEqual(
-                {"R1", "R2", "D1", "S1", "S2", "S3"}, set(state["last_rendered_items"])
+                {"R1", "R2", "D1", "S1", "S2", "S3", "section:problem", "section:solution",
+                 "section:scope", "section:acceptance", "section:context", "section:change"}, set(state["last_rendered_items"])
             )
             self.assertIsNone(state["accepted_digest"])
 
@@ -246,8 +380,8 @@ class RenderDeltaTests(unittest.TestCase):
             self.assertEqual(1, payload["counts"]["MODIFIED"])
             self.assertEqual(1, payload["counts"]["ADDED"])
             self.assertEqual(0, payload["counts"]["REMOVED"])
-            self.assertEqual(3, payload["counts"]["AFFECTED"])
-            self.assertEqual(2, payload["counts"]["UNCHANGED"])
+            self.assertEqual(4, payload["counts"]["AFFECTED"])
+            self.assertEqual(7, payload["counts"]["UNCHANGED"])
             html_text = (root / ".scratch" / "import" / "spec-review.html").read_text(
                 encoding="utf-8"
             )
@@ -300,7 +434,7 @@ class RenderDeltaTests(unittest.TestCase):
             self.assertEqual(1, counts["REMOVED"])
             self.assertEqual(3, counts["MODIFIED"])
             self.assertEqual(1, counts["AFFECTED"])
-            self.assertEqual(1, counts["UNCHANGED"])
+            self.assertEqual(7, counts["UNCHANGED"])
 
     def test_removed_requirement_with_dangling_ref_refuses_render(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -394,7 +528,8 @@ class AcceptGateTests(unittest.TestCase):
                 (feature_dir / "spec-review.json").read_text(encoding="utf-8")
             )
             self.assertEqual(
-                ["D1", "R1", "R2", "S1", "S2", "S3"], sorted(state["accepted_items"])
+                ["D1", "R1", "R2", "S1", "S2", "S3", "section:acceptance", "section:change",
+                 "section:context", "section:problem", "section:scope", "section:solution"], sorted(state["accepted_items"])
             )
             self.assertEqual("PRD.md", state["accepted_spec"])
             snapshot = feature_dir / "spec-accepted.md"
@@ -423,7 +558,7 @@ class AcceptGateTests(unittest.TestCase):
             prd.write_text(PRD + "\n## 后记\n\n- 一句改动。\n", encoding="utf-8")
             code, output, _ = run_cli("validate", str(root), "import", "--require-accepted")
             self.assertEqual(1, code)
-            self.assertIn("changed since acceptance: no R/D/S item moved", output)
+            self.assertIn("changed since acceptance: section:context", output)
 
     def test_validate_flags_edited_or_missing_snapshot(self):
         with tempfile.TemporaryDirectory() as directory:

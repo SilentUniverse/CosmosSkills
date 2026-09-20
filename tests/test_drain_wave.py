@@ -1747,19 +1747,147 @@ class AcceptanceBarrierTests(unittest.TestCase):
             self.assertIn("acceptance barrier", output)
             self.assertIn("--require-accepted", output)
 
+    def test_dispatch_rejects_malformed_review_state_before_writing_ledger(self):
+        for field, value in (("schema_version", 999), ("schema_version", True),
+                             ("accepted_items", ["R1"]), ("spec", "../PRD.md")):
+            with self.subTest(field=field, value=value), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                self.plant(root, accepted=True)
+                feature = root / ".scratch/demo"
+                path = feature / "spec-review.json"
+                state = json.loads(path.read_text(encoding="utf-8"))
+                state[field] = value
+                path.write_text(json.dumps(state), encoding="utf-8")
+                code, output = self.call(wave.cmd_dispatch, root, ["01-one"])
+                self.assertEqual(1, code, output)
+                self.assertIn("acceptance barrier", output)
+                self.assertFalse((feature / "wave-ledger.json").exists())
+
     def test_dispatch_passes_a_matching_acceptance(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            self.plant(root, accepted=True)
-            code, output = self.call(wave.cmd_dispatch, root, ["01-one"])
-            self.assertEqual(0, code, output)
+        for with_snapshot in (False, True):
+            with self.subTest(with_snapshot=with_snapshot), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                self.plant(root, accepted=True)
+                if with_snapshot:
+                    feature = root / ".scratch/demo"
+                    state_path = feature / "spec-review.json"
+                    state = json.loads(state_path.read_text(encoding="utf-8"))
+                    state["accepted_items"] = {"R1": "a" * 64}
+                    state_path.write_text(json.dumps(state), encoding="utf-8")
+                    (feature / "spec-accepted.md").write_bytes((feature / "PRD.md").read_bytes())
+                code, output = self.call(wave.cmd_dispatch, root, ["01-one"])
+                self.assertEqual(0, code, output)
 
     def test_dispatch_without_review_state_stays_legacy_compatible(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             self.plant(root, accepted=False)
-            code, output = self.call(wave.cmd_dispatch, root, ["01-one"])
+            with patch.object(wave, "spec_review_api", side_effect=AssertionError("review loaded")):
+                code, output = self.call(wave.cmd_dispatch, root, ["01-one"])
             self.assertEqual(0, code, output)
+
+    def test_dispatch_requires_acceptance_when_review_state_exists(self):
+        for accepted in (None, "zz", 42):
+            with self.subTest(accepted=accepted), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                self.plant(root, accepted=True)
+                path = root / ".scratch/demo/spec-review.json"
+                state = json.loads(path.read_text(encoding="utf-8"))
+                state["accepted_digest"] = accepted
+                path.write_text(json.dumps(state), encoding="utf-8")
+                code, output = self.call(wave.cmd_dispatch, root, ["01-one"])
+                self.assertEqual(1, code, output)
+                self.assertIn("acceptance barrier", output)
+                self.assertIn("--require-accepted", output)
+                self.assertFalse((root / ".scratch/demo/wave-ledger.json").exists())
+
+    def test_dispatch_checks_the_accepted_snapshot(self):
+        for snapshot in (None, "changed acceptance"):
+            with self.subTest(snapshot=snapshot), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                self.plant(root, accepted=True)
+                feature = root / ".scratch/demo"
+                state_path = feature / "spec-review.json"
+                state = json.loads(state_path.read_text(encoding="utf-8"))
+                state["accepted_items"] = {"R1": "a" * 64}
+                state_path.write_text(json.dumps(state), encoding="utf-8")
+                if snapshot is not None:
+                    (feature / "spec-accepted.md").write_text(snapshot, encoding="utf-8")
+                code, output = self.call(wave.cmd_dispatch, root, ["01-one"])
+                self.assertEqual(1, code, output)
+                self.assertIn("spec-accepted.md", output)
+                self.assertFalse((feature / "wave-ledger.json").exists())
+
+    def test_reviewed_dispatch_requires_the_review_helper(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.plant(root, accepted=True)
+            with patch.object(wave, "spec_review_api", return_value=None):
+                code, output = self.call(wave.cmd_dispatch, root, ["01-one"])
+            self.assertEqual(1, code, output)
+            self.assertIn("spec-review.py", output)
+            self.assertFalse((root / ".scratch/demo/wave-ledger.json").exists())
+
+    def test_unknown_issue_is_rejected_before_review_lookup(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.plant(root, accepted=False)
+            code, output = self.call(wave.cmd_dispatch, root, ["missing"])
+            self.assertEqual(1, code, output)
+            self.assertIn("unknown slug", output)
+
+    def test_pending_independent_design_does_not_stop_accepted_work(self):
+        prd = """---
+type: prd
+feature: demo
+version: 1
+---
+## 用户场景
+- R1 — 保留读取。
+- R2 — 导出 CSV。
+## 实现决策
+### D1 — 查询
+Refs: R1
+只读查询。
+### D2 — 导出
+Refs: R2
+导出文件。
+## 测试决策
+| R1 | 查询 | query | 不改数据 | test |
+| R2 | 导出 | export | CSV | test |
+## 实施切片
+| S1 | 查询 | R1 D1 | - | key |
+| S2 | 导出 | R2 D2 | - | key |
+"""
+        cases = (("independent", "01-one", 0), ("affected", "02-two", 1),
+                 ("global", "01-one", 1), ("in-place", "01-one", 1),
+                 ("missing-parent", "01-one", 1), ("bad-coverage", "01-one", 1))
+        for change, slug, expected in cases:
+            with self.subTest(change=change), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                self.plant(root, accepted=False)
+                feature = root / ".scratch/demo"
+                (feature / "PRD.md").write_text(prd, encoding="utf-8")
+                self.assertEqual(0, self.call(self.spec_review.cmd_accept, root, "demo")[0])
+                for n, name in ((1, "01-one"), (2, "02-two")):
+                    raw = issue_body("pkg%d" % n) + "\n## 上级\n- `Parent: PRD.md · S%d · R%d · D%d`\n" % (n, n, n)
+                    if change == "missing-parent" and n == 1:
+                        raw = issue_body("pkg1")
+                    if change == "bad-coverage" and n == 1:
+                        raw = raw.replace("· R1 · D1", "· R1")
+                    (feature / "issues" / (name + ".md")).write_text(raw, encoding="utf-8")
+                draft = prd.replace("version: 1", "version: 2\nsupersedes: PRD.md").replace("导出 CSV", "导出 XLSX")
+                draft += "\n## 取代理由\n调整导出格式。\n"
+                if change == "global":
+                    draft += "\n## 不变量\n- C1 — 允许删除数据。\n"
+                if change == "in-place":
+                    (feature / "PRD.md").write_text(prd.replace("导出 CSV", "导出 XLSX"), encoding="utf-8")
+                else:
+                    (feature / "PRD-v2.md").write_text(draft, encoding="utf-8")
+                code, output = self.call(wave.cmd_dispatch, root, [slug], True)
+                self.assertEqual(expected, code, output)
+                if expected:
+                    self.assertFalse((feature / "wave-ledger.json").exists())
 
 
 if __name__ == "__main__":

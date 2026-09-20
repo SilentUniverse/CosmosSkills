@@ -519,16 +519,32 @@ or PRD content. Schema 1:
 }
 ```
 
-`last_rendered_*` drives the next Delta review; the `accepted_*` half records human acceptance of
+Delta uses the intact accepted snapshot when present; before first acceptance, `last_rendered_*`
+supplies the comparison hashes. Re-rendering cannot reset pending changes. The `accepted_*` half records human acceptance of
 exact bytes: the digest, the PRD name, and the item-level ledger at accept time. Acceptance also
 writes the accepted PRD text to `.scratch/<feat>/spec-accepted.md`; its own digest equals
 `accepted_digest`, so in-place edits of the snapshot are detectable. The ledger and snapshot are
 the recovery path for an edited-after-acceptance alarm:
 `spec-review.py validate <repo-root> <feature> --require-accepted` prints the item-level delta
-against `accepted_items` (or states the edit is outside the item ledger), and `spec-accepted.md`
-holds the bytes to diff against. `drain-wave.py dispatch` refuses a feature whose head PRD no
-longer matches `accepted_digest`. The gate requires schema 1, `spec` naming an existing PRD in the
-directory, and well-formed digests and `[RDS]\d+` item keys; `accepted_items` without the snapshot
+against `accepted_items`, and `spec-accepted.md` holds the bytes to diff against. Item keys are
+`[RDSCKQ]\d+` plus `section:problem`, `section:solution`, `section:scope`, `section:acceptance`,
+`section:context`, `section:change`. R hashes include Before and complete test rows; section hashes
+include semantic headings. C/K/Q and global sections participate in change detection; only
+`section:change` is explanatory, not a design constraint. Older R/D/S-only maps remain readable;
+without an accepted snapshot they require Full review before complete Delta comparisons.
+
+Direct issue start, `drain-wave.py dispatch` and ready-card validation share state shape and acceptance
+integrity checks. With a complete ledger, each ready card names a Parent PRD/S/R/D pointer in 上级;
+refs must cover its slice's Covers. Both source and live head must match the accepted snapshot for
+those anchors, their transitive dependencies and global constraints. Independent pending additions
+can coexist with old ready work; affected or unbound cards cannot proceed. Legacy acceptance records
+without complete hashes allow cards without Parent only when the whole head matches the accepted digest.
+`/spec` binds unassigned open cards when upgrading; done
+history is preserved. These checks establish source identity and declared coverage, not semantic
+equivalence of Issue prose. See [REVIEW.md](spec/REVIEW.md#acceptance-and-materialization) for human acceptance.
+Without review state or Parent, admission does not load the review module. Either requires the helper.
+The gate requires schema 1, `spec` naming an existing PRD in the directory, and well-formed digests and
+item keys; `accepted_items` without the snapshot
 file, or a snapshot whose digest drifted, are violations. Once any issue or `verifier.json` is
 materialized in the feature, `accepted_digest` must be non-null and match an intact PRD file; an
 unaccepted review therefore cannot materialize, and an accepted snapshot cannot be edited in

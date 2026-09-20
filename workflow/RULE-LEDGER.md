@@ -83,11 +83,12 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | 定位 | 要旨 | 性质 | 层级 | 防什么失败 · 出处 / 探针 |
 |---|---|---|---|---|
 | 头部 | 规划不写产品码与业务测试；verifier 缺口入计划前置；终态不含 IMPLEMENTED；完整方案经用户 review 后交接，明确连续执行可豁免 | 权威 | 流程 | 用户要求先方案、review 再实现；spec AFK grill 方案（docs/cosmosskills_spec_afk_grill_implementation.md）；静态冲突：spec 末尾与 caller 自动续跑 / routing-requirement-to-spec |
-| 头部 | 决策类需求先 AFK grill 两 pass 自收敛，按收敛判据停止，人只审收敛后的 PRD | 过程·经济 | 流程 | 逐节点人审 BFS 的问答税；ALIGNMENT-LOOP.md；未溯源 |
+| 头部 | 决策摄入推导后自攻一次；可审阅不等于已接受，剩余人类决定与阻塞证据显式保留 | 过程·经济 | 流程 | 逐节点问答与额外自攻税；原第 10 判据要求 further pass 与两 pass 上限冲突；ALIGNMENT-LOOP.md；行为收益未实测 |
 | 头部 | review 预算：全量一次 + delta 一次；第三轮需实质理由，否则修 workflow 而非再审 | 过程·经济 | 流程 | 无界 review 轮次；ALIGNMENT-LOOP.md；未溯源 |
 | §3 | 需 review 的计划先审 PRD，接受后才物化卡与预检；无新实质决定不二审 | 过程·经济 | 流程 | 剪枝后 issues/依赖/测试映射的连带 churn；AFK grill 方案 §15–16；未溯源 |
-| §3 | consequential PRD 带 R/D/S 稳定锚点；review 页面由 spec-review.py 确定性投影（Full→Delta）；物化前 accepted_digest == 当前 PRD digest，机器门拒绝未批准先物化与批准后篡改 | 权威+产物 | 机器+流程 | 聊天流 review 的锚点漂移、过期反馈、接受后被静默改稿；human_ai_io v2 方案 §6–11/§21–23；未溯源 |
-| ISSUE-TEMPLATE | 精简卡片：上级 = Parent 指针 + ≤3 控制约束；共享验证环境只活在 verifier.json；AC 完整保留 | 过程·经济 | 流程 | PRD↔Issue 重复语义税与 cold worker 冗余上下文；human_ai_io v2 方案 §16–18；未溯源 |
+| §3 / REVIEW | 阅读、反馈与接受规则由 REVIEW 定义；Delta 对照接受快照并覆盖全局约束、Before、测试观察与传递依赖；准入以 Parent 来源限定未受影响的切片 | 权威+产物 | 机器+流程 | AcceptanceBarrierTests、test_spec_review：独立草案被整特性阻塞、漏标与反复 render 丢基线；非法 schema、小写 Refs、范围标题反转绕过准入；普通无 review/Parent 分支不加载模块。语义一致性仍由 Spec 审核 |
+| ISSUE-TEMPLATE | 上级 = Parent 设计指针与必要控制约束；refines 保留 Issue 谱系；共享验证环境只活在 verifier.json；AC 完整保留 | 过程·经济 | 机器+流程 | Parent 源文件、S# 与 Covers 验证避免悬空来源；做什么/AC 的语义对应仍须审查；完整 ledger 升级仅补未分配 open 卡，不改 done 历史 |
+| REVIEW / 人审投影 | 人审聚焦目标、行为、边界、取舍和验收结果；完整 PRD 与执行表留在原工件；保留所有反馈框，不折叠 | 过程·经济 | 机器+流程 | 完整 PRD 直接展示造成原文排版问题；与切片/证明表及 Delta 原文重复，增加人审噪声。RenderDeltaTests 保证人审约束、补充正文与反馈保留，内部接缝/普通工程决策不进入正文 |
 | §5 | 接受后按 task/feature/area 作用域晋升新事实；两轴法 + scope/source/reason；引用漂移即复验 | 过程·经济 | 流程 | 同类需求重复问已答问题；AFK grill 方案 §11–14；未溯源 |
 | Prepare and write | settled intake 直接推进；卡片自足，共享决策才建 PRD | 过程·经济 | 流程 | spec intake 与 ISSUE-TEMPLATE 的无 PRD 分支；spec-alignment-before-write |
 | 头部 | 仅未解决的实质选择用回执，独立工作继续 | 权威 | 流程 | 7be5338（compressed intake）/ spec-holds-alignment-under-pressure |
@@ -165,3 +166,8 @@ human/AI I/O v2 落地：R/D/S 锚点 + 确定性 review 投影（spec-review.py
 + 物化前 acceptance 机器门 + 精简卡片上级（Parent 指针 + ≤3 控制约束）+ handoff State 收敛为
 指针锚块。出处 docs/cosmosskills_human_ai_io_final_plan_v2_2026-09-19.md。
 这些是可直接定位的指令冲突修复；速度、token、成功率尚无本次配对实验结论。
+
+Spec 入口修订依据见 [执行路径审计](../docs/workflow-path-audit.zh.md)：保留产品决定、人审
+接受和执行准入边界；删除 PRD 模板的重复自审，复用 alignment 已完成的决定审查，新卡的证明
+与依赖仍独立校验。页面阅读材料及集中反馈由 REVIEW.md 和既有渲染器维护，移除其他入口的
+五段式副本。无模型行为实测，不据此宣称端到端收益。
