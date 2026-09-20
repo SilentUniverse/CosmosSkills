@@ -50,27 +50,27 @@ Spec/Digest 的明确确认供贴回对话，有意见则复制反馈，不把�
 |---|---|---|
 | 定向准入与工作流契约 | 26 tests，exit 0 | `tests/test_drain_wave.py`、`tests/test_workflow_state.py`、`tests/test_workflow_contracts.py` |
 | 既有解析、渲染、接受校验 | 26 tests，exit 0 | `test_spec_review` 的 ParseValidate / RenderDelta / AcceptGate |
-| 全量确定性回归 | 557 passed、3 skipped；supervisor 38.880 s | [回执](../.scratch/workflow-path-audit/receipts/regression.json) |
-| 真实浏览器负控制 → 修复 → 最终 checkpoint | pass，13.002 s | [回执](../.scratch/workflow-path-audit/receipts/ui.json) |
-| PyInstaller onefile / onedir | pass，7.194 / 7.140 s | [onefile](../.scratch/workflow-path-audit/receipts/pyinstaller-onefile.json)、[onedir](../.scratch/workflow-path-audit/receipts/pyinstaller-onedir.json) |
+| 全量确定性回归 | 557 passed、3 skipped；supervisor 38.880 s | 合并前本地回执已核验 |
+| 真实浏览器负控制 → 修复 → 最终 checkpoint | pass，13.002 s | 合并前本地回执已核验 |
+| PyInstaller onefile / onedir | pass，7.194 / 7.140 s | 合并前本地回执已核验 |
 
 原生打包的首次 Node SEA 检查失败：Homebrew Node 25.2.1 二进制缺少既有夹具要求的
-`NODE_SEA_FUSE`，详见[失败回执](../.scratch/workflow-path-audit/receipts/node-sea.json)。
-使用 CI 声明的 Node 22 独立验证，通过 25.114 s，见[回执](../.scratch/workflow-path-audit/receipts/node-sea-node22.json)，不修改产品或夹具来适配本机版本。
+`NODE_SEA_FUSE`，失败回执已在合并前审计中核对并随后清理。
+使用 CI 声明的 Node 22 独立验证，通过 25.114 s；不修改产品或夹具来适配本机版本。
 
 增量准入的首个反例被整特性门阻塞；补齐准入后，最终回归中的两份无 Parent 旧夹具需要同步
-来源合同：[失败回执](../.scratch/workflow-path-audit/receipts/regression-final.json)记录 2 failed、566 passed、3 skipped。
+来源合同：合并前失败回执记录 2 failed、566 passed、3 skipped。
 修正夹具后，artifact 模块 96 tests 通过，再完成下列全量验收。
-UI 门首次复用输出目录被脚本拒绝（要求新目录），保留[用法错误回执](../.scratch/workflow-path-audit/receipts/ui-final.json)；未覆盖已有证据，改用新输出目录。
+UI 门首次复用输出目录被脚本拒绝（要求新目录）；未覆盖已有证据，改用新输出目录。
 
 | 最终候选检查 | 实际结果 | 证据 |
 |---|---|---|
-| 全量确定性回归 | 569 passed、3 skipped；37.736 s | [回执](../.scratch/workflow-path-audit/receipts/regression-accepted.json) |
-| 既有真实浏览器交付夹具 | pass；11.533 s | [回执](../.scratch/workflow-path-audit/receipts/ui-accepted.json)；此夹具不证明 Spec 页视觉效果 |
-| PyInstaller onefile / onedir | pass；7.053 / 7.307 s | [onefile](../.scratch/workflow-path-audit/receipts/packaging-final-pyinstaller-onefile.json)、[onedir](../.scratch/workflow-path-audit/receipts/packaging-final-pyinstaller-onedir.json) |
-| Node 22 SEA | pass；23.878 s | [回执](../.scratch/workflow-path-audit/receipts/packaging-final-node-sea.json) |
-| PowerShell harness（macOS pwsh） | 29 assertions，pass | [回执](../.scratch/workflow-path-audit/receipts/powershell-final.json) |
-| Shell guard corpus unix / forced msys | 176/176、204/204，pass | [unix](../.scratch/workflow-path-audit/receipts/shell-unix.json)、[msys](../.scratch/workflow-path-audit/receipts/shell-msys.json) |
+| 全量确定性回归 | 569 passed、3 skipped；37.736 s | 合并前本地回执已核验 |
+| 既有真实浏览器交付夹具 | pass；11.533 s | 合并前本地回执已核验；此夹具不证明 Spec 页视觉效果 |
+| PyInstaller onefile / onedir | pass；7.053 / 7.307 s | 合并前本地回执已核验 |
+| Node 22 SEA | pass；23.878 s | 合并前本地回执已核验 |
+| PowerShell harness（macOS pwsh） | 29 assertions，pass | 合并前本地回执已核验 |
+| Shell guard corpus unix / forced msys | 176/176、204/204，pass | 合并前本地回执已核验 |
 
 `test_spec_review_encoding.py` 的 4 个测试及多分支反例覆盖真实 cp1252/GBK 子进程、UTF-8
 中文/emoji 路径与输入输出、BOM/CRLF、快照 LF 字节、HTTP 非 ASCII 字节与反馈保留，以及 JS
@@ -80,7 +80,7 @@ UI 门首次复用输出目录被脚本拒绝（要求新目录），保留[用�
 30 skills、146 Markdown，均 exit 0。`git diff --check` 通过。当前仓库 artifact gate 通过，
 但工作区没有 PRD/Issue/handoff，实际准入契约覆盖来自上述回归，不能把空工件扫描当成行为证明。
 
-页面显示调整后，Spec review 与编码/反馈模块 46 tests 通过，见[回执](../.scratch/workflow-path-audit/receipts/review-display.json)。
+页面显示调整后，Spec review 与编码/反馈模块 46 tests 通过；回执已在合并前核验并清理。
 生成样例的导航链接、反馈框数量与条目 ID 均保持一致，折叠控件全部移除；静态确认携带 Spec/Digest，
 已有意见仍作为反馈复制。该批次只复验相关模块与技能校验，复用未改动的准入、打包和 shell 检查。
 
@@ -98,11 +98,11 @@ UI 门首次复用输出目录被脚本拒绝（要求新目录），保留[用�
 决定/疑问/整体反馈框与「全部确定」，没有折叠控件。
 
 最终相关检查为 `test_spec_review.py` 与 `test_spec_review_encoding.py`：50 passed，supervisor
-12.696 s，见[回执](../.scratch/workflow-path-audit/receipts/review-focus-final.json)。覆盖完整/增量页、
+12.696 s；回执已在合并前核验并清理。覆盖完整/增量页、
 静态/桥接反馈及编码分支；该批次复用未变动的准入、打包与 shell 证据。
 
 同一演示 PRD 的静态可见正文从 2623 字符变为 801 字符，4 个 textarea 与 D1/Q1 反馈标识保留，
-见[测量记录](../.scratch/workflow-path-audit/receipts/review-focus-projection.json)。计数排除脚本、样式和
+测量记录已在合并前核验并清理。计数排除脚本、样式和
 运行时反馈文本；它只说明这个样例的文本变化，不证明人审速度、理解准确率或模型 token 收益。
 
 atk 检查必要性、语义、调用链、平台与成本；独立只读审查确认修复后的准入边界，冷读规则句。
