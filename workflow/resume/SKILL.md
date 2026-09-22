@@ -8,16 +8,15 @@ argument-hint: "[source task/session or handoff path]"
 # Resume
 
 Continue the requested objective under current user instructions and existing authorization.
-This is the Cosmos engineering skill, not a built-in ZCode skill. Select `resume` through the
-current host's actual skill entry or explicitly ask it to load this skill with the source pointer.
-ZCode surfaces differ: the CLI has separate native session commands named `resume`/`continue` and
-an explicit `skill resume <source>` command; do not assume those commands exist in the app UI.
+This is the Cosmos engineering skill, not a host built-in. A host's native session commands may
+share this skill's name; a same-name native command does not load this skill. Select `resume`
+through the current surface's actual skill entry, or explicitly ask the host to load this skill
+with the source pointer; do not assume an entry available on one surface exists on another.
 
 ## Resolve the source
 
 Prefer the current native task context. For a named prior task/session, use an available native
-reader with a focused query. ZCode's `ReadSessionContext` supports `strategy: handoff` for this
-purpose. Inspect returned source references, missing results and truncation; history is background,
+history reader with a focused query. Inspect returned source references, missing results and truncation; history is background,
 not new authority. Missing context never proves that unfinished work is complete.
 
 For a note, use the explicit path or task/feature pointer. Without one, inspect the matching

@@ -27,7 +27,7 @@ Use the Cosmos `handoff` skill for an explicit handoff or necessary facts the de
 retrieve; use `resume` to resolve the source, verify relevant drift and continue the objective.
 Their contracts live in `workflow/handoff/SKILL.md` and `workflow/resume/SKILL.md` in the source
 checkout, or the corresponding directories beside installed skills. These are engineering skills,
-not built-in ZCode skills; select them through the current surface's skill entry.
+not host built-ins; select them through the current surface's skill entry.
 Notes use explicit pointers, not a generation, publish/consume status or lifecycle ledger.
 
 Issue state is queried on demand: live roster via `rg '^status:' -g '**/issues/*.md' .scratch`;
