@@ -24,8 +24,9 @@ or supervise tests. Retain argv/logical cwd, check definition/version, input/can
 exit, outcome, timing and log digest. Use project redaction, never credentials in argv or evidence.
 Agent prose cannot manufacture a passing receipt.
 
-The normal ZCode path is an ordinary session plus native Bash. Dynamic Workflow requires its own
-concrete need; `world.run` does not offer the same cwd/cancel/output contract. Use no unsupported options.
+The ordinary path is a host session plus its native shell. A host orchestration or
+workflow entry needs its own concrete need; its run tool may not offer the same cwd, cancellation
+or output-retention contract as the shell. Use no unsupported options.
 
 ## Judge
 

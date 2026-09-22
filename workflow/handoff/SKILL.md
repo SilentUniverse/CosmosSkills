@@ -13,8 +13,9 @@ the host's native context and session recovery; neither alone requires a note or
 ## Select the bridge
 
 Use the source task/session reference and existing engineering artifacts when the destination can
-read them. In ZCode, a named session can be read through the available `ReadSessionContext` tool;
-a reference alone does not inject its history. Verify the reader is available in the destination.
+read them. When the destination host provides a native history reader, use it with a
+focused query; a session reference alone does not inject its history. Verify the reader is
+available in the destination.
 
 Write a note when explicitly requested, when crossing hosts without accessible history, or when
 necessary unfinished facts have no retrievable owner. Use the requested path; otherwise use
