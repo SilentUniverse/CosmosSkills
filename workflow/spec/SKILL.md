@@ -14,9 +14,9 @@ Acceptance follows the agreed outcome, constraints and public contract, includin
 internal slices. Only a new unresolved material decision holds its dependent work. User-requested
 changes supply their stated authorization; do not ask for the same decision again.
 
-Before modifying or retiring an issue, its verifier or shared setup, inspect current assignments.
-Running issues still have `ready` status. Prepare a revision separately and apply it after affected
-workers return; independent additions continue. Preserve completed contracts and proofs. New details
+Before changing an Issue, verifier or shared setup, inspect its actual native task consumers.
+Coordinate affected active writers; card status is engineering readiness, not execution ownership.
+Independent additions continue. Preserve completed contracts and proofs. New details
 use detail issues, changed contracts use redo, and defects after delivery use linked fix issues.
 
 This phase may run declared setup, read-only analysis and representative verifier preflights; it
@@ -58,7 +58,7 @@ Named `<feat>` → `rg` that feature only; else 3–5 keywords over `.scratch/**
   from the issue queue does not establish absence from the product. Use [PRD-TEMPLATE.md](PRD-TEMPLATE.md) when shared scenarios/decisions need
   a durable owner across slices. Multi-module reach or card count alone does not require a PRD.
   A settled plan can stay inline;
-  a session boundary alone uses `/handoff` without creating a queue.
+  native session continuation handles a session boundary without creating an engineering queue.
 - Hit in the target feature: read the live PRD's 实现决策 (if any) and the hit issue's AC/`status`.
   - Nothing recorded goes false → [ADDITIVE.md](ADDITIVE.md).
   - A recorded AC or decision goes false → [SUPERSEDE.md](SUPERSEDE.md).
@@ -128,9 +128,9 @@ Before marking an issue ready:
 Read each written card from only its declared inputs. Check 做什么 against every AC, the passed P#
 mapping and exact final action/evidence, required parent constraints, and dependencies. Reuse the
 existing Parent R/D/S pointer to verify that 做什么 and AC preserve the cited scenario and decision
-meaning; mechanical source/coverage checks cannot establish this. For incremental managed batches,
-set each milestone's existing `requirements` field to the requirements it reviews; omitted membership
-conservatively covers the whole plan. Keep slices independently useful and prove only their new behavior.
+meaning; mechanical source/coverage checks cannot establish this. Each human review names its
+requirements, fixed object and dependent scope. Keep slices independently useful and prove only
+their new behavior.
 Reuse the recorded preflight under TDD's drift guard. A new public seam, irreversible change, coupled
 slice DAG, or uncertain proof calls `/atk` on those artifacts. Reuse the alignment attack for an
 unchanged decision; inspect only newly materialized contracts and findings that could invalidate it.
@@ -143,17 +143,16 @@ preflight. Engineering dependencies and manual obligations remain separate from 
 
 After corrections, run `python ../verify-artifacts.py <repo-root> --feature <feat>`. Use `python3`
 only if `python` is missing, never as a retry for a gate failure. Re-run only after relevant fixes.
-The whole-tree form remains the batch-close/CI/migration gate.
+The whole-tree form remains the artifact/CI/migration gate.
 
 Return written paths or the inline plan, material assumptions, actual evidence, and unresolved
 decisions. Honor the request’s planning or execution scope when handing the cards or inline contract to TDD.
 When the user requested plan review, present the complete plan. Otherwise continue authorized work
 in the same task without another confirmation or session reset.
 
-Spec ends in exactly one of: `PLAN_ONLY_COMPLETE` (plan-only request: the reviewable plan is
-delivered), `PLAN_ACCEPTED`, `READY_FOR_TDD` (implementation already authorized: route to `/tdd`
-in the same task; this is skill routing, not Spec implementing), or `BLOCKED_ON_DECISION`. It
-never ends implemented.
+A plan-only request ends with a complete reviewable plan. An authorized implementation continues
+under its requested method, with TDD as the default. Missing decisions hold only dependent work;
+these are engineering outcomes, not persisted runtime phases.
 
 ## 5. Promote confirmed facts
 

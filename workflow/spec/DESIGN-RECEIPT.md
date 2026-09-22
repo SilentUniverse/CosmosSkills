@@ -42,5 +42,6 @@ account checks remain explicit pending human verification, not passed AC.
 
 Graphical UI may use a runtime or graded experience contract as defined by verification design;
 mention only visual choices that need user input. Technical capture details stay in its artifact.
-If a real session boundary arrives while waiting, handoff preserves the question and current
-settled decisions. It records pending input; it does not create another approval event.
+At a session boundary, prefer native context/history for the question and settled decisions.
+If the destination cannot retrieve necessary pending inputs, preserve their exact pointers and
+otherwise unowned facts through [handoff](../handoff/SKILL.md). Neither route creates approval.

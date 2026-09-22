@@ -1,12 +1,12 @@
 # Artifact Format
 
 The single source of truth for the YAML frontmatter and index files that the engineering
-skills produce and consume. Every skill that reads or writes an issue, PRD, handoff, or index
+skills produce and consume. Every skill that reads or writes an issue, PRD, evidence, or index
 file references THIS document instead of restating the schema. Keeping the contract in one
-place is what lets `/tdd`, `/resume`, and workflow-state tools parse deterministically instead of
+place is what lets `/tdd` and engineering-view tools parse deterministically instead of
 grepping prose.
 
-Shared gate scripts and contracts (`workflow-state.py`, `verify-artifacts.py`, `test-governance.py`,
+Shared gate scripts and contracts (`workflow-state.py`, `evidence.py`, `verify-artifacts.py`, `test-governance.py`,
 `TEST-POLICY.md`, this file) sit one directory above every skill; skills reference them as
 `../<name>`. Path text resolves `..` against the loading skill's directory: through an installed
 skill link it stays at the shared skills root instead of traversing the physical link target.
@@ -31,7 +31,7 @@ new artifact, place and name it by these rules instead of guessing; if it doesn'
 |---|---|---|---|
 | **Project-level singletons** | repo **root** | `CONTEXT.md`, `CONTEXT-MAP.md`, `CODEBASE.md` | one per repo, read at session start, true project-wide |
 | **Long-lived series docs** | `docs/` | `adr/`, `agents/` | kept long-term, humans read them, grows file-by-file |
-| **Feature-local work state** | `.scratch/` | `<feat>/PRD`, `issues/`, `handoff`, cross-feature `handoff` | scoped to one feature, working-state, disposable |
+| **Feature-local work state** | `.scratch/` | `<feat>/PRD`, `issues/`, receipts and review objects | feature-local; required evidence is retained |
 
 The rule of thumb: **the more project-wide / long-lived / read-at-startup an artifact is, the closer
 to root it lives; the more feature-local and disposable, the deeper into `.scratch/` it goes.**
@@ -45,8 +45,8 @@ to root it lives; the more feature-local and disposable, the deeper into `.scrat
   many will exist, the name carries content (a slug, a number, a date).
 
 **One deliberate exception:** everything under `.scratch/` that is *per-feature
-working state* is lowercase regardless of singleton-ness — `handoff.md`, the feature dir `<feat>/`
-itself. `.scratch/` is the disposable working tier; its files don't earn ALL-CAPS landmark status.
+working state* uses lowercase names apart from the established PRD landmark. A `.scratch` path
+alone never makes a referenced proof or pending review disposable.
 
 ## CODEBASE.md — structural map (generated, not authored)
 
@@ -187,8 +187,8 @@ Field rules:
   `2`. Changed profile fingerprint keys or commands go on
   the card's 偏差 lines rather than back to v2 boilerplate. Version 2 makes `验证设计`, the
   execution-readiness fields, passed P# preflights, and every AC→evidence→P# mapping
-  machine-required; a v2 `done`
-  record also requires `预检重放` and `验证命令`. Omitted means legacy v1 so upgrades do not break old projects.
+  machine-required. Historical v2 prose completion uses `预检重放` and `验证命令`; new
+  completion cites validated check evidence and its covered ACs. Omitted means legacy v1 so upgrades do not break old projects.
   `/spec` upgrades a legacy `ready` issue it edits only after actually running and recording the
   preflights; it never upgrades immutable `done` issues in place.
 - **verifier_schema** — schema-2 verifier cards pin `2`; the gate rejects a profile downgrade.
@@ -199,9 +199,9 @@ Field rules:
 - **status** — `pending`, `ready` and `done`. Pending needs `pending_reason` and a concrete goal; ready records engineering readiness, not human acceptance. TDD may park a chronically failing ready
   card (`workflow-state.py park <repo-root> <feat> <slug> --reason TEXT`), recording `pending`
   with a `parked <date>: <reason>` prefix; un-parking is a `/spec` revision or explicit
-  re-authorization. A shipped `done` contract is immutable. During its
-  active batch, a failed closing check/review may reopen it to `ready` with exact evidence while
-  retaining prior completion records. Later behavior changes create redo/fix issues.
+  re-authorization. A completed contract preserves its history. Later behavior changes create
+  detail/redo/fix work; missing or contradicted evidence refuses effective completion independently
+  of a status marker. Native execution status is never copied into this field.
   Hands-on checks no agent can run live in the PRD's 端到端验证 or, without a parent PRD, the
   issue's `## 手动验证`; never encoded as an engineering status or as issue AC.
 - **category** —
@@ -223,26 +223,15 @@ Field rules:
   repeat the list in a body section.
 - **refines** — slug of the parent slice this elaborates (live or legacy `issues/archive/`). Required
   for `detail`/`redo`/`fix`, omitted for top-level `enhancement` slices. Missing or ambiguous lineage
-  returns to `/spec`; GC never guesses it.
-- **touches** — top-level dirs/modules this slice is expected to edit, at directory granularity.
-  One exception: repo-root shared surfaces a slice edits (workspace manifest, any
-  root config file) are declared verbatim as file paths. `/tdd` waves serialize on any overlap.
-  A lockfile is never declared: SPEC prepares it before dispatch and fingerprints it; drift during
-  a behavior wave is fatal rather than repaired by an install (`tdd/DRAIN.md`, "Execute serially or
-  dispatch a wave"). Written by `/spec` from its impact
-  probe; `/tdd` groups waves by overlap. Optional.
-- **test_paths** — test files this slice will create or modify, repo-relative with `/` separators.
-  Declared by `/spec` from the AC. This field owns the wave semantics: wave eligibility
-  needs `touches:` + `test_paths:`; overlapping `touches:` or colliding `test_paths:` serialize
-  into successive waves; an issue missing either runs alone in its own wave. Completed at green
-  by the run that wrote the files. Appending a newly written test
-  file is a sanctioned ownership correction on a `done` card; active-batch reopening follows `status` above. `-log`
-  slices omit it: acceptance is a log predicate, not test files. The gate checks
-  `### 完成` 新增测试 files against it only in legacy records that still carry that line. Optional.
-- **exclusive_resources** — exact stable IDs for runtime resources that cannot be shared safely
-  (`device:<id>`, `database:<name>`, `build-output:<path>`, or a project-specific equivalent).
-  `/tdd` waves serialize cards sharing an ID even when paths are disjoint. Omit when none; SPEC writes
-  the field from observed verifier/runtime requirements rather than guessing during dispatch.
+  returns to `/spec`; cleanup never guesses it.
+- **touches** — expected edited directories/modules; shared root files are named explicitly.
+  This is engineering write scope, not an execution lock. Overlapping writes in a shared checkout
+  serialize; independent checkouts must be real and supported by the native execution entry.
+- **test_paths** — repo-relative test files created or modified. Record actual ownership; preserve
+  completed history. Log-only slices can omit it. Existing coverage should be reused before adding tests.
+- **exclusive_resources** — stable IDs such as device/database/build-output names observed from
+  real verifier requirements. The project fixture/resource service or CI provides exclusion and
+  recovery. The field declares a constraint; Cosmos maintains no resource registry.
 - **created** — ISO date, set once at creation, never changed.
 
 The body keeps the section headings from `/spec`'s issue template. Dependency state comes only from
@@ -289,83 +278,30 @@ rather than smuggling an unchecked score into runtime evidence. Both paths stay 
 `.scratch/<feat>/`. Canonical JSON examples, exact field rules,
 and the rubric dimensions live in [EXPERIENCE-RUBRIC.md](code-review/EXPERIENCE-RUBRIC.md).
 
-## Wave ledger — `.scratch/<feat>/wave-ledger.json`
+## Execution state and historical proof
 
-The issue execution ledger for direct runs and drains, written only by the `tdd` skill's
-`scripts/drain-wave.py`. `dispatch` records assignments before execution; `collect` records wave closure. Each
-wave entry: number, timestamp, execution ID, mode (`direct|wave`), dispatched slugs, a baseline
-SHA-256, dispatch-time per-card contract hashes, and per-issue closure
-(`green|red|blocked|conflict|aborted`), and close timestamp. A conflict carries only a path/hash for
-its contract-bound evidence JSON under the feature's `receipts/`; that evidence owns the
-conflict-time contract digest. The digest covers the issue before `## Comments`, so notes cannot
-release the barrier.
-Executions with an ID also bind a behavior digest excluding `test_paths`, the original test ownership,
-and effective verifier hashes for v3 cards. During execution, `test_paths` may only grow within
-originally admitted paths; the behavior and verifier bindings stay fixed. `close` and `collect`
-require the execution ID, so a stale completion cannot close a retry. Legacy ledger rows without
-that ID remain readable and collectable.
-Each wave stores only a digest referring to the shared content-addressed
-`.scratch/wave-baselines/<sha256>.json`. One compact manifest serves every feature ledger in the
-same dispatch: in Git it records HEAD plus hashes of the index diff and worktree diff, and one
-content identity per pre-existing dirty path; outside Git it hashes files under the dispatched cards' declared paths (the whole
-workspace for a serialized undeclared card). It excludes
-`.scratch`, so writing workflow state cannot change the next baseline. Packet projection rehashes
-the manifest before execution. Legacy top-level `baselines` maps remain readable but are not
-written by new dispatches.
-At batch close, the ownership audit reuses these manifests to distinguish unchanged historical
-tests from additions, modifications, and deletions under admitted paths. Only dispatched cards
-provide ownership for batch edits. No second audit snapshot is persisted; full changed-file
-reconciliation and integrated verification remain the caller's obligations.
-The closing caller supplies the batch's execution IDs; audit refuses to infer membership when
-multiple executions are retained. The runner keeps those pointers in memory, and a boundary handoff
-preserves them if closure remains outstanding.
-`collect` validates the global outstanding set as one wave commit: it accepts every still-open
-assignment together only after the caller's integrated scoped checks and ownership reconciliation,
-then publishes the affected feature ledgers in a shared transaction. `.scratch/.workflow.lock`
-is an OS-held lock, never an age-based lease or a removable ownership marker. Multi-file writes use
-`.scratch/.workflow-pending.json` as a recovery journal; read projections refuse pending publication
-and the next mutator replays it only against matching before/after file hashes. It is removed after
-publication, not retained as a second ledger. A direct close publishes card status and ledger closure
-together. Partial wave collection requests are rejected, keeping the barrier through reconciliation.
-An unchanged conflict digest blocks later `next` and `dispatch`; status edits, archive moves, and
-deletion do not release it. `/spec` releases it only by changing the live ready card's contract;
-an evidence-backed dismissal uses the dedicated command. The top-level `preflight_consumers` map
-retains each current key once with its issue slugs, so a collision-serialized issue receives the
-same hit in a later wave without copying a 64-character key under every issue.
-Tuple fields stay owned by the card/profile and preflight cache; legacy expanded assignments are
-normalized on dispatch.
-For a disproved report, `drain-wave.py dismiss-conflict` preserves the original evidence and adds
-`conflict_dismissals[slug]` with only the review path/hash and time;
-only that closed result becomes `red`. It never changes the issue contract or marks it done.
-Review evidence is durable under the feature's `receipts/`; the caller owns its truthfulness.
-Every dispatched slug without ledger closure remains uncollected, even when its card is `done`, archived,
-or missing; disk state cannot prove wave-level reconciliation and read-only scheduling commands do
-not infer an outcome. The recovery contract lives in
-`tdd/EDGE-CASES.md`. The ledger is append-oriented machine state; humans read it only for
-crash diagnosis. `workflow-state.py gc` may delete it once every wave is closed, no conflict barrier
-remains, and the batch shipped; it also removes that ledger's global baseline manifests once no
-other feature ledger references them.
+Native host records are authoritative for running tasks, sessions, retries, cancellation and
+recovery. Engineering artifacts may retain a native correlation ID but never mirror its lifecycle.
+New work has no Cosmos wave ledger, managed batch, job queue or global verification epoch.
 
-## Managed batch — `.scratch/batches/<batch_id>/`
+Historical managed-proof closures remain read-only compatible while needed: preserve original
+contract/digest, log and dependency closure. A compatibility reader must not import or start the
+retired orchestrator. Migrate retained objects only after their complete closure is verified;
+active old writers finish or hand over explicitly at a quiescent boundary.
 
-Only explicit `batch-open` uses [the managed batch format](tdd/BATCH-FORMAT.md). Plans pin
-`schema_version: 3`, which carries immutable plan revisions, scoped human reviews, consumed-input
-bindings and portable proof to executed candidate closure. State in the retired formats (schema 1
-or 2) is refused; `workflow-state.py batch-prune` disposes their directories (schema 1 in any
-phase, schema 2 once terminal).
+Preflight evidence is reusable when action, logical cwd, relevant inputs, prerequisites and
+result-affecting environment still match. It is not scoped to a session or batch. A representative
+observation can be referenced directly in P#; reusable machine proof uses the same `evidence.py`
+check format with scope `preflight` and no mandatory Spec. There is no separate preflight cache or
+receipt writer. Readiness proof cannot substitute for behavioral or final-candidate verification.
 
-## Batch preflight receipt — `.scratch/<feat>/preflight-receipt.json`
+## Continuation notes
 
-Transient TDD drain cache generated by `tdd/scripts/preflight-receipt.py`, only when at least two
-ready cards share an exact tuple. Each passed entry is keyed by the exact
-`(cwd, resolved P# action, environment fingerprint, v2 readiness digest, semantic verifier profile digest)` tuple and
-retains only the execution-receipt path/hash. The execution receipt owns its pass result and time;
-every hit revalidates that receipt and its log. The orchestrator is its only writer; workers receive immutable
-hit keys. A changed action, fingerprint, or profile meaning is a cache miss; JSON whitespace and
-object-key/completion-command order, plus fingerprint/prerequisite pair order or spacing, are not.
-The receipt may
-reuse readiness checks across cards in one batch; it never caches RED/GREEN behavior tests or final
-verification. `workflow-state.py gc` may remove it after the batch closes.
+A note is optional, unstructured Markdown at an explicit path, normally
+`.scratch/<feat>/handoff.md` or `.scratch/handoff.md`. It contains only otherwise inaccessible
+unfinished facts and exact pointers; see [handoff](handoff/SKILL.md) and [resume](resume/SKILL.md).
+There is no frontmatter schema, active/consumed state, automatic latest-note selection or integrity
+protocol. Validate the referenced engineering objects at use; note text is never approval or proof.
 
 ## Verifier profile — `.scratch/<feat>/verifier.json`（contract v3）
 
@@ -411,67 +347,56 @@ The gate requires the file (valid JSON, non-empty `commands`, schema-2 `completi
 fingerprint keys git/lock/runtime/tools/services, and schema-2 readiness keys
 fixtures/services/permissions/network) for every v3 card. Graphical-UI issues stay on
 contract_version 2. Machine
-execution receipts under `.scratch/<feat>/receipts/*.json` are durable evidence — v3 `### 完成`
-records reference them. The receipt binds feature, slug, status-independent contract hash, selected
-AC, effective profile hash, named command, repo-relative cwd, platform argv style, exact argv, log
-hash, `outcome: pass`, and exit 0. Cwd lives once at receipt top level; verifier schema is covered by
-the effective-profile hash rather than copied into the issue binding. The supervisor refuses bound receipt/log paths outside their
-`.scratch` directories before execution. `close` requires the machine-local cwd and ignored
-`.scratch/tmp/` log to exist and match; after the card is `done`, gates revalidate the durable
-binding and result without requiring that transient log or the original checkout path. New bound
-receipts store cwd/log paths repo-relative; older absolute paths remain historical-compatible. `gc` never
-deletes durable receipts and refuses unbound or stale schema-2 completion evidence.
+execution receipts under `.scratch/<feat>/receipts/` are retained evidence. Legacy schema-2
+receipts preserve their original issue/profile bindings for compatibility. New proof can map one
+valid check to several Issues; execution identity excludes Issue/session/batch membership.
 
-## Handoff files — `.scratch/<feat>/handoff.md` or `.scratch/handoff.md`
+## Fixed candidate, evidence and delivery review
 
-A handoff is a disposable bridge for half-finished work — a snapshot so the next session can pick
-up by reading one file. It is **not** a permanent record or a conversation summary; it records
-current state, key decisions, and next actions, and is overwritten in place each time (git keeps
-history). There are exactly two locations:
+A candidate references immutable Git commit/tree bytes under a retained ref, or an equivalent
+verifiable manifest. Required dirty/untracked source must be included before fixing it. Relevant
+external inputs, dependency artifacts and environment identities are explicit; HEAD alone is not
+source coverage. Verification uses an independent checkout or equivalent isolated inputs and checks
+input integrity before and after execution. Build outputs are separate. Mutated inputs invalidate
+the original candidate claim.
 
-- **Feature-scoped** → `.scratch/<feat>/handoff.md` (the rolling handoff for that feature; lives
-  next to its PRD and issues).
-- **Cross-feature** → `.scratch/handoff.md` (a single rolling file at the `.scratch/` root).
+Evidence records bind check definition/version, exact argv and logical cwd, candidate/input closure,
+dependency artifacts, environment, raw native/tester result and retained log digest. A deterministic
+import validates these facts; a model-authored summary cannot become a passing receipt. Distinct
+attempts are immutable, including failures. Shared proof is valid only where the mapped AC/check
+contract matches. Cross-candidate reuse needs proof that the complete relevant input closure is unchanged.
 
-```markdown
----
-schema_version: 2
-type: handoff
-feature: balance              # the feature slug, or null for cross-feature work
-git_base: 3451766             # commit hash HEAD was at when written
-worktree_digest: <sha256>      # uncommitted state excluding handoff files
-generation: <opaque-id>       # generated by publish, prevents stale consumption after replacement
-status: active                # active; /resume deletes the file on completion
-capsule: active-work          # active-work | awaiting-alignment | external-pending
-date: 2026-06-18
----
+Delivery review binds the accepted `spec_digest` when a Spec is required, scope, `candidate_ref`, external/artifact digests,
+review-model/page digest, required proof references and original human decision event. The displayed
+object is fixed before approval; current workspace HEAD is not a substitute. New candidates do not
+inherit old approvals. Review can proceed while unrelated development continues.
 
-# Handoff: <topic>
-## Continue ... (READ/RUN/CONFIRM; compact schema in the `/handoff` skill)
-## State ...
-## Decisions ...
-## Avoid ... (optional)
-```
+Empty comments require explicit submission. Silence, timeout, tool completion and model-written
+approval are not human acceptance. Repeated identical events are idempotent; the same event ID with
+a different object/decision is rejected. Confirm acceptance only after durable write succeeds.
+Render versions are immutable; navigation cards must open the actual fixed bytes. The existing
+local review bridge remains a transport until native UI preserves these fields and raw event origin.
 
-Field rules:
+Evidence records have `schema_version`, `kind` and canonical JSON `digest`. Kind `candidate` retains
+`commit` (null for a tree-only candidate), `tree`, source entries, accepted `spec_digest`/`spec_text`
+(both null when no Spec applies) and explicit input hashes; Git retains the source through a
+candidate ref. A Parent-bound Issue still requires a matching accepted Spec. Completion may name
+one `candidate` path so unchanged-input receipts from different source candidates can prove that
+explicit target; without it, all completion receipts must share one candidate. Kind `check_input` binds the prepared definition,
+candidate/input digests and native log/exit locations. Kind `check_receipt` binds that context,
+check/input identities, outcome/exit, optional measured duration, retained log/exit hashes and declared
+output files with their retained bytes. Review artifacts must match verified output or fixed input hashes.
+Kind `candidate_review` binds candidate/Spec, scope, receipts and artifact hashes. Kind
+`human_decision` binds that review and its raw event, written only through the human bridge.
+Later conflicting checks block a new delivery decision; they do not erase the recorded human event.
+Validation of an existing decision checks its fixed references and retained bytes.
 
-- **feature** — the feature slug when the handoff belongs to one feature (file at
-  `.scratch/<feat>/handoff.md`); `null` for cross-feature work (file at `.scratch/handoff.md`).
-- **git_base** — HEAD's short hash at write time. `/resume` compares this against current HEAD and
-  warns if they diverged (work happened since the handoff).
-- **worktree_digest** — schema v2 digest of tracked diff plus untracked contents, excluding handoff
-  files. `/resume` detects uncommitted drift without loading the whole diff.
-- **status** — `active` when written; `/resume` **deletes the file** once the work it describes is
-  finished. One handoff, one consume; git keeps the history. Only `active` handoffs are resume
-  candidates.
-- **capsule** — which consumption queue the handoff sits in: `active-work` (the default),
-  `awaiting-alignment`, or `external-pending`. The handoff skill's `scripts/handoff-state.py publish`
-  validates it; an
-  unknown capsule refuses publish.
-- **generation** — optional for legacy v2 files; `handoff-state.py publish` stamps a new value on
-  each publication. `snapshot --path` and `locate` return the whole-file version hash for conditional
-  `publish`/`consume`. A changed hash refuses overwrite/deletion. Multiple active candidates require
-  a matching feature/path; modification time does not select one.
+New completion uses `- evidence: <receipt path>; AC 1,2`; several Issues may cite one valid check.
+Its check definition must match the AC command, logical cwd and declared environment contract;
+the accepted candidate Spec must cover the Issue's Parent anchors. See the environment example in
+[FULL-SUITE.md](tdd/FULL-SUITE.md).
+Commands are `candidate`, `prepare`, `reuse`, `seal`, `review` and `validate`; exact invocation is in
+[FULL-SUITE.md](tdd/FULL-SUITE.md). The helper never runs tests or schedules tasks.
 
 ## PRD files — `.scratch/<feat>/PRD.md` / `PRD-vN.md`
 
@@ -504,8 +429,8 @@ surface ([spec/REVIEW.md](spec/REVIEW.md)).
 ## Spec review state — `.scratch/<feat>/spec-review.json` + `spec-accepted.md`
 
 Minimal machine state of the human review bridge, written only by
-`spec/scripts/spec-review.py` (`render`/`review`/`accept`); the JSON never stores feedback history
-or PRD content. Schema 1:
+`spec/scripts/spec-review.py` (`render`/`review`). Raw submissions are retained in
+`spec-review-events/`; the current-state JSON stores references and hashes. Schema 1:
 
 ```json
 {
@@ -522,7 +447,8 @@ or PRD content. Schema 1:
 Delta uses the intact accepted snapshot when present; before first acceptance, `last_rendered_*`
 supplies the comparison hashes. Re-rendering cannot reset pending changes. The `accepted_*` half records human acceptance of
 exact bytes: the digest, the PRD name, and the item-level ledger at accept time. Acceptance also
-writes the accepted PRD text to `.scratch/<feat>/spec-accepted.md`; its own digest equals
+writes the accepted PRD text to `.scratch/<feat>/spec-acceptances/<digest>.md` and the current
+`spec-accepted.md` alias, and records the raw event digest in `accepted_event`; the snapshot digest equals
 `accepted_digest`, so in-place edits of the snapshot are detectable. The ledger and snapshot are
 the recovery path for an edited-after-acceptance alarm:
 `spec-review.py validate <repo-root> <feature> --require-accepted` prints the item-level delta
@@ -533,7 +459,7 @@ include semantic headings. C/K/Q and global sections participate in change detec
 `section:change` is explanatory, not a design constraint. Older R/D/S-only maps remain readable;
 without an accepted snapshot they require Full review before complete Delta comparisons.
 
-Direct issue start, `drain-wave.py dispatch` and ready-card validation share state shape and acceptance
+Read-only issue start and ready-card validation share state shape and acceptance
 integrity checks. With a complete ledger, each ready card names a Parent PRD/S/R/D pointer in 上级;
 refs must cover its slice's Covers. Both source and live head must match the accepted snapshot for
 those anchors, their transitive dependencies and global constraints. Independent pending additions
@@ -548,13 +474,15 @@ item keys; `accepted_items` without the snapshot
 file, or a snapshot whose digest drifted, are violations. Once any issue or `verifier.json` is
 materialized in the feature, `accepted_digest` must be non-null and match an intact PRD file; an
 unaccepted review therefore cannot materialize, and an accepted snapshot cannot be edited in
-place. The rendered `spec-review.html` is a disposable projection: deletable, rebuildable from
-`spec-accepted.md`, never evidence.
+place. Rendered review pages are fixed by review identity and never overwritten while referenced.
+A page is a deterministic projection, not an approval event; retain its bytes when review provenance
+or an outstanding decision references it.
 
 ## Current-reality projection
 
 `workflow-state.py inspect <repo-root> <feat> --format json|human` derives effective delivered
-behavior from canonical done issues. It reads top-level and legacy archive locations, folds completed
+behavior from canonical done issues whose retained completion proof validates. Invalid or missing
+proof is reported separately; a status marker alone never enters delivered. It reads top-level and legacy archive locations, folds completed
 `redo` siblings by `refines`, and includes source paths plus SHA-256 digests. It never writes a file.
 
 Legacy `.scratch/<feat>/SUMMARY.md` is a migration input only. The gate accepts its basic shape so
@@ -570,12 +498,10 @@ repo/
 │   ├── adr/NNNN-slug.md
 │   └── agents/                       ← only with a non-default tracker (issue-tracker.md)
 └── .scratch/
-    ├── handoff.md                    ← cross-feature rolling handoff
     └── <feat>/
         ├── PRD.md / PRD-vN.md
         ├── spec-review.json             ← review bridge state (spec-review.py only)
         ├── spec-accepted.md             ← accepted PRD bytes, written at accept (spec-review.py only)
-        ├── handoff.md                ← this feature's rolling handoff
         └── issues/
             ├── NN-slug.md            ← active issues
             └── archive/
@@ -618,15 +544,15 @@ zero unexpected runtime counters, graded thresholds),
 directory name, PRD `version` vs filename, `supersedes` target existence, single live PRD head,
 declared PRD R/D/S anchors (uniqueness, closed refs, acyclic slice `Depends`, review token) and
 spec-review.json shape plus the acceptance gate (materialized issues require an intact accepted
-snapshot), handoff field shape. CODEBASE.md leaves: root `type`/`generated` + body budget (excl. roster
+snapshot). CODEBASE.md leaves: root `type`/`generated` + body budget (excl. roster
 lines; `budget:` frontmatter override), nested generated-block marker pairs + `git_base` + block
 budget, roster placeholder syntax rejected, roster↔directory bidirectional check. Missing `.scratch/` and absent `CODEBASE.md` pass
-clean. Run it wherever state could drift: `/spec` post-write, before workflow GC, or any time the
+clean. Run it wherever state could drift: `/spec` post-write, before scoped artifact cleanup, or any time the
 state looks off:
 
     python verify-artifacts.py [<repo-root>] [--feature <feat>]
     # if the `python` interpreter is missing: python3 verify-artifacts.py [<repo-root>]
-    # --feature checks one feature while it is being written; omit it for the whole-tree close/CI gate.
+    # --feature checks one feature while it is being written; omit it for the whole-tree artifact/CI gate.
     # Do not retry python3 after a non-zero gate exit (violations).
 
 Prompt-enforced remainder: body sections, AC quality, `touches` honesty.

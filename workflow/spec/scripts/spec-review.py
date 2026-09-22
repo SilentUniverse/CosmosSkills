@@ -3,7 +3,7 @@
 # renders the human Full/Delta review HTML, and runs the one-shot localhost
 # review bridge. Stdlib only; no model calls. Exit: 0 ok, 1 violation/timeout,
 # 2 usage.
-# Invoke: python spec-review.py <render|review|validate|accept> <repo-root> <feature> [options]
+# Invoke: python spec-review.py <render|review|validate> <repo-root> <feature> [options]
 # If the `python` interpreter is missing, python3 spec-review.py ...; never retry
 # python3 after a non-zero exit (that is a contract violation).
 #
@@ -22,9 +22,12 @@ import urllib.parse
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+ENGINEERING_ROOT = Path(__file__).resolve().parents[2]
+if str(ENGINEERING_ROOT) not in sys.path:
+    sys.path.insert(0, str(ENGINEERING_ROOT))
+from evidence import atomic_write, file_lock, write_record
 
 REVIEW_STATE = "spec-review.json"
-REVIEW_HTML = "spec-review.html"
 R_BULLET = re.compile(r"^\s*[-*]\s+(R\d+)\s*[—\-–]\s*(.+)$")
 BEFORE_LINE = re.compile(r"^\s+Before\s*[:：]\s*(.+)$", re.IGNORECASE)
 D_HEAD = re.compile(r"^#{2,4}\s+(D\d+)\s*[—\-–:>]?\s*(.*)$")
@@ -468,9 +471,7 @@ def load_state(feature_dir):
 
 
 def save_state(feature_dir, state):
-    Path(os.path.join(feature_dir, REVIEW_STATE)).write_text(
-        json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-    )
+    atomic_write(Path(feature_dir) / REVIEW_STATE, json.dumps(state, ensure_ascii=False, indent=2) + "\n")
 
 
 def render_state(model, prd_name, digest, previous):
@@ -496,8 +497,12 @@ def record_acceptance(state, feature_dir, prd_path, digest, model):
     state["accepted_spec"] = os.path.basename(prd_path)
     state["accepted_items"] = model.hashes()
     snapshot = os.path.join(feature_dir, ACCEPTED_SNAPSHOT)
-    with open(snapshot, "w", encoding="utf-8", newline="\n") as handle:
-        handle.write(normalized_text(prd_path))
+    text = normalized_text(prd_path)
+    archive = Path(feature_dir) / "spec-acceptances" / (digest + ".md")
+    if archive.exists() and archive.read_text(encoding="utf-8") != text:
+        raise ValueError("accepted Spec archive changed")
+    atomic_write(archive, text)
+    atomic_write(snapshot, text)
     return state
 
 
@@ -1076,8 +1081,8 @@ def review_html(feature, prd_name, prd_text, digest, model, delta, mode, bridge,
             add("</div>")
     add('<h2 id="submit">反馈</h2>')
     add('<div class="card"><textarea id="global-feedback" placeholder="GLOBAL 反馈（可选）"></textarea>')
-    add('<button id="approve" type="button">全部确定</button> ')
     if bridge:
+        add('<button id="approve" type="button">全部确定</button> ')
         add('<button id="feedback" type="button">提交反馈</button><div id="result" class="muted"></div></div>')
         add('<script type="application/json" id="bridge-data">%s</script>' % json.dumps(
             {"token": token, "url": url, "spec": prd_name, "spec_digest": digest,
@@ -1086,8 +1091,8 @@ def review_html(feature, prd_name, prd_text, digest, model, delta, mode, bridge,
         ).replace("</", "<\\/"))
         add("<script>%s</script>" % BRIDGE_JS)
     else:
-        add('<div class="muted">无异议时点击「全部确定」复制确认文本，贴回对话完成提交。'
-            '有意见时填写条目或整体反馈；「全部确定」会保留这些意见并复制反馈文本。</div>')
+        add('<div class="muted">静态预览仅收集反馈。复制后贴回对话；'
+            '批准请使用 review 命令打开的人审页面，提交并等待保存成功。</div>')
         add('<textarea id="feedback-text" readonly></textarea>')
         add('<button id="copy-feedback" type="button">复制反馈</button></div>')
         add('<script type="application/json" id="feedback-data">%s</script>' % json.dumps(
@@ -1125,6 +1130,7 @@ function post(payload,button){
   .then(function(result){
    document.getElementById('result').textContent=JSON.stringify(result);
    if(result.status==='accepted'){document.getElementById('feedback').disabled=true;}
+   if(result.status!=='accepted'&&result.status!=='feedback'){button.disabled=false;}
   })
   .catch(function(err){document.getElementById('result').textContent=''+err;button.disabled=false;});
 }
@@ -1142,7 +1148,7 @@ STATIC_JS = """
 (function(){
 var data=JSON.parse(document.getElementById('feedback-data').textContent);
 var out=document.getElementById('feedback-text');
-function build(approve){
+function build(){
  var lines=['SPEC FEEDBACK','Spec: '+data.spec,'Digest: '+data.spec_digest,''];
  var hasFeedback=false;
  document.querySelectorAll('.comment').forEach(function(box){
@@ -1156,18 +1162,14 @@ function build(approve){
  var global=document.getElementById('global-feedback').value.trim();
  if(global){hasFeedback=true;lines.push('GLOBAL');lines.push(global);lines.push('');}
  lines.push('END FEEDBACK');
- if(approve===true&&!hasFeedback){
-  lines=['全部确定：我已审阅并批准以下方案，无修改意见。','Spec: '+data.spec,'Digest: '+data.spec_digest];
- }
  out.textContent=lines.join('\\n');
  return hasFeedback;
 }
 document.querySelectorAll('.comment textarea,#global-feedback')
  .forEach(function(el){el.addEventListener('input',build);});
 build();
-async function copy(button,approve){
- var hasFeedback=build(approve);
- var label=approve?'全部确定':'复制反馈';
+async function copy(button){
+ build();
  out.focus();out.select();
  var copied=false;
  try{copied=document.execCommand('copy');}catch(e){}
@@ -1175,14 +1177,11 @@ async function copy(button,approve){
   try{await navigator.clipboard.writeText(out.value);copied=true;}catch(e){}
  }
  if(!copied){button.textContent='复制失败，请手动复制';out.focus();out.select();return;}
- button.textContent=approve?(hasFeedback?'已复制反馈，请贴回对话':'已复制确认，请贴回对话'):'已复制';
- setTimeout(function(){button.textContent=label;},1500);
+ button.textContent='已复制反馈，请贴回对话';
+ setTimeout(function(){button.textContent='复制反馈';},1500);
 }
-document.getElementById('approve').addEventListener('click',function(){
- return copy(this,true);
-});
 document.getElementById('copy-feedback').addEventListener('click',function(){
- return copy(this,false);
+ return copy(this);
 });
 })();
 """
@@ -1241,9 +1240,8 @@ def cmd_render(root, feature, force_full, out_path=None):
         prepared["model"], prepared["delta"], prepared["mode"], bridge=False,
         baseline=prepared["baseline"], baseline_label=prepared["baseline_label"],
     )
-    target = Path(out_path) if out_path else prepared["feature_dir"] / REVIEW_HTML
-    target.write_text(html_text, encoding="utf-8")
-    save_state(prepared["feature_dir"], prepared["state"])
+    target = write_review_page(prepared["feature_dir"], html_text, out_path)
+    save_rendered_state(prepared["feature_dir"], prepared["state"])
     delta = prepared["delta"]
     counts = (
         {state: len(items) for state, items in delta.items()}
@@ -1263,7 +1261,7 @@ def cmd_render(root, feature, force_full, out_path=None):
     return 0
 
 
-def make_handler(prd_path, prd_name, digest, model, html_text, token, result):
+def make_handler(prd_path, prd_name, digest, model, html_text, token, result, persist=None, current_identity=None, assets=None):
     class Handler(BaseHTTPRequestHandler):
         server_version = "spec-review/1"
         protocol_version = "HTTP/1.1"
@@ -1283,7 +1281,27 @@ def make_handler(prd_path, prd_name, digest, model, html_text, token, result):
             return re.match(r"^(127\.0\.0\.1|localhost|\[::1\])(:\d+)?$", host) is not None
 
         def do_GET(self):
-            if urllib.parse.urlsplit(self.path).path != "/" or not self.loopback_host():
+            route = urllib.parse.urlsplit(self.path).path
+            if self.loopback_host() and assets and route in assets:
+                path, expected = assets[route]
+                try:
+                    body = Path(path).read_bytes()
+                    if hashlib.sha256(body).hexdigest() != expected:
+                        raise ValueError("review artifact changed")
+                except (OSError, ValueError):
+                    self.respond(409, {"status": "error", "message": "fixed artifact is unavailable"})
+                    return
+                self.send_response(200)
+                self.send_header("Content-Type", "application/octet-stream")
+                filename = urllib.parse.quote(Path(path).name, safe="")
+                self.send_header("Content-Disposition", "attachment; filename*=UTF-8''" + filename)
+                self.send_header("Content-Security-Policy", "sandbox")
+                self.send_header("X-Content-Type-Options", "nosniff")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
+            if route != "/" or not self.loopback_host():
                 self.respond(403, {"status": "error", "message": "not found"})
                 return
             body = html_text.encode("utf-8")
@@ -1304,9 +1322,6 @@ def make_handler(prd_path, prd_name, digest, model, html_text, token, result):
                 self.respond(500, {"status": "error", "message": "%s: %s" % (type(exc).__name__, exc)})
 
         def handle_submit(self):
-            if result["done"]:
-                self.respond(410, {"status": "error", "message": "review already submitted"})
-                return
             try:
                 length = int(self.headers.get("Content-Length") or 0)
             except ValueError:
@@ -1325,7 +1340,7 @@ def make_handler(prd_path, prd_name, digest, model, html_text, token, result):
                 self.respond(403, {"status": "error", "message": "invalid review token"})
                 return
             try:
-                current_digest = prd_digest(prd_path)
+                current_digest = current_identity() if current_identity else prd_digest(prd_path)
             except (OSError, ValueError):
                 self.respond(500, {"status": "error", "message": "PRD unreadable; re-render"})
                 return
@@ -1376,9 +1391,21 @@ def make_handler(prd_path, prd_name, digest, model, html_text, token, result):
                     400, {"status": "error", "message": "action must be approve or feedback"}
                 )
                 return
-            self.respond(200, answer)
+            event_id = hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+            if result["done"]:
+                if result.get("event_id") == event_id:
+                    self.respond(200, result["value"])
+                else:
+                    self.respond(409, {"status": "error", "message": "review already has another decision"})
+                return
+            if persist:
+                persist(answer, payload, event_id)
+            else:
+                persist_spec_decision(prd_path, prd_name, digest, model, answer, payload, event_id)
             result["value"] = answer
+            result["event_id"] = event_id
             result["done"] = True
+            self.respond(200, answer)
 
         def log_message(self, fmt, *args):
             pass
@@ -1418,7 +1445,7 @@ def start_bridge(prepared, port=0):
             prd_path, prepared["prd_name"], prepared["digest"], prepared["model"],
             html_text, token, result,
         )
-        save_state(feature_dir, prepared["state"])
+        save_rendered_state(feature_dir, prepared["state"])
     except Exception:
         server.server_close()
         raise
@@ -1440,18 +1467,7 @@ def serve_bridge(server, result, timeout, prepared):
             server.handle_request()
     finally:
         server.server_close()
-    answer = dict(result["value"])
-    if answer["status"] == "accepted":
-        state = prepared["state"]
-        record_acceptance(
-            state,
-            prepared["feature_dir"],
-            os.path.join(prepared["feature_dir"], prepared["prd_name"]),
-            prepared["digest"],
-            prepared["model"],
-        )
-        save_state(prepared["feature_dir"], state)
-    return answer
+    return dict(result["value"])
 
 
 def run_bridge(prepared, timeout, open_browser, port=0, on_started=None):
@@ -1478,7 +1494,7 @@ def cmd_review(root, feature, force_full, timeout, open_browser, port=0):
         prepared["model"], prepared["delta"], prepared["mode"], bridge=False,
         baseline=prepared["baseline"], baseline_label=prepared["baseline_label"],
     )
-    (prepared["feature_dir"] / REVIEW_HTML).write_text(static_html, encoding="utf-8")
+    write_review_page(prepared["feature_dir"], static_html)
     answer = run_bridge(prepared, timeout, open_browser, port)
     print(json.dumps(answer, ensure_ascii=False))
     return 0 if answer.get("status") in ("accepted", "feedback") else 1
@@ -1525,37 +1541,100 @@ def cmd_validate(root, feature, require_accepted):
     return 0
 
 
-def cmd_accept(root, feature):
-    feature_dir = Path(root) / ".scratch" / feature
-    if not feature_dir.is_dir():
-        print("spec-review accept: feature '%s' not found" % feature)
-        return 1
-    prd_name = resolve_head_prd(feature_dir)
-    prd_path = os.path.join(feature_dir, prd_name)
-    digest = prd_digest(prd_path)
-    model = parse_model(normalized_text(prd_path))
-    problems = validate_model(model)
-    if problems:
-        print("spec-review accept: %s" % "; ".join(problems), file=sys.stderr)
-        return 1
-    state = load_state(feature_dir)
-    state.update({
-        "schema_version": 1,
-        "spec": prd_name,
-    })
-    if not state.get("last_rendered_digest"):
-        state["last_rendered_digest"] = digest
-        state["last_rendered_items"] = model.hashes()
-    record_acceptance(state, feature_dir, prd_path, digest, model)
-    save_state(feature_dir, state)
-    print(json.dumps(
-        {
-            "status": "accepted",
-            "spec": prd_name,
-            "spec_digest": digest,
-            "snapshot": ACCEPTED_SNAPSHOT,
-        }, ensure_ascii=False))
-    return 0
+def write_review_page(feature_dir, text, requested=None):
+    name = "spec-review-" + hashlib.sha256(text.encode()).hexdigest() + ".html"
+    target = Path(requested) if requested else Path(feature_dir) / name
+    with file_lock(target.with_name(target.name + ".lock")):
+        if target.exists() and target.read_text(encoding="utf-8") != text:
+            raise ValueError("review page is immutable; choose a new path")
+        atomic_write(target, text)
+    return target
+
+
+def save_rendered_state(feature_dir, rendered):
+    with file_lock(Path(feature_dir) / ".spec-review.lock"):
+        latest = load_state(feature_dir)
+        current = dict(rendered)
+        for key in ("accepted_digest", "accepted_spec", "accepted_items", "accepted_event"):
+            if key in latest:
+                current[key] = latest[key]
+        save_state(feature_dir, current)
+
+
+def persist_spec_decision(prd_path, prd_name, digest, model, answer, payload, event_id):
+    feature_dir = Path(prd_path).parent
+    with file_lock(feature_dir / ".spec-review.lock"):
+        if prd_digest(prd_path) != digest:
+            raise ValueError("Spec changed before decision persistence")
+        event = {key: value for key, value in payload.items() if key != "token"}
+        record = write_record(feature_dir / "spec-review-events" / (event_id + ".json"),
+                              {"kind": "spec_decision", "schema_version": 1, "event_id": event_id,
+                               "source": "local_review", "spec_digest": digest, "event": event})
+        if answer["status"] == "accepted":
+            state = load_state(feature_dir) or render_state(model, prd_name, digest, {})
+            record_acceptance(state, feature_dir, prd_path, digest, model)
+            state["accepted_event"] = record["digest"]
+            save_state(feature_dir, state)
+
+
+def candidate_review_page(fixed, spec_text, links_html, bridge_data):
+    """Deterministic review surface: the fixed record, its bound accepted Spec, then artifacts."""
+    spec_block = ""
+    if isinstance(spec_text, str):
+        spec_block = '<h2>接受的 Spec</h2><pre class="compare">%s</pre>' % html.escape(spec_text)
+    return ('<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>固定候选审核</title>'
+            '<style>%s</style><main><h1>固定候选审核</h1><pre class="compare">%s</pre>%s<ul>%s</ul>'
+            '<label for="global-feedback">反馈</label><textarea id="global-feedback"></textarea>'
+            '<button id="approve">全部确定</button><button id="feedback">提交反馈</button>'
+            '<div id="result"></div><script type="application/json" id="bridge-data">%s</script>'
+            '<script>%s</script></main></html>') % (CSS, html.escape(json.dumps(fixed, ensure_ascii=False, indent=2)),
+                                                    spec_block, links_html, bridge_data, BRIDGE_JS)
+
+
+def cmd_review_candidate(root, path, timeout, open_browser, port=0):
+    from evidence import local, record_decision, validate_candidate, validate_review
+    root, path = Path(root).resolve(), Path(path).resolve()
+    fixed = validate_review(root, path)
+    token = secrets.token_urlsafe(32)
+    result = {"done": False, "value": None, "lock": threading.Lock()}
+    server = ThreadingHTTPServer(("127.0.0.1", port or 0), _Unavailable)
+    url = "http://127.0.0.1:%d/" % server.server_address[1]
+    assets = {}
+    links = []
+    for index, (name, sha) in enumerate(sorted(fixed["artifacts"].items())):
+        route = "/artifact/%d" % index
+        assets[route] = (local(root, fixed["retained_artifacts"][name]), sha)
+        links.append('<li><a href="%s">%s</a> · %s</li>' % (route, html.escape(name), sha))
+    bridge_data = json.dumps({"token": token, "url": url, "spec": path.name,
+                              "spec_digest": fixed["digest"], "items": {}}).replace("</", "<\\/")
+    bound = validate_candidate(root, local(root, fixed["candidate"]))
+    page = candidate_review_page(fixed, bound.get("spec_text"), "".join(links), bridge_data)
+    class Model:
+        def hashes(self):
+            return {}
+    def identity():
+        return validate_review(root, path)["digest"]
+    def persist(answer, payload, event_id):
+        event = {"event_id": event_id, "source": "local_review", "review_digest": fixed["digest"],
+                 "action": "approve" if answer["status"] == "accepted" else "request_changes",
+                 "feedback": payload.get("global_feedback", "")}
+        destination = path.parent / "decisions" / (event_id + ".json")
+        record_decision(root, path, event, destination)
+        answer["decision"] = str(destination)
+    server.RequestHandlerClass = make_handler(path, path.name, fixed["digest"], Model(), page, token,
+                                               result, persist, identity, assets)
+    print("spec-review: " + url, file=sys.stderr)
+    try:
+        if open_browser:
+            try:
+                webbrowser.open(url)
+            except Exception as exc:
+                print("spec-review: open browser manually: %s (%s)" % (url, exc), file=sys.stderr)
+        answer = serve_bridge(server, result, timeout, {"prd_name": path.name, "digest": fixed["digest"]})
+    finally:
+        server.server_close()
+    print(json.dumps(answer, ensure_ascii=False))
+    return 0 if answer.get("status") in ("accepted", "feedback") else 1
 
 
 def main(argv=None):
@@ -1581,9 +1660,12 @@ def main(argv=None):
     validate.add_argument("root")
     validate.add_argument("feature")
     validate.add_argument("--require-accepted", action="store_true")
-    accept = sub.add_parser("accept")
-    accept.add_argument("root")
-    accept.add_argument("feature")
+    candidate = sub.add_parser("review-candidate")
+    candidate.add_argument("root")
+    candidate.add_argument("review", type=Path)
+    candidate.add_argument("--timeout", type=float, default=900.0)
+    candidate.add_argument("--no-browser", action="store_true")
+    candidate.add_argument("--port", type=int, default=0)
     args = parser.parse_args((argv or sys.argv)[1:])
     try:
         if args.command == "render":
@@ -1594,7 +1676,7 @@ def main(argv=None):
             )
         if args.command == "validate":
             return cmd_validate(args.root, args.feature, args.require_accepted)
-        return cmd_accept(args.root, args.feature)
+        return cmd_review_candidate(args.root, args.review, args.timeout, not args.no_browser, args.port)
     except (OSError, ValueError) as exc:
         print("spec-review %s: %s" % (args.command, exc), file=sys.stderr)
         return 1

@@ -1,5 +1,6 @@
 import importlib.util
 import http.client
+import hashlib
 import io
 import json
 import re
@@ -8,6 +9,7 @@ import threading
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
+from unittest import mock
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -88,6 +90,17 @@ def run_cli(*argv):
     with redirect_stdout(output), contextlib.redirect_stderr(errors):
         code = spec_review.main(["spec-review.py"] + list(argv))
     return code, output.getvalue(), errors.getvalue()
+
+
+def accepted_spec_fixture(root, feature="import"):
+    """Build historical accepted Spec data for gate tests without a public approval command."""
+    prepared = spec_review.prepare_review(root, feature)
+    state = spec_review.record_acceptance(
+        prepared["state"], prepared["feature_dir"],
+        prepared["feature_dir"] / prepared["prd_name"], prepared["digest"], prepared["model"],
+    )
+    spec_review.save_state(prepared["feature_dir"], state)
+    return state
 
 
 class ParseValidateTests(unittest.TestCase):
@@ -277,18 +290,19 @@ class RenderDeltaTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             plant_feature(root)
-            run_cli("accept", str(root), "import")
+            accepted_spec_fixture(root)
             feature = root / ".scratch/import"
             draft = PRD.replace("version: 1", "version: 2\nsupersedes: PRD.md").replace(
                 "- R1 — 导入取消后必须进入 cancelled。", "- R1 — 取消后保留终态且显示原因。")
             (feature / "PRD-v2.md").write_text(draft, encoding="utf-8")
             first = spec_review.prepare_review(root, "import")
-            run_cli("render", str(root), "import")
+            code, output, errors = run_cli("render", str(root), "import")
+            self.assertEqual(0, code, errors)
             second = spec_review.prepare_review(root, "import")
             self.assertEqual(first["delta"], second["delta"])
             self.assertEqual(["R1"], second["delta"]["MODIFIED"])
             self.assertEqual({"D1", "S1", "S2", "S3"}, set(second["delta"]["AFFECTED"]))
-            html_text = (feature / "spec-review.html").read_text(encoding="utf-8")
+            html_text = Path(json.loads(output)["html"]).read_text(encoding="utf-8")
             self.assertIn("已接受 · PRD.md", html_text)
             self.assertIn("导入取消后必须进入 cancelled", html_text)
             self.assertIn("取消后保留终态且显示原因", html_text)
@@ -309,8 +323,11 @@ class RenderDeltaTests(unittest.TestCase):
                     self.assertNotIn("<details", page)
                     self.assertEqual({"D1", "Q1"}, set(re.findall(r'class="comment" data-id="([^"]+)"', page)))
                     self.assertEqual(1, page.count('id="global-feedback"'))
-                    self.assertEqual(1, page.count('id="approve"'))
-                    self.assertIn('>全部确定</button>', page)
+                    self.assertEqual(int(bridge), page.count('id="approve"'))
+                    if bridge:
+                        self.assertIn('>全部确定</button>', page)
+                    else:
+                        self.assertIn("静态预览仅收集反馈", page)
                     self.assertIn("需要你拍板", page)
 
     def test_legacy_render_hashes_require_full_review(self):
@@ -336,9 +353,7 @@ class RenderDeltaTests(unittest.TestCase):
             payload = json.loads(output)
             self.assertEqual("full", payload["mode"])
             self.assertEqual(6, payload["counts"]["items"])
-            html_text = (root / ".scratch" / "import" / "spec-review.html").read_text(
-                encoding="utf-8"
-            )
+            html_text = Path(json.loads(output)["html"]).read_text(encoding="utf-8")
             self.assertIn("需要你拍板", html_text)
             self.assertNotIn("<svg", html_text)
             self.assertIn("SPEC FEEDBACK", html_text)
@@ -382,9 +397,7 @@ class RenderDeltaTests(unittest.TestCase):
             self.assertEqual(0, payload["counts"]["REMOVED"])
             self.assertEqual(4, payload["counts"]["AFFECTED"])
             self.assertEqual(7, payload["counts"]["UNCHANGED"])
-            html_text = (root / ".scratch" / "import" / "spec-review.html").read_text(
-                encoding="utf-8"
-            )
+            html_text = Path(json.loads(output)["html"]).read_text(encoding="utf-8")
             self.assertIn("Delta Review", html_text)
             self.assertIn('class="state MODIFIED"', html_text)
 
@@ -407,9 +420,7 @@ class RenderDeltaTests(unittest.TestCase):
             )
             code, output, _ = self.render(root)
             self.assertEqual(0, code, output)
-            html_text = (root / ".scratch" / "import" / "spec-review.html").read_text(
-                encoding="utf-8"
-            )
+            html_text = Path(json.loads(output)["html"]).read_text(encoding="utf-8")
             self.assertIn("本次移除", html_text)
             self.assertIn("R2", html_text)
 
@@ -470,8 +481,40 @@ class RenderDeltaTests(unittest.TestCase):
             self.assertEqual(0, code)
             self.assertEqual("full", json.loads(output)["mode"])
 
+    def test_render_names_pages_by_content_and_preserves_prior_review(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            prd = plant_feature(root)
+            code, output, errors = run_cli("render", str(root), "import", "--full")
+            self.assertEqual(0, code, errors)
+            first = Path(json.loads(output)["html"])
+            content = first.read_bytes()
+            self.assertEqual("spec-review-" + hashlib.sha256(content).hexdigest() + ".html", first.name)
+            code, output, errors = run_cli("render", str(root), "import", "--full")
+            self.assertEqual(0, code, errors)
+            self.assertEqual(first, Path(json.loads(output)["html"]))
+            prd.write_text(PRD + "\n## 范围\n只能读取本地选中的文件。\n", encoding="utf-8")
+            code, output, errors = run_cli("render", str(root), "import", "--full")
+            self.assertEqual(0, code, errors)
+            self.assertNotEqual(first, Path(json.loads(output)["html"]))
+            self.assertEqual(content, first.read_bytes())
+            code, _, errors = run_cli("render", str(root), "import", "--full", "--out", str(first))
+            self.assertEqual(1, code)
+            self.assertIn("immutable", errors)
+            self.assertEqual(content, first.read_bytes())
+
 
 class AcceptGateTests(unittest.TestCase):
+    def test_public_accept_command_is_unavailable(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_feature(root)
+            with self.assertRaises(SystemExit) as result:
+                run_cli("accept", str(root), "import")
+            self.assertEqual(2, result.exception.code)
+            self.assertFalse((root / ".scratch/import/spec-accepted.md").exists())
+            self.assertFalse((root / ".scratch/import/spec-review.json").exists())
+
     def test_require_accepted_gates_on_digest(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -480,14 +523,11 @@ class AcceptGateTests(unittest.TestCase):
             self.assertEqual(1, code)
             self.assertIn("no recorded human acceptance", output)
 
-            code, output, errors = run_cli("accept", str(root), "import")
-            self.assertEqual(0, code)
-            payload = json.loads(output)
-            self.assertEqual("accepted", payload["status"])
+            accepted = accepted_spec_fixture(root)
             state = json.loads(
                 (root / ".scratch" / "import" / "spec-review.json").read_text(encoding="utf-8")
             )
-            self.assertEqual(payload["spec_digest"], state["accepted_digest"])
+            self.assertEqual(accepted["accepted_digest"], state["accepted_digest"])
 
             code, output, errors = run_cli("validate", str(root), "import", "--require-accepted")
             self.assertEqual(0, code, output)
@@ -502,27 +542,28 @@ class AcceptGateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             plant_feature(root)
-            run_cli("accept", str(root), "import")
+            accepted_spec_fixture(root)
             run_cli("render", str(root), "import")
             state = json.loads(
                 (root / ".scratch" / "import" / "spec-review.json").read_text(encoding="utf-8")
             )
             self.assertIsNotNone(state["accepted_digest"])
 
-    def test_accept_rejects_broken_anchors(self):
+    def test_review_rejects_broken_anchors_before_listening(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             plant_feature(root, PRD.replace("| S1 | state transition | R1 R2 D1 | - | key |",
                                             "| S1 | state transition | R1 R2 D1 | S2 | key |"))
-            code, _, _ = run_cli("accept", str(root), "import")
+            code, _, errors = run_cli("review", str(root), "import", "--no-browser", "--timeout", "0.1")
             self.assertEqual(1, code)
+            self.assertIn("Depends cycle", errors)
+            self.assertFalse((root / ".scratch/import/spec-accepted.md").exists())
 
-    def test_accept_pins_snapshot_and_item_ledger(self):
+    def test_acceptance_fixture_pins_snapshot_and_item_ledger(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             plant_feature(root)
-            code, _, _ = run_cli("accept", str(root), "import")
-            self.assertEqual(0, code)
+            accepted_spec_fixture(root)
             feature_dir = root / ".scratch" / "import"
             state = json.loads(
                 (feature_dir / "spec-review.json").read_text(encoding="utf-8")
@@ -540,7 +581,7 @@ class AcceptGateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             prd = plant_feature(root)
-            run_cli("accept", str(root), "import")
+            accepted_spec_fixture(root)
             prd.write_text(
                 PRD.replace("- R1 — 导入取消后必须进入 cancelled。", "- R1 — 改动的条目。"),
                 encoding="utf-8",
@@ -554,7 +595,7 @@ class AcceptGateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             prd = plant_feature(root)
-            run_cli("accept", str(root), "import")
+            accepted_spec_fixture(root)
             prd.write_text(PRD + "\n## 后记\n\n- 一句改动。\n", encoding="utf-8")
             code, output, _ = run_cli("validate", str(root), "import", "--require-accepted")
             self.assertEqual(1, code)
@@ -564,7 +605,7 @@ class AcceptGateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             plant_feature(root)
-            run_cli("accept", str(root), "import")
+            accepted_spec_fixture(root)
             snapshot = root / ".scratch" / "import" / "spec-accepted.md"
             snapshot.write_text("被篡改的快照。\n", encoding="utf-8")
             code, output, _ = run_cli("validate", str(root), "import", "--require-accepted")
@@ -579,7 +620,7 @@ class AcceptGateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             plant_feature(root)
-            run_cli("accept", str(root), "import")
+            accepted_spec_fixture(root)
             accepted = json.loads(
                 (root / ".scratch" / "import" / "spec-review.json").read_text(encoding="utf-8")
             )
@@ -681,6 +722,34 @@ class BridgeTests(unittest.TestCase):
                 prepared["digest"], spec_review.prd_digest(feature_dir / "spec-accepted.md")
             )
 
+    def test_failed_persistence_returns_error_and_can_retry_same_decision(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_feature(root)
+            prepared, holder, thread, result = self.bridge(root)
+            payload = {"token": holder["token"], "spec_digest": prepared["digest"],
+                       "action": "approve", "items": [], "global_feedback": ""}
+            try:
+                with mock.patch.object(spec_review, "save_state", side_effect=OSError("disk full")):
+                    status, body = post(holder["url"], payload)
+                self.assertEqual(500, status)
+                self.assertEqual("error", body["status"])
+                self.assertIn("disk full", body["message"])
+                state = spec_review.load_state(root / ".scratch/import")
+                self.assertIsNone(state["accepted_digest"])
+                self.assertFalse(result)
+                status, body = post(holder["url"], payload)
+                self.assertEqual(200, status)
+                self.assertEqual("accepted", body["status"])
+                state = spec_review.load_state(root / ".scratch/import")
+                self.assertEqual(prepared["digest"], state["accepted_digest"])
+                self.assertRegex(state["accepted_event"], r"^[0-9a-f]{64}$")
+            finally:
+                thread.join(5)
+            self.assertFalse(thread.is_alive())
+            self.assertEqual("accepted", result[0]["status"])
+            self.assertEqual(1, len(list((root / ".scratch/import/spec-review-events").glob("*.json"))))
+
     def test_wrong_token_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -760,7 +829,7 @@ class BridgeTests(unittest.TestCase):
             thread.join(5)
             self.assertEqual("timeout", result[0]["status"])
 
-    def test_one_successful_submit_only(self):
+    def test_identical_submit_is_idempotent_and_conflicting_decision_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             plant_feature(root)
@@ -786,11 +855,20 @@ class BridgeTests(unittest.TestCase):
                 headers={"Content-Type": "application/json"},
             )
             response = connection.getresponse()
-            self.assertEqual(410, response.status)
+            self.assertEqual(200, response.status)
+            self.assertEqual("feedback", json.loads(response.read().decode("utf-8"))["status"])
+            changed = json.loads(payload.decode("utf-8"))
+            changed["items"][0]["comment"] = "另一条审核意见"
+            connection.request("POST", "/submit", body=json.dumps(changed).encode("utf-8"),
+                               headers={"Content-Type": "application/json"})
+            response = connection.getresponse()
+            self.assertEqual(409, response.status)
             response.read()
             connection.close()
             thread.join(5)
             self.assertEqual("feedback", result[0]["status"])
+            events = list((root / ".scratch/import/spec-review-events").glob("*.json"))
+            self.assertEqual(1, len(events))
 
     def test_timeout_returns_timeout_status(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -799,6 +877,23 @@ class BridgeTests(unittest.TestCase):
             prepared, holder, thread, result = self.bridge(root, timeout=0.2)
             thread.join(5)
             self.assertEqual("timeout", result[0]["status"])
+
+    def test_candidate_review_page_renders_bound_spec_text(self):
+        fixed = {"digest": "a" * 64, "spec_digest": "b" * 64, "scope": "Fixture delivery"}
+        page = spec_review.candidate_review_page(
+            fixed, "# Spec\naccepted <body> & bytes", "", '{"token":"t"}'
+        )
+        self.assertIn("接受的 Spec", page)
+        self.assertIn("# Spec", page)
+        self.assertIn("accepted &lt;body&gt; &amp; bytes", page)
+        self.assertIn("b" * 64, page)
+
+    def test_candidate_review_page_omits_spec_block_without_spec(self):
+        page = spec_review.candidate_review_page(
+            {"digest": "a" * 64, "spec_digest": None}, None, "", '{"token":"t"}'
+        )
+        self.assertNotIn("接受的 Spec", page)
+        self.assertIn("固定候选审核", page)
 
 
 if __name__ == "__main__":

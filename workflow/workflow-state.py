@@ -1,39 +1,24 @@
 #!/usr/bin/env python3
-"""Project tracked issue state, not the product's complete behavior or user objective."""
-
+"""Read engineering obligations and validate completion; the harness owns execution."""
 import argparse
 import hashlib
 import importlib.util
-import io
 import json
-import os
 import re
 import sys
 from datetime import date
 from pathlib import Path
-from contextlib import redirect_stdout, redirect_stderr
-
 ENGINEERING_ROOT = Path(__file__).resolve().parent
 if str(ENGINEERING_ROOT) not in sys.path:
     sys.path.insert(0, str(ENGINEERING_ROOT))
-from workflow_contract import (
-    effective_verifier,
-    issue_contract_digest,
-    load_verifier_profile,
-    parse_parent_pointer,
-    validate_v3_completion,
-)
-from workflow_runtime import (
-    assignment, check_contract, load_baseline, reading, read_text, require_settled,
-    transaction, write_state,
-)
+from evidence import atomic_write, file_lock
+from workflow_contract import effective_verifier, issue_contract_digest, parse_parent_pointer, validate_completion, verification_contract
 
-
-ISSUE_NAME = re.compile(r"^(\d+)-.+\.md$")
 PROFILE_NAME = re.compile(r"\bprofile:([A-Za-z][A-Za-z0-9_-]*)\b")
 MAPPED_ACTION = re.compile(r"^(\s*-\s*#\d+\s*(?:→|->)\s*)`([^`]+)`")
 ATTEMPT_HEAD = re.compile(r"^###\s+(?:尝试|失败|Attempt)(?:\s|—|-|$)", re.IGNORECASE)
-
+CONTROL_DIRS = {"tmp", "batches", "wave-baselines", "workflow-runs", "evidence", "ci"}
+_PROFILE_UNSET = object()
 
 def scalar(value):
     value = value.strip()
@@ -125,7 +110,6 @@ def safe_segment(value, label):
 def feature_issue_dir(root, feature):
     root = Path(root).resolve()
     feature = safe_segment(feature, "feature")
-    from workflow_batch import CONTROL_DIRS
     if feature in CONTROL_DIRS:
         raise ValueError("reserved workflow control directory: %s" % feature)
     scratch = (root / ".scratch").resolve()
@@ -203,12 +187,10 @@ def issue_paths(root, feature):
 
 
 def issue_state(root, feature, path):
-    raw = read_text(path, encoding="utf-8-sig")
+    raw = Path(path).read_text(encoding="utf-8-sig")
     data = frontmatter_rich(raw, path)
     if data.get("type") != "issue" or data.get("feature") != feature:
         raise ValueError("%s: issue identity does not match feature '%s'" % (path, feature))
-    if data.get("status") == "done" and data.get("contract_version") == "3":
-        validate_v3_completion(Path(root).resolve(), path, raw)
     return raw, data
 
 
@@ -217,7 +199,7 @@ def issue_record(root, feature, path):
     if data.get("status") != "done":
         return None
     relative = path.relative_to(root).as_posix()
-    return {
+    record = {
         "slug": path.stem,
         "category": data.get("category", "enhancement"),
         "refines": data.get("refines") or None,
@@ -225,6 +207,11 @@ def issue_record(root, feature, path):
         "path": relative,
         "digest": contract_digest(raw),
     }
+    try:
+        validate_completion(root, path, raw)
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        record["reason"] = str(exc)
+    return record
 
 
 def slug_order(slug):
@@ -232,7 +219,6 @@ def slug_order(slug):
     return (int(match.group(1)) if match else -1, slug)
 
 
-@reading
 def inspect_feature(root, feature):
     root = Path(root).resolve()
     records = []
@@ -246,8 +232,10 @@ def inspect_feature(root, feature):
         seen.add(record["slug"])
         records.append(record)
 
+    invalid = [record for record in records if "reason" in record]
+    proven = [record for record in records if "reason" not in record]
     redos = {}
-    for record in records:
+    for record in proven:
         if record["category"] == "redo" and record["refines"]:
             redos.setdefault(record["refines"], []).append(record)
 
@@ -258,7 +246,7 @@ def inspect_feature(root, feature):
         suppressed.update(item["slug"] for item in replacements if item is not winner)
 
     delivered = sorted(
-        (record for record in records if record["slug"] not in suppressed),
+        (record for record in proven if record["slug"] not in suppressed),
         key=lambda item: slug_order(item["slug"]),
     )
     source_material = "".join(
@@ -272,8 +260,9 @@ def inspect_feature(root, feature):
         "source_count": len(records),
         "replaced": sorted(suppressed, key=slug_order),
         "delivered": delivered,
+        "invalid": sorted(invalid, key=lambda item: slug_order(item["slug"])),
+        "counts": {"done": len(proven), "delivered": len(delivered), "invalid": len(invalid)},
     }
-    incremental_view(root, feature, result)
     return result
 
 
@@ -291,9 +280,6 @@ def find_issue(root, feature, slug):
             raise ValueError("issue path must stay under its feature") from exc
         return resolved
     raise ValueError("issue '%s' not found in feature '%s'" % (slug, feature))
-
-
-_PROFILE_UNSET = object()
 
 
 def _issue_packet(root, feature, slug, path, raw, issue_data, profile=_PROFILE_UNSET):
@@ -374,364 +360,6 @@ def _issue_packet(root, feature, slug, path, raw, issue_data, profile=_PROFILE_U
     return packet
 
 
-@reading
-def issue_packet(root, feature, slug):
-    root = Path(root).resolve()
-    path = find_issue(root, feature, slug)
-    raw, issue_data = issue_state(root, feature, path)
-    packet = _issue_packet(root, feature, slug, path, raw, issue_data)
-    ledger = root / '.scratch' / feature / 'wave-ledger.json'
-    if ledger.is_file():
-        waves = [wave for wave in json.loads(read_text(ledger))['waves']
-                 if slug in wave.get('dispatched', []) and slug not in wave.get('closed', {})]
-        if len(waves) > 1:
-            raise ValueError('multiple open executions for ' + slug)
-        if waves and waves[0].get('batch_id'):
-            check_contract(waves[0], slug, raw, issue_data, root=root, feature=feature)
-            bind_packet_inputs(root, [packet], waves[0])
-    return packet
-
-
-def bind_packet_inputs(root, packets, binding):
-    if not binding.get('batch_id'):
-        return
-    from workflow_batch import load_batch
-    state, plan = load_batch(root, binding['batch_id'])
-    from workflow_incremental import execution_packets
-    references = [packet['feature'] + '/' + packet['slug'] for packet in packets]
-    inputs = execution_packets(root, state, plan, binding['execution'], references)
-    for packet in packets:
-        reference = packet['feature'] + '/' + packet['slug']
-        packet['execution_context'] = inputs[reference]
-
-
-def current_dispatch(root, feature, states, payload=None):
-    require_settled(root)
-    ledger = root / ".scratch" / feature / "wave-ledger.json"
-    if payload is None:
-        try:
-            payload = json.loads(ledger.read_text(encoding="utf-8"))
-        except (OSError, ValueError) as exc:
-            raise ValueError("packets require one current open dispatch") from exc
-    waves = [
-        wave
-        for wave in payload.get("waves", [])
-        if set(wave.get("dispatched", [])) - set(wave.get("closed", {}))
-    ]
-    if len(waves) != 1:
-        raise ValueError("packets require one current open dispatch")
-    wave = waves[0]
-    outstanding = set(wave.get("dispatched", [])) - set(wave.get("closed", {}))
-    requested = {slug for slug, _, _, _ in states}
-    if requested != outstanding:
-        raise ValueError(
-            "packets must project the complete current open dispatch; expected %s"
-            % ", ".join(sorted(outstanding))
-        )
-    baseline = wave.get("baseline_sha256")
-    contracts = wave.get("contracts")
-    load_baseline(root, baseline, payload.get("baselines"))
-    if not isinstance(contracts, dict):
-        raise ValueError("current open dispatch has no contract bindings")
-    for slug, _, raw, _ in states:
-        if contracts.get(slug) != issue_contract_digest(raw):
-            raise ValueError("issue '%s' changed after dispatch; reconcile before execution" % slug)
-    return wave
-
-
-@reading
-def issue_packets(root, feature, slugs):
-    """Project one wave without repeated process startup or persistent output."""
-    slugs = list(slugs)
-    if not slugs:
-        raise ValueError("packets requires at least one slug")
-    duplicates = sorted({slug for slug in slugs if slugs.count(slug) > 1})
-    if duplicates:
-        raise ValueError("duplicate packet slug(s): %s" % ", ".join(duplicates))
-    root = Path(root).resolve()
-    states = []
-    for slug in slugs:
-        path = find_issue(root, feature, slug)
-        raw, issue_data = issue_state(root, feature, path)
-        states.append((slug, path, raw, issue_data))
-    return _packets(root, feature, states)
-
-
-def _packets(root, feature, states, payload=None):
-    binding = current_dispatch(root, feature, states, payload)
-    dispatch = {"wave": binding.get("wave"), "baseline_sha256": binding["baseline_sha256"]}
-    if binding.get("execution"):
-        dispatch["execution"] = binding["execution"]
-    if binding.get("batch_id"):
-        dispatch.update(batch_id=binding["batch_id"], protocol_version=binding["protocol_version"])
-    profile = (
-        load_verifier_profile(root, feature)
-        if any(str(data.get("contract_version", "")) == "3" for _, _, _, data in states)
-        else _PROFILE_UNSET
-    )
-    packets = [_issue_packet(root, feature, slug, path, raw, data, profile)
-               for slug, path, raw, data in states]
-    _attach_retry_summaries(root, feature, packets)
-    for packet in packets:
-        if binding.get("execution") and "effective_verifier" in packet:
-            if binding.get("verifier_sha256", {}).get(packet["slug"]) != packet["effective_verifier"]["effective_sha256"]:
-                raise ValueError("verifier profile changed after dispatch; reconcile before execution")
-    bind_packet_inputs(root, packets, binding)
-    return {
-        "schema_version": 1,
-        "dispatch": dispatch,
-        "packets": packets,
-    }
-
-
-@reading
-def worker_briefs(root, feature, slugs=(), compact=False):
-    """Render the mechanical half of each open-wave worker brief.
-
-    One brief per outstanding slug: the packet projection, the receipt-hit
-    tokens the feature wave ledger recorded for that slug, and the tests-so-far
-    manifest (done cards' declared `test_paths`, live and archived, derived,
-    never persisted).
-    The brief contract itself stays single-sourced in the tdd skill's DRAIN.md;
-    this projection removes hand-assembly without adding policy."""
-    root = Path(root).resolve()
-    ledger = root / ".scratch" / feature / "wave-ledger.json"
-    try:
-        payload = json.loads(ledger.read_text(encoding="utf-8"))
-    except (OSError, ValueError) as exc:
-        raise ValueError("briefs require one current open dispatch") from exc
-    open_waves = [
-        wave
-        for wave in payload.get("waves", [])
-        if set(wave.get("dispatched", [])) - set(wave.get("closed", {}))
-    ]
-    if len(open_waves) != 1:
-        raise ValueError("briefs require one current open dispatch")
-    wave = open_waves[0]
-    outstanding = sorted(
-        set(wave.get("dispatched", [])) - set(wave.get("closed", {}))
-    )
-    selected = sorted(slugs) if slugs else outstanding
-    unknown = [slug for slug in selected if slug not in outstanding]
-    if unknown:
-        raise ValueError(
-            "slug(s) not in the current open dispatch: %s" % ", ".join(unknown)
-        )
-    consumers = payload.get("preflight_consumers")
-    if not isinstance(consumers, dict):
-        consumers = {}
-    tests_so_far = []
-    states = {}
-    for path in issue_paths(root, feature):
-        raw, data = issue_state(root, feature, path)
-        if path.parent.name != "archive" and path.stem in outstanding:
-            states[path.stem] = (path.stem, path, raw, data)
-        if data.get("status") != "done":
-            continue
-        for item in data.get("test_paths", []) or []:
-            if item not in tests_so_far:
-                tests_so_far.append(item)
-    missing = set(outstanding) - set(states)
-    if missing:
-        raise ValueError("dispatched issue(s) missing: %s" % ", ".join(sorted(missing)))
-    projected = _packets(root, feature, [states[slug] for slug in outstanding], payload)
-    by_slug = {item["slug"]: item for item in projected["packets"]}
-    result = {
-        "schema_version": 1,
-        "dispatch": projected["dispatch"],
-        "brief_rules": "tdd/DRAIN.md — worker brief contract; worker entry: tdd/WORKER.md",
-        "briefs": [
-            {
-                "slug": slug,
-                "packet": by_slug[slug],
-                "receipt_hits": sorted(
-                    "receipt-hit:%s" % key
-                    for key, assigned in consumers.items()
-                    if isinstance(assigned, list) and slug in assigned
-                ),
-                "tests_so_far": tests_so_far,
-            }
-            for slug in selected
-        ],
-    }
-    if compact:
-        shared = {
-            "brief_rules": result.pop("brief_rules"),
-            "tests_so_far": sorted(tests_so_far),
-        }
-        for brief in result["briefs"]:
-            brief.pop("tests_so_far")
-            brief.pop("slug")
-            brief["shared_ref"] = "#/shared"
-        return {"schema_version": 2, "shared": shared,
-                "dispatch": result["dispatch"], "briefs": result["briefs"]}
-    return result
-
-
-def close_issue(root, feature, slug, execution=None):
-    with transaction(root):
-        from workflow_batch import guard_legacy
-        guard_legacy(root, "legacy issue close")
-        path = find_issue(Path(root).resolve(), feature, slug)
-        current = assignment(root, feature, slug, execution)
-        raw, data = issue_state(Path(root).resolve(), feature, path)
-        check_contract(current, slug, raw, data, root=root, feature=feature)
-        result = _close_issue(root, feature, slug, path, raw, data)
-        if current and current.get("mode") == "direct":
-            output = io.StringIO()
-            with redirect_stdout(output), redirect_stderr(output):
-                code = _wave_driver().cmd_collect(str(root), [slug + "=green"], execution, feature=feature)
-            if code:
-                raise ValueError(output.getvalue().strip())
-        return result
-
-
-def _wave_driver():
-    spec = importlib.util.spec_from_file_location("workflow_wave", ENGINEERING_ROOT / "tdd/scripts/drain-wave.py")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-def _attach_retry_summaries(root, feature, packets):
-    debts = _wave_driver().retry_debts(str(root), feature)
-    for packet in packets:
-        debt = debts.get((feature, packet["slug"]))
-        if debt:
-            packet["retry_summary"] = (
-                "%d red/blocked since the last contract change; %d contract revisions"
-                " recorded; last result: %s"
-                % (debt["count"], debt.get("revisions", 0), debt["last"])
-            )
-    return packets
-
-
-def park_issue(root, feature, slug, reason):
-    """Park a chronically failing ready card as pending with its recorded reason."""
-    root = Path(root).resolve()
-    reason = " ".join(str(reason).split())
-    if not reason:
-        raise ValueError("park requires --reason TEXT")
-    path = find_issue(root, feature, slug)
-    with transaction(root):
-        raw, data = issue_state(root, feature, path)
-        if data.get("status") != "ready":
-            raise ValueError(
-                "issue '%s' is '%s'; park requires status: ready (a pending card already"
-                " records its gap - edit pending_reason instead)" % (slug, data.get("status"))
-            )
-        if "## 做什么" not in raw:
-            raise ValueError(
-                "issue '%s' has no ## 做什么 section; a pending card must retain its"
-                " concrete goal" % slug
-            )
-        driver = _wave_driver()
-        for wave in driver.open_waves(driver.load_ledger(str(root), feature)):
-            if slug in set(wave.get("dispatched", [])) - set(wave.get("closed", {})):
-                raise ValueError(
-                    "issue '%s' has an uncollected dispatch; reconcile and collect the wave"
-                    " before parking" % slug
-                )
-        parked = "parked %s: %s" % (date.today().isoformat(), reason)
-        lines = raw.splitlines(keepends=True)
-        updated = []
-        scanning = False
-        replaced = False
-        for index, line in enumerate(lines):
-            if index == 0 and line.rstrip("\r\n") == "---":
-                scanning = True
-                updated.append(line)
-                continue
-            if scanning:
-                if line.rstrip("\r\n") == "---":
-                    scanning = False
-                elif line.startswith("status:"):
-                    ending = line[len(line.rstrip("\r\n")):]
-                    updated.append("status: pending" + ending)
-                    updated.append('pending_reason: "%s"\n' % parked.replace('"', "'"))
-                    replaced = True
-                    continue
-                elif line.startswith("pending_reason:"):
-                    continue
-            updated.append(line)
-        if not replaced:
-            raise ValueError("issue '%s' frontmatter has no status field" % slug)
-        write_state(root, path, "".join(updated))
-        return {"feature": feature, "slug": slug, "status": "pending", "pending_reason": parked}
-
-
-def start_issue(root, feature, slug):
-    root = Path(root).resolve()
-    path = find_issue(root, feature, slug)
-    output = io.StringIO()
-    with transaction(root):
-        raw, data = issue_state(root, feature, path)
-        packet = _issue_packet(root, feature, slug, path, raw, data)
-        _attach_retry_summaries(root, feature, [packet])
-        with redirect_stdout(output), redirect_stderr(output):
-            code = _wave_driver().cmd_dispatch(str(root), [slug], direct=True, feature=feature)
-        if code:
-            from workflow_batch import BatchError
-            raise BatchError("dispatch_rejected", output.getvalue().strip(), code)
-        execution = next(line.removeprefix("execution: ") for line in output.getvalue().splitlines()
-                         if line.startswith("execution: "))
-        current = assignment(root, feature, slug, execution)
-        check_contract(current, slug, raw, data, root=root, feature=feature)
-        if ("effective_verifier" in packet and current.get("verifier_sha256", {}).get(slug)
-                != packet["effective_verifier"]["effective_sha256"]):
-            raise ValueError("verifier profile changed while preparing the direct input")
-        bind_packet_inputs(root, [packet], current)
-        result = {"packet": packet,
-                  "execution": current["execution"], "baseline_sha256": current["baseline_sha256"]}
-        if current.get("batch_id"):
-            result.update(batch_id=current["batch_id"], protocol_version=current["protocol_version"])
-        return result
-
-
-def _close_issue(root, feature, slug, path, raw, data):
-    root = Path(root).resolve()
-    if data.get("status") != "ready":
-        raise ValueError(
-            "issue '%s' is '%s'; close requires status: ready" % (slug, data.get("status"))
-        )
-    if "### 完成" not in raw:
-        raise ValueError("issue '%s' has no ### 完成 record" % slug)
-    if data.get("contract_version") == "3":
-        validate_v3_completion(root, path, raw)
-    lines = raw.splitlines(keepends=True)
-    updated = []
-    scanning = False
-    replaced = False
-    for index, line in enumerate(lines):
-        if index == 0 and line.rstrip("\r\n") == "---":
-            scanning = True
-            updated.append(line)
-            continue
-        if scanning:
-            if line.rstrip("\r\n") == "---":
-                scanning = False
-            elif line.startswith("status:"):
-                ending = line[len(line.rstrip("\r\n")):]
-                updated.append("status: done" + ending)
-                replaced = True
-                continue
-        updated.append(line)
-    if not replaced:
-        raise ValueError("issue '%s' frontmatter has no status field" % slug)
-    write_state(root, path, "".join(updated))
-    result = {
-        "feature": feature,
-        "slug": slug,
-        "status": "done",
-    }
-    ledger = root / ".scratch" / feature / "wave-ledger.json"
-    if not (ledger.is_file() and not ledger_closed(ledger)):
-        candidates = gc_feature(root, feature, apply=False)["candidates"]
-        if candidates:
-            result["gc_candidates"] = candidates
-    return result
-
-
 def percentile(values, fraction):
     if not values:
         return None
@@ -740,7 +368,6 @@ def percentile(values, fraction):
     return round(ordered[index], 6)
 
 
-@reading
 def stats(root):
     root = Path(root).resolve()
     durations = {}
@@ -772,434 +399,225 @@ def stats(root):
         key = "v3" if str(data.get("contract_version", "")) == "3" else "v2"
         cards[key] += 1
         card_bytes[key] += len(raw.encode("utf-8"))
+    completion = {"done": 0, "invalid": 0}
+    invalid = []
+    for feature in feature_names(root):
+        projection = inspect_feature(root, feature)
+        for key in completion:
+            completion[key] += projection["counts"][key]
+        invalid.extend(dict(item, feature=feature) for item in projection["invalid"])
     return {
         "schema_version": 1,
         "timing": timing,
         "cards": cards,
         "card_bytes": card_bytes,
+        "completion": completion,
+        "invalid": invalid,
     }
 
 
-def render_human(state):
-    lines = [
-        "# %s — 已追踪交付记录: %d · 来源 digest %s"
-        % (state["feature"], state["source_count"], state["source_digest"])
-    ]
-    if not state["delivered"]:
-        lines.append("- （无已交付行为）")
-    for item in state["delivered"]:
-        summary = item["summary"] or "（无行为摘要）"
-        lines.append("- %s — %s [%s]" % (item["slug"], summary, item["path"]))
-    for review in state.get('reviews', []):
-        lines.append('- review %s %s %s' % (review['point'], review['state'], review['checkpoint_ref']))
-    for feedback in state.get('feedback', []):
-        if feedback['status'] not in ('resolved', 'cancelled'):
-            lines.append('- feedback %s %s' % (feedback['id'], feedback['status']))
-    return "\n".join(lines)
-
-
-@reading
-def feature_frontier(root, feature):
+def issue_packet(root, feature, slug):
     root = Path(root).resolve()
-    issue_dir = feature_issue_dir(root, feature)
-    live = []
-    done = set()
-    if not issue_dir.is_dir():
-        result = {'feature': feature, 'counts': {'ready': 0, 'blocked': 0, 'done': 0, 'zombie': 0}, 'ready': [], 'blocked': [], 'zombies': []}
-        incremental_view(root, feature, result)
-        if 'action' in result:
-            return result
-        raise ValueError("feature '%s' has no issue directory" % feature)
-    for path in issue_paths(root, feature):
+    path = find_issue(root, feature, slug)
+    raw, data = issue_state(root, feature, path)
+    return _issue_packet(root, feature, slug, path, raw, data)
+
+
+def issue_packets(root, feature, slugs):
+    if len(slugs) != len(set(slugs)):
+        raise ValueError("duplicate packet slug")
+    return [issue_packet(root, feature, slug) for slug in slugs]
+
+
+def _spec_gate(root, feature, raw):
+    directory = Path(root) / ".scratch" / feature
+    if not parse_parent_pointer(raw) and not (directory / "spec-review.json").exists():
+        return []
+    path = Path(__file__).resolve().parent / "spec" / "scripts" / "spec-review.py"
+    spec = importlib.util.spec_from_file_location("cosmos_spec_review", path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    if parse_parent_pointer(raw):
+        module.parent_contract(directory, raw)
+    problem = module.acceptance_barrier(directory, [("card", raw)])
+    return [problem] if problem else []
+
+
+def _admission(root, feature, path, raw, data):
+    if data.get("status") != "ready":
+        raise ValueError("engineering admission requires a ready card")
+    verification_contract(root, path, raw)
+    dependencies = data.get("blocked_by", [])
+    if not isinstance(dependencies, list) or any(not isinstance(value, str) for value in dependencies):
+        raise ValueError("blocked_by must be a list of issue slugs")
+    if dependencies:
+        paths = issue_paths(root, feature)
+        for slug in sorted(set(dependencies)):
+            safe_segment(slug, "dependency")
+            matches = [candidate for candidate in paths if candidate.stem == slug]
+            if len(matches) != 1:
+                raise ValueError("dependency needs exactly one retained card: " + slug)
+            dependency = matches[0]
+            dep_raw, dep_data = issue_state(root, feature, dependency)
+            if dep_data.get("status") != "done":
+                raise ValueError("unfinished dependency: " + slug)
+            try:
+                validate_completion(root, dependency, dep_raw)
+            except (OSError, ValueError) as exc:
+                raise ValueError("dependency '%s' has no valid completion proof: %s" % (slug, exc)) from exc
+    problems = _spec_gate(root, feature, raw)
+    if problems:
+        raise ValueError("; ".join(problems))
+
+
+def start_issue(root, feature, slug):
+    root = Path(root).resolve()
+    path = find_issue(root, feature, slug)
+    raw, data = issue_state(root, feature, path)
+    _admission(root, feature, path, raw, data)
+    return {"admitted": True, "packet": _issue_packet(root, feature, slug, path, raw, data)}
+
+
+def _set_status(raw, status, reason=None):
+    lines = raw.splitlines(keepends=True)
+    inside = False
+    changed = False
+    result = []
+    for index, line in enumerate(lines):
+        if line.strip() == "---":
+            inside = index == 0
+        if inside and line.startswith("pending_reason:"):
+            continue
+        if inside and line.startswith("status:"):
+            line = "status: " + status + "\n"
+            if reason:
+                line += "pending_reason: " + json.dumps(reason, ensure_ascii=False) + "\n"
+            changed = True
+        result.append(line)
+    if not changed:
+        raise ValueError("card has no status")
+    return "".join(result)
+
+
+def close_issue(root, feature, slug):
+    root = Path(root).resolve()
+    path = find_issue(root, feature, slug)
+    with file_lock(path.with_suffix(".lock")):
         raw, data = issue_state(root, feature, path)
-        if path.parent.name == "archive":
-            if data.get("status") == "done":
-                done.add(path.stem)
-            continue
-        status = data.get("status")
-        if status == "done":
-            done.add(path.stem)
-        live.append((path, raw, data))
-    ready = []
-    blocked = []
-    for path, raw, data in live:
-        if data.get("status") == "pending":
-            blocked.append({"slug": path.stem, "summary": compact_summary(raw), "blocked_by": ["pending: " + str(data.get("pending_reason", "readiness or decision unresolved"))], "status": "pending"})
-            continue
         if data.get("status") != "ready":
-            continue
-        dependencies = [value for value in data.get("blocked_by", []) if value]
-        missing = [value for value in dependencies if value not in done]
-        item = {
-            "slug": path.stem,
-            "summary": compact_summary(raw),
-            "blocked_by": missing,
-        }
-        (blocked if missing else ready).append(item)
-    zombies = []
-    ledger = root / ".scratch" / feature / "wave-ledger.json"
-    if ledger.is_file():
-        try:
-            payload = json.loads(ledger.read_text(encoding="utf-8"))
-        except (OSError, ValueError) as exc:
-            raise ValueError("cannot determine active executions from unreadable ledger: %s" % ledger) from exc
-        for wave in payload.get("waves", []):
-            for slug in sorted(set(wave.get("dispatched", [])) - set(wave.get("closed", {}))):
-                zombies.append({"slug": slug, "wave": wave.get("wave")})
-    zombie_slugs = {item["slug"] for item in zombies}
-    ready = [item for item in ready if item["slug"] not in zombie_slugs]
-    blocked = [item for item in blocked if item["slug"] not in zombie_slugs]
-    result = {
-        "feature": feature,
-        "counts": {
-            "ready": len(ready),
-            "blocked": len(blocked),
-            "done": len(done),
-            "zombie": len(zombies),
-        },
-        "ready": ready,
-        "blocked": blocked,
-        "zombies": zombies,
-    }
-
-    incremental_view(root, feature, result)
-    return result
+            raise ValueError("close requires status: ready")
+        _admission(root, feature, path, raw, data)
+        validate_completion(root, path, raw)
+        atomic_write(path, _set_status(raw, "done"))
+    return {"feature": feature, "slug": slug, "status": "done"}
 
 
-def incremental_view(root, feature, result):
-    if not (Path(root) / '.scratch/batches/active.json').exists():
-        return
-    import workflow_batch as batch
-    active = batch.active_batch(root)
-    if not active:
-        return
-    owners = {ref.split('/')[0] for ref in active['members']} or {'workflow-runs'}
-    if feature in owners:
-        current = batch.batch_status(root, active['batch_id'])
-        result.update(reviews=current['reviews'], feedback=current['feedback'], action=current['action'])
-
-
-def render_survey(states):
-    if not states:
-        return "（无 feature state）"
-    lines = ["# 工作流前沿"]
-    for state in states:
-        count = state["counts"]
-        lines.append(
-            "%s: ready %d · blocked %d · done %d · uncollected %d"
-            % (
-                state["feature"],
-                count["ready"],
-                count["blocked"],
-                count["done"],
-                count["zombie"],
-            )
-        )
-        for item in state["ready"]:
-            lines.append("- ready %s — %s" % (item["slug"], item["summary"] or "（无摘要）"))
-        for item in state["blocked"]:
-            lines.append("- blocked %s ← %s" % (item["slug"], ", ".join(item["blocked_by"])))
-        for review in state.get("reviews", []):
-            lines.append("- review %s %s %s" % (review["point"], review["state"], review["checkpoint_ref"]))
-        for feedback in state.get("feedback", []):
-            if feedback["status"] not in ("resolved", "cancelled"):
-                lines.append("- feedback %s %s" % (feedback["id"], feedback["status"]))
-        for item in state["zombies"]:
-            lines.append("- uncollected %s (wave %s) · 已派发未归集，运行状态以宿主为准"
-                         % (item["slug"], item["wave"]))
-    return "\n".join(lines)
+def park_issue(root, feature, slug, reason):
+    if not reason.strip():
+        raise ValueError("park needs an engineering reason")
+    root = Path(root).resolve()
+    path = find_issue(root, feature, slug)
+    with file_lock(path.with_suffix(".lock")):
+        raw, data = issue_state(root, feature, path)
+        if data.get("status") not in ("ready", "pending"):
+            raise ValueError("completed history cannot be parked")
+        atomic_write(path, _set_status(raw, "pending", reason.strip()))
+    return {"feature": feature, "slug": slug, "status": "pending", "pending_reason": reason.strip()}
 
 
 def feature_names(root):
-    from workflow_batch import CONTROL_DIRS, reject_control_feature
     scratch = Path(root) / ".scratch"
-    if not scratch.is_dir():
-        return []
-    paths = list(scratch.iterdir())
-    for path in paths:
-        reject_control_feature(path)
-    return sorted(
-        path.name for path in paths
-        if path.name not in CONTROL_DIRS and path.is_dir() and (path / "issues").is_dir()
-    )
+    return sorted(p.name for p in scratch.iterdir()
+                  if p.name not in CONTROL_DIRS and (p / "issues").is_dir()) if scratch.is_dir() else []
 
 
-def ledger_closed(path):
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return False
-    for wave in payload.get("waves", []):
-        if set(wave.get("dispatched", [])) - set(wave.get("closed", {})):
-            return False
-    return True
-
-
-def ledger_has_active_conflict(path):
-    """A dismissed conflict is rewritten to red; any retained conflict is still a barrier."""
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return False
-    return any(
-        result == "conflict"
-        for wave in payload.get("waves", [])
-        for result in wave.get("closed", {}).values()
-    )
-
-
-def ledger_baseline_refs(path):
-    """Return referenced global baselines, or None when a ledger is unreadable."""
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return None
-    return {
-        digest
-        for wave in payload.get("waves", [])
-        for digest in [wave.get("baseline_sha256")]
-        if isinstance(digest, str) and re.fullmatch(r"[0-9a-f]{64}", digest)
-    }
-
-
-def released_baseline_artifacts(root, removed_ledger):
-    """Baselines owned by this ledger and no other retained feature ledger."""
-    released = ledger_baseline_refs(removed_ledger)
-    if not released:
-        return []
-    retained = set()
-    for path in (root / ".scratch").glob("*/wave-ledger.json"):
-        if path == removed_ledger:
-            continue
-        references = ledger_baseline_refs(path)
-        if references is None:
-            return []
-        retained.update(references)
-    directory = root / ".scratch" / "wave-baselines"
-    return [
-        directory / (digest + ".json")
-        for digest in sorted(released - retained)
-        if (directory / (digest + ".json")).is_file()
-    ]
-
-
-def gc_feature(root, feature, apply=False):
-    from checkpoint_store import collect_artifacts
-    artifacts = collect_artifacts(root, feature, apply)
-    try:
-        result = legacy_gc_feature(root, feature, apply)
-    except (OSError, ValueError) as exc:
-        result = {"feature": feature, "candidates": [], "removed": [], "legacy_retained": str(exc)}
-    result["candidates"] += artifacts["candidates"]
-    result["removed"] += artifacts["removed"]
-    result.update(removed_bytes=artifacts["removed_bytes"], retained=artifacts["retained"])
-    return result
-
-
-def legacy_gc_feature(root, feature, apply=False):
-    if apply:
-        with transaction(root):
-            return _gc_feature(root, feature, apply=True)
-    require_settled(root)
-    return _gc_feature(root, feature)
-
-
-@reading
-def _gc_feature(root, feature, apply=False):
+def feature_frontier(root, feature):
     root = Path(root).resolve()
-    feature_dir = root / ".scratch" / feature
-    ready = False
+    ready, blocked, done, invalid = [], [], [], []
     for path in issue_paths(root, feature):
-        _, data = issue_state(root, feature, path)
-        if path.parent.name == "archive":
-            continue
-        if data.get("status") == "ready":
-            ready = True
-            break
-    ledger = feature_dir / "wave-ledger.json"
-    open_wave = ledger.is_file() and not ledger_closed(ledger)
-    active_conflict = ledger.is_file() and ledger_has_active_conflict(ledger)
-    from workflow_batch import retain_feature
-    batch_retained = retain_feature(root, feature)
-    candidates = []
-    if not ready and not open_wave and not active_conflict and not batch_retained:
-        for path in (feature_dir / "preflight-receipt.json", ledger):
-            if path.is_file():
-                candidates.append(path)
-        if ledger in candidates:
-            candidates.extend(released_baseline_artifacts(root, ledger))
-    removed = []
-    if apply:
-        for path in candidates:
-            path.unlink()
-            removed.append(path.relative_to(root).as_posix())
-    return {
-        "feature": feature,
-        "ready": ready,
-        "open_wave": open_wave,
-        "active_conflict": active_conflict,
-        "candidates": [path.relative_to(root).as_posix() for path in candidates],
-        "removed": removed,
-    }
+        raw, data = issue_state(root, feature, path)
+        if data.get("status") == "done":
+            record = issue_record(root, feature, path)
+            if "reason" in record:
+                invalid.append(record)
+            else:
+                done.append(path.stem)
+        elif path.parent.name != "archive":
+            item = {"slug": path.stem, "summary": compact_summary(raw)}
+            if data.get("status") == "ready":
+                try:
+                    start_issue(root, feature, path.stem)
+                    ready.append(item)
+                except ValueError as exc:
+                    blocked.append(dict(item, blocked_by=[str(exc)]))
+            else:
+                blocked.append(dict(item, blocked_by=[data.get("pending_reason", "pending engineering decision")]))
+    return {"feature": feature,
+            "counts": {"ready": len(ready), "blocked": len(blocked), "done": len(done), "invalid": len(invalid)},
+            "ready": ready, "blocked": blocked, "done": sorted(done), "invalid": invalid}
 
 
-def parser(include_batch=True):
-    command = argparse.ArgumentParser(prog="workflow-state.py")
-    sub = command.add_subparsers(dest="command", required=True)
-    if include_batch:
-        from workflow_batch import add_cli
-        add_cli(sub)
-    inspect = sub.add_parser("inspect")
-    inspect.add_argument("root")
-    inspect.add_argument("feature")
-    inspect.add_argument("--format", choices=("json", "human"), default="human")
-    survey = sub.add_parser("survey")
-    survey.add_argument("root")
-    survey.add_argument("--format", choices=("json", "human"), default="human")
-    survey.add_argument("--history", action="store_true")
-    survey.add_argument(
-        "--feature",
-        action="append",
-        default=None,
-        help="limit the survey to this feature (repeatable); default is every feature",
-    )
-    for command_name in ("artifact-register", "artifact-release"):
-        artifact = sub.add_parser(command_name)
-        artifact.add_argument("root")
-        artifact.add_argument("feature")
-        if command_name == "artifact-register":
-            artifact.add_argument("--record", required=True)
-        else:
-            artifact.add_argument("--owner", required=True)
-            artifact.add_argument("--consumer")
-    gc = sub.add_parser("gc")
-    gc.add_argument("root")
-    gc.add_argument("feature")
-    gc.add_argument("--apply", action="store_true")
-    packet = sub.add_parser("packet")
-    packet.add_argument("root")
-    packet.add_argument("feature")
-    packet.add_argument("slug")
-    start = sub.add_parser("start")
-    start.add_argument("root")
-    start.add_argument("feature")
-    start.add_argument("slug")
-    packets = sub.add_parser("packets")
-    packets.add_argument("root")
-    packets.add_argument("feature")
-    packets.add_argument("slugs", nargs="+")
-    briefs = sub.add_parser("briefs")
-    briefs.add_argument("root")
-    briefs.add_argument("feature")
-    briefs.add_argument("slugs", nargs="*")
-    briefs.add_argument("--compact", action="store_true")
-    close = sub.add_parser("close")
-    close.add_argument("root")
-    close.add_argument("feature")
-    close.add_argument("slug")
-    close.add_argument("--execution")
-    park = sub.add_parser("park")
-    park.add_argument("root")
-    park.add_argument("feature")
-    park.add_argument("slug")
-    park.add_argument("--reason", required=True)
-    stats_cmd = sub.add_parser("stats")
-    stats_cmd.add_argument("root")
-    return command
-
-
-@reading
 def survey_states(root, history=False, features=None):
-    project = inspect_feature if history else feature_frontier
-    names = list(features) if features else feature_names(root)
-    if not features and (Path(root) / '.scratch/batches/active.json').exists():
-        import workflow_batch as batch
-        active = batch.active_batch(root)
-        if active and not active['members'] and 'workflow-runs' not in names:
-            names.append('workflow-runs')
-    return [project(root, feature) for feature in names]
+    return [(inspect_feature if history else feature_frontier)(root, f)
+            for f in (features if features else feature_names(root))]
+
+
+def render_human(state):
+    rows = ["# " + state["feature"]]
+    for item in state.get("delivered", state.get("ready", [])):
+        rows.append("- %s — %s" % (item["slug"], item["summary"]))
+    for item in state.get("blocked", []):
+        rows.append("- %s: %s" % (item["slug"], "; ".join(item["blocked_by"])))
+    for item in state.get("invalid", []):
+        rows.append("- %s — 完成证明无效: %s" % (item["slug"], item["reason"]))
+    if "counts" in state:
+        rows.append(json.dumps(state["counts"], ensure_ascii=False))
+    return "\n".join(rows)
 
 
 def main(argv=None):
-    # Stock Windows consoles default to the ANSI code page; never let an
-    # un-encodable character kill a survey mid-run.
-    for stream in (sys.stdout, sys.stderr):
-        try:
-            stream.reconfigure(encoding="utf-8", errors="replace")
-        except (AttributeError, ValueError):
-            pass
-    arguments = (argv or sys.argv)[1:]
-    requested = arguments[0] if arguments else ""
-    include_batch = requested.startswith(("batch-", "checkpoint-", "check-")) or requested in ("", "-h", "--help")
-    args = parser(include_batch=include_batch).parse_args(arguments)
-    if args.command.startswith(("batch-", "checkpoint-", "check-")):
-        from workflow_batch import BatchError, run_cli
-        try:
-            result = run_cli(args)
-        except (OSError, UnicodeError, ValueError, TypeError, KeyError, AttributeError, IndexError) as exc:
-            result = {"protocol_version": 2, "status": "blocked", "action": "blocked",
-                      "batch_id": getattr(args, "batch", None),
-                      "reason_code": exc.reason if isinstance(exc, BatchError) else "invalid_state",
-                      "message": str(exc)}
-            print(json.dumps(result, ensure_ascii=False))
-            return getattr(exc, "exit_code", 2)
-        print(json.dumps(result, ensure_ascii=False))
-        return 0
+    parser = argparse.ArgumentParser(description=__doc__)
+    sub = parser.add_subparsers(dest="command", required=True)
+    for name in ("inspect", "survey", "packet", "packets", "start", "close", "park", "stats"):
+        cmd = sub.add_parser(name)
+        cmd.add_argument("root", type=Path)
+        if name not in ("survey", "stats"):
+            cmd.add_argument("feature")
+        if name in ("packet", "start", "close", "park"):
+            cmd.add_argument("slug")
+        if name == "packets":
+            cmd.add_argument("slugs", nargs="+")
+        if name == "park":
+            cmd.add_argument("--reason", required=True)
+        if name in ("survey", "inspect"):
+            cmd.add_argument("--format", choices=("json", "human"), default="human")
+        if name == "survey":
+            cmd.add_argument("--history", action="store_true")
+            cmd.add_argument("--feature", action="append")
+    if argv and str(argv[0]).endswith("workflow-state.py"):
+        argv = argv[1:]
+    args = parser.parse_args(argv)
     try:
-        if args.command in ("artifact-register", "artifact-release"):
-            from checkpoint_store import register_artifact, release_artifacts
-            result = register_artifact(args.root, args.feature, json.loads(Path(args.record).read_text(encoding="utf-8"))) if args.command == "artifact-register" else release_artifacts(args.root, args.feature, args.owner, args.consumer)
-            output = json.dumps(result, ensure_ascii=False)
+        if args.command == "survey":
+            result = survey_states(args.root, args.history, args.feature)
         elif args.command == "inspect":
-            state = inspect_feature(args.root, args.feature)
-            output = json.dumps(state, ensure_ascii=False, indent=2) if args.format == "json" else render_human(state)
-        elif args.command == "survey":
-            states = survey_states(args.root, args.history, args.feature)
-            if args.format == "json":
-                output = json.dumps(states, ensure_ascii=False, indent=2)
-            else:
-                output = (
-                    "\n\n".join(render_human(state) for state in states) or "（无 feature state）"
-                    if args.history
-                    else render_survey(states)
-                )
-        elif args.command == "packet":
-            output = json.dumps(
-                issue_packet(args.root, args.feature, args.slug),
-                ensure_ascii=False,
-                separators=(",", ":"),
-            )
-        elif args.command == "start":
-            output = json.dumps(start_issue(args.root, args.feature, args.slug), ensure_ascii=False, separators=(",", ":"))
-        elif args.command == "packets":
-            output = json.dumps(
-                issue_packets(args.root, args.feature, args.slugs),
-                ensure_ascii=False,
-                separators=(",", ":"),
-            )
-        elif args.command == "briefs":
-            output = json.dumps(
-                worker_briefs(args.root, args.feature, args.slugs, compact=args.compact),
-                ensure_ascii=False,
-                separators=(",", ":"),
-            )
-        elif args.command == "close":
-            output = json.dumps(
-                close_issue(args.root, args.feature, args.slug, args.execution), ensure_ascii=False, indent=2
-            )
-        elif args.command == "park":
-            output = json.dumps(
-                park_issue(args.root, args.feature, args.slug, args.reason), ensure_ascii=False, indent=2
-            )
+            result = inspect_feature(args.root, args.feature)
         elif args.command == "stats":
-            output = json.dumps(stats(args.root), ensure_ascii=False, indent=2)
+            result = stats(args.root)
+        elif args.command == "packets":
+            result = issue_packets(args.root, args.feature, args.slugs)
         else:
-            output = json.dumps(gc_feature(args.root, args.feature, args.apply), ensure_ascii=False, indent=2)
-    except (OSError, UnicodeError, ValueError) as exc:
-        print("workflow-state: %s" % exc, file=sys.stderr)
-        return getattr(exc, "exit_code", 1) if args.command == "start" else 1
-    print(output)
-    return 0
+            method = {"packet": issue_packet, "start": start_issue, "close": close_issue, "park": park_issue}[args.command]
+            result = method(args.root, args.feature, args.slug, *([args.reason] if args.command == "park" else []))
+        if getattr(args, "format", "json") == "human":
+            print("\n\n".join(render_human(row) for row in result) if isinstance(result, list) else render_human(result))
+        else:
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    except (OSError, ValueError) as exc:
+        print("workflow-state: " + str(exc), file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":

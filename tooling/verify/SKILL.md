@@ -70,10 +70,10 @@ needs its own implementation work, complete that bounded unit before claiming th
 ready. A plan-only caller receives the proposed tooling work. Preflight exercises an existing smoke
 path or representative harness action; the future behavior remains TDD's RED/GREEN obligation.
 
-For a managed batch, load `../tdd/BATCH-FORMAT.md` when wiring the tool's command and
-result to a job. Reuse its run identity, resource lifecycle, budget and proof consumer.
-The tool emits observed state and evidence; it does not create a second queue, receipt authority or
-completion state. Shared devices require the caller's resource ownership even during diagnosis.
+Use native execution or project/CI runners. The tool exposes an operation and raw observations;
+it owns no Cosmos queue, process supervisor or completion state. Shared devices use their real
+fixture/resource owner, including during diagnosis. A new runner is not a fallback for a missing
+host capability; restrict the dependent operation and report that concrete gap.
 Verify that the selected result adapter consumes the actual runner output and rejects a failing
 assertion. A tool's success flag or exploratory transcript cannot replace that check. Source-preview
 results remain diagnostic; final proof must exercise the actual fixed candidate or produced artifact.

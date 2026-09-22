@@ -9,8 +9,8 @@ materialization is allowed.
 ## When a review page is warranted
 
 Only complex or consequential Spec Review — a PRD whose R/D/S anchors name one-way doors,
-irreversible migrations, or decisions shared across slices. Ordinary TDD, ordinary PRs, a single
-issue, checkpoints and test results never get a page; they stay in the normal chat/report surfaces.
+irreversible migrations, or decisions shared across slices. Ordinary TDD, ordinary PRs and individual test results use normal report surfaces. Delivery review
+binds an explicitly fixed candidate and its declared scope; it is separate from Spec acceptance.
 
 ## What the human judges
 
@@ -51,17 +51,15 @@ wait on an ordinary local CLI.
 
 Fallback path: when the harness cannot hold a long tool call, cannot open a browser, or forbids
 a localhost listener, `scripts/spec-review.py render` writes the same page as static HTML; its
-comment boxes build a `SPEC FEEDBACK` text block for copy, and the user pastes it back. Its 「全部确定」
-button copies explicit approval with Spec/Digest when comments are empty; with comments it copies feedback.
-The user pastes that text into the harness to submit; copying alone does not record acceptance. Copy failure
-keeps the text selectable and requests manual copying. `render` is the
-compatibility fallback, not the default.
+comment boxes build a `SPEC FEEDBACK` text block for copy, and the user pastes it back. Static pages
+collect feedback only; approval uses the `review` bridge and its durable confirmation. Copy failure
+keeps the text selectable and requests manual copying.
 
 The bridge accepts only the review token, the spec digest, item ids/hashes, an action and comments;
 it never takes paths, commands or code, and the browser never writes the repository. A submit
 against an edited PRD returns `stale_review`; treat any stale payload as void and re-render.
-For copied feedback or approval, the harness must match Spec/Digest against the current PRD bytes
-before revising the draft or recording acceptance. A stale payload requires a fresh review of the
+For copied feedback, the harness must match Spec/Digest against the current PRD bytes
+before revising the draft. A stale payload requires a fresh review of the
 current version; the last-rendered digest alone is insufficient if the PRD changed afterward.
 
 ## Feedback re-derivation
@@ -81,14 +79,14 @@ agent's job against the current draft.
 
 ## Acceptance and materialization
 
-`全部确定` (bridge) or an explicit human approval in the harness records acceptance:
-`scripts/spec-review.py accept` stamps `accepted_digest`, `accepted_items`, and the accepted PRD
-bytes (`spec-accepted.md`) in the feature directory. Materialize new or changed issues,
+`全部确定` in the bridge persists the raw human event, then stamps `accepted_digest`, `accepted_items`
+and the accepted PRD bytes (`spec-accepted.md` plus an immutable digest-named snapshot) before
+confirming acceptance. No agent-callable approval command exists. Materialize new or changed issues,
 verifier profiles and preflights only after their design is accepted. Gate the complete new design with
 `scripts/spec-review.py validate <repo-root> <feature> --require-accepted`
 (`accepted_digest == current PRD digest`). The artifact gate additionally rejects a reviewed
 feature whose materialized issues lack a matching accepted digest; it also rejects an accepted
-snapshot that was edited after acceptance. Direct issue start, drain dispatch and ready-card validation
+snapshot that was edited after acceptance. Read-only issue start and ready-card validation
 reuse that integrity check, then scope admission through the card's `Parent: PRD-vN.md · S# · R#/D#`.
 The source must exist, name declared anchors and cover the slice's Covers. The source and current head
 must both match the accepted snapshot for those anchors, their transitive dependencies and all global
@@ -111,5 +109,28 @@ proof via dependencies; do not clone all old AC or repeat passed checks without 
 
 The bridge stays only while it pays for itself: browser review measurably saves human time, the
 harness can wait on the CLI, feedback stays expressible in the bounded fields, and the static
-fallback remains available. If pilots show otherwise, delete the listener and keep
-`render` + copy feedback; PRD, issues, TDD and proof are unaffected.
+fallback remains available. A replacement must preserve fixed identity, raw human event and durable
+acceptance confirmation. Retire the bridge only after a replacement transport implements those
+guarantees. Until then, `render` collects feedback only; copying is never acceptance.
+
+## Fixed identity and native UI
+
+Spec acceptance binds normalized Spec bytes, accepted anchors and the raw human event. It does not
+add a current-workspace HEAD gate. Delivery acceptance separately binds candidate commit/tree,
+external/produced artifact digests, review-model/page digest and required proof references. Preserve
+the displayed version while independent development continues. New candidates do not inherit approval.
+
+Rendered review files are fixed by identity, not overwritten in place. Native artifact cards can
+navigate to those bytes. A native UI may replace the bridge only when it displays that version,
+transports feedback fields unchanged, preserves raw human-event origin, binds the digest, rejects
+stale/conflicting events, and confirms only after successful persistence. Agent-authored answers to
+workflow questions are not approval events. Do not create a Dynamic Workflow merely to show a page.
+
+Repeated identical events are idempotent; the same event ID with a different object or decision is
+rejected. No explicit submission means no approval, including empty fields, timeout or disconnection.
+Reopen the same pending object through native tools when necessary; do not poll it via a new scheduler.
+
+For a fixed delivery-review record, use
+`python <spec-skill-dir>/scripts/spec-review.py review-candidate ROOT REVIEW_JSON`.
+Optional `--timeout N`, `--no-browser` and `--port` control transport. This is the raw human bridge,
+not an agent-written approval argument. Its immutable record is prepared by `evidence.py review`.

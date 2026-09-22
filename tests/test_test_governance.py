@@ -26,10 +26,13 @@ class TestGovernanceTests(unittest.TestCase):
         self.root = Path(tmp.name).resolve()
 
     def receipt(self, seconds=10, outcome='pass', index=0, **extra):
-        return dict(argv=[sys.executable, '-m', 'unittest'], cwd=str(self.root), scope='full',
+        receipt = dict(schema_version=2, kind='check_receipt', candidate_digest='a' * 64,
+                    argv=[sys.executable, '-m', 'unittest'], cwd='.', scope='full',
                     runtime={'python': '3.9', 'platform': 'fixture'}, measurement_context='fixture-cold-serial-v1',
                     outcome=outcome, duration_seconds=seconds, timeout_seconds=30,
-                    git={'head': 'fixed', 'dirty': False}, started_at=str(index), **extra)
+                    started_at=str(index))
+        receipt.update(extra)
+        return receipt
 
     def report(self, seconds=(10, 10), **extra):
         return governance.summarize([(str(i), self.receipt(s, index=i, **extra)) for i, s in enumerate(seconds)], self.root)
@@ -42,7 +45,7 @@ class TestGovernanceTests(unittest.TestCase):
         policy = governance.load_policy(ROOT / 'tests/test-policy.json')
         cases = [(['docs/readme.md'], {'catalog'}),
                  (['tests/ui_fixture/app.mjs'], {'catalog', 'regression', 'ui'}),
-                 (['workflow/workflow_jobs.py'], {'catalog', 'regression', 'ui', 'packaging'}),
+                 (['workflow/evidence.py'], {'catalog', 'regression'}),
                  (['tests/ui_fixture/app.mjs', 'scripts/install.ps1'], {'catalog', 'regression', 'windows', 'ui'}),
                  (['unmapped/new.json'], set(policy['groups'])),
                  ([], set(policy['groups'])),
@@ -91,7 +94,7 @@ class TestGovernanceTests(unittest.TestCase):
         group = next(iter(report['groups'].values()))
         self.assertEqual(2, report['runs'])
         self.assertEqual({'pass': 1, 'fail': 1}, group['outcomes'])
-        self.assertEqual(['fixed'], group['inconsistent_candidates'])
+        self.assertEqual(['a' * 64], group['inconsistent_candidates'])
         self.assertEqual(1, group['repeated_candidate_runs'])
         self.assertEqual('incomplete', governance.compare(report, self.fixed())['status'])
         with self.assertRaises(ValueError):
@@ -101,10 +104,21 @@ class TestGovernanceTests(unittest.TestCase):
         report = governance.summarize(rows[:1] + [('missing', missing)], self.root)
         self.assertEqual(1, report['missing_timings'])
         self.assertEqual('incomplete', governance.compare(report, self.fixed())['status'])
-        dirty = self.receipt()
-        dirty['git']['dirty'] = True
+        dirty = self.receipt(schema_version=1, kind='legacy', git={'head': 'fixed', 'dirty': True})
         report = governance.summarize([('x', dirty), ('y', dict(dirty, started_at='later'))], self.root)
         self.assertEqual(0, next(iter(report['groups'].values()))['repeated_candidate_runs'])
+
+    def test_candidate_digest_controls_schema2_counts_and_legacy_git_is_readable(self):
+        first = self.receipt(index=1, git={'head': 'workspace-now', 'dirty': True})
+        second = self.receipt(index=2, git={'head': 'workspace-later', 'dirty': False})
+        other = self.receipt(index=3, candidate_digest='b' * 64)
+        report = governance.summarize([('first', first), ('second', second), ('other', other)], self.root)
+        self.assertEqual(1, next(iter(report['groups'].values()))['repeated_candidate_runs'])
+        self.assertEqual(['a' * 64, 'a' * 64, 'b' * 64], [row['candidate'] for row in report['observations']])
+        legacy = self.receipt(schema_version=1, kind='legacy', git={'head': 'historical', 'dirty': False})
+        self.assertEqual('historical', governance.observations([('legacy', legacy)], self.root)[0]['candidate'])
+        missing = self.receipt(candidate_digest=None, git={'head': 'workspace', 'dirty': False})
+        self.assertIsNone(governance.observations([('missing', missing)], self.root)[0]['candidate'])
 
     def test_missing_context_and_invalid_stats_cannot_establish_baseline(self):
         receipt = self.receipt()
@@ -141,6 +155,14 @@ class TestGovernanceTests(unittest.TestCase):
         self.assertEqual(before, output.read_bytes())
         receipt.write_text('[]')
         self.assertEqual(2, subprocess.run(command[:-2], capture_output=True).returncode)
+
+    def test_report_cli_rejects_removed_batch_source(self):
+        result = subprocess.run([sys.executable, '-I', '-B', str(ROOT / 'workflow/test-governance.py'),
+                                 'report', '--root', str(self.root), '--batch', 'retired'],
+                                capture_output=True, text=True, timeout=10)
+        self.assertEqual(2, result.returncode)
+        self.assertIn('unrecognized arguments', result.stderr)
+        self.assertFalse((self.root / '.scratch').exists())
 
     def tiny_suite(self):
         directory = self.root / 'cases'

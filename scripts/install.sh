@@ -10,6 +10,8 @@ CLAUDE_ROOT="${HOME}/.claude"
 DRY_RUN=0
 FORCE=0
 SHARED_INSTALL=1
+POLICY_HELPERS=("verify-artifacts.py" "workflow-state.py" "workflow_contract.py" "evidence.py" "historical_proof.py" "TEST-POLICY.md" "test_governance.py" "test-governance.py" "workflow_ui.py")
+RETIRED_HELPERS=("workflow_runtime.py" "workflow_batch.py" "checkpoint_store.py" "workflow_managed.py" "workflow_incremental.py" "workflow_jobs.py" "workflow_resources.py" "workflow_members.py" "process_tree.py")
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -181,12 +183,22 @@ copy_file() {
   fi
 }
 
+# A filename alone cannot distinguish an old installer copy from user content.
+retain_retired_helpers() {
+  local skills_root="$1" helper
+  for helper in "${RETIRED_HELPERS[@]}"; do
+    [[ -f "$skills_root/$helper" && ! -L "$skills_root/$helper" ]] || continue
+    echo "Kept retired helper (ownership unproven): $skills_root/$helper"
+  done
+}
+
 echo
 copy_file "$ROOT/workflow/ARTIFACT-FORMAT.md" "$TARGET/ARTIFACT-FORMAT.md" "Contract: ARTIFACT-FORMAT.md"
 copy_file "$ROOT/workflow/REPORT-FORMAT.md" "$TARGET/REPORT-FORMAT.md" "Contract: REPORT-FORMAT.md"
-for gate in verify-artifacts.py workflow-state.py workflow_contract.py workflow_runtime.py TEST-POLICY.md test_governance.py test-governance.py workflow_batch.py checkpoint_store.py workflow_managed.py workflow_incremental.py workflow_jobs.py workflow_resources.py workflow_ui.py workflow_members.py process_tree.py; do
+for gate in "${POLICY_HELPERS[@]}"; do
   copy_file "$ROOT/workflow/$gate" "$TARGET/$gate" "Gate: $gate"
 done
+retain_retired_helpers "$TARGET"
 for helper in eval.py eval_campaign.py eval_metrics.py; do
   copy_file "$ROOT/scripts/$helper" "$TARGET/$helper" "Eval: $helper"
 done
@@ -274,12 +286,10 @@ mirror_shared_root() {
 
   copy_file "$ROOT/workflow/ARTIFACT-FORMAT.md" "$skills_root/ARTIFACT-FORMAT.md" "Contract: ARTIFACT-FORMAT.md ($label)"
   copy_file "$ROOT/workflow/REPORT-FORMAT.md" "$skills_root/REPORT-FORMAT.md" "Contract: REPORT-FORMAT.md ($label)"
-  copy_file "$ROOT/workflow/verify-artifacts.py" "$skills_root/verify-artifacts.py" "Gate: verify-artifacts.py ($label)"
-  copy_file "$ROOT/workflow/workflow-state.py" "$skills_root/workflow-state.py" "State: workflow-state.py ($label)"
-  copy_file "$ROOT/workflow/workflow_contract.py" "$skills_root/workflow_contract.py" "Contract: workflow_contract.py ($label)"
-  for helper in workflow_runtime.py TEST-POLICY.md test_governance.py test-governance.py workflow_batch.py checkpoint_store.py workflow_managed.py workflow_incremental.py workflow_jobs.py workflow_resources.py workflow_ui.py workflow_members.py process_tree.py; do
-    copy_file "$ROOT/workflow/$helper" "$skills_root/$helper" "Runtime: $helper ($label)"
+  for helper in "${POLICY_HELPERS[@]}"; do
+    copy_file "$ROOT/workflow/$helper" "$skills_root/$helper" "Policy: $helper ($label)"
   done
+  retain_retired_helpers "$skills_root"
 
   for i in "${!NAMES[@]}"; do
     name="${NAMES[$i]}"
@@ -351,17 +361,11 @@ retire_zcode_mirror() {
       echo "Removed zcode mirror link: $entry"
     fi
   done
-  # The old installer also copied contract files here as real files, which
-  # the link filter above never sees; remove those exact known names.
+  # Old copied files have no ownership marker; their names do not authorize deletion.
   local f
-  for f in ARTIFACT-FORMAT.md REPORT-FORMAT.md verify-artifacts.py workflow-state.py            workflow_contract.py workflow_runtime.py TEST-POLICY.md test_governance.py test-governance.py workflow_batch.py checkpoint_store.py workflow_managed.py workflow_incremental.py workflow_jobs.py workflow_resources.py workflow_ui.py workflow_members.py process_tree.py; do
+  for f in ARTIFACT-FORMAT.md REPORT-FORMAT.md "${POLICY_HELPERS[@]}" "${RETIRED_HELPERS[@]}"; do
     [[ -f "$zcode_skills/$f" && ! -L "$zcode_skills/$f" ]] || continue
-    if [[ "$DRY_RUN" -eq 1 ]]; then
-      echo "[DryRun] Remove zcode contract copy: $zcode_skills/$f"
-    else
-      rm -f "$zcode_skills/$f"
-      echo "Removed zcode contract copy: $zcode_skills/$f"
-    fi
+    echo "Kept retired zcode copy (ownership unproven): $zcode_skills/$f"
   done
 }
 

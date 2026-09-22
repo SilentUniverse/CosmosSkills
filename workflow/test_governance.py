@@ -124,8 +124,11 @@ def observations(receipts, root):
                    'cwd': receipt['cwd'].replace(root, '<repo>'), 'scope': receipt['scope'],
                    'environment': receipt['runtime'], 'context': receipt.get('measurement_context')}
             outcome = receipt['outcome']
-            git = receipt.get('git') or {}
-            candidate = git.get('head') if not git.get('dirty', True) else None
+            if receipt.get('schema_version') == 2 and receipt.get('kind') == 'check_receipt':
+                candidate = receipt.get('candidate_digest')
+            else:
+                git = receipt.get('git') or {}
+                candidate = git.get('head') if not git.get('dirty', True) else None
             scenario = None
         duration = receipt.get('duration_seconds')
         if duration is not None:
@@ -252,7 +255,6 @@ def main(argv=None):
     report = sub.add_parser('report')
     report.add_argument('--root', type=Path, default=Path.cwd())
     report.add_argument('--receipts', type=Path, nargs='*', default=[])
-    report.add_argument('--batch')
     report.add_argument('--output', type=Path)
     report.add_argument('--limit', type=int, default=10)
     pin = sub.add_parser('baseline')
@@ -279,16 +281,6 @@ def main(argv=None):
                         stream.write('%s=%s\n' % (name, str(name in result['selected']).lower()))
         elif args.command == 'report':
             receipts = [(str(p), json.loads(p.read_text(encoding='utf-8'))) for p in args.receipts]
-            if args.batch:
-                import workflow_batch as batch
-                import workflow_managed as managed
-                from workflow_runtime import transaction
-                with transaction(args.root):
-                    state, _ = batch.load_batch(args.root, args.batch)
-                    for run_id in state['run_refs']:
-                        run = batch._json(batch._path(args.root, args.batch) / 'runs' / (run_id + '.json'))
-                        if run['receipt_ref']:
-                            receipts.append((run_id, managed._document(args.root, run['receipt_ref'])))
             result = summarize(receipts, args.root)
         elif args.command == 'baseline':
             result = baseline(json.loads(args.report.read_text(encoding='utf-8')), args.group, args.statistic, args.min_samples,

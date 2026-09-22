@@ -14,7 +14,7 @@ Trigger: a requested tracker switch, or existing issue files
 use deprecated states (`needs-triage`, `needs-info`, `wontfix`, `inbox`, `blocked`, `doing`,
 `shelved`, `ready-for-human`, `ready-for-agent`). Offer:
 
-- (a) **Switch to local-markdown + 2-state vocabulary** when requested. Update only affected configuration. Rename `ready-for-agent` to `ready` only in status metadata; verify readiness against the current schema. For other states, infer mappings from AC/evidence and completion records; group unresolved mappings for one user decision. Do not infer deletion authority from a deprecated state.
+- (a) **Switch to local-markdown engineering vocabulary** when requested. Update only affected configuration. Rename `ready-for-agent` to `ready` only in status metadata; verify readiness against the current schema. For other states, infer mappings from AC/evidence and completion records; group unresolved mappings for one user decision. Do not infer deletion authority from a deprecated state.
 - (b) **Keep the configured tracker.** A `gh` / `glab` reference alone does not justify switching it.
 
 ## Case 5 — Frontmatter migration (bare `Status:` lines)
@@ -53,7 +53,7 @@ Steps:
 
 Run `../verify-artifacts.py <repo-root>` and report changes plus unresolved schema gaps. If `refines`
 cannot be proven, leave it unset and resolve intent through `/spec`; GC never hides it. Preserve
-historical completion bodies; active-batch failure recovery follows [DRAIN](../tdd/DRAIN.md), not migration.
+historical completion bodies and proof closure; native recovery owns active execution, not migration.
 
 ## Case 2 — Legacy `docs/agents/domain.md` fold
 

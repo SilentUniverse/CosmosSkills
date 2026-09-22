@@ -1,10 +1,16 @@
 # Workflow
 
-Engineering and general agent-workflow skills. The per-skill catalog lives once in the
+Engineering policy skills. The host owns task/session execution, scheduling and recovery. The per-skill catalog lives once in the
 [root README](../README.md#skill).
 
 Shared artifact schemas, indexes, and directory contracts live in
 [ARTIFACT-FORMAT.md](ARTIFACT-FORMAT.md).
+
+## Continuation
+
+[Handoff](handoff/SKILL.md) preserves otherwise inaccessible unfinished engineering facts;
+[resume](resume/SKILL.md) retrieves the named source, checks relevant drift and continues.
+Same-task context compaction and session recovery stay native. Neither skill manages execution state.
 
 ## Application verification loop
 

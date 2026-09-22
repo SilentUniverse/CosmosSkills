@@ -35,11 +35,11 @@ Classify each unit:
 
 Split when units have independent outcomes, verification, or scheduling needs. A dependency is
 `blocked_by`; wording such as “and also” is not a split criterion. Keep one coherent behavior and
-its error paths together. Each extra card must repay its handoff and verification overhead.
+its error paths together. Each extra card must repay its coordination and verification overhead.
 
 Parallel-bound slices declare their write set: `touches:` (dirs) + `test_paths:` (test files,
-from the AC). `-log` slices declare no `test_paths`; their acceptance is a log predicate. `-p` wave
-semantics live with the field: [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md). Only a graphical UI
+from the AC). `-log` slices declare no `test_paths`; their acceptance is a log predicate. Native
+parallel work respects the declared conflict/resource constraints: [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md). Only a graphical UI
 slice adds `experience_review`: use `runtime` for operated-state/runtime integrity and `graded` when
 visual hierarchy or usability is itself an aligned requirement. Backend, library, API, CLI,
 document, report, config, and other non-graphical slices omit the field entirely. Operable visual

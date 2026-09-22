@@ -39,13 +39,13 @@ Reproduce ordering bugs with controlled response barriers or triggers, then obse
 relevant work settles; fixed sleeps and a briefly correct final screen do not prove stale writes
 cannot recur. Retain the first failure, run the original scenario after repair, and bind evidence to
 the candidate. Zero scenarios, missing required assertions, unexpected skips, and fail-then-pass
-without resolution do not establish success. Keep attempts within the existing task/job budget.
+without resolution do not establish success. Preserve each attempt and use only diagnostically justified retries.
 
 Ownership follows the chosen surface. Close only tabs, contexts, profiles, and services created for
 the task; leave pre-existing user sessions intact. Record cleanup or the unresolved recovery need.
-Human taste/permission decisions remain separate from technical results. Managed batch completion
-requires the batch's actual proof consumer to validate the run binding; neither a native-browser
-transcript nor a fabricated CLI receipt substitutes for that consumer.
+Human taste/permission decisions remain separate from technical results. Completion validates raw
+observations against the fixed candidate and scenario contract; neither a browser success summary
+nor a fabricated CLI receipt substitutes for required assertions and retained evidence.
 
 ## Optional experience assessment
 

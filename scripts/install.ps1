@@ -47,6 +47,8 @@ param(
 $ErrorActionPreference = "Stop"
 $root = Split-Path $PSScriptRoot -Parent
 $sharedInstall = -not ($PSBoundParameters.ContainsKey("Target") -or $PSBoundParameters.ContainsKey("ClaudeRoot"))
+$policyHelpers = @("verify-artifacts.py", "workflow-state.py", "workflow_contract.py", "evidence.py", "historical_proof.py", "TEST-POLICY.md", "test_governance.py", "test-governance.py", "workflow_ui.py")
+$retiredHelpers = @("workflow_runtime.py", "workflow_batch.py", "checkpoint_store.py", "workflow_managed.py", "workflow_incremental.py", "workflow_jobs.py", "workflow_resources.py", "workflow_members.py", "process_tree.py")
 
 function New-JunctionCompat {
     param(
@@ -124,6 +126,18 @@ function Get-SkillName {
     return $null
 }
 
+function Keep-RetiredHelpers {
+    param([string]$SkillsRoot)
+
+    foreach ($helper in $retiredHelpers) {
+        $path = Join-Path $SkillsRoot $helper
+        $item = Get-PathEntry $path
+        if ($null -eq $item -or $item.PSIsContainer -or
+            ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { continue }
+        Write-Host ("Kept retired helper (ownership unproven): {0}" -f $path)
+    }
+}
+
 function Install-SharedSkillRoot {
     # Mirror the workflow into a shared skills root a host discovers from. Contract
     # files land first so junctioned skills resolve `../ARTIFACT-FORMAT.md` textually.
@@ -143,7 +157,7 @@ function Install-SharedSkillRoot {
         else { New-Item -ItemType Directory -Path $SkillsRoot -Force | Out-Null }
     }
 
-    foreach ($shared in @("ARTIFACT-FORMAT.md", "REPORT-FORMAT.md", "verify-artifacts.py", "workflow-state.py", "workflow_contract.py", "workflow_runtime.py", "TEST-POLICY.md", "test_governance.py", "test-governance.py", "workflow_batch.py", "checkpoint_store.py", "workflow_managed.py", "workflow_incremental.py", "workflow_jobs.py", "workflow_resources.py", "workflow_ui.py", "workflow_members.py", "process_tree.py")) {
+    foreach ($shared in (@("ARTIFACT-FORMAT.md", "REPORT-FORMAT.md") + $policyHelpers)) {
         $sharedSrc = Join-Path $root "workflow/$shared"
         if (-not (Test-Path -LiteralPath $sharedSrc)) { continue }
         $sharedDst = Join-Path $SkillsRoot $shared
@@ -153,6 +167,8 @@ function Install-SharedSkillRoot {
             Write-Host ("Contract: copied {0} -> {1}" -f $shared, $sharedDst) -ForegroundColor Green
         }
     }
+
+    Keep-RetiredHelpers $SkillsRoot
 
     $rootLinked = 0
     foreach ($s in $skills) {
@@ -344,7 +360,7 @@ if (Test-Path -LiteralPath $rfSource) {
 }
 
 # --- Ship the artifact gate scripts next to ARTIFACT-FORMAT.md (same distribution reason). ---
-foreach ($gate in @("verify-artifacts.py", "workflow-state.py", "workflow_contract.py", "workflow_runtime.py", "TEST-POLICY.md", "test_governance.py", "test-governance.py", "workflow_batch.py", "checkpoint_store.py", "workflow_managed.py", "workflow_incremental.py", "workflow_jobs.py", "workflow_resources.py", "workflow_ui.py", "workflow_members.py", "process_tree.py")) {
+foreach ($gate in $policyHelpers) {
     $gSrc = Join-Path $root "workflow/$gate"
     if (-not (Test-Path -LiteralPath $gSrc)) { continue }
     $gTarget = Join-Path $Target $gate
@@ -356,6 +372,8 @@ foreach ($gate in @("verify-artifacts.py", "workflow-state.py", "workflow_contra
         Write-Host ("Gate: copied {0} -> {1}" -f $gate, $gTarget) -ForegroundColor Green
     }
 }
+
+Keep-RetiredHelpers $Target
 
 foreach ($helper in @("eval.py", "eval_campaign.py", "eval_metrics.py")) {
     $evalSource = Join-Path $root "scripts/$helper"
@@ -492,18 +510,13 @@ if ($sharedInstall) {
                 Write-Host ("Removed zcode mirror link: {0}" -f $_.FullName) -ForegroundColor Yellow
             }
         } | Out-Null
-        # The old installer also copied contract files here as real files, which
-        # the link filter above never sees; remove those exact known names.
-        foreach ($shared in @("ARTIFACT-FORMAT.md", "REPORT-FORMAT.md", "verify-artifacts.py", "workflow-state.py", "workflow_contract.py", "workflow_runtime.py", "TEST-POLICY.md", "test_governance.py", "test-governance.py", "workflow_batch.py", "checkpoint_store.py", "workflow_managed.py", "workflow_incremental.py", "workflow_jobs.py", "workflow_resources.py", "workflow_ui.py", "workflow_members.py", "process_tree.py")) {
+        # Old copied files have no ownership marker; their names do not authorize deletion.
+        foreach ($shared in (@("ARTIFACT-FORMAT.md", "REPORT-FORMAT.md") + $policyHelpers + $retiredHelpers)) {
             $copy = Join-Path $zcodeSkills $shared
-            if (Test-Path -LiteralPath $copy -PathType Leaf) {
-                if ($DryRun) {
-                    Write-Host ("[DryRun] Remove zcode contract copy: {0}" -f $copy) -ForegroundColor Yellow
-                }
-                else {
-                    Remove-Item -LiteralPath $copy -Force
-                    Write-Host ("Removed zcode contract copy: {0}" -f $copy) -ForegroundColor Yellow
-                }
+            $item = Get-PathEntry $copy
+            if ($null -ne $item -and -not $item.PSIsContainer -and
+                ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0) {
+                Write-Host ("Kept retired zcode copy (ownership unproven): {0}" -f $copy) -ForegroundColor Yellow
             }
         }
     }

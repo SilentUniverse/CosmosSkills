@@ -1,5 +1,7 @@
 # 增量工作流：输入输出与成本
 
+> 历史测量：只适用于文中基线；退役组件的命令和结果不代表当前入口或性能。
+
 基线是实施前保留的实际工作目录，包含未提交的 checkpoint 实现。源文件哈希、全部样本、平台与编码见[原始数据](incremental-cost.json)。
 基线备份在 `.scratch/tmp/incremental-baseline.tar.gz`，其摘要记录在 JSON；解压后的 `baseline` 可传给 `--baseline-directory`。
 

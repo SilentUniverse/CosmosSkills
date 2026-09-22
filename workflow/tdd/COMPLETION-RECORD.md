@@ -1,114 +1,44 @@
-# tdd — Completion record
+# Engineering completion
 
-Load only when an issue-based run is ready to become `done`. The issue is the human-readable decision
-record; execution receipts and tests hold machine evidence. Do not narrate the implementation session.
+An Issue contract describes the obligation; immutable machine evidence proves it. Runtime completion
+and human acceptance are separate facts.
 
-## Before done
+Before completion, trace owned diffs to ACs, preserve other edits, record actual `test_paths`, and
+review changed tests with [tests.md](tests.md). Coordinate scope expansion before shared writes.
+Check exact contract, candidate, check/environment identity and retained input/log digests. The
+proof mappings must cover every runnable AC. Review the owned changes against the accepted contract
+and repository standards, challenge their most plausible failure, and trace it to evidence. Apply
+the [code-comment deletion test](../lint/references/code-comments.md) to changed comment blocks.
+A review with no finding is valid; retain only concrete findings worth keeping.
 
-1. Trace this issue's owned diff hunks to AC. Remove only this issue's own out-of-scope edits;
-   preserve user changes and other workers' hunks even when they appear in the same working tree.
-2. Append newly written test files to frontmatter `test_paths:` within admitted `touches` or original
-   test ownership. An execution cannot shrink ownership or change its behavior/profile contract.
-   A needed expansion outside those paths is attention before writing: stop affected workers,
-   reconcile/close the old execution, update the contract, then admit the revised work.
-3. Review changed tests using [test quality criteria](tests.md). Cover chosen failure modes: empty/boundary/error and relevant concurrency/timeout behavior.
-4. Reuse project verification commands; cache a reusable adapter in `CODEBASE.md` only when
-   project configuration cannot cheaply supply it.
-5. Challenge the most plausible failure and trace it to evidence. A review with no finding is
-   valid; do not invent a defect, new test, or extra round to create a record line.
-6. Review added comments against the [code-comment gate](../lint/references/code-comments.md):
-   apply its deletion test to each new or changed block; trim to the contract/why core or delete.
+Use [FULL-SUITE.md](FULL-SUITE.md) for fixed-candidate proof. Reuse valid checks across cards;
+`close` never executes tests, captures the current workspace or creates repair tasks.
 
-Hands-on checks an agent cannot run belong in the PRD's 端到端验证 or, without a parent PRD, the
-issue's `## 手动验证` projected as `manual_verification`. Keep them outside agent-runnable ACs.
-Report pending checks and their required owner/access at single-issue and batch handoff; `done`
-means the agent-runnable contract passed, not that these human checks passed. Exact command, exit,
-observable result, and evidence path are proof; “implemented” or “tests pass” is not.
-
-## Compact record
-
-Append the record to `## Comments` first, then flip the card mechanically:
+Append under `## Comments` without overwriting history:
 
 ```markdown
 ### 完成 — YYYY-MM-DD
 
-- 预检重放：P1[, P2] → fingerprint match；<exact action> → exit 0
-- 验证命令：`<exact command>` → exit <code>，<tally>，<duration class/time>；evidence=<receipt/log path or test assertion>
-- 验收：#1 → `<test path::case or CLI predicate>`；#2 → `<evidence>`
-- 审查：<failure challenge>→<evidence>→<disposition>；<diff hunk>→<AC or reverted>
-- 体验验证：evidence=.scratch/<feat>/evidence/<slug>-experience.json
+- candidate: .scratch/<feature>/candidate.json
+- evidence: .scratch/<feature>/receipts/<check>.json; AC 1,2
 ```
 
-Then flip the card mechanically:
+New completion uses one evidence line per check receipt with its covered AC numbers. Several Issues
+may cite the same valid check. The candidate line fixes the completion target and is required when
+combining receipts from different candidates. Every reused receipt must prove its full declared
+source/input closure unchanged for that target; changed inputs reject reuse. Without the line, all
+receipts must belong to the same candidate. Standalone Issues can use a candidate without a Spec;
+a Parent-bound Issue must bind the matching accepted Spec. Legacy v2 records keep exact `预检重放`,
+`验证命令` and AC mappings; old receipts/managed proofs remain read-only evidence, without restarting
+old machinery. Import new raw execution evidence and bind proof before engineering close.
 
-```text
-python ../workflow-state.py close <repo-root> <feat> <slug> --execution <id>
-```
+`workflow-state.py close ROOT FEATURE SLUG` validates proof references before recording completion.
+Missing, damaged or contradictory proof refuses completion even when a task/card says done.
+New work needs no execution ID, wave collection or batch membership.
 
-Use `python3` only when `python` is absent. `close` refuses a card without its `### 完成` record or
-one that is not `ready`. It validates the assigned execution and contract before flipping status;
-a direct `start` execution closes its ledger in the same transaction. Batch assignments remain open
-until wave reconciliation and `collect`. Legacy cards without an execution may omit the flag.
-Outside an open wave it also prints available transient-GC candidates; an active drain computes them
-once at batch close. A non-green direct run records its attempt and calls
-`drain-wave.py collect <repo-root> --feature <feat> --execution <id> <slug>=<result>`.
+Opted-in graphical work also follows [UI-TESTING.md](UI-TESTING.md). Human-only checks stay in the
+PRD's 端到端验证 or Issue's 手动验证. Approval binds the fixed object and raw user event, never `done`.
 
-For `contract_version: 3` cards the record is the receipt-reference form:
-
-```markdown
-### 完成 — YYYY-MM-DD
-
-- receipt: .scratch/<feat>/receipts/<slug>-<scope>.json
-```
-
-Run each named final command through `test-supervisor.py` with `--issue <card>`, `--verifier <name>`,
-`--receipt` under `.scratch/<feat>/receipts/`, and `--log` under `.scratch/tmp/`. One command covering
-the whole card omits `--ac`; otherwise pass its subset as `--ac 1,3-5` and add one receipt line per
-command. Every selected AC must map to that verifier in `## 验证设计`. The supervisor rejects a
-different cwd, command argv, or output path before execution; the receipt's field binding and the
-durable revalidation at `close` and later audits are owned by
-[ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md). At `close`, the gate requires receipt union to cover
-every AC. Coverage comes from bindings, not editable
-completion prose.
-The failure challenge and diff-to-AC review still run before completion. Add `审查` only when review found a
-concrete fact worth retaining: `<finding> → 已落在 <test/invariant/revert>`. `close` enforces the same receipt check before
-flipping.
-
-Omit `体验验证` unless the issue opts into graphical experience review. Add `备注` only for a fact
-the next maintainer cannot derive from code, issue, receipt, or git. `test_paths:` already lists test
-files; do not repeat a “新增测试” inventory unless a legacy consumer requires it.
-
-For v2 multiple commands, add one `验证命令` line per distinct scope (`targeted`, `module`, `full`,
-`build`). Map every AC on `验收`; combine them on one line when still unambiguous. For v3, keep one
-or several named issue receipts; batch-level full/build evidence stays at batch close.
-
-## Gate and failure
-
-For experience-review issues, write structured evidence first and run
-`python ../verify-artifacts.py <repo-root> --feature <feat>` (`python3` only when `python` is absent)
-before accepting `done`. A gate failure
-restores only that issue to `ready`.
-
-If execution aborts or will be retried, restore the original status and append one bounded block:
-
-```markdown
-### 尝试 — YYYY-MM-DD
-
-- 失败：<exact command/case + decisive error>
-- 已尝试：<materially different remedy + result>
-- 已确认：<facts the next worker should not rediscover>
-- 下一步：<specific next action>
-```
-
-Do not repeat facts already visible in the card, receipt, or code; the next packet projects only the
-newest attempt. `/tdd` stops at validated changes; submission
-continues through `/pr` in this task when already requested.
-
-
-## Managed batch completion (protocol 2)
-
-An assigned batch uses `check-local` for development feedback, then yields the complete
-execution to the controller. Local green or worker exit never marks an issue done; the controller
-writes the `managed-proof` completion only after executed receipts cover the issue AC and current
-contract. The completion form, proof-object semantics, and portable closure live in
-[BATCH-PROOF.md](BATCH-PROOF.md).
+Keep failed commands, observations, evidence and the concrete next step. Do not overwrite receipts,
+erase old completion or create a Repair Issue per retry. A lasting independent defect can use a fix;
+a changed contract uses `/spec`. Park only a concrete engineering gap. `/pr` runs only when requested.

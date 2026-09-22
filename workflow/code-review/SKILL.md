@@ -7,7 +7,7 @@ argument-hint: "Fixed point (commit/branch/tag); optional spec path (issue/PRD)"
 
 # Code Review
 
-For a protocol-2 checkpoint, review its fixed source/artifact and executed proof through [BATCH-FORMAT.md](../tdd/BATCH-FORMAT.md). A review finding is not an operator approval event.
+Review the explicitly fixed source/artifact and its executed proof. A review finding is not a human approval event; approval remains bound to the displayed object.
 
 Review the diff between `HEAD` (or a named branch) and a pinned fixed point:
 
@@ -45,7 +45,7 @@ Look for the originating spec, in this order:
 
 1. A path the user (or caller) passed as an argument — an issue file or PRD.
 2. The issue referenced by the branch / feature slug: `.scratch/<feat>/issues/NN-*.md`; its `## 验收标准（AC）` block is the spec. Read it from
-   `python ../workflow-state.py packet <repo-root> <feat> <slug>` (the packet's `acceptance` field) instead of re-parsing the issue markdown. For a `redo`/`fix` issue, also read the parent named by `refines:`. Review a multi-issue batch per issue; ask only when a requirement cannot be attributed after lookup.
+   `python ../workflow-state.py packet <repo-root> <feat> <slug>` (the packet's `acceptance` field) instead of re-parsing the issue markdown. For a `redo`/`fix` issue, also read the parent named by `refines:`. Review a set of issues against each issue contract; ask only when a requirement cannot be attributed after lookup.
 3. The feature's live PRD: inspect `PRD.md` and `PRD-vN.md` frontmatter and follow `supersedes` to
    the unique live head. Do not default to v1 or guess between multiple heads. If a supplied source
    was superseded, retain any requested historical comparison and identify the current contract.
