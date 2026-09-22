@@ -841,8 +841,8 @@ class WorkflowStateTests(unittest.TestCase):
             plant_issue(root, "01-one", status="ready")
             path = root / ".scratch/demo/issues/01-one.md"
             workflow_state.park_issue(root, "demo", "01-one", "needs a product decision")
-            self.assertIn("status: pending", path.read_text())
-            self.assertIn("needs a product decision", path.read_text())
+            self.assertIn("status: pending", path.read_text(encoding="utf-8"))
+            self.assertIn("needs a product decision", path.read_text(encoding="utf-8"))
             plant_issue(root, "02-done")
             with self.assertRaises(ValueError):
                 workflow_state.park_issue(root, "demo", "02-done", "erase history")
