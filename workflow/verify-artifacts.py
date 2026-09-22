@@ -17,7 +17,7 @@ from pathlib import Path
 ENGINEERING_ROOT = Path(__file__).resolve().parent
 if str(ENGINEERING_ROOT) not in sys.path:
     sys.path.insert(0, str(ENGINEERING_ROOT))
-from workflow_contract import effective_verifier, load_verifier_profile, validate_v3_completion, parse_parent_pointer
+from workflow_contract import effective_verifier, load_verifier_profile, validate_completion, parse_parent_pointer
 
 _SPEC_REVIEW = None
 
@@ -79,6 +79,7 @@ TIYAN_YANZHENG = "\u4f53\u9a8c\u9a8c\u8bc1"  # 体验验证
 XUQIU_JILU_YUAN = "\u9700\u6c42\u8bb0\u5f55\u6e90"  # 需求记录源
 PROFILE = "profile"  # profile
 RECEIPT_KEY = "receipt"  # receipt
+COMPLETION_PROOF_KEYS = ("evidence", RECEIPT_KEY, "managed-proof")
 AC_CHECKBOX = re.compile(r"^\s*-\s*\[[ xX]\]\s+\S")
 EVIDENCE_MAP = re.compile(r"^\s*-\s*#(\d+)\s*(?:\u2192|->)")
 PREFLIGHT_LINE = re.compile(r"^\s*-\s*P(\d+)\s+" + YUJIAN + r"[\uff1a:]\s*(.+)$")
@@ -184,6 +185,15 @@ def done_record(lines):
                 break
             block.append(s)
     return block
+
+
+def completion_proof_line(line):
+    stripped = line.lstrip()
+    return any(
+        stripped.startswith("- " + key + separator)
+        for key in COMPLETION_PROOF_KEYS
+        for separator in (":", "\uff1a")
+    )
 
 
 def h2_section(lines, word):
@@ -722,6 +732,9 @@ def main(argv):
             pass
     BAD_UTF8.clear()
     args = list(argv[1:])
+    if args in (["--help"], ["-h"]):
+        print("usage: python verify-artifacts.py [<repo-root>] [--feature <feat>]")
+        return 0
     feature = None
     if "--feature" in args:
         index = args.index("--feature")
@@ -744,7 +757,7 @@ def main(argv):
 
     errors = []
     warns = []
-    n_issues = n_prds = n_handoffs = n_summaries = n_cb_blocks = 0
+    n_issues = n_prds = n_summaries = n_cb_blocks = 0
 
     def err(msg):
         errors.append(msg)
@@ -764,41 +777,6 @@ def main(argv):
         if problem:
             raise ValueError(problem)
         return profile
-
-    def check_handoff(path, expected_feature):
-        nonlocal n_handoffs
-        n_handoffs += 1
-        fm = get_frontmatter(path)
-        if fm is None:
-            err("%s: no YAML frontmatter" % path)
-            return
-        if fm.get("type") != "handoff":
-            err("%s: type '%s' != handoff" % (path, fm.get("type", "")))
-        feat = str(fm.get("feature", ""))
-        if expected_feature == "":
-            if feat not in ("", "null"):
-                err("%s: cross-feature handoff must have feature null, got '%s'" % (path, feat))
-        elif feat != expected_feature:
-            err("%s: feature '%s' != directory '%s'" % (path, feat, expected_feature))
-        if not fm.get("git_base"):
-            err("%s: git_base missing" % path)
-        if str(fm.get("schema_version", "")) == "2" and not re.match(
-            r"^[0-9a-f]{64}$", str(fm.get("worktree_digest", ""))
-        ):
-            err("%s: schema v2 worktree_digest must be a 64-character SHA-256" % path)
-        if fm.get("status") not in ("active", "consumed"):
-            err("%s: status '%s' not in active|consumed" % (path, fm.get("status", "")))
-        if "capsule" in fm and fm.get("capsule") not in (
-            "active-work",
-            "awaiting-alignment",
-            "external-pending",
-        ):
-            err(
-                "%s: capsule '%s' not in active-work|awaiting-alignment|external-pending"
-                % (path, fm.get("capsule"))
-            )
-        if not ISO_DATE.match(str(fm.get("date", ""))):
-            err("%s: date not ISO YYYY-MM-DD" % path)
 
     budget = 40
     roster_paths = {}
@@ -998,10 +976,6 @@ def main(argv):
             elif fm.get("type") != "summary":
                 err("%s: type '%s' != summary" % (sum_path, fm.get("type", "")))
 
-        h_path = os.path.join(fd, "handoff.md")
-        if os.path.isfile(h_path):
-            check_handoff(h_path, feat)
-
         i_dir = os.path.join(fd, "issues")
         if (
             feature is not None
@@ -1074,19 +1048,19 @@ def main(argv):
                     err("%s: archived issue must be done" % af)
                 if done_record(archived_lines) is None:
                     err("%s: archived done issue has no ### 完成 record" % af)
-                if str(archived_fm.get("contract_version", "")) == "3":
+                archived_version = str(archived_fm.get("contract_version", ""))
+                if archived_version == "3":
                     profile_in_use = True
+                if archived_version == "3" or any(
+                    completion_proof_line(line) for line in (done_record(archived_lines) or [])
+                ):
                     try:
-                        validate_v3_completion(
-                            Path(root), Path(af), archived_raw, profile_for(feat)
-                        )
+                        validate_completion(Path(root), Path(af), archived_raw)
                     except (OSError, UnicodeError, ValueError) as exc:
                         err("%s: %s" % (af, exc))
             graph = {}
             open_refines = []
             ready_v2_environments = {}
-            effective_verifiers = {}
-            missing_effective = object()
             for f in files:
                 n_issues += 1
                 issue_raw = read_text(f)
@@ -1211,9 +1185,7 @@ def main(argv):
                                 effective_verifier(
                                     Path(root), feat, issue_raw, profile_for(feat)
                                 )
-                                effective_verifiers[f] = issue_raw
                             except (OSError, UnicodeError, ValueError) as exc:
-                                effective_verifiers[f] = None
                                 err("%s: %s" % (f, exc))
 
                         experience = bullet_value(verification, TIYAN_YANZHENG)
@@ -1382,6 +1354,7 @@ def main(argv):
                     err("%s: created not ISO YYYY-MM-DD" % f)
                 if fm.get("status") == "done":
                     rec = done_record(issue_lines)
+                    has_machine_proof = any(completion_proof_line(line) for line in (rec or []))
                     fields = []
                     test_named_fields = []
                     if rec is not None:
@@ -1390,33 +1363,26 @@ def main(argv):
                             if (
                                 s.startswith("- " + XINZENG)
                                 or s.startswith("- " + YANSHOU)
-                                or s.startswith("- " + RECEIPT_KEY)
+                                or completion_proof_line(s)
                             ):
                                 fields.append(s)
-                                if not s.startswith("- " + RECEIPT_KEY):
+                                if not completion_proof_line(s):
                                     test_named_fields.append(s)
                     if not fields:
                         err("%s: status done but no ### 完成 record" % f)
                     else:
-                        if contract_version == "2" and not any(
+                        if contract_version == "2" and not has_machine_proof and not any(
                             line.lstrip().startswith("- " + YANZHENG_MINGLING + "：")
                             or line.lstrip().startswith("- " + YANZHENG_MINGLING + ":")
                             for line in (rec or [])
                         ):
                             err("%s: contract v2 done record missing 验证命令" % f)
-                        if contract_version == "3":
-                            cached = effective_verifiers.get(f, missing_effective)
-                            if cached is not None:
-                                try:
-                                    if cached is missing_effective:
-                                        validate_v3_completion(Path(root), Path(f))
-                                    else:
-                                        validate_v3_completion(
-                                            Path(root), Path(f), cached, profile_for(feat)
-                                        )
-                                except (OSError, UnicodeError, ValueError) as exc:
-                                    err("%s: %s" % (f, exc))
-                        if contract_version == "2":
+                        if contract_version == "3" or has_machine_proof:
+                            try:
+                                validate_completion(Path(root), Path(f), issue_raw)
+                            except (OSError, UnicodeError, ValueError) as exc:
+                                err("%s: %s" % (f, exc))
+                        if contract_version == "2" and not has_machine_proof:
                             replay = bullet_value(rec or [], YUJIAN_CHONGFANG)
                             if not replay:
                                 err("%s: contract v2 done record missing 预检重放" % f)
@@ -1430,6 +1396,7 @@ def main(argv):
                                     )
                                 if "fingerprint" not in replay or "match" not in replay:
                                     err("%s: contract v2 预检重放 needs fingerprint match" % f)
+                        if contract_version == "2":
                             if experience_review:
                                 experience = bullet_value(rec or [], TIYAN_YANZHENG)
                                 valid_experience = (
@@ -1583,10 +1550,6 @@ def main(argv):
                     % (fd, longest_open_chain)
                 )
 
-    cfh = os.path.join(scratch, "handoff.md")
-    if feature is None and os.path.isfile(cfh):
-        check_handoff(cfh, "")
-
     for p in sorted(BAD_UTF8):
         err("%s: not valid UTF-8" % p)
 
@@ -1601,12 +1564,11 @@ def main(argv):
             print("  %s" % e)
         return 1
     print(
-        "verify-artifacts: OK%s - checked %d issue(s), %d PRD(s), %d handoff(s), %d summary(s), %d codebase block(s)."
+        "verify-artifacts: OK%s - checked %d issue(s), %d PRD(s), %d summary(s), %d codebase block(s)."
         % (
             " feature=%s" % feature if feature is not None else "",
             n_issues,
             n_prds,
-            n_handoffs,
             n_summaries,
             n_cb_blocks,
         )

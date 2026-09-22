@@ -1,4 +1,3 @@
-import json
 import subprocess
 import sys
 import tempfile
@@ -38,41 +37,44 @@ runpy.run_path(sys.argv[0], run_name='__main__')
             root = Path(directory).resolve()
             issue = root / ".scratch/demo/issues/01-work.md"
             issue.parent.mkdir(parents=True)
-            issue.write_text("---\ntype: issue\nfeature: demo\nstatus: ready\n"
-                             "touches: [src]\ntest_paths: [tests/test_cli.py]\nblocked_by: []\n---\n"
-                             "## 做什么\nReturn a CLI result.\n", encoding="utf-8")
+            issue.write_text("""---
+contract_version: 2
+type: issue
+feature: demo
+status: ready
+category: enhancement
+touches: [src]
+test_paths: []
+blocked_by: []
+created: 2026-09-22
+---
+## 做什么
+Return the interpreter version through the CLI.
+## 验收标准
+- [ ] Print the interpreter version successfully.
+## 验证设计
+- 接缝：CLI
+- 工作目录：`.`
+- 环境指纹：`git=no-vcs; lock=none; runtime=python; tools=stdlib; services=none`
+- 前置条件：`fixtures=none; services=none; permissions=local; network=off`
+- 准备动作：`无（已就绪）`
+- P1 预检：`python --version` → passed；observed=exit 0；evidence=inline fixture；checked=2026-09-22
+- #1 → `python --version`；预检：P1；预期证据：version text and exit 0
+## Comments
+""", encoding="utf-8")
             state = str(ROOT / "workflow/workflow-state.py")
-            supervisor = str(ROOT / "workflow/tdd/scripts/test-supervisor.py")
+            evidence = str(ROOT / "workflow/evidence.py")
+            original = issue.read_bytes()
             for command in ([state, "survey", str(root), "--format", "json"],
                             [state, "start", str(root), "demo", "01-work"],
-                            [supervisor, "--cwd", str(root), "--receipt", str(root / ".scratch/result.json"),
-                             "--log", str(root / ".scratch/tmp/test.log"), "--scope", "targeted",
-                             "--timeout", "5", "--", sys.executable, "-c", "print('1 passed')"]):
+                            [evidence, "--help"]):
                 result = subprocess.run([sys.executable, "-B", "-c", wrapper, *command], cwd=root,
                                         capture_output=True, text=True, encoding="utf-8", timeout=15)
                 self.assertEqual(0, result.returncode, result.stdout + result.stderr)
-            self.assertEqual("pass", json.loads((root / ".scratch/result.json").read_text())["outcome"])
+            self.assertEqual(original, issue.read_bytes())
             self.assertFalse(list(root.rglob("experience-contract.json")))
             self.assertFalse(list(root.rglob("package.json")))
-            managed = root / "managed"
-            managed.mkdir()
-            (managed / "app.py").write_text("print(42)\n", encoding="utf-8")
-            plan = {"schema_version": 3, "members": [], "inputs": ["app.py"], "checks": ["result"],
-                    "requirements": [{"id": "answer", "body": "Return 42 without UI work", "checks": ["result"]}],
-                    "jobs": {"result": {"argv": ["{python}", "app.py"], "timeout": 5,
-                                        "result": {"kind": "predicate", "stdout_equals": "42"}}},
-                    "milestones": [{"id": "final", "purpose": "final", "members": [], "required_checks": ["result"]}],
-                    "budget": {"dispatches": 1}}
-            plan_path = managed / "plan.json"
-            plan_path.write_text(json.dumps(plan), encoding="utf-8")
-            def invoke(*args):
-                process = subprocess.run([sys.executable, "-B", "-c", wrapper, state, *map(str, args)], cwd=managed,
-                                         capture_output=True, text=True, encoding="utf-8", timeout=15)
-                self.assertEqual(0, process.returncode, process.stdout + process.stderr)
-                return json.loads(process.stdout)
-            opened = invoke("batch-open", managed, "--plan", plan_path, "--request-id", "no-ui")
-            closed = invoke("batch-run", managed, "--batch", opened["batch_id"])
-            self.assertEqual("closed", closed["status"])
+            self.assertFalse((root / ".scratch/batches").exists())
 
 
 if __name__ == "__main__":

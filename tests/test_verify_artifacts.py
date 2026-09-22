@@ -6,6 +6,7 @@ import io
 import json
 import re
 import subprocess
+import sys
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -21,6 +22,8 @@ assert SPEC and SPEC.loader
 verify_artifacts = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(verify_artifacts)
 import workflow_contract
+sys.path.insert(0, str(ROOT / "tests"))
+from evidence_fixtures import issue_binding
 
 PNG_1X1 = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
@@ -734,7 +737,7 @@ def plant_v3_receipt(root, outcome="pass", *, ac=None, bound=True):
     if bound and "status: done" in original:
         issue.write_text(original.replace("status: done", "status: ready"), encoding="utf-8")
     try:
-        binding = dict(workflow_contract.issue_binding(issue, "scoped")) if bound else None
+        binding = dict(issue_binding(issue, "scoped")) if bound else None
     finally:
         if bound and "status: done" in original:
             issue.write_text(original, encoding="utf-8")
@@ -1091,7 +1094,7 @@ class VerifyArtifactsV3Tests(unittest.TestCase):
         self.assertEqual(1, result)
         self.assertIn("receipt log must identify .scratch/tmp/", output)
 
-    def test_v3_done_receipt_survives_transient_log_and_checkout_removal(self):
+    def test_v3_missing_retained_evidence_cannot_pass_the_completion_gate(self):
         def remove_machine_local_evidence(root):
             receipt = root / ".scratch" / "search" / "receipts" / "01-search-targeted.json"
             payload = json.loads(receipt.read_text(encoding="utf-8"))
@@ -1103,7 +1106,8 @@ class VerifyArtifactsV3Tests(unittest.TestCase):
         result, output = self.run_gate(
             v3_issue_body(), mutate=remove_machine_local_evidence
         )
-        self.assertEqual(0, result, output)
+        self.assertEqual(1, result, output)
+        self.assertIn("historical receipt cwd differs", output)
 
     def test_v3_profile_downgrade_cannot_enable_legacy_receipt(self):
         def downgrade(root):
@@ -1230,7 +1234,7 @@ class VerifyArtifactsV3Tests(unittest.TestCase):
             issue.parent.mkdir(parents=True)
             issue.write_text(v3_issue_body(done=False), encoding="utf-8-sig")
             plant_v3_profile(root)
-            binding = workflow_contract.issue_binding(issue, "scoped")
+            binding = issue_binding(issue, "scoped")
             self.assertEqual("01-search", binding["slug"])
 
     def test_v3_receipt_is_invalidated_by_profile_drift(self):
@@ -1604,10 +1608,13 @@ class SpecReviewAcceptanceGateTests(unittest.TestCase):
         for card in (root / ".scratch/demo/issues").glob("*.md"):
             card.write_text(card.read_text(encoding="utf-8") +
                             "\n## 上级\n- `Parent: PRD.md · S1 · R1/R2 · D1`\n", encoding="utf-8")
-        output = io.StringIO()
-        with redirect_stdout(output):
-            self.assertEqual(0, tool.main(["spec-review.py", "accept", str(root), "demo"]))
-        return root / ".scratch" / "demo"
+        prepared = tool.prepare_review(root, "demo")
+        state = tool.record_acceptance(
+            prepared["state"], prepared["feature_dir"],
+            prepared["feature_dir"] / prepared["prd_name"], prepared["digest"], prepared["model"],
+        )
+        tool.save_state(prepared["feature_dir"], state)
+        return prepared["feature_dir"]
 
     def test_parent_source_and_declared_coverage_are_required(self):
         for pointer in ("", "Parent: PRD.md · S9 · R1/R2 · D1",

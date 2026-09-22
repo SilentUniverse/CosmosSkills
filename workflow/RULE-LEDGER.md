@@ -70,7 +70,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | §5·e | 同因两次修复失败 → 换路或 /diagnose | 过程 | 流程 | 97a7998（anti-thrash）/ diagnose-holds-repro-under-pressure（近邻） |
 | §5·f | 纠正改变现有契约才更新，不为一轮对话建工件 | 过程 | 流程 | 未溯源 |
 | §5·h | 对齐后执行不复述，逐项报完成/受阻 | 过程·经济 | 自审 | 51a7d4a（精简宪法） |
-| §6 | 点名输入起步，发现依赖再展开，保留已决定上下文 | 过程·经济 | 流程 | df197cc（session prefix 稳定）；批尾实测 ~550k token/请求（7be5338） |
+| §6 | 点名输入起步，发现依赖再展开，保留已决定上下文 | 过程·经济 | 流程 | 工程阅读纪律保留；宿主拥有 replay/cache/compaction，不保留第二套上下文生命周期 |
 | §7·a | 优先可用工具，遵守实际 hook，不为偏好安装 | 过程 | 机器+流程 | 5ef04aa（modern-cli hook）+ 77baaf7/35adb23（corpus 加固） |
 | §7·b | 破坏性目录操作前枚举隐藏/忽略项 | 权威 | 流程 | 未溯源（安全守则） |
 | §7·c | PS 设 UTF-8；PS/cmd 不写文本文件 | 过程 | 流程 | 38b2c6a（UTF-8 note）、94aea23（PS5.1/cmd 规则） |
@@ -82,7 +82,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 
 | 定位 | 要旨 | 性质 | 层级 | 防什么失败 · 出处 / 探针 |
 |---|---|---|---|---|
-| 头部 | 规划不写产品码与业务测试；verifier 缺口入计划前置；终态不含 IMPLEMENTED；完整方案经用户 review 后交接，明确连续执行可豁免 | 权威 | 流程 | 用户要求先方案、review 再实现；spec AFK grill 方案（docs/cosmosskills_spec_afk_grill_implementation.md）；静态冲突：spec 末尾与 caller 自动续跑 / routing-requirement-to-spec |
+| 头部 | 规划不写产品码与业务测试；verifier 缺口入计划前置；报告未决工程义务而不维护 Spec 运行终态；必要方案人审后按既有授权继续 | 权威 | 流程 | 用户要求先方案、review 再实现；spec AFK grill 方案（docs/cosmosskills_spec_afk_grill_implementation.md）；静态冲突：spec 末尾与 caller 自动续跑 / routing-requirement-to-spec |
 | 头部 | 决策摄入推导后自攻一次；可审阅不等于已接受，剩余人类决定与阻塞证据显式保留 | 过程·经济 | 流程 | 逐节点问答与额外自攻税；原第 10 判据要求 further pass 与两 pass 上限冲突；ALIGNMENT-LOOP.md；行为收益未实测 |
 | 头部 | review 预算：全量一次 + delta 一次；第三轮需实质理由，否则修 workflow 而非再审 | 过程·经济 | 流程 | 无界 review 轮次；ALIGNMENT-LOOP.md；未溯源 |
 | §3 | 需 review 的计划先审 PRD，接受后才物化卡与预检；无新实质决定不二审 | 过程·经济 | 流程 | 剪枝后 issues/依赖/测试映射的连带 churn；AFK grill 方案 §15–16；未溯源 |
@@ -99,38 +99,37 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | §2 | 可运行实验能降低真实不确定性时才 prototype | 过程 | 流程 | prototype skill 立法 |
 | §2 | NFR 门槛走 NON-FUNCTIONAL-BARS | 过程 | 流程 | 未溯源 |
 
-## C. tdd — workflow/tdd/SKILL.md（每次执行付费）
+## C. TDD and engineering selection
 
-| 定位 | 要旨 | 性质 | 层级 | 防什么失败 · 出处 / 探针 |
-|---|---|---|---|---|
-| Invocation | 有持久消费者才建卡；显式方案/新实质选择经 spec review；ready 不等于接受 | 过程 | 流程 | routing-requirement-to-spec（origin: routing） |
-| Invocation·drain | `/tdd`/`<feat>` 默认并行许可（permission 非 must_spawn）；`-s` 串行；单卡主 agent 直做 | 过程·经济 | 流程 | 串行默认浪费独立就绪卡的并行度；AFK grill 方案 §18；未溯源 |
-| §2–3 | 一次一测试、先红后绿、不预写未来 ◆ | 过程 | 流程 | TDD 方法论（无事故出处）/ tdd-holds-red-under-pressure |
-| §3 | 不写解释型注释；契约或原因只写在人读的接口处；新增块在 diff review 过删除测试与长度上限 | 过程 | 自审 | 注释腐烂、复述代码；lint/references/code-comments.md；comment-gate 机器门未接线已退役（效率审查 §四）；未溯源 |
-| §1 | 预检声明：先重算指纹、重放 P#、报 2–3 行 | 过程 | 机器+流程 | 7be5338（preflight receipts）、0bf346b（executable spec validation）/ spec-verifier-preflight |
-| §1 | 行为波次暂停后由 caller 恢复声明环境，真实新授权才问 | 产物 | 流程 | 46a7646（execution contracts 加固） |
-| §4 | RED 期禁止重构；意外红 → 固化不变量 | 过程 | 流程 | refactoring.md、6b411d8 |
-| §1 | 同模块反复追加补丁是设计信号 → 停止打补丁，改为从需求重新推导并提案 | 过程 | 流程 | 补丁跑步机致架构衰减；agent-skills AGENTS.md + fresh-arch 对标借入；未溯源 |
-| §5 | 全量批末一次，经 supervisor | 过程·经济 | 机器+流程 | c4e34f2、51a7d4a（test-supervisor） |
+| Previous rule | Disposition | Current owner and invariant |
+|---|---|---|
+| Durable consumer before Issue creation | Keep | TDD invocation; file count does not require planning |
+| Default parallel drain | Move | Native tasks; Cosmos keeps independence/write/resource selection |
+| One RED/GREEN slice, no speculative implementation | Keep | TDD method, subject to explicit user instructions |
+| Comment deletion test | Keep | Existing diff review and lint reference |
+| P# replay on every execution | Narrow | Reuse matching evidence; replay only invalidated relevant inputs/environment |
+| Environment restoration outside behavior wave | Replace | Pause only dependent work; native execution has no Cosmos wave |
+| Refactor only while green | Keep | TDD/refactoring; recheck affected behavior |
+| Repeated patching as design signal | Keep | Re-derive the affected contract/seam before another patch |
+| Full suite at batch end through supervisor | Replace | Fixed candidate's declared gates through native/project/CI runner |
+| Driver enumeration, dependency and packet | Split | Read-only engineering survey/packet; native dispatch |
+| Context rotation and cumulative runtime budget | Delete | Host owns context lifecycle and budgets |
+| Concrete blocked reason, independent work continues | Keep | DRAIN engineering selection |
+| Baseline attribution and scoped revert | Keep | EDGE-CASES; preserve other writers and unknown ownership |
+| Self-contained worker brief | Keep | WORKER contract/pointers/write scope/evidence; no full Spec duplication |
+| Shared verifier environment | Keep | ARTIFACT-FORMAT profile; per-card AC mappings remain local |
+| blocked_by as dependency source | Keep | ARTIFACT-FORMAT; no duplicate body dependency list |
+| Four outcomes, wave collection and global barrier | Delete | Native runtime state; completion derives from immutable proof |
+| Wave supervision, zombie ledger and retry count | Delete | Native task lifecycle; engineering conflicts remain scoped |
+| External agent keeper and automatic resume | Delete | Native session continuation; no replacement Cron chain |
+| Handoff/resume user capabilities | Keep | Native history first; necessary engineering note and explicit-source continuation; no recovery ledger |
+| Separate preflight cache/writer | Delete | P# observed evidence or unified check receipts; no second identity/reuse mechanism |
+| Managed diagnostic/repair queue | Delete | TEST-POLICY failure classification; independent lasting gaps only |
+| Fixed candidate | Keep | Git/project fixed source; explicit external inputs; before/after integrity |
+| Human approval | Keep | Spec/candidate/review digest and raw event; no workspace-following approval |
+| Tidy registry and recovery journal | Split | Retention policy stays; storage owner guarantees atomic safe deletion |
 
-## D. DRAIN — workflow/tdd/DRAIN.md（每批付费；wave 模式另载 DRAIN-PARALLEL.md）
-
-| 定位 | 要旨 | 性质 | 层级 | 防什么失败 · 出处 / 探针 |
-|---|---|---|---|---|
-| Driver and inputs | driver 统一派生待执行项与依赖；worker 复用已派发 packet | 过程·经济 | 机器+流程 | drain-wave step + workflow-state briefs --compact |
-| Shared·预算 | 精简证据；仅真实宿主/上下文边界轮换 | 过程·经济 | 流程 | 7 卡批尾实测 ~550k token/请求（7be5338） |
-| Shared·blocked | 具体缺失条件和证据；独立完成，已知无权限不空重试 | 产物 | 流程 | b369e40（blocked gate） |
-| Serial | 基线加 diff 确定归属；只恢复自身改动，保留并发工作 | 产物 | 流程 | f7cc4db（baseline reverts） |
-| Parallel·brief | 自足：调 /tdd、单卡 packet（含相关面）、相关 tests-so-far 与缺失约束；不重抄卡片/回执 | 产物 | 流程 | 18b1add（drain 子代理全工作流）、7940ef7（packet 投影）/ cold-executor-handoff |
-| SPEC·验证所有权 | 多卡共享 cwd/指纹/前置/准备时先写 verifier profile；PRD 不重抄 readiness，卡片只留引用/偏差与切片证据 | 产物 | 机器+流程 | ARTIFACT-FORMAT verifier profile + verify-artifacts shared-v2 gate |
-| Issue·依赖 | `blocked_by` 是唯一依赖源；正文不维护同义列表，packet 直接投影 frontmatter | 产物 | 机器+流程 | ARTIFACT-FORMAT blocked_by + workflow-state.py packet |
-| Parallel·报告 | 固定四值；长度与证据形状由 DRAIN 单点定义，不重抄卡片/回执 | 接口+过程 | 机器+流程 | DRAIN worker result + drain-wave.py collect |
-| Parallel·收波 | 全 worker 终态 → 联合 scoped 验证/归属核对 → 一次 collect 全部 outstanding；partial 拒绝 | 过程·质量·经济 | 机器+流程 | ARTIFACT-FORMAT wave ledger + drain-wave.py collect |
-| Parallel·监督 | 回合不随开放波结束；collect 收波或升级停全 worker 才收口；worker 返回即终态 | 过程 | 流程 | 会话退出即杀活 worker、丢在途工作；未溯源 |
-| Parallel→overnight | runner 只拥有进程生命周期（启动/续接/预算/卡死停/独立冲突核查/收尾后校验）；调度按 DRAIN 在会话内执行 | 过程·经济 | 机器+流程 | scripts/overnight.py + tdd/SESSION-REUSE.md / resume-cold-start |
-| Managed·诊断接续 | 验证失败在原批次内一次有界诊断，经既有 repair 控制回原目标；同疗法/受阻/越界即停，完成仍走证明链 | 过程·经济 | 机器+流程 | scripts/overnight.py + workflow_managed.control；未溯源 |
-
-## E. pr — workflow/pr/SKILL.md（每次提交付费）
+## D. pr — workflow/pr/SKILL.md（每次提交付费）
 
 | 定位 | 要旨 | 性质 | 层级 | 防什么失败 · 出处 / 探针 |
 |---|---|---|---|---|
@@ -150,24 +149,18 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 - 放弃条件（Empiricism 对账本自身生效）：第一次完整代际周期后，若零降级、且未拦下任何无出处
   规则增生 → 删除本文件。
 
-## 静态修订依据
+## Retirement record: 2026-09-22
 
-自主执行与确认边界审阅：`spec/DESIGN-RECEIPT.md` 的重复对齐口令、TDD 无卡停止、
-DRAIN 按卡数轮换、done 不变与批末回退相冲突。对应条目按有效用户授权和阶段职责统一。
-`spec-holds-alignment-under-pressure` 判据要求无决策前沿时仍阻止用户明确授权，已改为验证
-继续执行；显式讨论后才写工件的 `spec-alignment-before-write` 保留该用户要求。
-误报的 conflict 通过带 wave/issue/contract 与证据绑定的 dismiss-conflict 纠错，保留账本历史，
-不弱化真实冲突屏障。确定性回归覆盖可恢复、无效证据拒绝、单项隔离。
-run-tests 空选集判定改为 runner 自带（pytest/xdist 对空收集的退出码随版本漂移，CI 的 py3.9
-与本地 3.12 不同，F1）；全部 parked/pending 返回 exit 8 不再报批完成；重试预算加修订上限——
-第一次修订给新预算、第二次修订即锁（F4）。出处 docs/cosmos_efficiency_review_ee52421_2026-09-19.md；
-comment-gate 机器门未接线，按同文 §四降级为 diff review 提示。
-human/AI I/O v2 落地：R/D/S 锚点 + 确定性 review 投影（spec-review.py render/review/validate/accept）
-+ 物化前 acceptance 机器门 + 精简卡片上级（Parent 指针 + ≤3 控制约束）+ handoff State 收敛为
-指针锚块。出处 docs/cosmosskills_human_ai_io_final_plan_v2_2026-09-19.md。
-这些是可直接定位的指令冲突修复；速度、token、成功率尚无本次配对实验结论。
+The accepted policy-layer change removes Cosmos batch/wave/job execution phases, PID/outbox,
+global verifier lock, verification epoch, runtime retry budgets and automatic repair queues.
+Handoff generation/publish/consume, bridge selection and clear/compact protocols are retired.
+Historical runtime objects are read only for proof closure; they do not authorize launching old code.
 
-Spec 入口修订依据见 [执行路径审计](../docs/workflow-path-audit.zh.md)：保留产品决定、人审
-接受和执行准入边界；删除 PRD 模板的重复自审，复用 alignment 已完成的决定审查，新卡的证明
-与依赖仍独立校验。页面阅读材料及集中反馈由 REVIEW.md 和既有渲染器维护，移除其他入口的
-五段式副本。无模型行为实测，不据此宣称端到端收益。
+Retained invariants: accepted Spec anchors, fixed input identity, raw human decisions, AC coverage,
+failed-attempt history, real resource health, and referenced-object retention. `start` is read-only;
+`close` reads explicit evidence without capturing the workspace or launching tests. Checks can prove
+several Issues; timing baselines still require comparable contexts and sufficient samples.
+
+Source evidence is the two-system code audit and accepted implementation plan. This change has no
+model-run evaluation result; no measured quality, speed or token improvement is claimed. Earlier
+audit documents retain their dated baseline and are not current execution instructions.

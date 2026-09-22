@@ -9,10 +9,8 @@ machine-formatted.
 
 Every report opens with one line: `范围（计量）· 判定 · 关键计数` —
 e.g. `范围 tdd drain（3 issue）· 完成 2 · 阻塞 1`. A clean run is the lead line alone. Machine
-renderings for people use the same shape: `demo: ready 1 · blocked 0 · done 3 · uncollected 0`.
-A long-running drain may emit the same lead line mid-run when a completion notification re-invokes
-the turn (`范围 tdd drain wave N（k issue）· 进行中 · 已回 x/y`); it is one line, claims no wave
-closure, and replaces no end-of-run report.
+renderings for people report engineering obligations and proof separately from native runtime
+observations. Progress updates do not invent a Cosmos execution phase or imply acceptance.
 
 ## Sections
 
@@ -28,7 +26,7 @@ Take only non-empty sections, in this order. Names are Chinese; established axis
 | 等你验证 | 只有用户能跑的检查与步骤 | 列表 |
 | 详文 | 证据与产物路径指针 | 列表 |
 
-A status-to-evidence mapping may use a two-column table (drain's outcome rows); everything else
+A status-to-evidence mapping may use a two-column table (engineering obligations); everything else
 stays a list. Omit empty sections outright — never print a section to say 无. A projection with
 nothing to show prints its empty-state marker (`（无 feature state）`) instead of the body; that
 marker is the whole output, not a padded section.

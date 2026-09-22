@@ -60,18 +60,17 @@ jobs:
       - name: Parallel runner dependencies
         run: python -m pip install pytest pytest-xdist
       - name: Behavior and integration regressions
+        timeout-minutes: 10
         # Windows hosted runners pay a heavy per-spawn cost (Defender scans every
         # fresh python.exe in temp dirs); 4 xdist workers of subprocess-heavy
         # tests contend for CPU and surface run/lock timeouts in unrelated
         # tests. Two workers keep the suite stable there.
-        run: python workflow/tdd/scripts/test-supervisor.py --cwd . --receipt .scratch/ci/receipts/regression.json --log .scratch/tmp/regression.log --scope full --timeout 600 --measurement-context "${{ runner.os }}-hosted-py39-parallel" -- python scripts/run-tests.py ${{ runner.os == 'Windows' && '--jobs 2' || '' }}
+        run: python -B -m pytest tests -q -p no:cacheprovider -n ${{ runner.os == 'Windows' && '2' || '4' }} --dist loadfile --junitxml=.scratch/ci/regression.xml -o junit_logging=all -o junit_log_passing_tests=true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: regression-${{ matrix.os }}
-          path: |
-            .scratch/ci/receipts/regression.json
-            .scratch/tmp/regression.log
+          path: .scratch/ci/regression.xml
       # Corpus legs stay Linux-only here: natural-unix on Linux plus the forced
       # msys profile exercise both platform branches and the force mechanism;
       # natural msys on a Windows host is covered by the windows-gate job.
@@ -100,7 +99,7 @@ jobs:
       - name: Shell guardrails corpus (msys profile)
         run: python tooling/shell-guardrails/run_corpus.py tooling/shell-guardrails/scripts/guard-shell.py --platform msys
 
-  ui-checkpoint:
+  ui-fixture:
     needs: scope
     if: needs.scope.outputs.ui == 'true'
     timeout-minutes: 20
@@ -120,8 +119,17 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: tests/ui_fixture/package-lock.json
-      - name: Real browser negative control, repair and fixed checkpoint
+      - name: Real browser negative control and fixed candidate
+        timeout-minutes: 15
         run: python scripts/check-ui-fixture.py --setup --output .scratch/tmp/ui-ci
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-${{ matrix.os }}
+          path: |
+            .scratch/tmp/ui-ci/result.json
+            .scratch/tmp/ui-ci/negative/
+            .scratch/tmp/ui-ci/positive/
 
   native-packaging:
     needs: scope
@@ -150,16 +158,21 @@ jobs:
         if: matrix.kind != 'node-sea'
         run: python -m pip install -r tests/packaging_fixture/requirements.txt
       - name: Build, verify, export, extract, and run without the source tree
+        timeout-minutes: 10
         run: python scripts/check-native-packaging.py --kind ${{ matrix.kind }} --output .scratch/tmp/native-ci
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: native-${{ matrix.os }}-${{ matrix.kind }}
-          path: .scratch/tmp/native-ci/result.json
+          path: |
+            .scratch/tmp/native-ci/result.json
+            .scratch/tmp/native-ci/*.log
+            .scratch/tmp/native-ci/release.zip
+            .scratch/tmp/native-ci/release.tar.gz
 
   required:
     if: always()
-    needs: [scope, tests, windows-gate, ui-checkpoint, native-packaging]
+    needs: [scope, tests, windows-gate, ui-fixture, native-packaging]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
@@ -171,7 +184,7 @@ jobs:
           import json, os
           results = json.loads(os.environ['COSMOS_RESULTS'])
           assert results['scope']['result'] == 'success', results
-          for group, job in {'regression':'tests', 'windows':'windows-gate', 'ui':'ui-checkpoint', 'packaging':'native-packaging'}.items():
+          for group, job in {'regression':'tests', 'windows':'windows-gate', 'ui':'ui-fixture', 'packaging':'native-packaging'}.items():
               selected = results['scope']['outputs'][group]
               assert selected in ('true', 'false'), results
               assert results[job]['result'] == 'success' if selected == 'true' else results[job]['result'] in ('success', 'skipped'), results

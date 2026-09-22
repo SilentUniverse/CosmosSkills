@@ -1,5 +1,7 @@
 # 历史测量：固定 checkpoint 基础层的输入输出与 CLI 成本
 
+> 历史测量：只适用于文中基线；退役组件的命令和结果不代表当前入口或性能。
+
 基线：`7c4d53edd8e8440fe1252d4417c607b01e0d5d07`；候选文件身份见 [原始 JSON](checkpoint-cost.json)。
 环境：macOS-26.6.2-arm64-arm-64bit / Python 3.9.6。31 对交错顺序、每组 3 次预热，每次冷启动 Python；夹具准备不计时。
 夹具为相同的 36 张 legacy 卡（4 ready、32 done，每卡 10 个 test paths）。测量时无其他测试、构建或浏览器任务。

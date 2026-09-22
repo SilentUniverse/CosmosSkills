@@ -14,14 +14,14 @@ Default and recommended: **local markdown**. Pick this unless the user specifica
 
 ## Section B — State vocabulary（状态词汇）
 
-> Explainer: Each issue file under `.scratch/<feat>/issues/` carries a `status:` field in its YAML frontmatter. A **2-state model**: the issue queue is the agent's dispatch queue.
+> Issue frontmatter describes engineering readiness and completion, never native task state.
 
-The two canonical states:
+- `pending`: a concrete engineering goal has a recorded `pending_reason`.
+- `ready`: the contract and required verification route are prepared; acceptance, dependencies and
+  real resource constraints must still permit this operation.
+- `done`: validated completion evidence covers the contract. Missing or damaged proof cannot be
+  repaired by changing the marker; retain history and diagnose the affected obligation.
 
-- `ready` — fully specified and aligned, with every AC mapped to agent-runnable evidence and every
-  verifier harness prepared and preflighted by SPEC;
-  fire-and-forget OK (dispatch to a subagent)
-- `done` — completed; historical issues are immutable and later behavior changes use new issues.
-  Only active-batch failed-verification recovery may reopen one under [DRAIN](../tdd/DRAIN.md).
-
-Hands-on checks no agent can run live in the PRD's 端到端验证; never as a state or issue AC (schema: `ARTIFACT-FORMAT.md`; check list: `/spec` card test).
+Native queued/running/stopped state stays with the host. Human-only checks live in the PRD's
+端到端验证 or the Issue's 手动验证, separate from engineering AC and status. Schema:
+[ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md).

@@ -34,18 +34,21 @@ class EncodingTests(unittest.TestCase):
                     b"\xef\xbb\xbf" + text.replace("\n", "\r\n").encode("utf-8")
                 )
                 env = dict(os.environ, PYTHONIOENCODING=encoding, PYTHONUTF8="0")
-                for command in ("render", "accept", "validate"):
+                for command in ("render", "validate"):
                     args = [sys.executable, "-B", str(SCRIPT), command, str(root), "import"]
                     if command == "validate":
+                        fixtures.accepted_spec_fixture(root)
                         args.append("--require-accepted")
                     result = subprocess.run(args, env=env, capture_output=True, timeout=20)
                     output = result.stdout.decode("utf-8", errors="strict")
                     errors = result.stderr.decode("utf-8", errors="strict")
                     self.assertEqual(0, result.returncode, errors)
                     if command == "render":
-                        self.assertEqual(str(feature / "spec-review.html"), json.loads(output)["html"])
+                        html_path = Path(json.loads(output)["html"])
+                        self.assertEqual(feature, html_path.parent)
+                        self.assertRegex(html_path.name, r"^spec-review-[0-9a-f]{64}\.html$")
                 self.assertEqual(text.encode("utf-8"), (feature / "spec-accepted.md").read_bytes())
-                html = (feature / "spec-review.html").read_bytes().decode("utf-8", errors="strict")
+                html = html_path.read_bytes().decode("utf-8", errors="strict")
                 self.assertIn("中文输入 🧪", html)
                 self.assertIn('<meta charset="utf-8">', html)
                 state = json.loads((feature / "spec-review.json").read_bytes().decode("utf-8"))
@@ -136,13 +139,13 @@ const context={document:{getElementById(id){return nodes[id];},querySelectorAll(
                 self.assertIn("中文意见 🧪\n第二行", result["text"])
                 self.assertTrue(result["text"].endswith("END FEEDBACK"))
                 if mode in ("legacy", "success"):
-                    self.assertEqual("已复制", result["label"])
+                    self.assertEqual("已复制反馈，请贴回对话", result["label"])
                     self.assertEqual(result["text"], result["copiedText"])
                 else:
                     self.assertIn("手动复制", result["label"])
                     self.assertIsNone(result["copiedText"])
 
-    def test_static_approve_copies_bound_confirmation_or_existing_feedback(self):
+    def test_static_copy_never_manufactures_approval(self):
         harness = r"""
 const vm=require('vm');const callbacks={};let copied;
 const out={value:'',focus(){},select(){},set textContent(value){this.value=value;}};
@@ -151,29 +154,25 @@ const text={value:inputs==='item'?'保留条目意见 🧪':''};
 const boxes=[{querySelector(){return text;},getAttribute(){return 'D1';}}];
 const nodes={'feedback-data':{textContent:JSON.stringify({spec:'PRD-v2.md',spec_digest:'abc',items:{}})},
  'feedback-text':out,'global-feedback':global,
- 'approve':{addEventListener(event,fn){callbacks.approve=fn;}},
  'copy-feedback':{addEventListener(event,fn){callbacks.copy=fn;}}};
 const document={getElementById(id){return nodes[id];},
  querySelectorAll(selector){return selector==='.comment'?boxes:[global];},
  execCommand(){copied=out.value;return true;}};
 (async()=>{vm.runInNewContext(source,{document,navigator:{},setTimeout(){}});
- await callbacks.approve.call(nodes.approve);
- const approval=copied,label=nodes.approve.textContent;
+ await callbacks.copy.call(nodes['copy-feedback']);
+ const feedback=copied,label=nodes['copy-feedback'].textContent;
  global.value='追加意见';callbacks.input({type:'input'});await callbacks.copy.call(nodes['copy-feedback']);
- console.log(JSON.stringify({approval,label,updated:copied}));})()
+ console.log(JSON.stringify({feedback,label,updated:copied}));})()
  .catch(error=>{console.error(error);process.exitCode=1;});
 """
         for mode in ("empty", "item", "global"):
             with self.subTest(mode=mode):
                 result = self.run_js(review.STATIC_JS, harness, mode)
-                self.assertIn("Spec: PRD-v2.md\nDigest: abc", result["approval"])
-                if mode == "empty":
-                    self.assertIn("我已审阅并批准", result["approval"])
-                    self.assertIn("已复制确认", result["label"])
-                else:
-                    self.assertTrue(result["approval"].startswith("SPEC FEEDBACK"))
-                    self.assertIn("意见 🧪", result["approval"])
-                    self.assertNotIn("我已审阅并批准", result["approval"])
+                self.assertIn("Spec: PRD-v2.md\nDigest: abc", result["feedback"])
+                self.assertTrue(result["feedback"].startswith("SPEC FEEDBACK"))
+                self.assertNotIn("我已审阅并批准", result["feedback"])
+                if mode != "empty":
+                    self.assertIn("意见 🧪", result["feedback"])
                 self.assertIn("追加意见", result["updated"])
                 self.assertNotIn("我已审阅并批准", result["updated"])
 

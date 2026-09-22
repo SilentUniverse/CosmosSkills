@@ -12,10 +12,16 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class InstallerTests(unittest.TestCase):
-    def test_native_installed_batch_cli_retains_final_obligation(self):
+    def test_native_installed_policy_cli_retains_completion_obligation(self):
         with tempfile.TemporaryDirectory(prefix="cosmos installed 空格 ") as directory:
             probe = Path(directory).resolve()
             target = probe / "skills"
+            target.mkdir()
+            retired = ("workflow_runtime.py", "workflow_batch.py", "checkpoint_store.py", "workflow_managed.py",
+                       "workflow_incremental.py", "workflow_jobs.py", "workflow_resources.py", "workflow_members.py", "process_tree.py")
+            foreign_content = b"# User-maintained file; filename does not establish ownership.\n"
+            for name in retired:
+                (target / name).write_bytes(foreign_content)
             if os.name == "nt":
                 command = [shutil.which("pwsh") or "powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
                            "-File", str(ROOT / "scripts/install.ps1"), "-Target", str(target),
@@ -28,7 +34,7 @@ class InstallerTests(unittest.TestCase):
             self.assertEqual(0, installed.returncode, installed.stdout + installed.stderr)
             for relative in (
                 "verify/SKILL.md", "verify/BUILD.md", "verify/MAINTAIN.md",
-                "ARTIFACT-FORMAT.md", "tdd/BATCH-FORMAT.md",
+                "ARTIFACT-FORMAT.md", "evidence.py", "historical_proof.py",
                 "tdd/UI-TESTING.md", "TEST-POLICY.md",
             ):
                 with self.subTest(installed_reference=relative):
@@ -39,26 +45,54 @@ class InstallerTests(unittest.TestCase):
             self.assertEqual(0, json.loads(report.stdout)['runs'])
             project = probe / "project"
             project.mkdir()
-            (project / "check.py").write_text("print(42)\n", encoding="utf-8")
-            plan = project / "plan.json"
-            plan.write_text(json.dumps({"schema_version": 3, "members": [], "checks": ["regression"],
-                                       "requirements": [{"id": "R1", "body": "The installed CLI retains the final obligation.", "checks": ["regression"]}],
-                                       "milestones": [{"id": "final", "purpose": "final", "members": [], "required_checks": ["regression"]}],
-                                       "jobs": {"regression": {"argv": ["{python}", "check.py"], "timeout": 30,
-                                                              "result": {"kind": "predicate", "stdout_equals": "42"}}},
-                                       "inputs": ["check.py"],
-                                       "budget": {"dispatches": 1}}), encoding="utf-8")
+            issue = project / ".scratch/demo/issues/01-work.md"
+            issue.parent.mkdir(parents=True)
+            issue.write_text("""---
+contract_version: 2
+type: issue
+feature: demo
+status: ready
+category: enhancement
+touches: [src]
+test_paths: []
+blocked_by: []
+created: 2026-09-22
+---
+## 做什么
+Return the interpreter version through the CLI.
+## 验收标准
+- [ ] Print the interpreter version successfully.
+## 验证设计
+- 接缝：CLI
+- 工作目录：`.`
+- 环境指纹：`git=no-vcs; lock=none; runtime=python; tools=stdlib; services=none`
+- 前置条件：`fixtures=none; services=none; permissions=local; network=off`
+- 准备动作：`无（已就绪）`
+- P1 预检：`python --version` → passed；observed=exit 0；evidence=inline fixture；checked=2026-09-22
+- #1 → `python --version`；预检：P1；预期证据：version text and exit 0
+## Comments
+""", encoding="utf-8")
+            original = issue.read_bytes()
             env = {key: value for key, value in os.environ.items() if key != "PYTHONPATH"}
-            opened = subprocess.run([sys.executable, "-I", "-B", str(target / "workflow-state.py"),
-                                     "batch-open", str(project), "--plan", str(plan), "--request-id", "installed"],
+            admitted = subprocess.run([sys.executable, "-I", "-B", str(target / "workflow-state.py"),
+                                       "start", str(project), "demo", "01-work"],
+                                      cwd=probe, env=env, capture_output=True, text=True, encoding="utf-8", timeout=15)
+            self.assertEqual(0, admitted.returncode, admitted.stdout + admitted.stderr)
+            self.assertTrue(json.loads(admitted.stdout)["admitted"])
+            self.assertEqual(original, issue.read_bytes())
+            closed = subprocess.run([sys.executable, "-I", "-B", str(target / "workflow-state.py"),
+                                     "close", str(project), "demo", "01-work"],
                                     cwd=probe, env=env, capture_output=True, text=True, encoding="utf-8", timeout=15)
-            self.assertEqual(0, opened.returncode, opened.stdout + opened.stderr)
-            batch_id = json.loads(opened.stdout)["batch_id"]
-            recovered = subprocess.run([sys.executable, "-I", "-B", str(target / "workflow-state.py"),
-                                        "batch-recover", str(project), "--batch", batch_id],
-                                       cwd=probe, env=env, capture_output=True, text=True, encoding="utf-8", timeout=15)
-            self.assertEqual(0, recovered.returncode, recovered.stdout + recovered.stderr)
-            self.assertEqual("prepare_checkpoint", json.loads(recovered.stdout)["action"])
+            self.assertNotEqual(0, closed.returncode)
+            self.assertEqual(original, issue.read_bytes())
+            self.assertFalse((project / ".scratch/batches").exists())
+            for name in retired:
+                self.assertEqual(foreign_content, (target / name).read_bytes(), name)
+                self.assertIn("Kept retired helper (ownership unproven): " + str(target / name), installed.stdout)
+            for script in ("evidence.py", "verify-artifacts.py"):
+                help_result = subprocess.run([sys.executable, "-I", "-B", str(target / script), "--help"],
+                                             cwd=probe, env=env, capture_output=True, text=True, timeout=15)
+                self.assertEqual(0, help_result.returncode, help_result.stdout + help_result.stderr)
 
     def require_symlink_privilege(self, directory: Path) -> None:
         # Windows without Developer Mode/admin refuses os.symlink outright.
@@ -148,13 +182,13 @@ class InstallerTests(unittest.TestCase):
             self.assertEqual(0, result.returncode, result.stderr)
             self.assertNotIn("(agents)", result.stdout)
             imported = subprocess.run(
-                [sys.executable, "-B", "-c", "import workflow_runtime, process_tree"],
+                [sys.executable, "-B", "-c", "import evidence, historical_proof, workflow_contract"],
                 cwd=target,
                 env={key: value for key, value in os.environ.items() if key != "PYTHONPATH"},
                 text=True, capture_output=True, check=False,
             )
             self.assertEqual(0, imported.returncode, imported.stderr)
-            for script in ("eval.py", "eval_campaign.py", "workflow-state.py"):
+            for script in ("eval.py", "eval_campaign.py", "workflow-state.py", "evidence.py"):
                 with self.subTest(script=script):
                     command = subprocess.run(
                         [sys.executable, "-B", str(target / script), "--help"],

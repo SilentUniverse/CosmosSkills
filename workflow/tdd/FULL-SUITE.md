@@ -1,50 +1,108 @@
-# tdd — Full-suite check (§5 detail)
+# Fixed-candidate verification
 
-Load for required delivery-candidate integration checks, final completion or `/tdd -all`. Scoped RED/GREEN cycles do not read it.
+Load for declared delivery/integration gates or explicit `/tdd -all`; ordinary RED/GREEN stays scoped.
 
-## Execution contract
+## Fix inputs
 
-Run each verifier inline through `scripts/test-supervisor.py`; a slow command is not a reason to
-delegate. Use one invocation per command so build and test failures remain distinct:
+Choose an immutable Git commit/tree with a retained ref, or an equivalent verifiable manifest.
+Include required dirty/untracked source first. Declare external inputs, dependency artifacts and
+environment separately; HEAD does not cover them. Check native checkpoint coverage before reuse.
+
+Materialize an independent checkout or equivalent isolated input. Separate build outputs from
+inputs; hash relevant inputs before/after execution. Tests/builds rewriting declared inputs invalidate
+the original candidate claim. Make inputs read-only where possible. Shared changing workspace bytes
+cannot prove a fixed candidate.
+
+## Execute and import
+
+Use project runners through native command tools or CI with supported cwd, timeout and retained
+output. Long commands use native background/output/cancellation tools. Check actual timeout,
+descendant cleanup and retention semantics; native entrypoints can differ.
+
+Cosmos deterministically imports raw native results, tester reports and logs; it does not launch
+or supervise tests. Retain argv/logical cwd, check definition/version, input/candidate identities,
+exit, outcome, timing and log digest. Use project redaction, never credentials in argv or evidence.
+Agent prose cannot manufacture a passing receipt.
+
+The normal ZCode path is an ordinary session plus native Bash. Dynamic Workflow requires its own
+concrete need; `world.run` does not offer the same cwd/cancel/output contract. Use no unsupported options.
+
+## Judge
+
+Apply [TEST-POLICY.md](../TEST-POLICY.md). Reuse only matching input/check/environment evidence.
+Keep all attempts; a later green cannot erase unexplained failure. The evidence gate rejects
+mixed results for an unchanged check. Resolve through a real input/environment repair or an
+applicable project-owned aggregation policy as described in TEST-POLICY; prose is not an override.
+
+- Pass: retain native result, tally and proof mapping.
+- Fail: retain command/exit, failing cases and decisive excerpt; diagnose.
+- Timeout: preserve the active phase; retry only with diagnostic value at a bounded, narrower scope.
+- Unknown/cancelled/incomplete: cannot prove completion.
+
+Final delivery needs its declared complete gates. Issue completion, session recovery and human
+approval are not full-suite triggers. Tests reserved by the user remain explicitly unexecuted.
+
+## Evidence CLI
+
+Use the installed skills root or source `workflow/` directory. `ROOT` is the isolated candidate
+checkout and evidence root; referenced files stay within it. Git/project tooling materializes the
+checkout. An existing accepted Spec can be bound with `--spec`; omit it for preflight, settled
+inline work or a standalone Issue without a Parent. No approval is invented for that case. A
+Parent-bound Issue still requires its candidate's matching accepted Spec before completion.
 
 ```text
-python <tdd-skill-dir>/scripts/test-supervisor.py \
-  --receipt .scratch/<feat>/receipts/<owner>-<scope>.json --log .scratch/tmp/<scope>.log \
-  --cwd <cwd> --timeout <budget-seconds> --grace 5 --scope <scope> -- <command> <args...>
+python evidence.py candidate ROOT --ref REF [--spec SPEC_PATH] [--input REPO_REL_FILE] --out CANDIDATE
+python evidence.py prepare ROOT --candidate CANDIDATE --definition CHECK_JSON --out CONTEXT
+python evidence.py reuse ROOT --context CONTEXT --receipt RECEIPT
+python evidence.py seal ROOT --context CONTEXT --out RECEIPT --duration OBSERVED_SECONDS
+python evidence.py review ROOT --candidate CANDIDATE --receipt RECEIPT --artifact REPO_REL_FILE --scope TEXT --out REVIEW_JSON
+python evidence.py validate ROOT RECORD
 ```
 
-Use `python3` only when `python` is absent. Receipts under `.scratch/<feat>/receipts/` are durable
-evidence a completion record can reference; name them `<owner>-<scope>.json` (issue slug for a
-single card, feature for batch closes) so batch commands never overwrite an issue's receipt. Logs
-stay under `.scratch/tmp/`. Scopes are `preflight`, `targeted`, `module`, `full`, `build`, or
-`other`. The receipt records exact argv, cwd, git state, outcome, exit code, duration,
-legacy timeout-pressure duration class, independent performance observation, log digest, and timeout/termination details when applicable. Use
-the project's known budget; when none exists, choose one explicit budget from
-recent local or CI evidence and report that assumption.
+`--ref` accepts a Git commit or tree; `--commit` is a compatibility alias. For uncommitted work,
+prepare the tree through a temporary index so the user's staged state stays untouched: with one
+`GIT_INDEX_FILE=$(mktemp)` export, run `git read-tree HEAD`, `git add -- <intended paths>`, then
+`git write-tree`. Inspect what the tree contains; do not stage unrelated work. The evidence helper
+retains the object via a Git ref without creating a commit or checking out files.
 
-The supervisor redirects output before launch. It returns only outcome, scope, exit, duration, log,
-and receipt paths to the conversation. On timeout it stops the process group/tree, waits the grace
-period, escalates, and exits 124. Launch or signal crashes exit 125. A normal failure preserves its
-exit code when possible. Values from environment variables named like key/token/secret/password/auth
-are redacted from the stored log; putting one directly in argv is rejected. Pass credentials through
-the environment.
+`--input`, `--receipt` and `--artifact` repeat where applicable; optional inputs/artifacts can be
+omitted. `--duration` is optional and must be measured. Check definition JSON has `argv` array,
+repository-relative `cwd`, nonempty `environment` identity object and `scope`. Optional `inputs`
+declares the complete relevant source closure; omission checks all source. Optional `outputs`
+declares generated files or directories; sealing preserves their file hashes and bytes. Outputs cannot
+overlap fixed source or the candidate/context/receipt records. Failed checks can retain incomplete
+outputs; a passing check needs every declared output. Review artifacts must match these outputs or
+the selected check's fixed inputs, so a later workspace replacement cannot inherit old proof.
 
-## Reading results
+When a receipt closes an Issue, `environment.contract` must match the verifier's declared
+`fingerprint` (excluding `git`), `prerequisites`, and `prepare`. Record actual runtime/dependency
+identities alongside this contract, without Issue or session IDs in the check key. For example:
 
-- Green: report command, exit, duration, duration class, and suite tally from the log summary.
-- Red: report command, outcome, exit, duration, failing cases, and a trimmed error or tail.
-- Timeout: the receipt carries the log tail (last active test or phase). Rerun once at the
-  narrowest scope that still shows the hang — for pytest, the single last active node; a second
-  timeout routes to `/diagnose`. Never retry unbounded.
-- `slow` or `near-timeout` in the legacy duration class indicates timeout pressure, not a performance regression.
-  Compare a fixed baseline through [test policy](../TEST-POLICY.md); raising timeout cannot change that comparison. For pytest, add native `--durations=<N>` on the next bounded run when per-test timing is
-  needed; do not make ordinary runs verbose.
+```json
+{
+  "argv": ["python", "-m", "pytest", "tests/test_example.py"],
+  "cwd": ".",
+  "scope": "targeted",
+  "environment": {
+    "runtime": "Python 3.12.9",
+    "contract": {
+      "fingerprint": {"lock": "requirements.lock@sha256:…", "runtime": "Python 3.12", "tools": "pytest", "services": "none"},
+      "prerequisites": {"fixtures": "local", "services": "none", "permissions": "workspace", "network": "none"},
+      "prepare": "无（已就绪）"
+    }
+  }
+}
+```
 
-Read the full log only when the bounded summary cannot identify the failure. Receipt and log are
-evidence; agent prose is not.
+Retain the candidate's Git ref, JSON records, copied inputs/artifacts, contexts, and sealed
+log/exit files together. Raw native output can be removed after sealing; its retained copy cannot.
 
-## When to run
-
-- At the final combined candidate: full suite plus applicable build. Earlier review candidates run their declared integration checks. Reuse identical valid evidence; relevant changes require reruns.
-- Immediately for `/tdd -all` or an explicit whole-suite request.
-- Never per issue unless that issue's verifier contract requires it.
+`prepare` records the fixed input identities and returns a native shell command; it runs no test. Query existing proof
+with `reuse` first. It reports `hit` (reusable passing proof), `miss` (nothing applicable), `known-failure`
+(an intact failed attempt already exists for this exact identity; diagnose it, do not rerun unchanged) or
+`conflict` (mixed outcomes; see TEST-POLICY). When new execution is needed, run the returned command
+through the host to create its raw `.log` and `.exit`, then `seal`. Use a new location per attempt.
+`review` creates the fixed review object, not approval. The human bridge is
+`spec-review.py review-candidate ROOT REVIEW_JSON`; no CLI generates an approve event. The bridge
+serves exactly one decision and blocks its caller until then or `--timeout` (default 900 s); run it
+through a host background task to continue unrelated work meanwhile.

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Run the separately installed browser fixture through managed checkpoints."""
+"""Check the browser fixture with Playwright's own reports and lifecycle."""
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import shutil
@@ -10,8 +11,6 @@ import sys
 
 
 def main():
-    # Stock Windows consoles default to the ANSI code page; never let an
-    # un-encodable character kill the check after its result was written.
     for stream in (sys.stdout, sys.stderr):
         try:
             stream.reconfigure(encoding="utf-8", errors="replace")
@@ -28,60 +27,49 @@ def main():
     fixture = output / "project"
     shutil.copytree(repo / "tests/ui_fixture", fixture, ignore=shutil.ignore_patterns("node_modules"))
     shutil.copyfile(repo / "workflow/tdd/scripts/playwright-reporter.cjs", fixture / "reporter.cjs")
-    subprocess.run(["git", "init", "--quiet", str(fixture)], check=True)
+    node = shutil.which("node")
+    if not node:
+        raise SystemExit("Node must be installed before the UI fixture")
     if args.setup:
         subprocess.run([sys.executable, "restore.py"], cwd=fixture, check=True)
-        node = shutil.which("node")
-        if not node:
-            raise SystemExit("Node must be installed before the UI fixture")
-        subprocess.run([node, "node_modules/playwright/cli.js", "install", "chromium"] + (["--with-deps"] if sys.platform.startswith("linux") else []), cwd=fixture, check=True)
-    inputs = sorted(path.name for path in fixture.iterdir() if path.is_file())
-    definition = {
-        "schema_version": 3, "inputs": inputs, "members": [], "checks": ["build", "browser"],
-        "requirements": [{"id": "latest-selection-wins", "body": "Late responses cannot replace the current selection or produce browser errors.", "checks": ["build", "browser"]}],
-        "jobs": {
-            "build": {"argv": ["{python}", "build.py"], "timeout": 10, "outputs": ["dist/index.html"], "result": {"kind": "artifacts"}},
-            "browser": {"argv": ["node", "run-ui.cjs", "{run_dir}/browser.json"], "timeout": 60,
-                        "artifact_inputs": ["build"],
-                        "lifecycle": {"prepare": {"argv": ["{python}", "restore.py"], "expect": "locked dependencies restored"}},
-                        "result": {"kind": "ui", "path": "{run_dir}/browser.json", "required_cases": ["document-current"],
-                                   "assertions": {"document-current": ["latest selection is shown", "stale response cannot replace selection",
-                                                                         "no unexpected browser errors"]}}}},
-        "milestones": [{"id": "final", "purpose": "final", "members": [], "required_checks": ["build", "browser"]}],
-        "budget": {"dispatches": 1, "runs": 12, "seconds": 900}}
-    plan_path = fixture / "plan.json"
-    plan_path.write_text(json.dumps(definition), encoding="utf-8")
-    state = repo / "workflow/workflow-state.py"
-
-    def run(command, *arguments):
-        result = subprocess.run([sys.executable, "-B", str(state), command, str(fixture), *map(str, arguments)],
-                                capture_output=True, text=True, encoding="utf-8", timeout=150)
-        if result.returncode:
-            raise SystemExit(result.stdout + result.stderr)
-        return json.loads(result.stdout)
+        subprocess.run([node, "node_modules/playwright/cli.js", "install", "chromium"] +
+                       (["--with-deps"] if sys.platform.startswith("linux") else []), cwd=fixture, check=True)
 
     source = fixture / "app.html"
     correct = source.read_text(encoding="utf-8")
-    source.write_text(correct.replace("if (requested !== latest) return;", ""), encoding="utf-8")
-    batch_id = run("batch-open", "--plan", plan_path, "--request-id", "ui-race-regression")["batch_id"]
-    red = run("batch-run", "--batch", batch_id)
-    if red["phase"] != "repair":
-        raise SystemExit("negative control did not expose the stale-response defect: " + json.dumps(red))
-    batch_path = fixture / ".scratch/batches" / batch_id
-    failed_state = json.loads((batch_path / "state.json").read_text(encoding="utf-8"))
-    failed_report = json.loads((batch_path / "run-data" / failed_state["run_refs"][-1] / "browser.json").read_text(encoding="utf-8"))
-    errors = [error.get("message", "") for spec in failed_report["suites"][0]["specs"]
-              for test in spec["tests"] for result in test["results"] for error in result["errors"]]
-    if not any("stale response cannot replace selection" in message for message in errors):
-        raise SystemExit("negative control failed for an unrelated reason: " + json.dumps(errors))
-    run("batch-repair", "--batch", batch_id, "--request-id", "repair-race", "--reason", "ignore responses for superseded selections")
-    source.write_text(correct, encoding="utf-8")
-    green = run("batch-run", "--batch", batch_id)
-    if green["status"] != "closed":
-        raise SystemExit("fixed browser fixture failed: " + json.dumps(green))
-    checkpoint = run("checkpoint-show", "--batch", batch_id, "--checkpoint", green["latest_checkpoint_ref"])
-    payload = {"batch_id": batch_id, "checkpoint_ref": green["latest_checkpoint_ref"], "negative_control": red["phase"],
-               "final_status": green["status"], "project": str(fixture), "proofs": checkpoint["proofs"]}
+    guard = "if (requested !== latest) return;"
+    if correct.count(guard) != 1:
+        raise SystemExit("negative control requires exactly one stale-response guard")
+    observations = {}
+    for stage in ("negative", "positive"):
+        retained = output / stage
+        retained.mkdir()
+        source.write_text(correct.replace(guard, "") if stage == "negative" else correct, encoding="utf-8")
+        if (fixture / "dist").exists():
+            shutil.rmtree(fixture / "dist")
+        with (retained / "build.log").open("wb") as log:
+            build = subprocess.run([sys.executable, "build.py"], cwd=fixture, stdout=log, stderr=subprocess.STDOUT)
+        if build.returncode:
+            raise SystemExit("fixture build failed; see " + str(retained / "build.log"))
+        artifact = retained / "index.html"
+        shutil.copyfile(fixture / "dist/index.html", artifact)
+        report_path = retained / "browser.json"
+        with (retained / "browser.log").open("wb") as log:
+            browser = subprocess.run([node, "run-ui.cjs", str(report_path)], cwd=fixture,
+                                     stdout=log, stderr=subprocess.STDOUT)
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        attempts = [attempt for suite in report["suites"] for spec in suite["specs"]
+                    for test in spec["tests"] for attempt in test["results"]]
+        errors = [error.get("message", "") for attempt in attempts for error in attempt.get("errors", [])]
+        if stage == "negative":
+            if browser.returncode == 0 or not any("stale response cannot replace selection" in error for error in errors):
+                raise SystemExit("negative control did not expose the stale-response defect; see " + str(report_path))
+        elif browser.returncode or report.get("status") != "passed" or report.get("errors") or not attempts or any(
+                attempt.get("status") != "passed" for attempt in attempts):
+            raise SystemExit("fixed browser fixture failed; see " + str(report_path))
+        observations[stage] = {"exit_code": browser.returncode, "report": str(report_path),
+                               "artifact": str(artifact), "artifact_sha256": hashlib.sha256(artifact.read_bytes()).hexdigest()}
+    payload = {"schema_version": 1, "kind": "browser-fixture", "observations": observations}
     (output / "result.json").write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(payload, ensure_ascii=False, indent=2))
 

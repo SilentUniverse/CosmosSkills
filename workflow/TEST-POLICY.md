@@ -1,99 +1,84 @@
-# Test quality, scope and cost
+# Test quality, scope and evidence
 
-Load when choosing verification scope, changing test triggers, or investigating growing test cost.
-Spec owns the evidence and trigger contract; TDD owns execution and test maintenance; TIDY reports
-cost concerns and cleans disposable outputs. These are rules for the existing workflow entries.
+Cosmos selects and judges checks; host/CI owns execution, scheduling, cancellation and provider retries.
 
-## Scope and ownership
+## Select
 
-| Boundary | Required evidence |
+| Trigger | Required evidence |
 |---|---|
-| Local behavior loop | New or directly affected cases |
-| Issue completion or module refactor | Module and affected consumers |
-| Human review candidate | Declared scene integration and actual artifact checks |
-| Final delivery | Complete applicable delivery gates on that candidate |
-| Stress, longevity or platform campaign | Its declared risk/release/cadence trigger |
+| RED/GREEN | The case driving the behavior change |
+| Module/refactor/integration change | Affected module and consumers |
+| Fixed human-review candidate | Declared scenario integration and artifact checks |
+| Fixed delivery candidate | Complete declared delivery gates |
+| Stress/platform campaign | Explicit risk, release or cadence trigger |
 
-Retain existing required gates. Moving one to a later trigger requires an explicit contract change
-that identifies affected obligations and equivalent protection. A disabled or quarantined required
-gate is incomplete unless its accepted replacement ran. No count or speed target permits weaker ACs.
+Issue/task completion, session resume and human approval are not automatic full-suite triggers.
+Keep required gates. Changing their triggers must preserve obligations with equivalent protection.
+Use project commands/markers. `test-governance.py select --policy FILE --paths-file PATHS.json`
+selects groups without running them. Include fixtures/configuration and both sides of renames in
+influence mappings. Unknown influence expands scope; verify finer selection against independent
+complete checks. Small projects need no extra policy file.
 
-Use native project commands, markers and selection facilities. A small project needs no new policy
-file. For declared group selection, `test-governance.py select --policy FILE --paths-file PATHS.json`
-returns selected groups and reasons without launching commands. Unknown or empty change sets select
-all declared groups; renames include both paths. Group mappings describe influence, including shared
-fixtures/configuration, rather than merely matching test filenames. Full requests bypass selection.
-When influence is uncertain, expand the scope. Compare selected results with independent complete
-checks before trusting more precise mappings. Record missed failures; selection confidence is not
-established by green selected tests alone.
+## Reuse
 
-The parent owns shared module/final runs. Workers execute their scoped diagnostics. Coalesce pending
-requests for the same immutable check, inspect the admitted run instead of launching it again, and
-reuse passing proof only under the accepted validity contract. Final tests follow completed review
-fixes; relevant changes afterward invalidate affected proof. Resource and memory limits bound workers
-and native runner threads together. A slow test does not justify another model supervisor.
+Read valid evidence before running. Identity comprises check definition/version, argv/logical cwd,
+source/input closure, dependency artifacts and result-affecting environment. Session IDs, Issue
+numbers, batch IDs and global verification epochs are not validity inputs. AC/check mapping is
+many-to-many: one result may prove several cards.
 
-## Reuse and admission
+Default reuse requires the same fixed candidate/check and comparable environment. Cross-candidate
+reuse additionally proves the entire relevant input closure unchanged; incomplete mappings require
+rerun. Check input integrity before/after execution. Concurrent writes or test/build mutations of
+inputs invalidate the original candidate claim. Separate outputs from declared inputs.
 
-For managed batch reuse, apply [batch admission](tdd/BATCH-FORMAT.md#reuse-and-admission).
-Ordinary supervisor calls do not deduplicate commands; the parent coordinates shared checks.
+Import raw native results, tester reports and logs deterministically. Chat summaries are not receipts.
+Missing provenance remains unknown. Preserve every distinct attempt and known failure; one later
+green cannot hide unresolved contradiction. The evidence gate rejects mixed results under an
+unchanged check identity. Diagnose and repair a result-affecting input/environment, then prepare
+a new check. If an authorized project flaky policy defines aggregate acceptance, use its actual
+runner/aggregation command with the policy and complete attempt set as relevant inputs and retained
+outputs. Cosmos imports that aggregate result; it does not implement another retry engine.
+The command must match the AC verification contract; revise an open contract when necessary and
+reconfirm only material acceptance changes. Never change a nonce/version label, hide receipts or
+add an unrelated input merely to evade a conflict. A prose explanation alone cannot clear it.
 
-## Performance and budget
+## Failure and resources
 
-Keep performance baselines separate from safety timeouts and the original goal's cumulative budget.
-Timeouts bound commands and stop owned process trees. Goal reservations include retries and lifecycle
-stages and are never refunded by reopening a run. Compare measured whole-job cost separately: copy,
-setup, cleanup and queueing can exceed command execution time and must remain visible.
+Provider/transport retries belong to the host. Assertion failures are engineering evidence. Timeout
+retry must be bounded and diagnostically useful at the narrowest reproducing scope. After code or
+environment repair, rerun affected checks; no new evidence means no repeated full suite. Update the
+existing root cause; create a Repair Issue only for an independent persistent gap.
 
-Supervisor receipts optionally retain `measurement_context`, identifying hardware/runtime,
-dependency identity, warm/cold caches and concurrency. No context means no comparable performance
-baseline. The legacy `duration_class` describes timeout pressure only; `normal` does not establish
-performance health. `performance.status` is `unmeasured` without a baseline and is independent of
-`--timeout`. A single over-limit observation requests investigation, not a confirmed regression.
+Use native background execution for long checks. Stable inputs require actual isolated checkouts or
+equivalent input control. Devices/databases/ports use their fixture/resource-service/CI owner for
+exclusion and recovery. Missing guarantees restrict dependent operations, without a Cosmos queue,
+global verifier lock or resource registry.
 
-Read existing command receipts first; enable native per-case timing only to localize cost. The
-repository's `scripts/run-tests.py --durations-file NEW_FILE` retains unittest timings without
-changing case selection or retrying failures. Other projects keep their native runner reporter.
-Do not count skipped tests as passed or use test count/coverage percentage as a quality target.
+## Measure
 
-`test-governance.py` supports these read/measurement operations:
+Read existing receipts first. Separate command time, setup/copy/cleanup, queue time and model usage.
+Summed test wall time is not CPU time or parallel critical path. Compare p50/p95 only with sufficient
+samples and matching hardware/runtime/dependency/cache/concurrency context. A timeout is not a
+performance baseline; increasing it cannot cure regression. Missing context means unmeasured.
+
+Use native per-case timings when needed. This repository supports
+`scripts/run-tests.py --durations-file NEW_FILE`. Sampling needs an explicit measurement purpose;
+ordinary work does not repeat suites to populate reports.
 
 ```text
 python ../test-governance.py report --root ROOT --receipts RECEIPT... --output NEW_REPORT.json
-python ../test-governance.py report --root ROOT --batch ID
 python ../test-governance.py baseline --report REPORT.json --group KEY --statistic p50 --min-samples N --relative-tolerance R --absolute-tolerance-seconds S --output NEW_BASELINE.json
 python ../test-governance.py compare --report CANDIDATE.json --baseline BASELINE.json
 ```
 
-Choose samples and tolerances from the project's evidence; no universal millisecond bar applies.
-Pin the baseline before evaluating the candidate, preserve its report, and do not roll a regression
-into a refreshed baseline. Baseline/report outputs refuse overwrite. Comparison requires the same
-command/environment/context and enough passing samples: exit 0 within target, 1 observed regression,
-2 invalid/incomplete. The tolerance is the larger of the declared relative and absolute allowances.
-Measurement sampling is explicit work; ordinary implementation does not manufacture repeated runs.
+Pin baselines first and preserve source reports. Deduplicate copied receipts, retain real failed
+attempts and group comparable environments. Comparison requires valid identity and sufficient passing
+samples; choose tolerances from project evidence. Native model usage is not test-performance evidence.
 
-Supervisor `--performance-baseline FILE --measurement-context CONTEXT` adds a comparable single-run
-observation to its receipt and compact output. Its exit still represents the functional result;
-use the explicit repeated-sample comparison as a required gate for an accepted performance AC.
+## Quality and retirement
 
-Reports deduplicate copies of the same receipt, keep all real failed attempts, and separate summed
-job wall time from queue time. The sum is neither CPU time nor a parallel critical path. Repeated
-same-candidate runs and mixed outcomes identify investigation candidates; dirty legacy status alone
-cannot identify a fixed source. Missing timing or identity remains unknown. Default output is bounded;
-full rows and provenance go to the named report. TIDY reads retained evidence and does not rerun tests.
-
-## Quality, instability and retirement
-
-Review changed tests using [tests.md](tdd/tests.md). Review is part of the existing Standards/Spec
-passes, not a new agent per case. High-risk concurrency, state and evidence boundaries receive their
-normal adversarial review. Judge new tests and affected shared fixtures; do not rescan all history.
-
-A failing attempt remains failed. Diagnostic retries preserve the first failure. An instability
-quarantine records owner, repair issue, reason, review deadline and affected obligations in existing
-project tracking; isolation alone grants no acceptance. An expired quarantine is visible unfinished
-work. Required coverage needs an executed replacement or stays blocked.
-
-A test may retire when its behavior and compatibility consumers retire, or a cheaper test preserves
-its distinct failure detection. Long absence of failures, age, names and runtime alone are not
-retirement evidence. Test deletion/deduplication is an engineering change with verification; TIDY GC
-cannot perform it. Retain useful regression scenarios and the portable history of delivered versions.
+Review changed tests with [tests.md](tdd/tests.md). Quarantine records owner/reason/review boundary
+and affected obligations in existing tracking; required coverage still needs executed replacement.
+Retire a test only when its behavior/compatibility consumer retires or equivalent coverage preserves
+its distinct detection. Age, names, duration and long green history alone do not justify deletion.
+Tidy never removes tests as disposable output.

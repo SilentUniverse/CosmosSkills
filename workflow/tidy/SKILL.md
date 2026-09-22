@@ -1,98 +1,59 @@
 ---
 name: tidy
 description: >-
-  Use when the user wants workflow status or temporary work files cleaned up, or artifacts from an earlier workflow generation normalized into the current model. Shows outstanding engineering and human obligations, deletes proven disposable artifacts, and preserves tests, experience and retained releases.
+  Use when the user wants engineering status, temporary-file cleanup, or legacy-artifact normalization. Derives outstanding obligations from contracts and evidence, and removes only proven disposable outputs through their storage owner.
 argument-hint: "[inspect|-old] [feature]; default to the current goal"
 ---
 
 # Tidy
 
-Owns current-state projection, temporary-file cleanup, and legacy-artifact normalization into the
-current model. Product changes, test deduplication and requirement lineage belong to normal
-implementation or Spec.
+Contracts, proof and raw review records determine remaining obligations. The host owns runtime
+status; the storage owner owns deletion. Tidy creates no summary state or task ledger.
 
-## Invocation
+## Inspect
 
-- `/tidy [feature]`: inspect and clean the named feature or current goal's proven disposable files.
-- `/tidy inspect [feature]`, or an explicit inspect-only request: show state and preview, without deletion.
-- `/tidy -old <feature|repo>`: reorganize artifacts an earlier workflow generation produced
-  into the current model (see below); explicit scope required.
-- With no identifiable current goal, survey only. Whole-repository cleanup requires explicit scope.
+- `/tidy [feature]`: inspect and clean proven disposable outputs in scope.
+- `/tidy inspect [feature]`: report/preview only.
+- `/tidy -old <feature|repo>`: normalize historical artifacts in explicit scope.
+- No identifiable goal: survey only. Whole-repository cleanup needs that scope.
 
-Use `../workflow-state.py survey ROOT --format human` or `inspect ROOT FEATURE --format human` for
-current reality. Show pending readiness, technical/decision blockers, fixed review requests and
-unresolved feedback even when related issues are done. Report closed features whose durable
-receipts or managed proof closures have not been exported (`batch-proof-export`); the disposable
-`.scratch` tier is not their long-term home. An `uncollected` entry is a dispatched
-assignment the ledger has not collected; runtime status belongs to the host, so do not infer a
-dead or running process from it. History is available on demand; no SUMMARY
-copy is generated. Completed issue cards remain available outside the compact active frontier.
+Use `workflow-state.py survey ROOT --format human` or `inspect ROOT FEATURE --format human`.
+These projections cover Issue readiness and validated completion; they do not enumerate all review
+or human obligations. Also read the scoped PRD/Issue manual checks and referenced review objects,
+raw decisions and feedback. For a scope without an index, inspect only its candidate-review and
+human-decision JSON records, validate their references, and match decisions by review digest.
+Report readiness gaps, invalid/missing proof, pending fixed-object reviews, unresolved feedback
+and human-only checks separately. Query native task state for active use; do not copy it into cards.
+Engineering `done` is not delivery acceptance.
 
-## Actual cleanup
+## Retain or delete
 
-Use `../workflow-state.py gc ROOT FEATURE` to inspect candidates, then `--apply` for an authorized cleanup.
-The cleanup request already authorizes proven disposable files; do not ask for individual approval.
-Report actual removed paths/count/bytes and concrete retention or failure reasons.
+Keep pending reviews, accepted snapshots, delivered versions, proof dependencies, referenced logs,
+regression tests/fixtures and useful tools/experience. If native storage lacks sufficient retention,
+export required bytes to project evidence and verify hash/reference closure; do not copy sessions.
 
-Register temporary outputs where created, using `../workflow-state.py artifact-register ROOT FEATURE --record FILE`.
-The record names path, owner, purpose, lifecycle and references. Use an execution-owned feature
-scratch directory for probes; managed verification records its scratch outputs automatically.
-Use `artifact-release ROOT FEATURE --owner OWNER` after the producer is finished. Shared consumers
-release their own references with `--consumer REF`. Never infer disposability from age, extension,
-ignored/untracked status or a directory name.
+Delete only proven disposable output with no retention reference and no active user/producer. The
+storage owner must exclude new references/use between final check and deletion and recheck path/content
+identity. Without that guarantee, retain the shared object as a cleanup candidate. Age, directory name,
+ignored status, card completion or idle locks are insufficient. Add no global Cosmos registry.
 
-Keep regression tests, fixtures, useful scripts and hard-to-recover test experience at their project
-owners. Retain complete proof dependencies, unresolved feedback evidence, pending reviews and promised
-historical releases. An accepted review does not release an application still being used.
+Use storage-native or existing project cleanup facilities. Cleanup authorization covers proven
+disposable deletion. Report actual paths removed and retention/failure reasons. Do not run tests,
+builds, browsers or models for cleanup. Tracked code/test retirement is normal engineering work.
 
-Apply rechecks file identity, content, active ownership and consumers under the publication lock.
-Changed, unowned, linked, tracked or still-referenced files are retained. Known temporary files are
-actually deleted; only empty owned directories are removed. A damaged unrelated feature must not
-block independently safe cleanup; damaged shared ownership evidence retains its affected candidates.
-GC does not launch product tests, builds, browsers or model calls. Tracked code/test deletion is a
-normal change with appropriate validation. TIDY never reopens issues or changes accepted behavior.
+## Legacy normalization
 
-When asked about test growth/cost, use [test policy](../TEST-POLICY.md) to summarize existing receipts.
-Show slow groups, repeated runs and instability/retirement candidates as engineering work; do not
-run tests, classify semantic duplicates from filenames, or delete tests through GC.
+Keep original proof before changing references. Historical managed proofs need intact digests,
+contracts, logs and dependency closure, read without launching old runtime. Migrate portable proof
+only with verified closure. Active old writers finish under their owner or hand over explicitly at a
+quiescent boundary; never automatically kill/reopen/delete them because their format is old.
 
-## Legacy artifact normalization
+Normalize only unassigned open cards to Parent pointers and controlling constraints under
+[ISSUE-TEMPLATE.md](../spec/ISSUE-TEMPLATE.md). Done contracts and accepted snapshots stay immutable.
+PRD anchoring/changed requirements use `/spec`; Tidy never creates approval. Continuation notes from [handoff](../handoff/SKILL.md), including older notes, may retain necessary
+facts but receive no publish/consume state. Keep them until the remaining facts have owners or
+are no longer needed; session recovery alone does not make a note disposable. Remove legacy SUMMARY only after
+its required facts/references have real owners.
 
-`/tidy -old` reorganizes artifacts an earlier workflow generation produced into the current
-model. Judgement stays routed: anchoring a PRD with R/D/S is requirement-tree work and goes to
-`/spec`; tidy owns file-shape normalization and disposal only. Migrate what the scope has, then
-run `../verify-artifacts.py` over the scope:
-
-- A handoff body in narrative shape rewrites as the anchor block
-  ([handoff/SKILL.md](../handoff/SKILL.md)) through `../handoff/scripts/handoff-state.py publish`; hashes are never
-  hand-copied.
-- A live (non-`done`) issue whose `## 上级` copies parent PRD prose becomes the Parent pointer plus
-  at most three controlling constraints
-  ([ISSUE-TEMPLATE.md](../spec/ISSUE-TEMPLATE.md)). A card with an uncollected dispatch waits for
-  its wave to reconcile before tidy edits the issue file. `done` cards and accepted PRD snapshots
-  are immutable; changed contracts supersede instead of editing in place.
-- An anchored PRD without review state gets its projection regenerated by
-  `../spec/scripts/spec-review.py render`. Recording acceptance (`accept`) needs the human's explicit approval;
-  tidy never infers it. A live feature whose PRD carries no R/D/S anchors routes to `/spec` for
-  anchoring first.
-- A batch directory whose state declares a retired format (schema 1 or 2) is disposed through
-  `../workflow-state.py batch-prune`; `--apply` deletes schema-1 directories in any phase and
-  schema-2 directories once terminal. A live schema-2 batch continues via its frozen runtime or
-  is aborted first; deleting the directory a stale active index names clears that index.
-
-Delete what the current model has no reader for: superseded planning drafts whose decisions landed
-elsewhere (the landed record keeps the citation), legacy `SUMMARY.md` copies once `/cosmos-setup`
-has folded them, and `spec-review.html` after acceptance; the accepted bytes stay pinned in
-`spec-accepted.md`, which tidy never deletes, and a digest audit diffs that snapshot against the
-live PRD rather than the page. Report every item as migrated, deleted,
-or retained with its reason; git history stays the archive, and in a repository without version
-control nothing else holds that history, so superseded drafts are retained there instead of
-deleted. TIDY never reopens issues, changes
-accepted behavior, or upgrades `done` cards.
-
-## Timing and recovery
-
-Implementation registers outputs and releases them when finished. Delivery boundaries perform local
-cleanup; users need not invoke TIDY after every issue. Resume the caller's authorized work afterward.
-If runtime/ownership evidence is unavailable, report retained files and missing evidence. Never report
-hidden history as deleted files. Interrupted deletion resumes from its durable per-file journal.
+For test cost, read [TEST-POLICY.md](../TEST-POLICY.md) and existing measurements; report slow groups,
+repeated candidate runs and mixed results without rerunning/deleting tests. Continue authorized work.

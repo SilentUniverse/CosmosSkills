@@ -70,10 +70,10 @@ one profile path. Do not create a profile merely because several cards exist, an
 Per-card seams, AC mappings, and passed-preflight evidence remain on the card because they establish
 that slice's runnable proof rather than the shared environment.
 
-At TDD dispatch, replay the recorded P# checks before editing. That replay is a drift guard, not a
-second setup phase. If it fails, leave the card `ready` and report the mismatch. The caller restores declared setup
-or refreshes stale readiness outside the behavior wave, then resumes. New consequential choices
-follow the decision rule; never substitute weaker proof just to pass.
+Before implementation, validate matching retained P# evidence or replay it when relevant inputs,
+action or environment changed. Session/Issue identity alone does not invalidate a shared check.
+A failure reports the mismatch and pauses only dependent work while declared setup or stale readiness
+is repaired. New consequential choices follow the decision rule; never weaken proof to obtain green.
 
 One P# may support several ACs. A textual command that SPEC did not run, a version probe without a
 representative harness action, or a preflight whose evidence cannot be replayed is not readiness.

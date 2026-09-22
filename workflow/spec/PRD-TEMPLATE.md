@@ -106,7 +106,7 @@ S# 时 review 页面据 Depends 确定性生成依赖图；解析不了或列数
 
 The runnable setup → action → assertion → cleanup procedure demonstrating the whole feature works,
 including exact expected observations and evidence paths (`（无）` only when no runnable product
-surface exists). Per-slice AC live in issues; the drain batch close runs this. The agent launches
+surface exists). Per-slice AC live in issues; the fixed delivery candidate must satisfy the declared procedure. The agent launches
 and operates browser/simulator/CLI when available. **Hands-on checks no agent can run are registered
 here** with exact steps and requested judgment; never as issue AC or states. Check list: `/spec`
 card test.
@@ -133,5 +133,5 @@ and the review-round budget live in [ALIGNMENT-LOOP.md](ALIGNMENT-LOOP.md). Revi
 issues; PRDs, issues and review points are not one-to-one.
 Prefer the first usable vertical slice. Do not require review after an arbitrary issue count.
 When plan review is required, issues materialize after acceptance, so pruning a branch does not orphan
-cards, dependencies or test mappings. Keep scenario requirements here; executable jobs and runtime
-state belong to the batch plan.
+cards, dependencies or test mappings. Keep scenario requirements here; execution and runtime state
+belong to the native host. Review binds the specified candidate and does not block unrelated work.

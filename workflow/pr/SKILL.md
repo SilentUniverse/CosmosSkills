@@ -7,7 +7,7 @@ argument-hint: "[-local]"
 
 # PR
 
-When this change belongs to an active protocol-2 batch, verify its final proof and required decisions through [BATCH-FORMAT.md](../tdd/BATCH-FORMAT.md). A Git commit does not close an incomplete batch.
+For delivery, verify the selected fixed candidate has its required proof and human decisions. A Git commit or successful native task does not satisfy missing engineering obligations.
 
 This is the submit phase after validation. `/pr` runs no test suite, build, or repo-wide gate of
 its own: the upstream phase already produced the evidence, so commit the validated scope directly.

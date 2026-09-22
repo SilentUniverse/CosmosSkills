@@ -465,55 +465,173 @@ def parse_ac_spec(value: str) -> List[int]:
     return sorted(result)
 
 
-def issue_binding(
-    issue_path: Path,
-    verifier_name: str,
-    ac: Sequence[int] | None = None,
-) -> Mapping[str, Any]:
-    """Build the receipt binding before execution while the card is still ready."""
-    issue_path = Path(issue_path).resolve()
-    if issue_path.parent.name != "issues" or issue_path.parent.parent.parent.name != ".scratch":
-        raise ValueError("--issue must be .scratch/<feat>/issues/<slug>.md")
-    feature = issue_path.parent.parent.name
-    root = issue_path.parent.parent.parent.parent
-    raw = issue_path.read_text(encoding="utf-8-sig")
+def verification_contract(root, issue_path, raw=None):
+    """Resolve the complete AC-to-command contract without executing a check."""
+    from evidence import relative
+    root, issue_path = Path(root).resolve(), Path(issue_path)
+    raw = raw if raw is not None else issue_path.read_text(encoding="utf-8-sig")
     data = _frontmatter(raw, issue_path)
-    if data.get("type") != "issue" or data.get("feature") != feature:
-        raise ValueError("--issue identity does not match its feature directory")
-    if data.get("contract_version") != "3" or data.get("status") != "ready":
-        raise ValueError("--issue binding requires a ready contract v3 card")
-    verifier = effective_verifier(root, feature, raw)
-    if verifier_name not in verifier["commands"]:
-        raise ValueError(f"verifier profile has no command '{verifier_name}'")
-    if verifier["schema_version"] == 2 and verifier_name not in verifier["completion_commands"]:
-        raise ValueError(f"verifier '{verifier_name}' is not a completion command")
-    ac_count = sum(1 for line in _section(raw, "验收标准") if AC_CHECKBOX.match(line))
-    if ac_count == 0:
-        raise ValueError("--issue has no checkbox AC")
-    requested_ac = list(ac if ac is not None else range(1, ac_count + 1))
-    if any(type(value) is not int for value in requested_ac):
-        raise ValueError("--ac must contain integers")
-    selected_ac = sorted(set(requested_ac))
-    if not selected_ac or any(value < 1 or value > ac_count for value in selected_ac):
-        raise ValueError("--ac must select existing AC")
-    mismatched = [
-        value for value in selected_ac
-        if verifier["schema_version"] == 2
-        and verifier["ac_commands"].get(value) != verifier_name
-    ]
-    if mismatched:
-        raise ValueError(
-            "verifier %r is not mapped by AC: %s"
-            % (verifier_name, ", ".join("#%d" % value for value in mismatched))
-        )
-    return {
-        "feature": feature,
-        "slug": issue_path.stem,
-        "contract_sha256": issue_contract_digest(raw),
-        "ac": selected_ac,
-        "verifier": verifier_name,
-        "verifier_sha256": verifier["effective_sha256"],
-    }
+    if data.get("contract_version", "") not in ("", "1", "2", "3"):
+        raise ValueError("engineering contract_version must be 1, 2, or 3")
+    expected_ac = set(range(1, sum(bool(AC_CHECKBOX.match(line)) for line in _section(raw, "验收标准")) + 1))
+    if not expected_ac:
+        raise ValueError("engineering contract needs checkbox AC")
+    lines = _section(raw, "验证设计")
+    if data.get("contract_version") == "3":
+        verifier = dict(effective_verifier(root, data.get("feature", ""), raw))
+    else:
+        cwd = _bullet(lines, "工作目录")
+        if not cwd:
+            raise ValueError("engineering contract needs an explicit 工作目录")
+        fingerprint, prerequisites, prepare = (_bullet(lines, field) for field in ("环境指纹", "前置条件", "准备动作"))
+        if data.get("contract_version") == "2" and data.get("status") != "done":
+            if not all((fingerprint, prerequisites, prepare)):
+                raise ValueError("contract v2 needs 环境指纹, 前置条件, and 准备动作")
+            for text, label, required in (
+                (fingerprint, "fingerprint", {"git", "lock", "runtime", "tools", "services"}),
+                (prerequisites, "prerequisites", {"fixtures", "services", "permissions", "network"}),
+            ):
+                missing = required - set(_pairs(text, label))
+                if missing:
+                    raise ValueError("contract v2 %s missing keys: %s" % (label, ", ".join(sorted(missing))))
+            if "无" not in prepare and "result=" not in prepare:
+                raise ValueError("contract v2 prepare needs result= or explicit 无")
+        verifier = {"cwd": relative(cwd), "commands": {}, "fingerprint": fingerprint,
+                    "prerequisites": prerequisites, "prepare": prepare}
+    mappings = {}
+    for line in lines:
+        match = AC_ACTION.match(line)
+        if not match:
+            continue
+        index, action = int(match.group(1)), match.group(2).strip()
+        if index in mappings:
+            raise ValueError("duplicate AC command mapping: #%d" % index)
+        profile = PROFILE_ACTION.fullmatch(action)
+        if profile:
+            name = profile.group(1)
+            if name not in verifier["commands"]:
+                raise ValueError("AC mapping names an unavailable profile command: " + name)
+        else:
+            name = action
+            verifier["commands"][name] = action
+        command_argv(verifier["commands"][name])
+        mappings[index] = name
+    if set(mappings) != expected_ac:
+        raise ValueError("engineering contract needs exactly one explicit command mapping for every AC")
+    verifier["ac_commands"] = mappings
+    declared_environment(verifier)
+    return verifier
+
+
+def declared_environment(verifier):
+    contract = {}
+    for key in ("fingerprint", "prerequisites"):
+        if verifier.get(key):
+            values = _pairs(verifier[key], key)
+            if key == "fingerprint":
+                values.pop("git", None)
+            contract[key] = values
+    if verifier.get("prepare"):
+        contract["prepare"] = verifier["prepare"]
+    return contract
+
+
+def _ac_claim(reference):
+    result = set()
+    for claim in re.findall(r"\bAC\s*([0-9,\-]+)", reference):
+        result.update(parse_ac_spec(claim))
+    return result
+
+
+def _reference_path(root, reference):
+    from evidence import local
+    name = reference.split("；", 1)[0].split(";", 1)[0].strip().strip("`")
+    return local(root, name)
+
+
+def _validate_legacy_completion(root, issue_path, raw, verifier, expected_ac, references):
+    """Historical receipts unlock dependencies only while their actual proof remains available."""
+    from evidence import local
+    covered, payloads = set(), []
+    data = _frontmatter(raw, issue_path)
+    for reference in references:
+        path = _reference_path(root, reference)
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            raise ValueError("historical receipt is missing or invalid: " + str(path)) from exc
+        if not isinstance(payload, dict) or type(payload.get("schema_version")) is not int or payload["schema_version"] != 1:
+            raise ValueError("historical receipt needs schema_version 1")
+        if (payload.get("scope") not in ("targeted", "module", "full", "build", "other")
+                or payload.get("outcome") != "pass" or type(payload.get("exit_code")) is not int or payload["exit_code"] != 0):
+            raise ValueError("historical receipt needs a passing non-preflight native exit")
+        binding = payload.get("issue")
+        ac = _ac_claim(reference)
+        if binding is not None:
+            if not isinstance(binding, dict) or any(binding.get(key) != value for key, value in {
+                "feature": data.get("feature"), "slug": issue_path.stem, "contract_sha256": issue_contract_digest(raw),
+            }.items()):
+                raise ValueError("historical receipt issue binding changed")
+            bound_ac = binding.get("ac")
+            if not isinstance(bound_ac, list) or any(type(index) is not int for index in bound_ac):
+                raise ValueError("historical receipt AC binding is invalid")
+            if ac and ac != set(bound_ac):
+                raise ValueError("historical receipt AC claim differs from binding")
+            ac = set(bound_ac)
+        if not ac or not ac.issubset(expected_ac):
+            raise ValueError("historical receipt needs valid AC coverage")
+        for index in ac:
+            command = verifier["commands"][verifier["ac_commands"][index]]
+            if payload.get("argv") != command_argv(command, payload.get("argv_style")):
+                raise ValueError("historical receipt command does not prove the mapped AC")
+        cwd = payload.get("cwd")
+        if not isinstance(cwd, str) or not cwd:
+            raise ValueError("historical receipt cwd is missing")
+        if (Path(cwd) if Path(cwd).is_absolute() else root / cwd).resolve() != (root / verifier["cwd"]).resolve():
+            raise ValueError("historical receipt cwd differs from the engineering contract")
+        log = payload.get("log")
+        if not isinstance(log, str) or not log:
+            raise ValueError("historical receipt log is missing")
+        if Path(log).is_absolute():
+            try:
+                log = Path(log).resolve().relative_to(root).as_posix()
+            except ValueError as exc:
+                raise ValueError("historical receipt log is outside this repository") from exc
+        log_path = local(root, log)
+        if not log_path.is_file() or payload.get("log_sha256") != _sha256(log_path):
+            raise ValueError("historical receipt log is missing or changed")
+        covered.update(ac)
+        payloads.append(payload)
+    if covered != set(expected_ac):
+        raise ValueError("historical receipts do not cover every AC")
+    return {"receipts": payloads, "ac": expected_ac}
+
+
+def validate_completion(root, issue_path, raw=None):
+    """Validate new fixed evidence or retained proof on an already completed historical card."""
+    root, issue_path = Path(root).resolve(), Path(issue_path).resolve()
+    raw = raw if raw is not None else issue_path.read_text(encoding="utf-8-sig")
+    data = _frontmatter(raw, issue_path)
+    verifier = verification_contract(root, issue_path, raw)
+    expected_ac = sorted(verifier["ac_commands"])
+    completion = _completion(raw)
+    if not completion:
+        raise ValueError("close requires a ### 完成 record with machine evidence")
+    evidence_refs = _bullet_values(completion, "evidence")
+    if evidence_refs:
+        return validate_evidence_completion(root, raw, verifier, expected_ac, evidence_refs)
+    if data.get("status") != "done":
+        raise ValueError("new completion requires schema 2 evidence; legacy proof is read-only history")
+    if data.get("contract_version") == "3":
+        result = validate_v3_completion(root, issue_path, raw)
+        # Bound schema-1 history additionally proves its retained evidence through the
+        # legacy reader; unbound old-minimum receipts carry no such proof to check.
+        if _bullet_values(completion, "managed-proof") or result.get("unbound"):
+            return result
+    references = _bullet_values(completion, "receipt")
+    if not references:
+        raise ValueError("historical completion has no retained machine evidence")
+    return _validate_legacy_completion(root, issue_path, raw, verifier, expected_ac, references)
 
 
 def validate_v3_completion(
@@ -543,16 +661,20 @@ def validate_v3_completion(
     if managed_refs:
         if len(managed_refs) != 1 or not re.fullmatch(r"[0-9a-f]{64}", managed_refs[0]):
             raise ValueError("managed completion needs exactly one immutable proof reference")
-        from workflow_members import validate_proof
-        proof = validate_proof(root, feature + "/" + slug, managed_refs[0], raw)
+        from historical_proof import validate_managed_proof
+        proof = validate_managed_proof(root, feature + "/" + slug, managed_refs[0], raw)
         if set(proof["ac"]) != set(expected_ac):
             raise ValueError("managed completion does not cover this card's AC")
         return {"receipts": [proof], "ac": expected_ac}
+    evidence_refs = _bullet_values(_completion(raw), "evidence")
+    if evidence_refs:
+        return validate_evidence_completion(root, raw, verifier, expected_ac, evidence_refs)
     receipt_refs = _bullet_values(_completion(raw), "receipt")
     if not receipt_refs:
         raise ValueError(f"issue '{slug}' contract v3 record has no receipt line")
     covered = set()
     payloads = []
+    unbound = True
     for receipt_ref in receipt_refs:
         relative = receipt_ref.split("；", 1)[0].split(";", 1)[0].strip().strip("`")
         parts = relative.replace("\\", "/").split("/")
@@ -583,6 +705,7 @@ def validate_v3_completion(
             raise ValueError(f"issue '{slug}' receipt must be a JSON object")
         binding = payload.get("issue")
         legacy_unbound = verifier["schema_version"] == 1 and "issue" not in payload
+        unbound = unbound and legacy_unbound
         if legacy_unbound:
             if payload.get("outcome") != "pass":
                 raise ValueError(
@@ -716,4 +839,68 @@ def validate_v3_completion(
             "issue '%s' completion receipts do not cover AC: %s"
             % (slug, ", ".join("#%d" % value for value in missing))
         )
+    return {"receipts": payloads, "ac": expected_ac, "unbound": unbound}
+
+
+def validate_evidence_completion(root, raw, verifier, expected_ac, references):
+    """Map shared, immutable checks to this card without adding the card to the check key."""
+    from evidence import local, read_record, validate_candidate, validate_receipt, _applies_to_candidate, _reject_known_failures
+    targets = _bullet_values(_completion(raw), "candidate")
+    if len(targets) > 1:
+        raise ValueError("completion needs at most one explicit candidate")
+    target = validate_candidate(root, local(root, targets[0])) if targets else None
+    covered, payloads, candidates, paths = set(), [], set(), []
+    for reference in references:
+        name = reference.split("；", 1)[0].split(";", 1)[0].strip().strip("`")
+        path = local(root, name)
+        try:
+            receipt = validate_receipt(root, path)
+        except (OSError, KeyError, TypeError) as exc:
+            raise ValueError("completion evidence is missing or malformed: " + str(path)) from exc
+        if (type(receipt.get("schema_version")) is not int or receipt["schema_version"] != 2
+                or receipt["outcome"] != "pass" or receipt["scope"] == "preflight"):
+            raise ValueError("completion needs a passing non-preflight check")
+        if target is not None and not _applies_to_candidate(root, receipt, target):
+            raise ValueError("completion check does not apply to the selected candidate's input closure")
+        observed = receipt["definition"]["environment"].get("contract", {})
+        if not isinstance(observed, dict) or any(observed.get(key) != value for key, value in declared_environment(verifier).items()):
+            raise ValueError("check environment differs from the engineering contract")
+        ac = _ac_claim(reference)
+        if not ac or not ac.issubset(expected_ac):
+            raise ValueError("evidence reference needs valid AC selectors")
+        if receipt["cwd"] != verifier["cwd"]:
+            raise ValueError("check cwd differs from the engineering contract")
+        for index in ac:
+            name = verifier.get("ac_commands", {}).get(index)
+            if name is None:
+                raise ValueError("shared evidence requires an explicit command for each AC")
+            command = verifier["commands"][name]
+            if receipt["argv"] not in [command_argv(command, style) for style in ("posix", "windows")]:
+                raise ValueError("check command does not prove the mapped AC")
+        parent = parse_parent_pointer(raw)
+        if parent:
+            context = read_record(local(root, receipt["context"]), "check_input")
+            candidate = target if target is not None else read_record(local(root, context["candidate"]), "candidate")
+            if not isinstance(candidate["spec_text"], str):
+                raise ValueError("Parent-bound completion requires a candidate with an accepted Spec")
+            import importlib.util
+            import sys
+            source = Path(__file__).resolve().parent / "spec" / "scripts" / "spec-review.py"
+            spec = importlib.util.spec_from_file_location("cosmos_completion_spec", source)
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[spec.name] = module
+            spec.loader.exec_module(module)
+            feature = _frontmatter(raw, Path("card"))["feature"]
+            contract = module.parent_contract(Path(root) / ".scratch" / feature, raw)
+            model = module.parse_model(candidate["spec_text"])
+            if module.validate_model(model) or not module._design_matches(contract["model"], model, contract["needed"]):
+                raise ValueError("candidate Spec does not cover this card's accepted design")
+        candidates.add(receipt["candidate_digest"])
+        covered.update(ac)
+        payloads.append(receipt)
+        paths.append(path)
+    if covered != set(expected_ac) or (target is None and len(candidates) != 1):
+        raise ValueError("completion needs all AC proven against one fixed candidate")
+    if _frontmatter(raw, Path("card")).get("status") != "done":
+        _reject_known_failures(root, paths, payloads)
     return {"receipts": payloads, "ac": expected_ac}

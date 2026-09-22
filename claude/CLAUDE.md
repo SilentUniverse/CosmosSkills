@@ -23,7 +23,7 @@ Priority: host/system > user objective and prior authorization > these defaults 
   skill transitions within its accepted scope. Spec presents a complete plan for plan-only requests and honors explicit pending review.
   Implementation requests authorize routine planning and execution within their accepted scope;
   only unresolved material decisions hold their dependent work. Planning writes no product code or
-  product tests, and file count alone never forces a planning phase; implementation runs through TDD.
+  product tests, and file count alone never forces a planning phase; implementation follows the requested method, with TDD as the default.
 - While waiting, finish independent authorized work. Before an unapproved consequential action,
   prepare its reviewable result. Silence is not permission. If a rule blocks progress, cite its
   exact file/clause and the decision still missing; do not invent an approval requirement.
@@ -74,18 +74,14 @@ artifact keeps a live consumer (caller, test, or recorded decision) or is delete
 
 Start from named files or issue pointers. Load relevant map/glossary sections and ADR titles when
 navigation needs them; expand only for discovered dependencies. Keep settled decisions across phases.
-Keep unchanged instructions, tool definitions, and shared inputs in stable order; append new work
-within the native session so the host replays original message/tool/reasoning blocks. Do not replace
-history with a fresh summary, pad prompts, or add warm-up calls to chase cache hits.
-Store shared facts once and use pointers; supply a worker the referenced text only when its next
-action needs it and the host has not already provided it. Cached input still occupies context.
-Use issues for a durable queue, delegation, dependency, or contract-history consumer. Settled work
-can execute inline regardless of file count. `done`
-issues preserve history; only the active batch's documented failed-verification recovery may reopen
-one. Later requirement changes create redo issues. Superseded ADR bodies are immutable.
+Store engineering facts once and use pointers. The host owns messages, context compaction, task
+state, parallel execution, retries, persistence and session recovery. Skills select and judge
+engineering work; they do not maintain another runtime or dictate context lifecycle.
+Use Issues only for a durable queue, delegation, dependency or contract-history consumer. Settled
+work can execute inline regardless of file count. Completed contracts and proof preserve history;
+changed requirements create linked follow-up work. Superseded ADR bodies are immutable.
 
 → Session start and paths: `~/.claude/references/document-layout.md`
-→ Phase boundaries: `~/.claude/references/PHASE-BOUNDARIES.md`
 
 ## 7. Shell and platform
 

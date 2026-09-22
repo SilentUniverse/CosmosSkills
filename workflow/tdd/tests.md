@@ -5,8 +5,7 @@ existing code review, using the accepted behavior as the oracle.
 
 ## Existing evidence
 
-Use project configuration and `CODEBASE.md` verifier commands to locate existing coverage. For a
-parallel wave, use the supplied tests-so-far manifest before scanning. An AC already covered needs
+Use project configuration and `CODEBASE.md` verifier commands to locate existing coverage. For delegated work, use supplied evidence and test pointers before scanning. An AC already covered needs
 verification, not a duplicate test. Test paths, AC mappings and native runner metadata are the
 registry; do not create a parallel per-case ledger.
 
