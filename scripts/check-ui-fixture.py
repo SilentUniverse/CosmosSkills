@@ -4,6 +4,7 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -20,7 +21,10 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--setup", action="store_true", help="install locked Node dependencies and Chromium for this explicit UI check")
     args = parser.parse_args()
-    output = args.output.resolve()
+    # run-ui.cjs resolves a relative report path against the fixture directory, so
+    # the output root must be absolute on every Python; 3.9 Windows resolve() can
+    # leave a not-yet-existing relative path relative.
+    output = Path(os.path.abspath(args.output))
     if output.exists():
         parser.error("output directory must be new")
     repo = Path(__file__).resolve().parents[1]
@@ -57,6 +61,9 @@ def main():
         with (retained / "browser.log").open("wb") as log:
             browser = subprocess.run([node, "run-ui.cjs", str(report_path)], cwd=fixture,
                                      stdout=log, stderr=subprocess.STDOUT)
+        if not report_path.exists():
+            raise SystemExit("browser run (exit %s) produced no report; see %s"
+                             % (browser.returncode, retained / "browser.log"))
         report = json.loads(report_path.read_text(encoding="utf-8"))
         attempts = [attempt for suite in report["suites"] for spec in suite["specs"]
                     for test in spec["tests"] for attempt in test["results"]]
