@@ -80,6 +80,19 @@ scope live in [README.md](README.md).
 }
 ```
 
+
+## DeepSeek Harness
+
+Do not wire a PreToolUse carrier here. Interception does work on DSH: command hooks run through
+`@deepseek-ai/dsh-hooks-claude-code`, and a bridged deny reaches the model as a tool error carrying
+the carrier's own message, once per attempt. The carriers in this skill stay wired to hosts whose
+settings file is the supported surface, Claude Code and ZCode.
+
+Re-mounting is a deliberate, user-requested choice. Two facts decide whether an attempt works: the
+entry in `$DSH_PROFILE_DIR/cordis.patch.yml` must be an `insert` (an id-targeted entry that names an
+unknown id is warned and skipped), and the matcher is the DSH tool name matched exactly, so it is
+`bash`, never `Bash`. The config is read once at process start.
+
 ## Verify
 
 Engine or policy changes: run the shared corpus once on both profiles from

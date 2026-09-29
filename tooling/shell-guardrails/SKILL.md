@@ -58,6 +58,9 @@ in [README.md](README.md).
    customizations. Use `python` on Windows and `python3` on Unix.
 3. Follow [WIRING.md](WIRING.md) to merge one hook entry without replacing unrelated settings.
 4. Apply requested policy changes while retaining every other selected protection.
+5. Leave DeepSeek Harness unwired unless the user asks for it: a bridged deny reaches the model
+   there as a tool error carrying the carrier's message, on every attempt.
+   [WIRING.md](WIRING.md) records what such a request must get right.
 
 ## Verify
 

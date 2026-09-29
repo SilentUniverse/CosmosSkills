@@ -81,6 +81,11 @@ ZCode 参评时，在封存前用 [ZCode history telemetry adapter](adapters/zco
 它按根任务 turn 时长计活跃时间、排除人类 idle，不重复计算并行子任务时间；这个值可用于同
 ZCode 遥测口径的 policy-only 比较，whole-system 速度仍使用外层 runner 的 elapsed time。
 
+DeepSeek Harness 参评时，在封存前用 [DSH session-log telemetry adapter](adapters/dsh.md) 从
+`~/.dsh/sessions` 自动填充活跃时间、Token 与工具调用，并把原始 `dsh-history-metrics.json`
+放进 artifacts。它按根 session 的 step 时长计活跃时间、排除人类 idle，子 agent 的成本计入、
+时长不计；会话日志没有 provider-retry 计数，该字段写 `null` 而不是 0。
+
 ## 私有判卷与 N 路报告
 
 出题方先验证每个 sealed submission，再让不知道 arm 身份的独立 grader 按私有 case 产出

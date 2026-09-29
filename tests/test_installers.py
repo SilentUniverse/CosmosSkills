@@ -201,6 +201,124 @@ Return the interpreter version through the CLI.
                     self.assertEqual(0, command.returncode, command.stderr)
                     self.assertIn("usage:", command.stdout.lower())
 
+    def run_shared_install(self, env, cwd):
+        return subprocess.run(
+            [self.bash_executable(), str(ROOT / "scripts" / "install.sh")],
+            cwd=cwd,
+            env=env,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+    def shared_home(self, probe):
+        home = probe / "home"
+        (home / ".dsh").mkdir(parents=True)
+        (home / ".zcode").mkdir()
+        (home / ".agents" / "skills").mkdir(parents=True)
+        return home
+
+    def shared_env(self, home):
+        # The harness exports DSH_HOME; a fake HOME must stay authoritative unless a
+        # test sets DSH_HOME itself.
+        env = {
+            key: value
+            for key, value in os.environ.items()
+            if key not in ("PYTHONPATH", "DSH_HOME")
+        }
+        env["HOME"] = str(home)
+        return env
+
+    @unittest.skipIf(os.name == "nt", "Unix installer")
+    def test_unix_shared_install_provisions_dsh_policy_and_no_hooks(self):
+        with tempfile.TemporaryDirectory(prefix="cosmos dsh ") as tmp:
+            probe = Path(tmp)
+            home = self.shared_home(probe)
+            result = self.run_shared_install(self.shared_env(home), probe)
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            policy = home / ".dsh" / "AGENTS.md"
+            self.assertTrue(policy.is_file(), result.stdout)
+            self.assertEqual((ROOT / "claude" / "CLAUDE.md").read_bytes(), policy.read_bytes())
+            # Interception must never be re-enabled by an installer run: a blocked
+            # command reaches the model as a tool error carrying the carrier's message.
+            self.assertFalse((home / ".dsh" / "hooks.json").exists())
+
+    @unittest.skipIf(os.name == "nt", "Unix installer")
+    def test_unix_dsh_policy_follows_dsh_home(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            probe = Path(tmp)
+            home = probe / "home"
+            (home / ".zcode").mkdir(parents=True)
+            (home / ".agents" / "skills").mkdir(parents=True)
+            dsh_home = probe / "elsewhere" / "dsh"
+            dsh_home.mkdir(parents=True)
+            env = self.shared_env(home)
+            env["DSH_HOME"] = str(dsh_home)
+            result = self.run_shared_install(env, probe)
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            policy = dsh_home / "AGENTS.md"
+            self.assertTrue(policy.is_file(), result.stdout)
+            self.assertEqual((ROOT / "claude" / "CLAUDE.md").read_bytes(), policy.read_bytes())
+            self.assertFalse((home / ".dsh").exists())
+
+    @unittest.skipIf(os.name == "nt", "Unix installer")
+    def test_unix_dsh_install_keeps_managed_and_foreign_links(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            probe = Path(tmp)
+            home = self.shared_home(probe)
+            managed = home / ".dsh" / "AGENTS.md"
+            managed.symlink_to(home / ".zcode" / "AGENTS.md")
+            result = self.run_shared_install(self.shared_env(home), probe)
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            self.assertTrue(managed.is_symlink())
+            self.assertEqual(
+                (ROOT / "claude" / "CLAUDE.md").read_bytes(),
+                (home / ".zcode" / "AGENTS.md").read_bytes(),
+            )
+            self.assertIn("refreshed through kept", result.stdout)
+
+            foreign_home = probe / "foreign-home"
+            (foreign_home / ".dsh").mkdir(parents=True)
+            target = probe / "foreign-policy.md"
+            target.write_text("foreign policy\n", encoding="utf-8")
+            foreign = foreign_home / ".dsh" / "AGENTS.md"
+            foreign.symlink_to(target)
+            foreign_result = self.run_shared_install(self.shared_env(foreign_home), probe)
+            self.assertEqual(0, foreign_result.returncode, foreign_result.stdout + foreign_result.stderr)
+            self.assertTrue(foreign.is_symlink())
+            self.assertEqual("foreign policy\n", target.read_text(encoding="utf-8"))
+            self.assertIn("keeps foreign link", foreign_result.stdout)
+
+            dangling_home = probe / "dangling-home"
+            (dangling_home / ".dsh").mkdir(parents=True)
+            dangling = dangling_home / ".dsh" / "AGENTS.md"
+            dangling.symlink_to(dangling_home / ".zcode" / "AGENTS.md")
+            dangling_result = self.run_shared_install(self.shared_env(dangling_home), probe)
+            self.assertEqual(0, dangling_result.returncode, dangling_result.stdout + dangling_result.stderr)
+            self.assertTrue(dangling.is_symlink())
+            self.assertIn("keeps dangling link", dangling_result.stdout)
+            self.assertIn("Done:", dangling_result.stdout)
+
+            repo_home = probe / "repo-link-home"
+            (repo_home / ".dsh").mkdir(parents=True)
+            repo_link = repo_home / ".dsh" / "AGENTS.md"
+            repo_link.symlink_to(ROOT / "claude" / "CLAUDE.md")
+            repo_result = self.run_shared_install(self.shared_env(repo_home), probe)
+            self.assertEqual(0, repo_result.returncode, repo_result.stdout + repo_result.stderr)
+            self.assertTrue(repo_link.is_symlink())
+            self.assertIn("keeps repo link", repo_result.stdout)
+
+            own_home = probe / "own-policy-home"
+            (own_home / ".dsh").mkdir(parents=True)
+            own_policy = own_home / ".dsh" / "AGENTS.md"
+            own_policy.write_text("# my own global instructions\n", encoding="utf-8")
+            own_result = self.run_shared_install(self.shared_env(own_home), probe)
+            self.assertEqual(0, own_result.returncode, own_result.stdout + own_result.stderr)
+            self.assertEqual("# my own global instructions\n", own_policy.read_text(encoding="utf-8"))
+            self.assertIn("keeps foreign policy", own_result.stdout)
+            self.assertIn("keeps foreign link", foreign_result.stdout)
+
+
     def test_platform_entrypoints_and_hook_sources_exist(self):
         expected = [
             ROOT / "install.cmd",
@@ -263,6 +381,7 @@ Return the interpreter version through the CLI.
             self.assertFalse((probe / "claude").exists())
             self.assertIn("eval_metrics.py", result.stdout)
             self.assertNotIn("(agents)", result.stdout)
+            self.assertNotIn("(DSH)", result.stdout)
 
     @unittest.skipUnless(shutil.which("pwsh"), "PowerShell 7 is unavailable")
     def test_windows_dry_run_accepts_a_new_target(self):
