@@ -98,8 +98,6 @@ changed requirements create linked follow-up work. Superseded ADR bodies are imm
   active hooks; do not install tools for stylistic preference.
 - Before destructive directory work, enumerate hidden and ignored entries with platform-native tools.
 - PowerShell invoked from bash sets UTF-8 input/output explicitly. PS/cmd do not write text files.
-- Written `python` entrypoints run through `python3` where only that name exists; a missing
-  interpreter is an environment fact, never a failed gate.
 
 → CLI mappings: `~/.claude/references/cli-tools.md`
 → Windows encoding and paths: `~/.claude/references/windows-cli.md`
