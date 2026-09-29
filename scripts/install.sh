@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Install skills into ~/.claude/skills (symlinks), copy the global layer, and
-# distribute the ZCode side (~/.zcode/AGENTS.md + shared ~/.agents/skills root).
+# Install skills into ~/.claude/skills (symlinks), copy the global layer,
+# distribute the ZCode side (~/.zcode/AGENTS.md + shared ~/.agents/skills root)
+# and the DeepSeek Harness instruction file (~/.dsh/AGENTS.md).
 # Usage: bash install.sh [--dry-run] [--force] [--target DIR] [--claude-root DIR]
 set -euo pipefail
 
@@ -380,6 +381,57 @@ if [[ "$SHARED_INSTALL" -eq 1 ]]; then
     mirror_shared_root "$agents_skills" "agents"
   fi
   retire_zcode_mirror
+fi
+
+# --- Distribute the DeepSeek Harness side. DSH loads one instruction file,
+#     ~/.dsh/AGENTS.md, and reads skills from the shared ~/.agents/skills root
+#     <DSH_HOME>/AGENTS.md (default ~/.dsh), and reads skills from the shared
+#     ~/.agents/skills root mirrored above. No PreToolUse interception is
+#     installed: a blocked command reaches the model as a tool error carrying the
+#     carrier's own message, on every attempt.
+#     Anything the installer does not own is kept: a link into this repo, a link
+#     to the refreshed ~/.zcode/AGENTS.md copy, and a policy file that is not an
+#     installed copy. ---
+install_dsh_policy() {
+  local dsh_home="${DSH_HOME:-$HOME/.dsh}"
+  local dest="$dsh_home/AGENTS.md"
+  if [[ -L "$dest" ]]; then
+    if link_points_into_repo "$dest"; then
+      echo "DeepSeek Harness keeps repo link $dest"
+      return 0
+    fi
+    if [[ ! -e "$dest" ]]; then
+      echo "DeepSeek Harness keeps dangling link $dest, skipping"
+      return 0
+    fi
+    if [[ "$(readlink "$dest")" != "$HOME/.zcode/AGENTS.md" ]]; then
+      echo "DeepSeek Harness keeps foreign link $dest, skipping"
+      return 0
+    fi
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      echo "[DryRun] Refresh $dest through the kept ~/.zcode link"
+    else
+      cp -f "$ROOT/claude/CLAUDE.md" "$dest"
+      echo "Guidelines: AGENTS.md (DSH) refreshed through kept ~/.zcode link"
+    fi
+    return 0
+  fi
+  if [[ -f "$dest" ]]; then
+    local first_line=""
+    read -r first_line < "$dest" || first_line=""
+    case "$first_line" in
+      "Priority: host/system"*) ;;
+      *)
+        echo "DeepSeek Harness keeps foreign policy $dest, skipping"
+        return 0
+        ;;
+    esac
+  fi
+  copy_file "$ROOT/claude/CLAUDE.md" "$dest" "Guidelines: AGENTS.md (DSH)"
+}
+
+if [[ "$SHARED_INSTALL" -eq 1 && -d "${DSH_HOME:-$HOME/.dsh}" ]]; then
+  install_dsh_policy
 fi
 
 if [[ "$DRY_RUN" -eq 1 ]]; then

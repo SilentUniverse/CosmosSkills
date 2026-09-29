@@ -17,7 +17,8 @@ Read [`../../evals/README.md`](../../evals/README.md) for a same-project run. Wh
 with a native workflow or another project/harness, instead read
 [`../../evals/CAMPAIGN-PROTOCOL.md`](../../evals/CAMPAIGN-PROTOCOL.md). For Claude Code traces also
 read [`../../evals/adapters/claude-code.md`](../../evals/adapters/claude-code.md); for ZCode history
-duration and cost read [`../../evals/adapters/zcode.md`](../../evals/adapters/zcode.md).
+duration and cost read [`../../evals/adapters/zcode.md`](../../evals/adapters/zcode.md); for DeepSeek
+Harness session logs read [`../../evals/adapters/dsh.md`](../../evals/adapters/dsh.md).
 
 ## Modes
 
