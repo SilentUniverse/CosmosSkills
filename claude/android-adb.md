@@ -1,6 +1,6 @@
 # Android / ADB Reference
 
-CLAUDE.md §9 points here. All rules and lookup tables live in this file.
+CLAUDE.md §10 points here. All rules and lookup tables live in this file.
 All traps hold on Pixel 3 / Android 12 / Git Bash host.
 
 ## Traps that break commands outright (Git Bash host)
@@ -93,7 +93,7 @@ Pattern: `run_in_background` + output to `.scratch/tmp/<name>.log`, poll with `t
 | tap / swipe / back | `adb shell input tap x y` / `input swipe x1 y1 x2 y2` / `input keyevent 4` |
 | screenshot | `adb exec-out screencap -p > s.png` |
 | screen metrics | `adb shell wm size; adb shell wm density` |
+| devices | `adb devices -l`; multi-device needs `-s <serial>` (or `-d` usb / `-e` emulator) |
 
 App pid needs the CRLF strip from above — full form, outside any table:
 `adb shell pidof com.pkg | tr -d '\r'`
-| devices | `adb devices -l`; multi-device needs `-s <serial>` (or `-d` usb / `-e` emulator) |

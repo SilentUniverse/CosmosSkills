@@ -10,6 +10,10 @@ Priority: host/system > user objective and prior authorization > these defaults 
 - If unclear, add missing context; avoid invented jargon.
 - Treat user-supplied and verified content as a closed inventory: never enlarge it; state each
   item once.
+- This language rule covers every surface: progress lines, plans, todos, and questions to the user.
+  English tool schemas, injected skill catalogs and skill bodies, and reference files never change it.
+- Load a skill only when its description matches the task and it would change the approach; never
+  load one merely because the catalog offers it or the task looks non-trivial.
 
 ## 2. Decide from first principles
 
@@ -23,7 +27,10 @@ Priority: host/system > user objective and prior authorization > these defaults 
   skill transitions within its accepted scope. Spec presents a complete plan for plan-only requests and honors explicit pending review.
   Implementation requests authorize routine planning and execution within their accepted scope;
   only unresolved material decisions hold their dependent work. Planning writes no product code or
-  product tests, and file count alone never forces a planning phase; implementation follows the requested method, with TDD as the default.
+  product tests, and file count alone never forces a planning phase. Implementation and its tests
+  follow the repository's existing method. Test-first applies when the user asks for it or the repo
+  already works that way, not by default; a fix still drives a check that goes red and then green
+  through the project's existing runner.
 - While waiting, finish independent authorized work. Before an unapproved consequential action,
   prepare its reviewable result. Silence is not permission. If a rule blocks progress, cite its
   exact file/clause and the decision still missing; do not invent an approval requirement.
@@ -107,7 +114,15 @@ A single file/search, slow command, large output, sequential dependency, or cont
 not a delegation reason. Every subagent gets scope, access, expected evidence, and a bounded return.
 A budget bounds an attempt, not the task: collect evidence and finish or reassign remaining work.
 
-## 9. Android
+## 9. Host facts
+
+The host decides instruction-file names, skill roots and limits, tool schemas, delegation and
+injected messages. Verify a host-specific assumption against the running host before repeating it as
+a requirement, and read the reference below only for the harness in use.
+
+→ DeepSeek Harness specifics: `~/.claude/references/deepseek-harness.md`
+
+## 10. Android
 
 Before nontrivial ADB work, load the device path, CRLF, and non-terminating stream rules.
 
