@@ -265,7 +265,9 @@ def resident_budget(skill_files: Iterable[Path], cwd: Path) -> tuple[list[str], 
         )
     policy = cwd / "claude" / "CLAUDE.md"
     try:
-        policy_bytes = policy.stat().st_size
+        # A checkout's line-ending style is not resident content: counting CRLF as an
+        # extra byte per line makes the same policy pass on one OS and fail on another.
+        policy_bytes = len(policy.read_bytes().replace(b"\r\n", b"\n"))
     except OSError:
         policy_bytes = None
     if policy_bytes is not None and policy_bytes > RESIDENT_POLICY_BUDGET_BYTES:
