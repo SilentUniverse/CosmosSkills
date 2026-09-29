@@ -360,6 +360,19 @@ class ValidateSkillsTests(unittest.TestCase):
             self.assertIn("claude/CLAUDE.md 9B exceeds 1B", errors[0])
             self.assertIn("9B/1B", summary)
 
+    def test_resident_policy_budget_ignores_checkout_line_endings(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "claude").mkdir()
+            policy = root / "claude" / "CLAUDE.md"
+            line = b"x" * 41
+            policy.write_bytes(b"".join(line + b"\n" for _ in range(200)))
+            self.assertEqual([], validate_skills.resident_budget([], root)[0])
+            # CRLF is checkout style, not content: 8600 checkout bytes stay 8400 here.
+            policy.write_bytes(b"".join(line + b"\r\n" for _ in range(200)))
+            self.assertEqual(8600, policy.stat().st_size)
+            self.assertEqual([], validate_skills.resident_budget([], root)[0])
+
     def test_repository_resident_budget_within_limits(self):
         errors, summary = validate_skills.resident_budget(
             validate_skills.collect_skills([], ROOT), ROOT
