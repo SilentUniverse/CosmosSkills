@@ -22,6 +22,13 @@ The concrete `settings.json` `PreToolUse` config, carrier selection, install loc
 
 Where the harness exposes built-in ripgrep-backed `Grep`, `Glob`, and `Read` tools with permission integration, use those for routine agent search/read; only drop to a shell tool when the built-in can't express the need. Where it exposes none, `rg`/`fd`/`sd` are the routine path.
 
+## Interpreter entrypoints
+
+Skill text writes Python commands as `python`. Where only `python3` resolves (a stock macOS), run
+the identical command through it; a missing interpreter is an environment fact to resolve, never a
+failed gate. Git Bash on Windows is the reverse case: `python3` there is often the Store alias that
+always fails, so use `python`.
+
 ## Key distinctions
 
 - `jq` is JSON-only; YAML frontmatter needs `yq`. To read an issue's `status` / `blocked_by` / `refines` deterministically: `yq --front-matter=extract '.blocked_by[]' <file>`, use the workflow parser for mutations; `rg` is sufficient for a simple status inventory.

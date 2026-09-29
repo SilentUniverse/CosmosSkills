@@ -51,8 +51,8 @@ Observed on DSH 0.2.0-rc.2, macOS, 2026-09-30.
   interpreter at `<DSH_HOME>/dsh-runtimes/<runtime>/dependencies/python/bin/python3` (3.12, returned
   by `load_workspace_dependencies`). The artifact gate runs on both interpreters (2026-09-30). This
   host also resolves `python` through a wrapper on PATH that execs the DSH interpreter and falls back
-  to `/usr/bin/python3`; the installer does not create it, so a rebuilt host relies on CLAUDE.md §7·d
-  until one is added.
+  to `/usr/bin/python3`; the installer does not create it, so a rebuilt host relies on
+  `~/.claude/references/cli-tools.md` until one is added.
 
 ## Hooks
 
