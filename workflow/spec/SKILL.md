@@ -151,7 +151,8 @@ When the user requested plan review, present the complete plan. Otherwise contin
 in the same task without another confirmation or session reset.
 
 A plan-only request ends with a complete reviewable plan. An authorized implementation continues
-under its requested method, with TDD as the default. Missing decisions hold only dependent work;
+under its requested method, defaulting to the repository's existing practice and verification
+conventions. Missing decisions hold only dependent work;
 these are engineering outcomes, not persisted runtime phases.
 
 ## 5. Promote confirmed facts

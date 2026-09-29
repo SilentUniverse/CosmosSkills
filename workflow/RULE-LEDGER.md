@@ -58,6 +58,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 |---|---|---|---|---|
 | §1·c | 用户没跟上 → 补上下文，不发明术语 | 过程 | 自审 | 未溯源 |
 | §1·d | 交付物按用户与已核实内容封闭清单组织，不扩大、逐项一次 | 过程·经济 | 自审 | 注水与模板膨胀；agent-skills artifact-restraint 对标借入；未溯源 |
+| §1·e | 技能仅当描述匹配任务且会改变做法时才加载 | 过程·经济 | 自审 | 目录提供或任务显大就加载的常驻税；未溯源 |
 | §2·b | 可查事实不问人 | 过程 | 自审 | 未溯源（近邻探针：research-marks-unverified-and-ignores-injection） |
 | §2·c | 结果与约束已定即可推进；实现和验证细节由 agent 补足；文件数不触发规划 | 过程·经济 | 流程 | 仪式性确认税；7be5338 压缩摄入、51a7d4a fast path / spec-alignment-before-write |
 | §2·d | 既有授权在接受范围内继承；spec 默认保留用户 review | 权威 | 流程 | 结果分叉未问人；DESIGN-RECEIPT / spec-holds-alignment-under-pressure |
@@ -75,7 +76,8 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | §7·b | 破坏性目录操作前枚举隐藏/忽略项 | 权威 | 流程 | 未溯源（安全守则） |
 | §7·c | PS 设 UTF-8；PS/cmd 不写文本文件 | 过程 | 流程 | 38b2c6a（UTF-8 note）、94aea23（PS5.1/cmd 规则） |
 | §8 | 独立工作或判断才委派；预算约束尝试而非完成条件 | 过程·经济 | 自审 | 65f1318（tool-call cap）、51a7d4a（默认 inline） |
-| §9 | ADB 前加载设备规则参考 | 过程 | 流程 | 7f56614（android-adb reference） |
+| §9 | 宿主特有假设先对运行中的宿主核实再复述 | 过程 | 自审 | 单宿主观察被当跨宿主要求；未溯源 |
+| §10 | ADB 前加载设备规则参考 | 过程 | 流程 | 7f56614（android-adb reference） |
 | §3·末 | 完成时删除测试：新增抽象无活消费者即删；设计侧 spec §3；深审 /atk Re-derive | 过程·经济 | 流程 | 死抽象累积税；未溯源 |
 
 ## B. spec — workflow/spec/SKILL.md（每次规划付费）

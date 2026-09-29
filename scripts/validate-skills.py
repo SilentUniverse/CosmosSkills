@@ -60,7 +60,10 @@ NON_SKILL_SLASH_TOKENS = {"backticks", "c", "clear", "compact", "pattern", "sett
 # Coarse ceilings for always-resident surfaces (every turn pays them); growth beyond
 # current headroom is a visible metric first, a red line only at these outer bounds.
 DESCRIPTION_BUDGET_BYTES = 12_000
-RESIDENT_POLICY_BUDGET_BYTES = 8_000
+# claude/CLAUDE.md's §1 language rule and §9 host-facts pointer must stay resident: an injected
+# English skill catalog or skill body otherwise displaces the answer language. Keep the headroom
+# small: this is a ceiling, not a target.
+RESIDENT_POLICY_BUDGET_BYTES = 8_500
 
 
 class SkillError(ValueError):
