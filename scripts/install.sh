@@ -200,12 +200,13 @@ for gate in "${POLICY_HELPERS[@]}"; do
   copy_file "$ROOT/workflow/$gate" "$TARGET/$gate" "Gate: $gate"
 done
 retain_retired_helpers "$TARGET"
-for helper in eval.py eval_campaign.py eval_metrics.py; do
+for helper in eval.py eval_metrics.py; do
   copy_file "$ROOT/scripts/$helper" "$TARGET/$helper" "Eval: $helper"
 done
 
 # Prune pre-Python gate corpses (the gate was once .ps1/.sh; stale copies read as "old").
-for stale in verify-artifacts.ps1 verify-artifacts.sh; do
+# eval_campaign.py was retired with the campaign rail; prune upgraded-machine copies too.
+for stale in verify-artifacts.ps1 verify-artifacts.sh eval_campaign.py; do
   if [ -f "$TARGET/$stale" ]; then
     if [[ "$DRY_RUN" -eq 1 ]]; then
       echo "[DryRun] Remove stale gate $TARGET/$stale"

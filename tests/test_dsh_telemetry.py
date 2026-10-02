@@ -136,52 +136,6 @@ class DshTelemetryTests(unittest.TestCase):
             self.assertEqual(1, rows[0]["child_count"])
             self.assertEqual([], telemetry.list_sessions(sessions, "/elsewhere"))
 
-    def test_observation_metrics_are_filled_before_seal(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            self.make_sessions(root)
-            sessions = telemetry.discover(root)
-            result = telemetry.summarize(sessions, [("root-spec", "SPEC")])
-            observation = root / "observations.jsonl"
-            observation.write_text(
-                json.dumps({"run_id": "case-1", "metrics": {"wall_time_ms": None}}) + "\n",
-                encoding="utf-8",
-            )
-            telemetry.update_observation(observation, "case-1", result)
-            updated = json.loads(observation.read_text(encoding="utf-8"))
-            self.assertEqual(1000, updated["metrics"]["wall_time_ms"])
-            self.assertEqual(650, updated["metrics"]["input_tokens"])
-            self.assertEqual(15, updated["metrics"]["output_tokens"])
-            self.assertEqual(3, updated["metrics"]["tool_calls"])
-            self.assertIsNone(updated["metrics"]["retry_count"])
-
-    def test_sealed_submission_is_not_mutated(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            self.make_sessions(root)
-            sessions = telemetry.discover(root)
-            result = telemetry.summarize(sessions, [("root-spec", "SPEC")])
-            observation = root / "observations.jsonl"
-            observation.write_text(json.dumps({"run_id": "case-1", "metrics": {}}) + "\n", encoding="utf-8")
-            (root / "seal.json").write_text("{}", encoding="utf-8")
-            with self.assertRaises(telemetry.TelemetryError):
-                telemetry.update_observation(observation, "case-1", result)
-
-    def test_empty_selection_stays_null(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            self.make_sessions(root)
-            sessions = telemetry.discover(root)
-            result = telemetry.summarize(sessions, [("root-spec", "SPEC")])
-            observation = root / "observations.jsonl"
-            observation.write_text(
-                json.dumps({"run_id": "case-1", "metrics": {"wall_time_ms": 5}}) + "\n",
-                encoding="utf-8",
-            )
-            telemetry.update_observation(observation, "case-1", {"totals": {"step_count": 0}})
-            updated = json.loads(observation.read_text(encoding="utf-8"))
-            self.assertIsNone(updated["metrics"]["wall_time_ms"])
-
 
 if __name__ == "__main__":
     unittest.main()

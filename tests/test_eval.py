@@ -285,7 +285,7 @@ class EvalTests(unittest.TestCase):
             with self.assertRaises(cosmos_eval.EvalError):
                 cosmos_eval.report_eval_session(session_dir, require_improvement=True)
 
-    def test_ai_grader_must_be_blind(self):
+    def test_ai_grader_kind_is_retired(self):
         case = copy.deepcopy(CASE)
         case["graders"] = [
             {
@@ -297,11 +297,28 @@ class EvalTests(unittest.TestCase):
                 "rubric_version": "v1",
                 "calibration_set": "calibration.jsonl",
                 "minimum_calibration_accuracy": 0.8,
-                "blind": False,
+                "blind": True,
             }
         ]
         with self.assertRaises(cosmos_eval.EvalError):
             cosmos_eval.validate_case(case)
+        run = make_run()
+        run["grader_results"] = [
+            {
+                "id": "gate",
+                "kind": "ai",
+                "passed": True,
+                "evidence_ids": ["proof"],
+                "judge": {
+                    "model": "independent-judge",
+                    "rubric_version": "v1",
+                    "calibration_accuracy": 0.9,
+                    "blind": True,
+                },
+            }
+        ]
+        with self.assertRaises(cosmos_eval.EvalError):
+            cosmos_eval.validate_run(run, {"demo-case": CASE})
 
     def test_claude_trace_import_uses_observed_usage_and_tools(self):
         trace = [
@@ -373,39 +390,6 @@ class EvalTests(unittest.TestCase):
         self.assertEqual(2, run["metrics"]["tool_calls"])
         self.assertEqual(1500, run["metrics"]["wall_time_ms"])
         self.assertEqual("firstParty:model-a", run["controls"]["model"])
-
-    def test_ai_grader_must_clear_case_calibration_threshold(self):
-        case = copy.deepcopy(CASE)
-        case["graders"] = [
-            {
-                "id": "gate",
-                "kind": "ai",
-                "procedure": "judge output",
-                "why_not_deterministic": "semantic quality",
-                "rubric": "rubric.md",
-                "rubric_version": "v1",
-                "calibration_set": "calibration.jsonl",
-                "minimum_calibration_accuracy": 0.8,
-                "blind": True,
-            }
-        ]
-        run = make_run()
-        run["grader_results"] = [
-            {
-                "id": "gate",
-                "kind": "ai",
-                "passed": True,
-                "evidence_ids": ["proof"],
-                "judge": {
-                    "model": "independent-judge",
-                    "rubric_version": "v1",
-                    "calibration_accuracy": 0.7,
-                    "blind": True,
-                },
-            }
-        ]
-        with self.assertRaises(cosmos_eval.EvalError):
-            cosmos_eval.validate_run(run, {"demo-case": case})
 
 
 if __name__ == "__main__":

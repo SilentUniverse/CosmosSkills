@@ -1,7 +1,7 @@
 # ZCode history telemetry adapter
 
 Use this adapter only in an explicit workflow eval. It reads ZCode's local SQLite history and fills
-resource metrics before a campaign submission is sealed; normal `/spec` and `/tdd` never run it.
+resource metrics for a local session run; normal `/spec` and `/tdd` never run it.
 
 List candidate sessions for one fixture checkout:
 
@@ -9,16 +9,14 @@ List candidate sessions for one fixture checkout:
 python scripts/zcode_telemetry.py list --directory /absolute/path/to/fixture
 ```
 
-Select only non-overlapping root sessions. Name each phase and retain the generated JSON with the
-submission:
+Select only non-overlapping root sessions. Name each phase and retain the generated JSON below the
+session's `artifacts/` for the slot it measures:
 
 ```bash
 python scripts/zcode_telemetry.py summarize \
   --root-session 'sess_spec=SPEC and verifier readiness' \
   --root-session 'sess_tdd=TDD and final verification' \
-  --output /absolute/path/to/submission/artifacts/process/zcode-history-metrics.json \
-  --observation /absolute/path/to/submission/observations.jsonl \
-  --run-id <case-id>-<trial>
+  --output .eval-runs/<name>/artifacts/<run-id>-zcode-history-metrics.json
 ```
 
 The adapter defines active wall time as the sum of root `turn_usage.duration_ms`. Child-session time
@@ -26,10 +24,7 @@ is not added again, so parallel subagents do not inflate elapsed work. Child Tok
 count because they are consumed resources. Gaps between turns are excluded, including overnight
 human pauses. Cancelled turns retain their actual recorded duration and cost.
 
-The adapter fills `wall_time_ms`, input/output Token, tool calls, and retry count. Its wall time is
-ZCode active-turn duration, not an external-runner stopwatch, so it is eligible for policy-only
-comparison under the same ZCode scope but not for a whole-system speed verdict. Whole-system arms
-must retain the adapter output as diagnostics and put externally measured elapsed time in the
-observation with `controls.wall_time_scope=external-runner-elapsed`. ZCode input Token may include
-cached/context accounting, so compare it only under the same telemetry/runtime scope. The script
-refuses to mutate a submission after `seal.json` exists.
+Use the totals to fill the run's resource metrics: `wall_time_ms`, input/output Token, `tool_calls`,
+and `retry_count`. ZCode input Token may include cached/context accounting, so record the same
+telemetry/runtime scope in every arm and keep the counters diagnostic; they cannot support a
+cheaper/more-efficient claim.

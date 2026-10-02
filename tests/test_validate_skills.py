@@ -290,7 +290,7 @@ class ValidateSkillsTests(unittest.TestCase):
             root = Path(tmp)
             self.write_skill(root / "workflow", "fixture-skill")
             (root / "tooling").mkdir()
-            for directory in (".eval-runs", ".eval-campaigns"):
+            for directory in (".eval-runs",):
                 report = root / directory / "session" / "report.md"
                 report.parent.mkdir(parents=True)
                 report.write_text("[Runtime evidence](absent-here.log)\n", encoding="utf-8")

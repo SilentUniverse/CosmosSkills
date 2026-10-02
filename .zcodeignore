@@ -6,7 +6,6 @@
 .DS_Store
 __pycache__/
 .eval-runs/
-.eval-campaigns/
 .zcode/
 
 # ===== ↑ 以上同步自 .gitignore（「从 .gitignore 同步」只重写以上部分）=====

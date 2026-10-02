@@ -188,7 +188,7 @@ Return the interpreter version through the CLI.
                 text=True, capture_output=True, check=False,
             )
             self.assertEqual(0, imported.returncode, imported.stderr)
-            for script in ("eval.py", "eval_campaign.py", "workflow-state.py", "evidence.py"):
+            for script in ("eval.py", "workflow-state.py", "evidence.py"):
                 with self.subTest(script=script):
                     command = subprocess.run(
                         [sys.executable, "-B", str(target / script), "--help"],

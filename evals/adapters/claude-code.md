@@ -3,7 +3,7 @@
 The adapter separates three truths:
 
 1. Claude Code records what it consumed and did (`stream-json`).
-2. Product gates / blind judges decide whether requirements passed (`assessment.json`).
+2. Product gates decide whether requirements passed (`assessment.json`).
 3. `eval.py` rejects inconsistent controls, missing proof, or success inferred from self-report.
 
 ## 1. Isolate and execute
@@ -37,10 +37,9 @@ when the host has no model-seed option; repeated trials capture residual model v
 
 ## 2. Grade independently
 
-Run deterministic case graders outside the planner/executor session. Feed an AI grader only the
-case request, candidate artifact, versioned rubric, and calibration examples; hide arm, skill
-revision, rationale, cost, and self-assessment. Record its measured calibration accuracy and require
-the case threshold before accepting a pass. Save every referenced log/trace/screenshot.
+Run deterministic case graders outside the planner/executor session; a session's own summary is
+never a grader. Where a property is irreducible to automation, use the case's `human` grader and
+record why. Save every referenced log/trace/screenshot.
 
 Write `assessment.json`:
 

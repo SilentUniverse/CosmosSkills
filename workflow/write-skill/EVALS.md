@@ -34,16 +34,13 @@ python scripts/eval.py compare results.jsonl --cases evals/cases \
   --baseline previous --candidate candidate --require-improvement
 ```
 
-When `upstream` must run in another project or harness, do not fake it as a paired local arm. Export
-the standalone public packet with `scripts/eval_campaign.py` and follow
-[`../../evals/CAMPAIGN-PROTOCOL.md`](../../evals/CAMPAIGN-PROTOCOL.md); retain this local contract for
-previous/candidate revisions of the current project.
+An arm that must run in another harness cannot be faked as a paired local arm; record it as an
+unpaired diagnostic instead and keep this local contract for previous/candidate revisions of the
+current project.
 
 Automatic acceptance requires `quality-improved` / `efficiency-improved` / `pareto-improved` and no
 losing case. A `trade-off` needs an explicit human decision and cannot be reported as “better”; a
-tie is “not improved.” A semantic AI judge is allowed only with a blind, versioned rubric
-and human-labeled calibration set whose measured accuracy clears the case threshold; runnable tests
-and traces remain ground truth. Every production failure that a skill should have prevented becomes
-a permanent regression case.
+tie is “not improved.” Runnable tests and traces remain ground truth. Every production failure that
+a skill should have prevented becomes a permanent regression case.
 
 **No reproducer = no verified behavior fix. No real run = no performance claim.**
