@@ -389,45 +389,6 @@ def list_sessions(database: Path, directory: str) -> List[Mapping[str, Any]]:
         connection.close()
 
 
-def update_observation(path: Path, run_id: str, telemetry: Mapping[str, Any]) -> None:
-    if (path.parent / "seal.json").exists():
-        raise TelemetryError(f"refusing to mutate sealed submission: {path.parent}")
-    try:
-        records = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
-    except (OSError, json.JSONDecodeError) as exc:
-        raise TelemetryError(f"{path}: {exc}") from exc
-    matched = 0
-    totals = telemetry["totals"]
-    # An empty selection observes nothing; the protocol forbids turning that into zero.
-    patch = (
-        {key: None for key in ("wall_time_ms", "input_tokens", "output_tokens", "tool_calls", "retry_count")}
-        if totals.get("turn_rows", 0) == 0
-        else {
-            "wall_time_ms": totals["wall_time_ms"],
-            "input_tokens": totals.get("uncached_input_tokens"),
-            "output_tokens": totals["output_tokens_including_children"],
-            "tool_calls": totals["tool_calls_including_children"],
-            "retry_count": totals["model_retry_count"],
-        }
-    )
-    for record in records:
-        if record.get("run_id") != run_id:
-            continue
-        metrics = record.get("metrics")
-        if not isinstance(metrics, dict):
-            raise TelemetryError(f"{path}: run {run_id} has no metrics object")
-        metrics.update(patch)
-        matched += 1
-    if matched != 1:
-        raise TelemetryError(f"{path}: expected one run_id={run_id}, found {matched}")
-    temporary = path.with_name(path.name + ".tmp")
-    temporary.write_text(
-        "".join(json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n" for record in records),
-        encoding="utf-8",
-    )
-    os.replace(temporary, path)
-
-
 def _parse_root(value: str) -> Tuple[str, str]:
     if "=" not in value:
         raise argparse.ArgumentTypeError("expected SESSION=PHASE")
@@ -454,8 +415,6 @@ def build_parser() -> argparse.ArgumentParser:
     summary.add_argument("--db", type=Path, default=DEFAULT_DB)
     summary.add_argument("--root-session", action="append", type=_parse_root, required=True)
     summary.add_argument("--output", type=Path)
-    summary.add_argument("--observation", type=Path)
-    summary.add_argument("--run-id")
     return parser
 
 
@@ -476,8 +435,6 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         if args.command == "profile":
             print(json.dumps(context_profile(args.db, args.days, args.top), ensure_ascii=False, indent=2, sort_keys=True))
             return 0
-        if bool(args.observation) != bool(args.run_id):
-            raise TelemetryError("--observation and --run-id must be used together")
         result = summarize(args.db, args.root_session)
         rendered = json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
         if args.output:
@@ -485,8 +442,6 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             args.output.write_text(rendered, encoding="utf-8")
         else:
             print(rendered, end="")
-        if args.observation:
-            update_observation(args.observation, args.run_id, result)
         return 0
     except (TelemetryError, ValueError, sqlite3.Error) as exc:
         print(f"zcode-telemetry: {exc}", file=sys.stderr)
