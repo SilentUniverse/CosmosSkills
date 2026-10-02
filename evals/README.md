@@ -65,13 +65,6 @@ smoke 超过两个 case 会被 CLI 拒绝，避免“快速检查”意外变成
 完全相同；只有 `policy_revision` 和 arm 不同。网络、token、工具调用和 wall-time budget 写在
 case 中。比较器会拒绝控制变量不一致的伪 A/B。
 
-上面这条本地 session 继续用于“Cosmos previous vs candidate”，没有被跨项目比较替换。若一个
-arm 必须在原生方案、Superpowers、Loop Engineer 或任意其他 harness 内独立运行，使用
-[Portable campaign protocol](CAMPAIGN-PROTOCOL.md) 和 `scripts/eval_campaign.py`：它导出一份
-不含私有 grader 的自包含 `public/`，每一边只执行同一公开包并返回 sealed evidence，出题方再
-盲判并做 N 路离线报告。`policy-only` 要求全部控制变量相同；`whole-system` 允许宿主差异，但
-结论只能归因于整套系统。
-
 ## 不做神秘总分
 
 报告并列展示：
@@ -86,21 +79,17 @@ arm 必须在原生方案、Superpowers、Loop Engineer 或任意其他 harness 
   replan、executor 发现的新 invariant。
 - **风险**：scope leakage；以及 wall time 的 MAD（跨次波动）。
 
-交接摩擦故意保留为诊断向量，不把不同错误拍脑袋加权成一个数。同 harness 的本地 session 和
-`policy-only` campaign 在相同 case/trial 上比较 Success@Budget、活跃 wall time、总 Token 和
-工具调用。`whole-system` campaign 的跨 provider 计数口径不可比，只用受控 wall time 与
-Success@TimeBudget 决定速度；Token/tool call 仍展示为诊断数据，不能推导“更省”。质量提高但
-速度下降仍是 trade-off；wall time 必须来自统一的外层 runner elapsed 边界，供应商内部 active
-time 不能混用。wall time 缺失使 whole-system 速度结论 `insufficient-data`。
+交接摩擦故意保留为诊断向量，不把不同错误拍脑袋加权成一个数。同一遥测口径下的配对 session
+在相同 case/trial 上比较 Success@Budget、活跃 wall time、总 Token 和工具调用；跨 provider 的
+计数口径不可比，Token/tool call 只作诊断数据，不能推导“更省”。质量提高但速度下降仍是
+trade-off；wall time 必须来自同一口径（同一 adapter 的活跃时长或同一外层计时边界），供应商
+内部 active time 不能混用。
 
 ## Case 与 evidence
 
 `cases/*.json` 是 runner-neutral 测试规格。每个 requirement 指向一个或多个 grader：
 
 - `deterministic`：测试、compiler、CLI、trace event、browser/device action。
-- `ai`：只评 deterministic 难以表达的语义/视觉属性；必须 blind、版本化 rubric、有人工标注
-  calibration set，且本次 judge 在该集合上的 accuracy 达到 case 阈值。calibration 与计分
-  case 不得近似重复，否则 judge 准确率被虚高。AI 不能替代本来能跑的测试。
 - `human`：品味、权限、不可逆决策或 agent 无法访问的外部账号，必须说明为何不能自动化。
 
 runner 输出 JSONL。成功记录至少包含：

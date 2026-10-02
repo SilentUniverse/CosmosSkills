@@ -48,7 +48,7 @@ CURSOR_COLORS = {
     "brand",
 }
 DEFAULT_ROOTS = ("workflow", "tooling")
-MARKDOWN_EXCLUDED_PARTS = {".eval-campaigns", ".eval-runs", ".git", ".scratch", ".venv", "node_modules"}
+MARKDOWN_EXCLUDED_PARTS = {".eval-runs", ".git", ".scratch", ".venv", "node_modules"}
 RETIRED_SKILL_NAMES = {
     "caveman": "brief",
     "git-guardrails-claude-code": "shell-guardrails",

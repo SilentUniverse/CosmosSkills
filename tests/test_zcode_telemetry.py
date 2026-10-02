@@ -80,24 +80,6 @@ class ZCodeTelemetryTests(unittest.TestCase):
             with self.assertRaises(telemetry.TelemetryError):
                 telemetry.summarize(database, [("root-spec", "SPEC"), ("child", "review")])
 
-    def test_observation_metrics_are_filled_before_seal(self):
-        with tempfile.TemporaryDirectory() as directory:
-            database = Path(directory) / "db.sqlite"
-            self.make_database(database)
-            result = telemetry.summarize(database, [("root-spec", "SPEC")])
-            observation = Path(directory) / "observations.jsonl"
-            observation.write_text(
-                json.dumps({"run_id": "case-1", "metrics": {"wall_time_ms": None}}) + "\n",
-                encoding="utf-8",
-            )
-            telemetry.update_observation(observation, "case-1", result)
-            updated = json.loads(observation.read_text(encoding="utf-8"))
-            self.assertEqual(1000, updated["metrics"]["wall_time_ms"])
-            # observation input_tokens carries the UNCACHED remainder; the root-spec cost
-            # tree includes its child, so 400+250 total minus 300+150 cache hits.
-            self.assertEqual(200, updated["metrics"]["input_tokens"])
-            self.assertEqual(2, updated["metrics"]["tool_calls"])
-
     def test_cache_read_ratio_divides_by_total_input(self):
         with tempfile.TemporaryDirectory() as directory:
             database = Path(directory) / "db.sqlite"
@@ -107,24 +89,6 @@ class ZCodeTelemetryTests(unittest.TestCase):
             self.assertEqual(400, result["totals"]["uncached_input_tokens"])
             self.assertEqual(3, result["totals"]["turn_rows"])
             self.assertAlmostEqual(850 / 1250, result["totals"]["cache_read_ratio"], places=4)
-
-    def test_empty_selection_writes_null_not_zero(self):
-        with tempfile.TemporaryDirectory() as directory:
-            database = Path(directory) / "db.sqlite"
-            self.make_database(database)
-            result = telemetry.summarize(database, [("root-tdd", "TDD")])
-            result["totals"]["turn_rows"] = 0
-            observation = Path(directory) / "observations.jsonl"
-            observation.write_text(
-                json.dumps({"run_id": "case-1", "metrics": {"wall_time_ms": 0}}) + "\n",
-                encoding="utf-8",
-            )
-            telemetry.update_observation(observation, "case-1", result)
-            updated = json.loads(observation.read_text(encoding="utf-8"))
-            self.assertIsNone(updated["metrics"]["wall_time_ms"])
-            self.assertIsNone(updated["metrics"]["input_tokens"])
-            self.assertIsNone(updated["metrics"]["tool_calls"])
-
 
     def write_part(self, path, part_id, session_id, payload, time_created=1000):
         connection = sqlite3.connect(path)

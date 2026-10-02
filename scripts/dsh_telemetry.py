@@ -318,53 +318,6 @@ def list_sessions(sessions: Mapping[str, Mapping[str, Any]], directory: str) -> 
     return rows
 
 
-def update_observation(path: Path, run_id: str, telemetry: Mapping[str, Any]) -> None:
-    if (path.parent / "seal.json").exists():
-        raise TelemetryError(f"refusing to mutate sealed submission: {path.parent}")
-    try:
-        records = [
-            json.loads(line)
-            for line in path.read_text(encoding="utf-8").splitlines()
-            if line.strip()
-        ]
-    except (OSError, json.JSONDecodeError) as exc:
-        raise TelemetryError(f"{path}: {exc}") from exc
-    totals = telemetry["totals"]
-    empty = int(totals.get("step_count") or 0) == 0
-    patch = (
-        {
-            key: None
-            for key in ("wall_time_ms", "input_tokens", "output_tokens", "tool_calls", "retry_count")
-        }
-        if empty
-        else {
-            "wall_time_ms": totals["wall_time_ms"],
-            # Observation input_tokens carries the uncached prompt remainder, as in the ZCode adapter.
-            "input_tokens": totals["uncached_input_tokens"],
-            "output_tokens": totals["output_tokens_including_children"],
-            "tool_calls": totals["tool_calls_including_children"],
-            "retry_count": totals["model_retry_count"],
-        }
-    )
-    matched = 0
-    for record in records:
-        if record.get("run_id") != run_id:
-            continue
-        metrics = record.get("metrics")
-        if not isinstance(metrics, dict):
-            raise TelemetryError(f"{path}: run {run_id} has no metrics object")
-        metrics.update(patch)
-        matched += 1
-    if matched != 1:
-        raise TelemetryError(f"{path}: expected one run_id={run_id}, found {matched}")
-    temporary = path.with_name(path.name + ".tmp")
-    temporary.write_text(
-        "".join(json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n" for record in records),
-        encoding="utf-8",
-    )
-    os.replace(temporary, path)
-
-
 def _parse_root(value: str) -> Tuple[str, str]:
     if "=" not in value:
         raise argparse.ArgumentTypeError("expected SESSION_ID=PHASE")
@@ -383,8 +336,6 @@ def build_parser() -> argparse.ArgumentParser:
     summary = commands.add_parser("summarize", help="summarize selected non-overlapping root sessions")
     summary.add_argument("--root-session", action="append", type=_parse_root, required=True)
     summary.add_argument("--output", type=Path)
-    summary.add_argument("--observation", type=Path)
-    summary.add_argument("--run-id")
     return parser
 
 
@@ -401,10 +352,6 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             print(json.dumps(list_sessions(sessions, args.directory), ensure_ascii=False, indent=2, sort_keys=True))
             return 0
         result = summarize(sessions, args.root_session)
-        if args.observation is not None:
-            if not args.run_id:
-                raise TelemetryError("--observation requires --run-id")
-            update_observation(args.observation, args.run_id, result)
         rendered = json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
         if args.output is not None:
             args.output.write_text(rendered, encoding="utf-8")

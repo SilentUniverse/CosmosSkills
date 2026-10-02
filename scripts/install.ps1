@@ -375,7 +375,7 @@ foreach ($gate in $policyHelpers) {
 
 Keep-RetiredHelpers $Target
 
-foreach ($helper in @("eval.py", "eval_campaign.py", "eval_metrics.py")) {
+foreach ($helper in @("eval.py", "eval_metrics.py")) {
     $evalSource = Join-Path $root "scripts/$helper"
     if (-not (Test-Path -LiteralPath $evalSource)) { continue }
     $evalTarget = Join-Path $Target $helper
@@ -390,7 +390,8 @@ foreach ($helper in @("eval.py", "eval_campaign.py", "eval_metrics.py")) {
 
 # Prune pre-Python gate corpses (the gate was once .ps1/.sh; on upgraded machines
 # stale copies outlive the rewrite and read as "still old"). Fresh installs never see them.
-foreach ($stale in @("verify-artifacts.ps1", "verify-artifacts.sh")) {
+# eval_campaign.py was retired with the campaign rail; prune upgraded-machine copies too.
+foreach ($stale in @("verify-artifacts.ps1", "verify-artifacts.sh", "eval_campaign.py")) {
     $stalePath = Join-Path $Target $stale
     if (Test-Path -LiteralPath $stalePath) {
         if ($DryRun) { Write-Host ("[DryRun] Remove stale gate {0}" -f $stalePath) -ForegroundColor Yellow }

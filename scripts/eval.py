@@ -26,7 +26,7 @@ SCHEMA_VERSION = 1
 SESSION_SCHEMA_VERSION = 1
 LAYERS = {"L0", "L1", "L2", "L3"}
 ORIGIN_KINDS = {"regression", "capability", "routing"}
-GRADER_KINDS = {"deterministic", "ai", "human"}
+GRADER_KINDS = {"deterministic", "human"}
 CONTROL_FIELDS = (
     "model",
     "reasoning",
@@ -190,31 +190,6 @@ def validate_case(case: Mapping[str, Any], label: str = "case") -> None:
         if grader["kind"] not in GRADER_KINDS:
             _fail(f"{grader_label}.kind", f"expected one of {sorted(GRADER_KINDS)}")
         _text(grader["procedure"], f"{grader_label}.procedure")
-        if grader["kind"] == "ai":
-            _require(
-                grader,
-                (
-                    "why_not_deterministic",
-                    "rubric",
-                    "rubric_version",
-                    "calibration_set",
-                    "minimum_calibration_accuracy",
-                    "blind",
-                ),
-                grader_label,
-            )
-            _text(grader["why_not_deterministic"], f"{grader_label}.why_not_deterministic")
-            _text(grader["rubric"], f"{grader_label}.rubric")
-            _text(grader["rubric_version"], f"{grader_label}.rubric_version")
-            _text(grader["calibration_set"], f"{grader_label}.calibration_set")
-            minimum = _number(
-                grader["minimum_calibration_accuracy"],
-                f"{grader_label}.minimum_calibration_accuracy",
-            )
-            if minimum > 1:
-                _fail(f"{grader_label}.minimum_calibration_accuracy", "must be between 0 and 1")
-            if grader["blind"] is not True:
-                _fail(f"{grader_label}.blind", "AI graders must be blind to the evaluated arm")
         if grader["kind"] == "human":
             _text(grader.get("why_not_automated"), f"{grader_label}.why_not_automated")
 
@@ -252,18 +227,6 @@ def _case_files(path: Path) -> List[Path]:
     return files
 
 
-def _resolve_case_reference(case_file: Path, reference: str) -> Optional[Path]:
-    candidate = Path(reference)
-    if candidate.is_absolute():
-        return candidate if candidate.is_file() else None
-    roots = [Path.cwd(), *case_file.parents]
-    for root in roots:
-        resolved = root / candidate
-        if resolved.is_file():
-            return resolved
-    return None
-
-
 def load_cases(path: Path) -> Dict[str, Mapping[str, Any]]:
     cases: Dict[str, Mapping[str, Any]] = {}
     for case_file in _case_files(path):
@@ -273,13 +236,6 @@ def load_cases(path: Path) -> Dict[str, Mapping[str, Any]]:
             raise EvalError(f"{case_file}: {exc}") from exc
         case = _mapping(case, str(case_file))
         validate_case(case, str(case_file))
-        for grader in case["graders"]:
-            if grader["kind"] != "ai":
-                continue
-            for field in ("rubric", "calibration_set"):
-                reference = str(grader[field])
-                if _resolve_case_reference(case_file, reference) is None:
-                    raise EvalError(f"{case_file}: AI grader {grader['id']!r} missing {field} {reference!r}")
         case_id = str(case["id"])
         if case_id in cases:
             raise EvalError(f"duplicate case id {case_id!r}: {case_file}")
@@ -841,22 +797,6 @@ def validate_run(
                 _fail(result_label, f"unknown evidence {evidence_id!r}")
         if result["passed"] and not evidence_ids:
             _fail(result_label, "a passing grader needs evidence")
-        if result["kind"] == "ai" and result["passed"]:
-            judge = _mapping(result.get("judge"), f"{result_label}.judge")
-            _require(
-                judge,
-                ("model", "rubric_version", "calibration_accuracy", "blind"),
-                f"{result_label}.judge",
-            )
-            _text(judge["model"], f"{result_label}.judge.model")
-            _text(judge["rubric_version"], f"{result_label}.judge.rubric_version")
-            accuracy = _number(
-                judge["calibration_accuracy"], f"{result_label}.judge.calibration_accuracy"
-            )
-            if accuracy > 1:
-                _fail(f"{result_label}.judge.calibration_accuracy", "must be between 0 and 1")
-            if judge["blind"] is not True:
-                _fail(f"{result_label}.judge.blind", "must be true")
 
     if cases is None:
         if run["verified_success"] and not evidence:
@@ -875,14 +815,6 @@ def validate_run(
             _fail(label, f"grader result {grader_id!r} is not in case {case_id!r}")
         if result["kind"] != case_graders[grader_id]["kind"]:
             _fail(label, f"grader {grader_id!r} kind does not match the case")
-        if result["kind"] == "ai" and result["passed"]:
-            if result["judge"]["rubric_version"] != case_graders[grader_id]["rubric_version"]:
-                _fail(label, f"grader {grader_id!r} used the wrong rubric version")
-            if (
-                result["judge"]["calibration_accuracy"]
-                < case_graders[grader_id]["minimum_calibration_accuracy"]
-            ):
-                _fail(label, f"grader {grader_id!r} is below its calibration accuracy threshold")
     all_required_pass = bool(required_graders) and all(
         grader_id in result_by_id and result_by_id[grader_id]["passed"] for grader_id in required_graders
     )

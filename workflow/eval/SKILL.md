@@ -3,7 +3,7 @@ name: eval
 description: >-
   Use only when the user explicitly requests model-run evaluation or benchmarking of agent skills or workflow revisions. Runs isolated paired trials, grades retained evidence, and produces regression and Pareto reports; ordinary audits and deterministic checks do not authorize trials.
 disable-model-invocation: true
-argument-hint: "smoke|full [scope], export <campaign>, status/report <path>"
+argument-hint: "smoke|full [scope], status/report <path>"
 ---
 
 # Workflow Eval
@@ -13,9 +13,7 @@ commits do not. Deterministic artifact gates and task-local preflights remain or
 Run it from the CosmosSkills source checkout (resolve this installed skill's symlink when needed),
 because the case corpus and fixtures are source assets, not copied into ordinary product repos.
 
-Read [`../../evals/README.md`](../../evals/README.md) for a same-project run. When comparing Cosmos
-with a native workflow or another project/harness, instead read
-[`../../evals/CAMPAIGN-PROTOCOL.md`](../../evals/CAMPAIGN-PROTOCOL.md). For Claude Code traces also
+Read [`../../evals/README.md`](../../evals/README.md) for a same-project run. For Claude Code traces also
 read [`../../evals/adapters/claude-code.md`](../../evals/adapters/claude-code.md); for ZCode history
 duration and cost read [`../../evals/adapters/zcode.md`](../../evals/adapters/zcode.md); for DeepSeek
 Harness session logs read [`../../evals/adapters/dsh.md`](../../evals/adapters/dsh.md).
@@ -28,8 +26,6 @@ Harness session logs read [`../../evals/adapters/dsh.md`](../../evals/adapters/d
   `no-skill`; use 3–5 for an upstream claim. This is the only claimable mode.
 - `/eval status <session>`: show the fixed run matrix and missing slots.
 - `/eval report <session>`: validate evidence, summarize metrics, and issue the paired verdict.
-- `/eval export <campaign>`: freeze a standalone public exam and private judge pack for Cosmos
-  versus any external workflow. This is a separate rail, not a replacement for local A/B.
 
 ## Open a session
 
@@ -82,31 +78,9 @@ python scripts/eval.py session-report .eval-runs/<name> --require-improvement \
 ```
 
 `regression` rejects the candidate. Resolve `trade-off` against explicit user priorities; ask if
-unsettled. `tied` means no verified improvement. Same-harness reports expose quality and paired efficiency; only
-`pareto-improved` from a claimable full session supports an unqualified “better/faster and better”
-claim. A whole-system campaign uses controlled wall time for `speed-improved` or
-`quality-and-speed-improved`; provider-specific Token/tool counters stay diagnostic and cannot
-support a cheaper/more-efficient claim. Put the retained report summary/evidence link in the
-upstream change; raw sessions remain local and ignored by default. Retain real failures as permanent
-regression cases. Leaving this skill closes eval; it creates no global hook or active flag.
-
-## Cross-project campaign
-
-Keep the two rails separate. Use session commands for previous/candidate revisions of this project.
-Use `scripts/eval_campaign.py` when an arm runs in another harness or project. Require a materialized
-fresh fixture for every claimable case. Choose `policy-only` only when all harness controls can be
-paired; otherwise label the result `whole-system`.
-
-```bash
-python scripts/eval_campaign.py export .eval-campaigns/<name> --cases evals/cases \
-  --profile full --comparison <policy-only|whole-system> --case <id> \
-  --fixture <id>=<prepared-fixture>
-```
-
-Send only `public/`; keep `judge/` and `campaign.lock.json` private. Each participant uses the
-exported `public/campaign.py` to verify, initialize, and seal one opaque-arm submission. Participants
-record observations and evidence but never self-assign `verified_success`. After blind independent
-assessment through an arm-anonymous `prepare-judging` packet, use `judge`, then `report` over two or
-more judged JSONL files. Reveal arm labels only in the final report. Preserve unavailable metrics as
-`null`; missing wall time blocks a whole-system speed claim rather than treating unknown as zero.
-This rail remains post-hoc: do not add campaign telemetry, hooks, or graders to `/spec` or `/tdd`.
+unsettled. `tied` means no verified improvement. Only `pareto-improved` (or `quality-improved` /
+`efficiency-improved`) from a claimable full session supports an improvement claim; provider-specific
+Token/tool counters stay diagnostic and cannot support a cheaper/more-efficient claim. Put the
+retained report summary/evidence link in the upstream change; raw sessions remain local and ignored
+by default. Retain real failures as permanent regression cases. Leaving this skill closes eval; it
+creates no global hook or active flag.

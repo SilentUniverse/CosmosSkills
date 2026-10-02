@@ -55,14 +55,8 @@
     },
     {
       "id": "receipt-quality",
-      "kind": "ai",
-      "procedure": "Grade only the original request and final receipt with the versioned rubric; emit structured JSON and retain the judged receipt.",
-      "why_not_deterministic": "Semantic fidelity, counterexample quality, and whether slices preserve the user's goal cannot be established by headings or string matching.",
-      "rubric": "evals/rubrics/spec-receipt-v1.md",
-      "rubric_version": "spec-receipt-v1",
-      "calibration_set": "evals/calibration/spec-receipt-v1.jsonl",
-      "minimum_calibration_accuracy": 0.8,
-      "blind": true
+      "kind": "deterministic",
+      "procedure": "Run verify-artifacts.py on the planning artifacts and require the design receipt contract: goal, counterexample/non-goals, public seam and flow, executable evidence, passed P# preflights, and slice DAG. Then assert every stated requirement maps to at least one evidence item and one slice, and every slice maps back to a requirement."
     }
   ]
 }
