@@ -156,7 +156,7 @@ $d = New-FixtureDir "f08"
 Write-Fixture "f08/CODEBASE.md" ($rootGood -replace "`n- ``src/beta/`` - beta responsibility", '')
 Write-Fixture "f08/src/alpha/CLAUDE.md" $blockAlpha
 Write-Fixture "f08/src/beta/CLAUDE.md" $blockBeta
-Assert-Case "F08 block area not in roster" $d 1
+Assert-Case "F08 legacy block area outside an optional roster is legal" $d 0
 
 $d = New-FixtureDir "f09"
 Write-Fixture "f09/CODEBASE.md" ($rootLong -replace 'generated: 2026-08-18', "generated: 2026-08-18`nbudget: 60")
