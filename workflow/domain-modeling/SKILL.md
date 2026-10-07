@@ -10,12 +10,18 @@ Actively build and sharpen the project's domain model as you design. This is the
 
 ## File structure
 
-Layout: **[CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md)**. Create files lazily, only when you have something to write. If no `CONTEXT.md` exists, create one when the first term is resolved. If no `docs/adr/` exists, create it when the first ADR is needed.
+Layout: **[CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md)**. A resolved term alone does not create a
+file: keep term definitions local to the current Spec/Issue unless the same ambiguity recurs or
+multiple features must share one meaning. Only then create `CONTEXT.md` and record the shared
+term. If no `docs/adr/` exists, create it when the first qualifying ADR is needed. A delegated
+worker returns candidate terms to the main task instead of writing shared glossary or map
+surfaces directly; the main task decides what belongs in shared documents.
 
 ## First pass (draft mode)
 
-**When:** `CONTEXT.md` is absent or empty. Inspect code and settled user decisions first; draft only
-the domain concepts relevant to the task. Clear existing vocabulary needs no new naming approval.
+**When:** the sharing gate above passes and `CONTEXT.md` is absent or empty. Inspect code and
+settled user decisions first; draft only the domain concepts relevant to the task. Clear existing
+vocabulary needs no new naming approval.
 
 **Steps:**
 

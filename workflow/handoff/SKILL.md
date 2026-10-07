@@ -38,10 +38,9 @@ Reference owned facts instead of copying Spec, Issue bodies, transcripts or appr
 For pending review, preserve candidate/spec/review identity and raw decision pointers; a note cannot
 approve an object. Exclude secrets. Do not launch, stop or recreate work merely to write the note.
 
-Update the selected note in place without appending a journal. No generation, global snapshot,
-publish/consume marker, lock or recovery helper is needed. Do not clear context or prescribe a
-compaction threshold. Report the exact source/note and the first continuation action, then leave
-session lifecycle to the host. A handoff-only request ends with this bridge. When a caller needs
-a checkpoint during ongoing work, return to that caller without inventing a pause or another owner.
+Update the selected note in place: no journal, snapshot, marker, lock or recovery helper. Report
+the exact source/note and the first continuation action, then leave session lifecycle to the host.
+A handoff-only request ends with this bridge; a caller needing a mid-work checkpoint gets no
+invented pause or second owner.
 
 Use [resume](../resume/SKILL.md) when the destination needs to reconstruct the next engineering action.

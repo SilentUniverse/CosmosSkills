@@ -2,7 +2,7 @@
 
 Loaded by [`/spec`](SKILL.md) for unresolved material decisions. Resolve repository facts and
 reversible implementation choices before asking the human. Ask a concrete missing decision once
-evidence establishes it; continue independent preparation under [DESIGN-RECEIPT.md](DESIGN-RECEIPT.md).
+evidence establishes it; continue independent preparation under the batched receipt below.
 
 ## Requirement tree
 
@@ -56,6 +56,33 @@ Present remaining HUMAN_DECISION items as one batched receipt, reusing any alrea
 A failed predicate names the missing evidence and holds its dependent work; two passes do not make
 it complete. With no unresolved decision, follow the original planning or implementation scope and
 any explicitly pending review; convergence itself creates no approval requirement.
+
+## Batched receipt shape
+
+Give only the context needed to choose, in four blocks:
+
+1. **目标与边界**: observable outcome, a success example, the relevant exclusion/invariant.
+2. **待决定**: the unresolved choice, recommended option, and how alternatives change the result.
+3. **证据与影响**: inspected facts or prepared diff/prototype, verification route, affected public
+   contract, cost or irreversible effect. Mark unavailable evidence honestly.
+4. **问题**: ask the actual missing decision. An answer settles that decision; do not append a
+   second request to reply "对齐". Use choices only when they cover the meaningful alternatives.
+
+For a broad architectural choice, add the smallest useful requirement/evidence/slice table
+(Requirement | Observable outcome | Verification | Slice/dependency). Show only affected rows
+after feedback; reprint the complete design only when interactions changed so much that a delta
+would mislead. Persist settled choices once in the PRD/issue contract. Card count, multiple files,
+and internal slice-DAG changes do not by themselves require approval; feedback prunes the affected
+subtree instead of restarting alignment.
+
+Ask consequential missing information as soon as evidence establishes the question; do not build
+an entire disputed plan or require all preflights to pass before asking, and complete independent
+already-authorized preparation while waiting. Prior user decisions remain valid unless new
+evidence changes their relevant assumptions; reopen only the affected choice. Silence, timeout,
+and confidence cannot supply a required decision. The receipt is conversation state, not issue
+status; it never weakens the readiness gate in
+[VERIFICATION-DESIGN.md](VERIFICATION-DESIGN.md) or substitutes for agent-inaccessible checks,
+which stay explicit pending human verification.
 
 ## Human review shape
 

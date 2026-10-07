@@ -378,9 +378,11 @@ def check_spec_review_state(fd, prd_files, state, err):
         return
     accepted_items = state.get("accepted_items")
     snapshot = os.path.join(fd, "spec-accepted.md")
+    if accepted and os.path.isfile(os.path.join(fd, "spec-acceptances", "%s.md" % accepted)):
+        snapshot = os.path.join(fd, "spec-acceptances", "%s.md" % accepted)
     snapshot_present = os.path.isfile(snapshot)
     if accepted_items is not None and not snapshot_present:
-        err("%s: accepted_items recorded but spec-accepted.md is missing" % fd)
+        err("%s: accepted_items recorded but the accepted snapshot is missing" % fd)
     if snapshot_present and accepted:
         try:
             snap_digest = spec_review_module().prd_digest(snapshot)
@@ -389,7 +391,7 @@ def check_spec_review_state(fd, prd_files, state, err):
         else:
             if snap_digest != accepted:
                 err(
-                    "%s: spec-accepted.md no longer matches accepted_digest; the acceptance "
+                    "%s: accepted snapshot no longer matches accepted_digest; the acceptance "
                     "record is inconsistent - re-record acceptance" % fd
                 )
     issues_dir = os.path.join(fd, "issues")
@@ -420,7 +422,7 @@ def check_spec_review_state(fd, prd_files, state, err):
             "%s: accepted PRD snapshot no longer matches accepted_digest; edited-after-acceptance "
             "needs a superseding PRD and a new review (item delta: "
             "`spec-review.py validate <repo-root> <feature> --require-accepted`; accepted bytes: "
-            "spec-accepted.md)" % fd
+            "spec-acceptances/<digest>.md)" % fd
         )
 
 
@@ -895,11 +897,7 @@ def main(argv):
                 continue
             if s.strip() != "":
                 content += 1
-        area = re.sub(r"/CLAUDE\.md$", "", rel)
-        if has_cb:
-            if area not in roster_paths:
-                err("%s: generated block but area '%s' not in root roster" % (nf_path, area))
-        else:
+        if not has_cb:
             err("%s: generated block exists but root CODEBASE.md is missing" % nf_path)
 
     scratch_dirs = []

@@ -48,8 +48,10 @@ Use the first rung that works: nothing → stdlib → native platform → instal
 new code. Minimize concepts, states, and exceptions, not line count. Validate real IO/protocol/file/
 subprocess boundaries; skip only checks that types or prior validation already enforce. Security,
 validation, and accessibility stay intact. At completion, run the deletion test on this task's
-additions. Each new abstraction, layer, or artifact keeps a live consumer or is deleted: a
-caller for production code, a test or recorded decision for tooling and evidence.
+additions: deleting an abstraction, layer, or artifact must break a real delivery, authorization,
+verification, handoff, or recovery scenario. Only this workflow's own format validation failing
+is not such a scenario. A caller, test, or recorded decision names that scenario; it is not a
+justification by itself.
 
 ## 4. Change only the requested surface
 
@@ -98,12 +100,9 @@ requirements create linked follow-up work. Superseded ADR bodies are immutable.
 
 ## 7. Shell and platform
 
-- Use available purpose-built tools; shell search starts with `rg`/`rg --files`, filename search
-  uses `fd`, in-place edits use `sd` (host-side `grep`/`find`/`sed` are blocked where the
-  shell-guardrails hook is installed). Fall back to installed equivalents when needed, respecting
-  active hooks; do not install tools for stylistic preference.
-- Before destructive directory work, enumerate hidden and ignored entries with platform-native tools.
-- PowerShell invoked from bash sets UTF-8 input/output explicitly. PS/cmd do not write text files.
+- Use installed purpose-built tools (`rg`/`fd`/`sd` where present) and respect active hooks; never
+  install tools for stylistic preference. Before destructive directory work, enumerate hidden and
+  ignored entries. PowerShell invoked from bash sets UTF-8 input/output; PS/cmd never write text files.
 
 → CLI mappings: `~/.claude/references/cli-tools.md`
 → Windows encoding and paths: `~/.claude/references/windows-cli.md`
@@ -128,6 +127,5 @@ a requirement, and read the reference below only for the harness in use.
 
 ## 10. Android
 
-Before nontrivial ADB work, load the device path, CRLF, and non-terminating stream rules.
-
-→ Android/ADB: `~/.claude/references/android-adb.md`
+Before nontrivial ADB work, load the device path, CRLF and non-terminating stream rules:
+`~/.claude/references/android-adb.md`

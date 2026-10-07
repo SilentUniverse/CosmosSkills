@@ -11,14 +11,16 @@ including `/spec` artifacts. Investigate repository-answerable facts before ques
 
 ## Decision tree
 
-Map consequential decisions and their dependencies as a design tree. The frontier contains unresolved
-decisions whose prerequisites are settled.
+Map consequential decisions and their dependencies as a design tree; the frontier holds unresolved
+decisions whose prerequisites are settled. Classification, convergence discipline and the batched
+receipt shape are owned by [spec's alignment loop](../spec/ALIGNMENT-LOOP.md): derive
+repo-answerable facts and reversible defaults yourself, reserve for the user only choices that
+change behavior, public contract, cost or authority, and recommend an answer with each question.
 
 Work in rounds:
 
 1. Ask a small batch of the frontier's highest-impact questions and lead with a recommended answer.
-2. Resolve reversible implementation details within agreed constraints. Ask only about choices that
-   materially change the outcome and are not already settled.
+2. Resolve reversible implementation details within agreed constraints.
 3. Continue fact-finding and independent branches while answers are pending. When local evidence is
    insufficient, use `/research`; only downstream questions wait.
 4. Recompute the frontier after each answer. Stop when consequential decisions support the caller's

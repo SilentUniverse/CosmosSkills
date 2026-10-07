@@ -14,12 +14,18 @@ holds only dependent work. Explicit user implementation/testing instructions ove
 
 - `/tdd <issue-path>`: inspect contract and proof. `workflow-state.py start ROOT FEATURE SLUG` is
   a read-only engineering admission check returning a packet; it starts no task or execution lock.
+  The packet is the worker input at an execution boundary ([DRAIN.md](DRAIN.md)) — no second,
+  re-transcribed dispatch brief.
 - Bare `/tdd`: continue the accepted goal. Missing arguments never authorize repository-wide work.
 - `/tdd <feature>`: complete authorized ready work using [DRAIN.md](DRAIN.md).
 - `-s` requests serial work; `-p` permits native parallelism when dependencies, writes and resources
   allow it. Neither creates a Cosmos scheduler or fixed concurrency limit.
 - `-all` requests the whole applicable suite/build: [FULL-SUITE.md](FULL-SUITE.md).
-- `-log` uses a control action and log predicate: [LOG.md](LOG.md).
+- `-log` replaces test-writing with a control action plus a log predicate that fails when the
+  behavior is absent; a launcher/capture exit alone is insufficient. Retain action, exit,
+  input/candidate identity, log digest and a decisive excerpt; bound long-stream capture with an
+  explicit stop condition, and follow the host's device-stream rules. Scope, readiness, evidence
+  identity and completion rules are unchanged.
 
 A settled task needs no Issue/PRD without a durable queue, dependency, delegation or shared-decision
 consumer. Requested plans and consequential unresolved requirements use `/spec`; unknown failures use
@@ -31,7 +37,12 @@ consumer. Requested plans and consequential unresolved requirements use `/spec`;
 | `pending` | Resolve its concrete engineering gap; independent work continues. |
 | `done` | Inspect existing proof; changed behavior uses a linked detail/redo/fix contract. |
 
-Status cannot override missing or contradictory proof. Existing work: [EDGE-CASES.md](EDGE-CASES.md).
+Status cannot override missing or contradictory proof. Prior completion on an open Issue keeps the
+previous record; old status never validates stale evidence, and a session change alone reopens
+nothing. Interrupted work reads native task/session state; across a host boundary use
+[handoff](../handoff/SKILL.md)/[resume](../resume/SKILL.md), and confirm a previous writer has
+stopped before assigning its paths again. redo/fix contract rules live in
+[SUPERSEDE.md](../spec/SUPERSEDE.md).
 
 ## Prepare and implement
 
@@ -47,7 +58,8 @@ Missing run/drive/observation capabilities use `/verify`; update affected driver
    import/collection failure is an environment problem. Extend existing coverage before adding a case.
 2. Observe RED, implement enough to pass, and run the case driving this change.
 3. At slice completion run affected module/consumer checks, reusing valid evidence. Refactor while
-   green and recheck affected behavior: [refactoring.md](refactoring.md).
+   green and recheck affected behavior — only debt this change introduced or directly exposed;
+   the full smell baseline lives in `/code-review`.
 
 Apply [test quality](tests.md). Load [mocking.md](mocking.md) only for mocks and
 [UI-TESTING.md](UI-TESTING.md) only for graphical behavior. Agent summaries, screenshots or successful
@@ -67,10 +79,11 @@ Apply [TEST-POLICY.md](../TEST-POLICY.md): check selection and evidence validity
 Issue/session/task lifecycles. One valid check can cover several Issues. Native `completed` proves
 no AC by itself; retain every real attempt, including failures.
 
-Fixed candidate checks use [FULL-SUITE.md](FULL-SUITE.md); Issue completion uses
-[COMPLETION-RECORD.md](COMPLETION-RECORD.md). `close` reads proof without capturing the workspace or
-running tests. Human acceptance separately binds the displayed Spec or fixed delivery candidate;
-pending review holds only dependent work.
+Fixed candidate checks use [FULL-SUITE.md](FULL-SUITE.md); Issue completion goes through
+`close --evidence/--candidate`, which validates proof and writes the completion record in one
+protected write: [COMPLETION-RECORD.md](COMPLETION-RECORD.md). `close` reads proof without capturing
+the workspace or running tests. Human acceptance separately binds the displayed Spec or fixed
+delivery candidate; pending review holds only dependent work.
 
 Retain hard-to-recover invariants at their existing owner under `/map`'s two-axis rule. Transient
 hypotheses stay in the native task. Use `/tidy` for obligations and cleanup; `/pr` only when requested.

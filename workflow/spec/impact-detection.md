@@ -35,46 +35,21 @@ Two kinds of impact, very different confidence:
 
 - **Static reference points** — NOT stored. Re-grep each time; it is cheap and always current. The
   `CODEBASE.md` two-axis rule (defined in `/map`).
-- **Semantic invariants (the expensive part)** — persist to the area's `CODEBASE.md` generated
-  block (`src/<area>/CLAUDE.md`, auto-injected on read) so the next coupled change in this area
-  skips re-deriving it; but only if the run writes its findings back. Write it; don't pause to offer.
+- **Semantic invariants (the expensive part)** — persist to the area's surviving map surface
+  (root 不变量 line, or a legacy area block) so the next coupled change in this area skips
+  re-deriving it; but only if the run writes its findings back. Write it; don't pause to offer.
+
+Per-language selection principle: the stronger the type system, the more static analysis covers
+(`tsc`/`pyright` baseline-vs-candidate, find-references, import graphs); the weaker it is, the
+more you lean on runtime observation (coverage/test selectors, `rg` for dynamic calls) and report
+the dynamic-dispatch gap. The concrete per-language commands live in the project's
+`CODEBASE.md` `## Verifier commands` zone (see "Where the commands live" below), never in a
+skill. For browser/Electron work, static reachability is not runtime integrity — the CSP and
+resource-ownership checks live in [tdd's UI verification](../tdd/UI-TESTING.md).
 
 ---
 
-## TypeScript — the type-checker is the primary impact detector
-
-| Need | Command | Confidence |
-|---|---|---|
-| Affected code (gold standard) | baseline `tsc --noEmit`, change the target signature, rerun, then inspect only new errors | **complete + precise** when the typed graph and config are complete |
-| Affected code without editing | `ts-morph`: `getFunction('refund').findReferences()` | refactor-grade |
-| Module dependents | `npx madge --json src/` (`--circular` for cycles); `npx knip` (dead exports — safe to change) | reliable |
-| **Affected tests** (key for coupling) | `vitest related <file>` / `jest --findRelatedTests <file>` | reliable — answers "which existing tests need their expectations changed" |
-| Structural fallback | `ast-grep -p 'refund($$$)' --lang ts` | type-blind (can't tell same-named methods apart) |
-
-`tsc --noEmit` plus related-test selection constrain typed reachability. Inspect semantic coupling
-that neither can establish; report the actual coverage limits, not an assumed percentage.
-
-For browser/Electron work, static reachability is not runtime integrity. Inspect the current CSP
-and the main/preload/renderer ownership of network and file resources before fixing the design.
-The verification plan must operate the real surface and collect unexpected console errors, uncaught
-page errors, unexpected failed requests, and CSP violations; expected error-state events are named
-fixtures/assertions. Media assertions check decoded content (for HTML images,
-`complete && naturalWidth > 0`); element visibility or an absolute URL alone is a known false
-positive. Persist a discovered runtime invariant to the area's `CODEBASE.md` like any other
-semantic coupling.
-
 ## Python — static under-reports; add runtime
-
-| Need | Command | Confidence |
-|---|---|---|
-| Affected code (typed parts only) | baseline/candidate `pyright --outputjson`, then `scripts/pyright-impact.py diff` | new diagnostics are candidates; misses untyped + dynamic dispatch |
-| Reference lookup | `rope` (scriptable find-occurrences) / `jedi` `Script(...).get_references()` | refactor-grade where resolvable |
-| Module dependents | `grimp` (programmatic import graph — what import-linter uses); `pydeps` (visual) | import-level only |
-| Dynamic fallback (**do this**) | `rg -n '\brefund\b'` — noisy (same names) but catches string/dynamic calls static tools miss | catch-all |
-| **Affected tests** | `pytest --testmon` (runtime coverage — reruns only tests that actually executed the changed lines); or `coverage.py` dynamic contexts | **runtime-observed** — catches dynamic coupling static analysis drops |
-
-Note the asymmetry: in a dynamic language **runtime tools are more trustworthy than static ones**,
-because they watch what actually ran, not what looks reachable.
 
 Use the helper from the loaded `spec` skill so Pyright's ordinary non-zero diagnostic exit does not
 become a shell gate:
@@ -106,7 +81,7 @@ missed — scan manually."** Never imply the list is complete.
 
 ## Where the commands live
 
-Use already installed project tools; the tables list options, not a tool-install checklist.
+Use already installed project tools; the block lists options, not a tool-install checklist.
 A module suite is a valid fallback when no related-test selector exists.
 
 These commands are **stack-specific**, so they live as lines in the project's `CODEBASE.md`

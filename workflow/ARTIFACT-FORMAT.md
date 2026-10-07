@@ -29,7 +29,7 @@ new artifact, place and name it by these rules instead of guessing; if it doesn'
 
 | Tier | Lives at | What belongs here | Test |
 |---|---|---|---|
-| **Project-level singletons** | repo **root** | `CONTEXT.md`, `CONTEXT-MAP.md`, `CODEBASE.md` | one per repo, read at session start, true project-wide |
+| **Project-level singletons** | repo **root** | `CONTEXT.md`, `CODEBASE.md` | one per repo, read at session start, true project-wide |
 | **Long-lived series docs** | `docs/` | `adr/`, `agents/` | kept long-term, humans read them, grows file-by-file |
 | **Feature-local work state** | `.scratch/` | `<feat>/PRD`, `issues/`, receipts and review objects | feature-local; required evidence is retained |
 
@@ -38,9 +38,9 @@ to root it lives; the more feature-local and disposable, the deeper into `.scrat
 
 **Casing — two classes:**
 
-- **ALL-CAPS** (`CONTEXT.md`, `CONTEXT-MAP.md`, `CODEBASE.md`,
+- **ALL-CAPS** (`CONTEXT.md`, `CODEBASE.md`,
   `PRD.md`) — a **singleton with special standing** in its directory: at most one exists, and it is
-  the landmark file you look for by name. Multi-word names use `SCREAMING-KEBAB` (`CONTEXT-MAP.md`).
+  the landmark file you look for by name.
 - **kebab-case** (`adr/NNNN-slug.md`, `issues/NN-slug.md`, `agents/*.md`) — a **member of a series**:
   many will exist, the name carries content (a slug, a number, a date).
 
@@ -75,7 +75,7 @@ Division of labor: `CONTEXT.md` = term glossary, nothing else. `docs/adr/` = irr
 decisions, deliberately rare. `CODEBASE.md` = the operational understanding grep can't give —
 invariants, seams, synthesis, mid-weight why (below ADR weight).
 
-Root (>8 areas):
+Root (single shape; no area-count threshold, no per-area instruction files are generated):
 
 ```markdown
 ---
@@ -84,18 +84,18 @@ generated: 2026-06-24
 ---
 
 # <repo> — 代码结构地图
-<!-- Maintenance mode: hybrid — 综合段精修；roster/路由由 /map 再生 -->
+<!-- Maintenance mode: hybrid — 综合段精修；路由/不变量行由 /map 再生 -->
 
 <综合段：3-5 句，CONTEXT.md 词汇——分层、数据流向、2-3 个承重边界>
 
 ## 路由（做什么 → 去哪）
 | 目标 | 去处 |
 |---|---|
-| <目标> | <路径 / 机制> |
+| <非显然目标> | <路径 / 机制> |
 
-## 分区（roster）
-<!-- 每区详情：该区 CLAUDE.md 生成块 -->
-- `<path>/` — <≤10 词职责>
+## 不变量（Invariants）
+
+- `<area>` — <顺序约束 / "看着像 X 其实是 Y" / 名字背叛概念>
 
 ## Verifier commands
 <!-- hand-maintained zone: the only non-generated section; lazy-born; the gate leaves it alone; /map validates every command and repairs or reports dead ones -->
@@ -103,7 +103,11 @@ generated: 2026-06-24
 - Scoped test: `<pattern with placeholder>`
 ```
 
-Per-area `src/<area>/CLAUDE.md` — marker 外可放该区手写指令；无则整文件即此块：
+Legacy nested blocks — repos mapped before this shape may carry generated blocks in
+`src/<area>/CLAUDE.md`. They keep the schema below: a refresh preserves and re-verifies them in
+place but never creates new ones; new invariants land in the root 不变量 section. A legacy
+`## 分区（roster）` section stays readable; the gate still checks that any roster line it contains
+names a real directory, while coverage itself is optional.
 
 ```markdown
 <!-- BEGIN GENERATED codebase (/map) — do not edit between markers; 再生: /map <path> -->
@@ -117,42 +121,36 @@ git_base: 7af387c
 Rules:
 
 - **type** — always `codebase`. **generated** — ISO date of the last full regeneration.
-- **Shape threshold:** >8 areas → root skeleton + per-area blocks; ≤8 areas → single root file,
-  one `## ` section per area in the root skeleton's section order (综合段 → 路由 → area sections →
-  Verifier commands). The same per-line rules apply; `git_base` is an HTML comment after the heading.
 - **综合段** — the shape in CONTEXT.md vocabulary: layering, data flow, 2-3 load-bearing boundaries.
   No directory listing.
 - **路由行** — non-obvious routing only: name betrays concept, real entry ≠ apparent entry,
-  cross-area goals. A row that a roster line already answers is duplication; delete it.
-  An empty routing table is valid.
-- **roster 行** — a real existing directory path + ≤10-word responsibility. No `<placeholder>`,
-  `{brace-set}`, or glob syntax; one representative real path per pattern. Every area
-  appears; no silent omissions.
+  cross-area goals. Structure recoverable by `rg` and directory reading is not routed. An empty
+  routing table is valid.
+- **不变量行** — one line per surviving fact, prefixed with its `<area>`; each line passes the
+  two-axis test (defined in `/map`). Locations, exports, caller lists, import graphs are excluded.
+  The section may be empty when nothing earns a line.
 - **Hand zone** — `## Verifier commands` is the only hand-maintained root section; ≤10 lines
-  inside the root budget. Fact lines and invariant blocks pass the two-axis test; the roster is
-  an index, exempt from the test, one line per area.
-- **Per-area block** — marker pair + `git_base` + body ≤8 lines. Each line passes the two-axis
-  test (defined in `/map`). Locations, exports, caller lists, import graphs
-  are excluded. A 1-line block is normal; an area with no surviving facts gets a roster line only.
-- **Loading:** use root routing and relevant sections on demand. A host may auto-inject area
-  blocks; without that behavior, read the referenced block explicitly.
-- **Budgets:** root body ≤40 lines excluding roster lines; area block ≤8 lines. On red: relocate →
-  condense → raise. A raise carries justification in the change. A ceiling is set to the file's
-  size at adoption.
-- **Drift:** each block's `git_base` vs HEAD — code gone → delete the block and its roster line;
-  drifted → refresh + re-stamp; duplicate → merge. A refresh re-applies the two-axis test and
-  re-verifies surviving lines in place, rewriting only the ones that fail; a line that still
-  verifies but became rg-able or stopped biting is dropped. A refresh that changes no block
-  content rewrites nothing; `git_base` moves only with a content change. A stale block read
-  outside `/map` gets the same line-level re-verification before it is relied on.
+  inside the root budget.
+- **Loading:** use root routing and relevant sections on demand. A host may auto-inject legacy
+  area blocks; without that behavior, read the referenced block explicitly.
+- **Budgets:** root body ≤40 lines excluding legacy roster lines; area block ≤8 lines. On red:
+  relocate → condense → raise. A raise carries justification in the change. A ceiling is set to
+  the file's size at adoption.
+- **Drift:** each legacy block's `git_base` vs HEAD — code gone → delete the block (and its roster
+  line, if the roster still lists it); drifted → refresh + re-stamp; duplicate → merge. A refresh
+  re-applies the two-axis test and re-verifies surviving lines in place, rewriting only the ones
+  that fail; a line that still verifies but became rg-able or stopped biting is dropped. A refresh
+  that changes no block content rewrites nothing; `git_base` moves only with a content change. A
+  stale block read outside `/map` gets the same line-level re-verification before it is relied on.
+  Root 不变量 lines follow the same re-verification.
 - **Same-change duty:** a change that alters an area's seam or invariant refreshes that area's
-  block in the same change.
-- **Nested `src/<area>/CLAUDE.md`** is a harness instruction file carrying a generated block.
-  It is exempt from the ALL-CAPS singleton rule; the block appends at the end of a hand-written
-  file.
-- **Legacy monolith:** a root file with per-area `## ` sections and no roster is rebuilt wholesale
+  surviving lines (root section or legacy block) in the same change.
+- **Nested `src/<area>/CLAUDE.md`** is a harness instruction file carrying a legacy generated
+  block. It is exempt from the ALL-CAPS singleton rule; the block appends at the end of a
+  hand-written file.
+- **Legacy monolith:** a root file with per-area `## ` sections is rebuilt wholesale
   by the next `/map -all`.
-- Use **CONTEXT.md domain vocabulary** and **codebase-design vocabulary** (module, seam, depth).
+- Use **CONTEXT.md domain vocabulary** and the project's own architecture terms; [codebase-design](codebase-design/SKILL.md) supplies reference vocabulary (module, seam, depth), not a mandate.
   Decisions → ADR; vocabulary → CONTEXT.md; transient focus and speculation → nowhere.
 
 ## Issue files — `.scratch/<feat>/issues/NN-slug.md`
@@ -447,12 +445,14 @@ Minimal machine state of the human review bridge, written only by
 Delta uses the intact accepted snapshot when present; before first acceptance, `last_rendered_*`
 supplies the comparison hashes. Re-rendering cannot reset pending changes. The `accepted_*` half records human acceptance of
 exact bytes: the digest, the PRD name, and the item-level ledger at accept time. Acceptance also
-writes the accepted PRD text to `.scratch/<feat>/spec-acceptances/<digest>.md` and the current
-`spec-accepted.md` alias, and records the raw event digest in `accepted_event`; the snapshot digest equals
-`accepted_digest`, so in-place edits of the snapshot are detectable. The ledger and snapshot are
+writes the accepted PRD bytes to `.scratch/<feat>/spec-acceptances/<digest>.md` (single immutable
+snapshot; no second alias copy) and records the raw event digest in `accepted_event`; the snapshot
+digest equals `accepted_digest`, so in-place edits of the snapshot are detectable. Readers resolve
+the snapshot by `accepted_digest`, falling back to a legacy `spec-accepted.md` alias written by
+older versions. The ledger and snapshot are
 the recovery path for an edited-after-acceptance alarm:
 `spec-review.py validate <repo-root> <feature> --require-accepted` prints the item-level delta
-against `accepted_items`, and `spec-accepted.md` holds the bytes to diff against. Item keys are
+against `accepted_items`, and the digest-named snapshot holds the bytes to diff against. Item keys are
 `[RDSCKQ]\d+` plus `section:problem`, `section:solution`, `section:scope`, `section:acceptance`,
 `section:context`, `section:change`. R hashes include Before and complete test rows; section hashes
 include semantic headings. C/K/Q and global sections participate in change detection; only
@@ -492,7 +492,7 @@ old repositories remain readable, but no skill treats it as current reality or r
 
 ```
 repo/
-├── CONTEXT.md / CONTEXT-MAP.md
+├── CONTEXT.md
 ├── CODEBASE.md                          ← structural map (generated by /map)
 ├── docs/
 │   ├── adr/NNNN-slug.md
@@ -501,7 +501,8 @@ repo/
     └── <feat>/
         ├── PRD.md / PRD-vN.md
         ├── spec-review.json             ← review bridge state (spec-review.py only)
-        ├── spec-accepted.md             ← accepted PRD bytes, written at accept (spec-review.py only)
+        ├── spec-acceptances/
+        │   └── <digest>.md              ← accepted PRD bytes, written at accept (single snapshot)
         └── issues/
             ├── NN-slug.md            ← active issues
             └── archive/
@@ -544,9 +545,9 @@ zero unexpected runtime counters, graded thresholds),
 directory name, PRD `version` vs filename, `supersedes` target existence, single live PRD head,
 declared PRD R/D/S anchors (uniqueness, closed refs, acyclic slice `Depends`, review token) and
 spec-review.json shape plus the acceptance gate (materialized issues require an intact accepted
-snapshot). CODEBASE.md leaves: root `type`/`generated` + body budget (excl. roster
-lines; `budget:` frontmatter override), nested generated-block marker pairs + `git_base` + block
-budget, roster placeholder syntax rejected, roster↔directory bidirectional check. Missing `.scratch/` and absent `CODEBASE.md` pass
+snapshot). CODEBASE.md leaves: root `type`/`generated` + body budget (excl. legacy
+roster lines; `budget:` frontmatter override), legacy nested generated-block marker pairs + `git_base` + block
+budget, roster placeholder syntax rejected, roster lines must name an existing directory. Missing `.scratch/` and absent `CODEBASE.md` pass
 clean. Run it wherever state could drift: `/spec` post-write, before scoped artifact cleanup, or any time the
 state looks off:
 

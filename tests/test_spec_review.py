@@ -573,9 +573,10 @@ class AcceptGateTests(unittest.TestCase):
                  "section:context", "section:problem", "section:scope", "section:solution"], sorted(state["accepted_items"])
             )
             self.assertEqual("PRD.md", state["accepted_spec"])
-            snapshot = feature_dir / "spec-accepted.md"
+            snapshot = feature_dir / "spec-acceptances" / (state["accepted_digest"] + ".md")
             self.assertTrue(snapshot.is_file())
             self.assertEqual(spec_review.prd_digest(snapshot), state["accepted_digest"])
+            self.assertFalse((feature_dir / "spec-accepted.md").exists())
 
     def test_validate_reports_item_delta_after_edit(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -606,15 +607,18 @@ class AcceptGateTests(unittest.TestCase):
             root = Path(directory)
             plant_feature(root)
             accepted_spec_fixture(root)
-            snapshot = root / ".scratch" / "import" / "spec-accepted.md"
+            state = json.loads(
+                (root / ".scratch" / "import" / "spec-review.json").read_text(encoding="utf-8")
+            )
+            snapshot = root / ".scratch" / "import" / "spec-acceptances" / (state["accepted_digest"] + ".md")
             snapshot.write_text("被篡改的快照。\n", encoding="utf-8")
             code, output, _ = run_cli("validate", str(root), "import", "--require-accepted")
             self.assertEqual(1, code)
-            self.assertIn("spec-accepted.md no longer matches accepted_digest", output)
+            self.assertIn("accepted snapshot no longer matches accepted_digest", output)
             snapshot.unlink()
             code, output, _ = run_cli("validate", str(root), "import", "--require-accepted")
             self.assertEqual(1, code)
-            self.assertIn("spec-accepted.md is missing", output)
+            self.assertIn("the accepted snapshot is missing", output)
 
     def test_render_preserves_acceptance_ledger(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -719,7 +723,10 @@ class BridgeTests(unittest.TestCase):
                 sorted(prepared["model"].hashes()), sorted(state["accepted_items"])
             )
             self.assertEqual(
-                prepared["digest"], spec_review.prd_digest(feature_dir / "spec-accepted.md")
+                prepared["digest"],
+                spec_review.prd_digest(
+                    feature_dir / "spec-acceptances" / (prepared["digest"] + ".md")
+                ),
             )
 
     def test_failed_persistence_returns_error_and_can_retry_same_decision(self):

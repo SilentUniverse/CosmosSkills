@@ -1,7 +1,7 @@
 ---
 name: map
 description: >-
-  Use when repository navigation is noisy, CODEBASE.md is missing or stale, or a change moved a seam or invariant. Generates or refreshes the structural map, routing table, roster, and evidence-filtered invariant blocks while preserving verifier commands.
+  Use when repository navigation is noisy, CODEBASE.md is missing or stale, or a change moved a seam or invariant. Generates or refreshes the structural map, routing table, and evidence-filtered invariant lines while preserving verifier commands.
 argument-hint: "Area path to refresh (optional; no args or -all = whole repo)"
 disable-model-invocation: true
 ---
@@ -17,7 +17,7 @@ authorizes writing the map unless preview-only. Missing maps are not prerequisit
 ## First pass (draft mode) — mapping a whole repo
 
 **When:** `CODEBASE.md` is absent or empty, or holds only the hand-maintained `## Verifier
-commands` zone, or is a legacy monolith (per-area sections, no roster), and the user wants a map
+commands` zone, or is a legacy monolith (per-area `## ` sections), and the user wants a map
 of the *whole* project, not one area (`/map` with no path, or `/map -all`). A hand zone already
 present is preserved except dead commands, which the run repairs or reports (Hand zone below);
 the generated skeleton is assembled around it.
@@ -27,17 +27,15 @@ the generated skeleton is assembled around it.
 1. **Partition first.** Infer areas from existing paths, ownership, and domain concepts. Ask only
    when unresolved ownership would materially change the map; explore clear areas meanwhile.
 2. **Explore the relevant areas.** Work inline; delegate separable areas to bounded read-only
-   subagents when useful and available. Local files only; no web mirrors. Collect per area:
-   - a **roster line** — a real existing directory path + responsibility in ≤10 words,
-     never `<placeholder>`, `{brace-set}`, or glob syntax;
-   - **candidate facts** — each pre-filtered by the two-axis test below.
-3. **Assemble the final shape directly**, never a monolith first:
-   - **>8 areas:** root `CODEBASE.md` = synthesis + routing table + roster only. Every area with
-     surviving facts → generated block in `src/<area>/CLAUDE.md`. Areas without facts → roster
-     line only, no file.
-   - **≤8 areas:** single root file, one `## ` section per area.
+   subagents when useful and available. Local files only; no web mirrors. Collect per area only
+   **candidate facts** — each pre-filtered by the two-axis test below. Directory structure and
+   responsibilities recoverable from the tree itself are not collected; no full-coverage roster
+   is maintained.
+3. **Assemble a single root file** — synthesis + routing table + earned invariant lines (template
+   in ARTIFACT-FORMAT.md). Do not generate per-area `src/<area>/CLAUDE.md` instruction files; a
+   repo that already carries legacy area blocks keeps them (Maintaining existing blocks below).
 4. **Verify and write.** Check paths, apply the two-axis test, and preserve hand-maintained content.
-   Write evidence-backed blocks directly; report unresolved facts instead of inventing invariants.
+   Write evidence-backed lines directly; report unresolved facts instead of inventing invariants.
 5. Clarify only consequential unknowns that inspection cannot settle. Resume the caller's task
    after the scoped refresh; do not restart whole-map review for a local correction.
 
@@ -62,7 +60,8 @@ supersede it rather than trusting past acceptance.
 
 ## Maintaining existing blocks
 
-Re-running on a mapped area, or refreshing after drift:
+Re-running on a mapped area, or refreshing after drift. Existing legacy area blocks are
+preserved and re-verified, never newly created; new earned facts land in the root 不变量 section.
 
 - **Drift check:** diff each block's `git_base` against HEAD. `git_base` at HEAD → reuse the block
   untouched. A whole-map rerun stops here for every current block; it re-derives nothing that

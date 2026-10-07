@@ -487,22 +487,30 @@ def render_state(model, prd_name, digest, previous):
     }
 
 
+def accepted_snapshot_path(feature_dir, state):
+    """Resolve the accepted snapshot: the digest-named archive, or the legacy alias."""
+    accepted = state.get("accepted_digest")
+    if isinstance(accepted, str) and HEX64.fullmatch(accepted):
+        archive = Path(feature_dir) / "spec-acceptances" / (accepted + ".md")
+        if archive.is_file():
+            return archive
+    return Path(feature_dir) / ACCEPTED_SNAPSHOT
+
+
 def record_acceptance(state, feature_dir, prd_path, digest, model):
     """Pin the accepted bytes: digest, item ledger, and a durable snapshot file.
 
-    The snapshot stores the normalized PRD text so its own prd_digest equals
+    The digest-named archive stores the normalized PRD text so its own prd_digest equals
     accepted_digest; editing it in place is detectable by any gate.
     """
     state["accepted_digest"] = digest
     state["accepted_spec"] = os.path.basename(prd_path)
     state["accepted_items"] = model.hashes()
-    snapshot = os.path.join(feature_dir, ACCEPTED_SNAPSHOT)
     text = normalized_text(prd_path)
     archive = Path(feature_dir) / "spec-acceptances" / (digest + ".md")
     if archive.exists() and archive.read_text(encoding="utf-8") != text:
         raise ValueError("accepted Spec archive changed")
     atomic_write(archive, text)
-    atomic_write(snapshot, text)
     return state
 
 
@@ -512,12 +520,12 @@ def acceptance_problems(feature_dir, state, prd_name, digest):
     if not isinstance(accepted, str) or not HEX64.match(accepted):
         return ["%s has no recorded human acceptance" % prd_name]
     problems = []
-    snapshot = os.path.join(feature_dir, ACCEPTED_SNAPSHOT)
-    if os.path.isfile(snapshot):
+    snapshot = accepted_snapshot_path(feature_dir, state)
+    if snapshot.is_file():
         if prd_digest(snapshot) != accepted:
-            problems.append("%s no longer matches accepted_digest" % ACCEPTED_SNAPSHOT)
+            problems.append("accepted snapshot no longer matches accepted_digest")
     elif state.get("accepted_items") is not None:
-        problems.append("acceptance ledger exists but %s is missing" % ACCEPTED_SNAPSHOT)
+        problems.append("acceptance ledger exists but the accepted snapshot is missing")
     if accepted != digest:
         problems.append(
             "accepted_digest %s… != current %s digest %s…; re-review before materializing"
@@ -578,7 +586,7 @@ def acceptance_barrier(feature_dir, issues=None):
             feature_dir, state, prd_name, digest
         )
         if issues is not None:
-            snapshot = feature_dir / ACCEPTED_SNAPSHOT
+            snapshot = accepted_snapshot_path(feature_dir, state)
             accepted_digest = state.get("accepted_digest")
             integrity = acceptance_problems(feature_dir, state, prd_name, accepted_digest)
             recorded_source = state.get("accepted_spec")
@@ -1202,8 +1210,8 @@ def prepare_review(root, feature, force_full=False):
     digest = prd_digest(prd_path)
     previous = load_state(feature_dir)
     old_items, baseline, baseline_label = {}, None, "上次展示（尚未接受）"
-    snapshot = feature_dir / ACCEPTED_SNAPSHOT
     if not force_full:
+        snapshot = accepted_snapshot_path(feature_dir, previous)
         if previous.get("accepted_digest"):
             problems = acceptance_problems(feature_dir, previous, prd_name, previous["accepted_digest"])
             if problems:

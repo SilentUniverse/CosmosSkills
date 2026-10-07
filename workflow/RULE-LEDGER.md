@@ -61,7 +61,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | §6·按需加载 | 技能仅当描述匹配任务且会改变做法时才加载 | 过程·经济 | 自审 | 目录提供或任务显大就加载的常驻税；未溯源 |
 | §2·查证 | 可查事实不问人 | 过程 | 自审 | 未溯源（近邻探针：research-marks-unverified-and-ignores-injection） |
 | §2·摄入 | 结果与约束已定即可推进；实现和验证细节由 agent 补足；文件数不触发规划 | 过程·经济 | 流程 | 仪式性确认税；7be5338 压缩摄入、51a7d4a fast path / spec-alignment-before-write |
-| §2·授权 | 既有授权在接受范围内继承；保留用户明确要求的 review | 权威 | 流程 | 结果分叉未问人；DESIGN-RECEIPT / spec-holds-alignment-under-pressure |
+| §2·授权 | 既有授权在接受范围内继承；保留用户明确要求的 review | 权威 | 流程 | 结果分叉未问人；ALIGNMENT-LOOP 回执 / spec-holds-alignment-under-pressure |
 | §4·a | 扩展列表/表格/固定格式前先查 2–3 个同类条目并对齐结构 | 过程 | 自审 | 条目格式漂移；agent-skills AGENTS.md 对标借入；未溯源 |
 | §4·b | 回答插问后继续；纠正与行动请求更新当前目标 | 过程 | 流程 | 顺手扩权修改；dev-skills 对标借入（just-ask）；未溯源 |
 | §4·e | 按原始范围完成；已授权提交同任务进入 /pr | 产物 | 流程 | 未经检查的提交；9263475 / pr-holds-scope-under-pressure |
@@ -78,7 +78,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | §8 | 独立工作或判断才委派；预算约束尝试而非完成条件 | 过程·经济 | 自审 | 65f1318（tool-call cap）、51a7d4a（默认 inline） |
 | §9 | 宿主特有假设先对运行中的宿主核实再复述 | 过程 | 自审 | 单宿主观察被当跨宿主要求；未溯源 |
 | §10 | ADB 前加载设备规则参考 | 过程 | 流程 | 7f56614（android-adb reference） |
-| §3·末 | 完成时删除测试：新增抽象无活消费者即删，生产抽象不能只靠测试或记录撑着；设计侧 spec §3；深审 /atk Re-derive | 过程·经济 | 流程 | 死抽象累积税；未溯源 |
+| §3·末 | 完成时删除测试：删掉该工件须能指出会破坏的真实交付/授权/验证/交接/恢复场景，仅本工作流自身格式校验失败不算；设计侧 spec §3；深审 /atk Re-derive | 过程·经济 | 流程 | 死抽象累积税；未溯源 |
 
 ## B. spec — workflow/spec/SKILL.md（每次规划付费）
 
@@ -99,7 +99,8 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | §2 | 影响探测非审批门，廉价 rg/ast-grep 先行 | 过程·经济 | 流程 | 10dd737（blast-radius impact）、5f7b1ac（pyright 误报修复） |
 | §2 | 新不变量当场落块，不停顿征询 | 过程 | 流程 | 6b411d8（从失败捕获 invariant） |
 | §2 | 可运行实验能降低真实不确定性时才 prototype | 过程 | 流程 | prototype skill 立法 |
-| §2 | NFR 门槛走 NON-FUNCTIONAL-BARS | 过程 | 流程 | 未溯源 |
+| §2 | NFR 门槛走 VERIFICATION-DESIGN 非功能三则（原 NON-FUNCTIONAL-BARS 并入） | 过程 | 流程 | 未溯源 |
+| §3/CARD-TEST | Spec 只固定跨 Issue 共同约定（承诺、公共接口、共享决策、组合验证、资源安全），Issue 内部实现结构不提前设计；边界检验句与两类拆卡反例 | 过程·经济 | 流程 | 规划过深与同步返工税；未溯源 |
 
 ## C. TDD and engineering selection
 
@@ -117,8 +118,10 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | Driver enumeration, dependency and packet | Split | Read-only engineering survey/packet; native dispatch |
 | Context rotation and cumulative runtime budget | Delete | Host owns context lifecycle and budgets |
 | Concrete blocked reason, independent work continues | Keep | DRAIN engineering selection |
-| Baseline attribution and scoped revert | Keep | EDGE-CASES; preserve other writers and unknown ownership |
-| Self-contained worker brief | Keep | WORKER contract/pointers/write scope/evidence; no full Spec duplication |
+| Baseline attribution and scoped revert | Keep | tdd/SKILL existing-work 段（原 EDGE-CASES）+ spec/SUPERSEDE redo/fix；preserve other writers and unknown ownership |
+| Self-contained worker brief | Keep | DRAIN 委派段（原 WORKER 并入）：start 输入包直供 worker，不二次转写；no full Spec duplication |
+| Start packet as worker input | Add | DRAIN：`workflow-state.py start` 输入包+关键短约束直供 worker；仅歧义、新依赖或合同变化才重读原 Issue/verifier/PRD |
+| Completion record written by close | Add | workflow-state `close --evidence/--candidate`：工具校验后生成标准完成段并同锁改状态；失败不落半成品记录；手工记录仍兼容 |
 | Shared verifier environment | Keep | ARTIFACT-FORMAT profile; per-card AC mappings remain local |
 | blocked_by as dependency source | Keep | ARTIFACT-FORMAT; no duplicate body dependency list |
 | Four outcomes, wave collection and global barrier | Delete | Native runtime state; completion derives from immutable proof |

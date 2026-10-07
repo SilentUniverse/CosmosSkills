@@ -10,9 +10,15 @@ for an independent durable engineering gap.
 
 ## Native execution
 
-Do bounded work inline by default. Independent work may use native tasks with an exact contract,
-input pointers, write scope and bounded evidence return. Load [WORKER.md](WORKER.md) for delegated
-engineering instructions. The host owns task waiting, cancellation, retries, notification and resume.
+Do bounded work inline by default. Independent work may use native tasks: pass the
+`workflow-state.py start` packet plus any controlling constraint it does not already carry
+directly as the worker's input; do not re-transcribe it into a separate dispatch brief.
+The worker does not re-read the full issue, shared verifier or PRD unless it must resolve an
+ambiguity, a newly discovered dependency, or a changed contract. A delegated worker validates
+readiness evidence without silently changing the contract, coordinates scope expansion before
+writing another task's files, returns exact command/result, proof paths, changed paths and
+remaining gaps, and writes completion only when assigned. The host owns task waiting,
+cancellation, retries, notification and resume.
 
 - Overlapping writes in one checkout serialize; an actor or Promise does not isolate files.
 - Independent checkouts use a native entry that actually supports their cwd.
@@ -27,7 +33,9 @@ Issue completion, session restart and approval do not automatically launch a ful
 ## Integrate
 
 Inspect returned proof and owned diffs, resolve shared-file conflicts, and check the resulting
-changed inputs. Complete cards through [COMPLETION-RECORD.md](COMPLETION-RECORD.md). Native task
+changed inputs. Complete cards through `close --evidence/--candidate`
+([COMPLETION-RECORD.md](COMPLETION-RECORD.md)): the worker returns proof references and the explicit
+AC mapping; the tool generates the record. Native task
 completion is an observation, not acceptance; unknown outcomes remain unknown.
 
 Continue independent authorized work while a fixed candidate awaits human review. Report remaining

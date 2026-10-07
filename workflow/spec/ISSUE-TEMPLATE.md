@@ -38,7 +38,9 @@ path.
 scenario. Never paste PRD text; point to its section. `## 上级` carries the anchor.
 
 Name concrete paths/interfaces when needed to remove ambiguity. Include a small schema/type shape
-only when it defines the contract more precisely than prose; omit implementation recipes.
+only when it defines the contract more precisely than prose; omit implementation recipes. 检验每段
+描述：被执行 Agent 换一种实现，是否影响用户承诺、其他 Issue、公共接口、验证要求或资源安全？
+不影响就不在这里固定。
 
 ## 验收标准（Acceptance Criteria）
 
@@ -128,7 +130,9 @@ check and the person or access needed; it is not an agent-runnable AC.
   enhancements omit it.
 - `blocked_by` holds sibling slugs that must reach `done`; `/tdd` topologically sorts it. Do not
   duplicate it in the body.
-- Graphical UI adds `experience_review: runtime|graded`; every non-graphical issue omits it.
+- Graphical UI adds `experience_review` per
+  [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd); every
+  non-graphical issue omits it.
 - Parallel-bound slices declare `touches:`, `test_paths:`, and any exclusive device, database,
   build output, or runner as `exclusive_resources:`. `/tdd -p` serializes every shared path or
   resource ID. Declare a repo-root manifest/config file verbatim in `touches:`.

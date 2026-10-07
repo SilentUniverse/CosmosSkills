@@ -9,7 +9,8 @@ acceptance when the plan required review, so pruning a branch in review does not
 
 A ready unit is an issue iff `## 做什么` + ≥1 agent-runnable AC + an AC→evidence→passed-P# mapping can be
 written for an agent that sees nothing else. AC derive from invariants first, examples second, and run
-through a named seam's interface — vocabulary per `/codebase-design`. Pick the seam external
+through a named seam's interface — use the project's own architecture terms; `/codebase-design`
+offers reference vocabulary. Pick the seam external
 callers enter; prefer existing seams to new ones; use the fewest that cover the ACs. A PRD-backed
 card's `## 上级` is the Parent pointer plus at most three controlling constraints
 ([ISSUE-TEMPLATE.md](ISSUE-TEMPLATE.md)); PRD scenarios and decisions are never copied into the
@@ -33,9 +34,21 @@ Classify each unit:
   端到端验证; no PRD → `## 手动验证` on the issue that has the agent-runnable AC, separate from completion.
   A unit that is only that check is not an issue.
 
+Spec fixes what crosses Issue boundaries: user promise, public interfaces, shared decisions,
+combined verification, resource safety. It does not pre-design each worker's internal structure.
+Before fixing any implementation description in a PRD or Issue, apply the boundary test: would the
+executing agent's alternative implementation change the user promise, another Issue, a public
+interface, the verification requirement, or resource safety? If not, leave it to execution time.
+
 Split when units have independent outcomes, verification, or scheduling needs. A dependency is
 `blocked_by`; wording such as “and also” is not a split criterion. Keep one coherent behavior and
 its error paths together. Each extra card must repay its coordination and verification overhead.
+Two split smells: consecutive micro-changes sharing one interface, one write set and one acceptance
+path belong in a single card (steps stay internal); and two cards that look parallel but each
+decides part of the same undefined protocol — settle the shared convention first (one real
+foundational Issue lands it, with the dependency kept), then split. If a public interface does not
+yet exist and later tasks must build on it, that foundational Issue is real; do not have several
+agents each invent it, and do not generate a domain document just to explain its terms.
 
 Parallel-bound slices declare their write set: `touches:` (dirs) + `test_paths:` (test files,
 from the AC). `-log` slices declare no `test_paths`; their acceptance is a log predicate. Native
@@ -50,7 +63,10 @@ evidence and a verifier that can fail on the named visual defect is not writable
 Slice order: first card = the smallest correct working core (tracer); later cards grow on it.
 No abstraction for a future the PRD doesn't name.
 
-`status`: `pending` | `ready` | `done`. Pending cards retain a concrete engineering goal, constraints and `pending_reason`; they cannot be dispatched or claim passed preflight. Ready cards may still wait for execution authorization, known dependencies or resources. Human-only work is never an issue.
+`status` vocabulary and its gate semantics are owned by
+[ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md). Pending work keeps a concrete engineering goal,
+constraints and `pending_reason`; ready work records dispatchable engineering readiness; human-only
+work is never an issue.
 
 ## Slice review
 

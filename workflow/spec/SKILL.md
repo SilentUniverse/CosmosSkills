@@ -28,7 +28,10 @@ prerequisite in the plan; the code change itself belongs to TDD.
 Intent has two paths:
 
 - **Settled intake.** The request itself is alignment when its outcome and constraints are clear
-  from the request, prior decisions, and repository evidence. Choose routine implementation details
+  from the request, prior decisions, and repository evidence. An existing requirement document, a
+  native plan, or a sufficiently explicit conversation is consumed as the source: check the four
+  gaps (goal, boundary, authorization, acceptance validity) and fill only what is missing;
+  never re-package it into a standard PRD. Choose routine implementation details
   and a suitable deterministic verifier autonomously; report material reversible assumptions.
   File count, module reach, or expected card count alone never turns settled work into decision
   intake. An implementation request with no durable planning consumer routes straight to TDD;
@@ -39,11 +42,11 @@ Intent has two paths:
   slices, or an irreversible migration. A request for a plan alone does not imply an unresolved
   decision. Load [ALIGNMENT-LOOP.md](ALIGNMENT-LOOP.md) and converge the requirement tree first: answer
   repo-answerable questions, take safe reversible defaults, and attack the draft once. The
-  convergence predicate separates reviewable decisions from missing evidence. What survives is one
-  batched receipt
-  ([DESIGN-RECEIPT.md](DESIGN-RECEIPT.md)) asking exactly the remaining decisions together;
-  hold only their dependent work. Missing implementation detail, card boundaries, or a previously
-  authorized change does not reopen alignment.
+convergence predicate separates reviewable decisions from missing evidence. What survives is one
+batched receipt (shape in [ALIGNMENT-LOOP.md](ALIGNMENT-LOOP.md)) asking exactly the remaining
+decisions together;
+hold only their dependent work. Missing implementation detail, card boundaries, or a previously
+authorized change does not reopen alignment.
 
 The receipt is conversation state, separate from issue engineering status. Confidence never closes a decision
 frontier. A settled request already supplies the decision. Only graphical UI loads
@@ -51,8 +54,9 @@ frontier. A settled request already supplies the decision. Only graphical UI loa
 
 ## 1. Locate
 
-Named `<feat>` → `rg` that feature only; else 3–5 keywords over `.scratch/**/PRD*.md` and
-`.scratch/**/issues/*.md`.
+Named `<feat>` → `rg` that feature only; else 3–5 keywords over `.scratch/**/PRD*.md`,
+`.scratch/**/issues/*.md`, `.scratch/**/research-*.md`, and any requirement document the request
+names.
 
 - No hit → inspect the related code and live contracts before classifying it as new work; absence
   from the issue queue does not establish absence from the product. Use [PRD-TEMPLATE.md](PRD-TEMPLATE.md) when shared scenarios/decisions need
@@ -60,7 +64,14 @@ Named `<feat>` → `rg` that feature only; else 3–5 keywords over `.scratch/**
   A settled plan can stay inline;
   native session continuation handles a session boundary without creating an engineering queue.
 - Hit in the target feature: read the live PRD's 实现决策 (if any) and the hit issue's AC/`status`.
-  - Nothing recorded goes false → [ADDITIVE.md](ADDITIVE.md).
+  - Nothing recorded goes false → additive re-run within existing authorization. Growing an
+    existing unit → edit an unassigned `pending`/`ready` issue in place, refreshing its
+    `## 上级` extract if the cited parent lines moved; new sub-behaviour on an existing unit →
+    `detail` issue (`refines:` parent slug); new independent behaviour → new `enhancement`
+    issue. `done` issues are never edited; a change that invalidates one goes to
+    [SUPERSEDE.md](SUPERSEDE.md). A reviewed PRD needing new anchors writes a new `PRD-vN.md`
+    with `supersedes:`; independent accepted cards continue under the scoped acceptance gate in
+    [REVIEW.md](REVIEW.md). Wait only for a new unresolved material decision.
   - A recorded AC or decision goes false → [SUPERSEDE.md](SUPERSEDE.md).
 - Hit elsewhere → inspect ownership and the requested outcome. Ask only if competing interpretations
   would change behavior or scope; a keyword match alone never supersedes another feature.
@@ -69,8 +80,9 @@ Named `<feat>` → `rg` that feature only; else 3–5 keywords over `.scratch/**
 
 Not an approval gate. Cheap `rg`/`ast-grep` first. Small radius (few callers, one module, no
 known invariant): write `touches:`, continue. Coupled (many refs, multiple modules, or an
-invariant area): [impact-detection.md](impact-detection.md). Persist a new invariant to the
-area's `CODEBASE.md` block (two-axis); don't pause to offer.
+invariant area): [impact-detection.md](impact-detection.md). Persist a new invariant to
+`CODEBASE.md`'s 不变量 section, or to the area's legacy block when one exists (two-axis); don't
+pause to offer.
 
 Use `/prototype` only when a concrete unresolved design question is cheaper to answer with a runnable
 experiment. Wide refactors use expand → migrate → contract; each batch stays green.
@@ -78,16 +90,17 @@ experiment. Wide refactors use expand → migrate → contract; each batch stays
 When choosing verification groups, triggers or test-cost constraints, apply
 [test policy](../TEST-POLICY.md). Preserve required delivery gates and choose conservative influence boundaries.
 
-A proposed coverage, size, or timing bar →
-[NON-FUNCTIONAL-BARS.md](NON-FUNCTIONAL-BARS.md).
+A proposed coverage, size, or timing bar follows the non-functional
+bar rules in [VERIFICATION-DESIGN.md](VERIFICATION-DESIGN.md).
 
 ## 3. Prepare and write
 
 A settled plan can remain inline with its outcome, constraints, authorization, and verification route.
 Use `/verify` only when that route lacks a required run, drive or observation tool.
-Run the deletion test on the plan's structure: every proposed boundary, interface, artifact kind,
-PRD, or verifier profile names its consuming card, AC, test, or recorded decision; anything unnamed
-leaves the plan.
+Run the deletion test on the plan's structure: deleting any proposed boundary, interface, artifact
+kind, PRD, or verifier profile must break a real delivery, authorization, verification, handoff, or
+recovery scenario; this workflow's own format validation failing is not such a scenario. Anything
+without one leaves the plan.
 For a queue or delegated work, read [CARD-TEST.md](CARD-TEST.md) to choose independently executable slices,
 [VERIFICATION-DESIGN.md](VERIFICATION-DESIGN.md) to prepare each verifier, and
 [ISSUE-TEMPLATE.md](ISSUE-TEMPLATE.md) plus the relevant
@@ -146,7 +159,9 @@ only if `python` is missing, never as a retry for a gate failure. Re-run only af
 The whole-tree form remains the artifact/CI/migration gate.
 
 Return written paths or the inline plan, material assumptions, actual evidence, and unresolved
-decisions. Honor the request’s planning or execution scope when handing the cards or inline contract to TDD.
+decisions. Honor the request’s planning or execution scope when handing the cards or inline contract to TDD;
+at an execution boundary the read-only `start` packet is the worker's input — do not re-transcribe
+cards into a separate dispatch brief.
 When the user requested plan review, present the complete plan. Otherwise continue authorized work
 in the same task without another confirmation or session reset.
 

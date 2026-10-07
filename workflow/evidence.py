@@ -262,7 +262,19 @@ def candidate(root, ref, spec, inputs, out):
         spec_digest = hashlib.sha256(text.encode()).hexdigest()
         state_path = spec_path.parent / "spec-review.json"
         state = json.loads(state_path.read_text(encoding="utf-8"))
-        accepted = (spec_path.parent / "spec-accepted.md").read_text(encoding="utf-8-sig").replace("\r\n", "\n").replace("\r", "\n")
+        accepted_path = None
+        digest_name = state.get("accepted_digest")
+        if isinstance(digest_name, str) and re.fullmatch(r"[0-9a-f]{64}", digest_name):
+            archive = spec_path.parent / "spec-acceptances" / (digest_name + ".md")
+            if archive.is_file():
+                accepted_path = archive
+        if accepted_path is None:
+            legacy = spec_path.parent / "spec-accepted.md"
+            if legacy.is_file():
+                accepted_path = legacy
+        if accepted_path is None:
+            raise ValueError("accepted Spec snapshot is missing")
+        accepted = accepted_path.read_text(encoding="utf-8-sig").replace("\r\n", "\n").replace("\r", "\n")
         if state.get("accepted_digest") != spec_digest or accepted != text:
             raise ValueError("candidate needs the exact accepted Spec bytes")
     files, retained = retain_files(root, inputs, out)
