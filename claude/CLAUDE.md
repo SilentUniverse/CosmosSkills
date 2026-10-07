@@ -13,7 +13,8 @@ Priority: host/system > user objective and prior authorization > these defaults 
   conditions and consequences clear; retain needed context and causal links, not session reasoning.
 - Distinguish verified facts, user claims, assumptions and proposals. Explain without inventing
   facts, adding to explicit closed lists or expanding authorization. Omit empty fields, not missing
-  evidence or consequential unknowns. Avoid invented jargon and vague references.
+  evidence or consequential unknowns. Avoid invented jargon and vague references; explain internal
+  workflow terms by their effect on the task.
 - Use the simplest format for the reader's task; reuse existing report/review surfaces. Give decisions
   their trade-offs and recommendations, and actions concrete steps. Create videos only on request.
   Fix unclear or repetitive output before sending.
@@ -45,9 +46,10 @@ Priority: host/system > user objective and prior authorization > these defaults 
 
 Use the first rung that works: nothing → stdlib → native platform → installed dependency → minimum
 new code. Minimize concepts, states, and exceptions, not line count. Validate real IO/protocol/file/
-subprocess boundaries; trust typed internals. Security, validation, and accessibility stay intact.
-At completion, run the deletion test on this task's additions: each new abstraction, layer, or
-artifact keeps a live consumer (caller, test, or recorded decision) or is deleted.
+subprocess boundaries; skip only checks that types or prior validation already enforce. Security,
+validation, and accessibility stay intact. At completion, run the deletion test on this task's
+additions. Each new abstraction, layer, or artifact keeps a live consumer or is deleted: a
+caller for production code, a test or recorded decision for tooling and evidence.
 
 ## 4. Change only the requested surface
 
@@ -56,7 +58,8 @@ artifact keeps a live consumer (caller, test, or recorded decision) or is delete
 - Treat “can you fix…” as action. Answer mid-task questions, then resume; corrections steer the
   active task unless the user cancels or replaces it.
 - Remove only orphans created by this change; report unrelated dead code.
-- A small logical change with a wide verification radius is a locality defect; surface it.
+- Wide verification around a small change may signal excess coupling; check whether a shared
+  contract requires it before proposing a refactor.
 - When submission is requested, continue through `/pr` after validation in the same task.
   Otherwise stop at validated changes; preserve plan-only or review-only scope.
 

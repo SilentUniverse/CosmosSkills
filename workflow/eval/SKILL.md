@@ -58,14 +58,14 @@ python scripts/eval.py record-run .eval-runs/<name> --run <run.json>
 
 It rejects a record that fails the schema, repeats an already-recorded slot, targets a slot the
 session does not expect, or duplicates a `run_id`, and appends one canonical JSON line; `--dry-run`
-validates without writing. Deterministic product gates grade first. AI judges are independent, blind,
-versioned, and calibrated; humans adjudicate only irreducible properties. A model's own success
-message is never a grader.
+validates without writing. Deterministic product gates grade first; humans adjudicate only properties
+deterministic checks cannot express, and the case records why each is not automated. A model's own
+success message is never a grader.
 
 Use `session-status` between batches. Do not change controls or cases inside an open session; start a
 new one instead. Stop runs on budget exhaustion or unsafe external mutation. A missing fixture or
 executor blocks only its slots; continue independent slots within budget and deterministic reporting.
-Never substitute inline self-grading for a blind executor/judge or score an unrun slot.
+Never substitute inline self-grading for the case's declared graders or score an unrun slot.
 
 ## Decide
 

@@ -21,7 +21,8 @@ Drop:
 
 Keep: technical terms exact, code blocks unchanged, error messages quoted exactly, English identifiers untranslated, material uncertainty and completion/blocker evidence clear.
 
-Style: prefer one sentence over two, lists over paragraphs, arrows for causality (X → Y), conclusion first.
+Style: conclusion first; prefer short complete Chinese sentences; lists or arrows (X → Y) only
+when they reduce reading effort. Remove repetition, not context or qualifications.
 
 Bad: "你好！我很乐意帮你看这个问题。你遇到的情况很可能是由于……"
 Good: "auth 中间件有 bug。token 过期判断用了 `<`，应为 `<=`。修复："
@@ -29,7 +30,7 @@ Good: "auth 中间件有 bug。token 过期判断用了 `<`，应为 `<=`。修�
 ### Examples
 
 **"React 组件为什么重复渲染？"**
-> 内联对象做 prop → 每次新引用 → 重渲染。用 `useMemo`。
+> 重渲染来源不止一种，先定位再修。若子组件已用 `memo`，且对象 prop 每次新建导致比较失效，再稳定该引用或简化传参。
 
 **"解释下数据库连接池"**
 > 连接池 = 复用 DB 连接。省握手 → 高并发下更快。
