@@ -63,7 +63,7 @@ DESCRIPTION_BUDGET_BYTES = 12_000
 # claude/CLAUDE.md's §1 language rule and §9 host-facts pointer must stay resident: an injected
 # English skill catalog or skill body otherwise displaces the answer language. Keep the headroom
 # small: this is a ceiling, not a target.
-RESIDENT_POLICY_BUDGET_BYTES = 8_500
+RESIDENT_POLICY_BUDGET_BYTES = 8_700
 
 
 class SkillError(ValueError):

@@ -12,13 +12,9 @@ Choose the highest runnable product seam and the cheapest evidence that can fals
 2. **Measured non-functional result** — benchmark, profiler, performance trace, heap snapshot.
    Record baseline, candidate, environment, repetitions, and acceptance threshold. “Faster” without
    those numbers is not verified.
-3. **AI semantic judge** — only when deterministic checks cannot express the property. Give an
-   independent judge the artifact plus a versioned rubric and labeled examples; blind it to arm,
-   implementation rationale, and self-assessment. Measure it on the labeled calibration set before
-   grading and require the eval case's accuracy threshold. Save its structured verdict and evidence.
-   Judge disagreement, missing calibration, or a missed threshold becomes human adjudication, not a pass.
-4. **Human judgment** — taste, irreversible choice, permission, or inaccessible external account.
-   Give exact steps and the decision requested. Keep it outside issue AC/status.
+3. **Human judgment** — taste, irreversible choice, permission, inaccessible external account, or a
+   property deterministic checks cannot express. Give exact steps and the decision requested. Keep
+   it outside issue AC/status; an unadjudicated property stays unverified, not passed.
 
 AI can summarize deterministic evidence; it cannot replace it. A screenshot proves pixels existed,
 not that the interaction or business invariant worked, unless the rubric is explicitly visual.
@@ -28,8 +24,8 @@ not that the interaction or business invariant worked, unless the rubric is expl
 Evidence is useful only if the target defect makes it fail. An ordinary deterministic code test
 proves this with its actual TDD RED; snapshots and other deterministic assertions use that same RED,
 with no duplicate `反证` prose. Only an opted-in graphical UI records one concrete counterfactual
-after `反证：`. AI-judged or measurement-proxy claims belong to explicit `/eval`, whose case contract
-owns its negative controls and calibration; they do not add prose fields to ordinary non-UI issues.
+after `反证：`. Human-judged or measurement-proxy claims belong to explicit `/eval`, whose case
+contract owns its negative controls; they do not add prose fields to ordinary non-UI issues.
 DOM presence, a non-empty `src`, source snapshots, and an agent's own success report are not
 sufficient when the claim is about what the user receives.
 
