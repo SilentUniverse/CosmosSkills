@@ -46,7 +46,10 @@ review 页面的决策区 = 方向性决策 + 全部 one-way 公共契约变动�
 
 The modules built/modified, their interfaces, architectural decisions, schema changes, API
 contracts, specific interactions. Name paths or a compact schema/type shape when they remove
-contract ambiguity; keep implementation detail in the code or owning issue.
+contract ambiguity; keep implementation detail in the code or owning issue. Spec 固定的是跨切片的
+共同约定——接口语义、共享决策、组合验证；各切片内部的代码结构不在 PRD 提前设计。每段实现描述过
+一遍边界检验：被执行 Agent 换种实现，是否影响用户承诺、其他切片、公共接口或验证要求？不影响
+就留给 Issue 与执行。
 
 ## 不变量（Contracts）
 

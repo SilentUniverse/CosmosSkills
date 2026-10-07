@@ -32,12 +32,14 @@ def plant_issue(
     archive=False,
     feature="demo",
     blocked_by=(),
+    complete=True,
 ):
     directory = root / ".scratch" / feature / "issues"
     if archive:
         directory /= "archive"
     directory.mkdir(parents=True, exist_ok=True)
     refines_line = f"refines: {refines}\n" if refines else ""
+    completion = "\n### 完成 — 2026-09-03\n\n- 验收：#1 → delivered\n" if complete else ""
     (directory / f"{slug}.md").write_text(
         f"""---
 contract_version: 2
@@ -66,17 +68,13 @@ Deliver {slug} behavior.
 - #1 → `python -m unittest tests.test_fixture`
 
 ## Comments
-
-### 完成 — 2026-09-03
-
-- 验收：#1 → delivered
-""",
+{completion}""",
         encoding="utf-8",
     )
 
 
 
-def attach_evidence(root, slug, *, repo=None, candidate=None, ac="1", **definition):
+def attach_evidence(root, slug, *, repo=None, candidate=None, ac="1", append_line=True, **definition):
     root = root.resolve()
     path = root / ".scratch/demo/issues" / (slug + ".md")
     verifier = workflow_contract.verification_contract(root, path)
@@ -86,8 +84,9 @@ def attach_evidence(root, slug, *, repo=None, candidate=None, ac="1", **definiti
     fields.update(definition)
     repo = repo or EvidenceRepository(root)
     receipt = repo.receipt(candidate, **fields)
-    with path.open("a", encoding="utf-8") as stream:
-        stream.write("- evidence: %s; AC %s\n" % (receipt.relative_to(root).as_posix(), ac))
+    if append_line:
+        with path.open("a", encoding="utf-8") as stream:
+            stream.write("- evidence: %s; AC %s\n" % (receipt.relative_to(root).as_posix(), ac))
     return receipt
 
 
@@ -171,6 +170,50 @@ class WorkflowStateTests(unittest.TestCase):
             self.assertEqual("done", result["status"])
             plant_issue(root, "02-dependent", status="ready", blocked_by=["01-one"])
             self.assertTrue(workflow_state.start_issue(root, "demo", "02-dependent")["admitted"])
+
+    def test_close_generates_the_completion_record_from_evidence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            plant_issue(root, "01-one", status="ready", complete=False)
+            receipt = attach_evidence(root, "01-one", append_line=False)
+            claim = "%s; AC 1" % receipt.relative_to(root).as_posix()
+            result = workflow_state.close_issue(root, "demo", "01-one", evidence=[claim])
+            self.assertEqual("done", result["status"])
+            text = (root / ".scratch/demo/issues/01-one.md").read_text(encoding="utf-8")
+            self.assertIn("### 完成 — ", text)
+            self.assertIn("- evidence: %s" % claim, text)
+            self.assertIn("status: done", text)
+            plant_issue(root, "02-dependent", status="ready", blocked_by=["01-one"])
+            self.assertTrue(workflow_state.start_issue(root, "demo", "02-dependent")["admitted"])
+
+    def test_close_with_evidence_failure_leaves_no_record(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_issue(root, "01-one", status="ready", complete=False)
+            path = root / ".scratch/demo/issues/01-one.md"
+            before = path.read_text(encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "completion evidence is missing or malformed"):
+                workflow_state.close_issue(
+                    root, "demo", "01-one", evidence=[".scratch/demo/receipts/absent.json; AC 1"]
+                )
+            self.assertEqual(before, path.read_text(encoding="utf-8"))
+
+    def test_close_rejects_malformed_evidence_argument(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plant_issue(root, "01-one", status="ready", complete=False)
+            with self.assertRaisesRegex(ValueError, "AC <numbers>"):
+                workflow_state.close_issue(root, "demo", "01-one", evidence=[".scratch/demo/receipts/x.json"])
+
+    def test_close_with_evidence_refuses_an_existing_record(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            plant_issue(root, "01-one", status="ready")
+            receipt = attach_evidence(root, "01-one")
+            claim = "%s; AC 1" % receipt.relative_to(root).as_posix()
+            with self.assertRaisesRegex(ValueError, "completion record already exists"):
+                workflow_state.close_issue(root, "demo", "01-one", evidence=[claim])
+            self.assertEqual("done", workflow_state.close_issue(root, "demo", "01-one")["status"])
 
     def test_standalone_cards_share_tree_evidence_without_spec_acceptance(self):
         with tempfile.TemporaryDirectory() as directory:

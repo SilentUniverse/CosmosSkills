@@ -1642,7 +1642,9 @@ class SpecReviewAcceptanceGateTests(unittest.TestCase):
             root = Path(directory)
             plant_reviewed_feature(root, issues=1)
             feature = self.recorded_acceptance(root)
-            (feature / "spec-accepted.md").write_text("被篡改的快照。\n", encoding="utf-8")
+            state = json.loads((feature / "spec-review.json").read_text(encoding="utf-8"))
+            snapshot = feature / "spec-acceptances" / (state["accepted_digest"] + ".md")
+            snapshot.write_text("被篡改的快照。\n", encoding="utf-8")
             result, output = self.run_gate(root, "demo")
             self.assertEqual(1, result)
             self.assertIn("acceptance record is inconsistent", output)
@@ -1652,10 +1654,11 @@ class SpecReviewAcceptanceGateTests(unittest.TestCase):
             root = Path(directory)
             plant_reviewed_feature(root, issues=1)
             feature = self.recorded_acceptance(root)
-            (feature / "spec-accepted.md").unlink()
+            state = json.loads((feature / "spec-review.json").read_text(encoding="utf-8"))
+            (feature / "spec-acceptances" / (state["accepted_digest"] + ".md")).unlink()
             result, output = self.run_gate(root, "demo")
             self.assertEqual(1, result)
-            self.assertIn("spec-accepted.md is missing", output)
+            self.assertIn("the accepted snapshot is missing", output)
 
     def test_edited_prd_after_recorded_acceptance_points_to_delta(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -12,11 +12,12 @@ ENGINEERING_ROOT = Path(__file__).resolve().parent
 if str(ENGINEERING_ROOT) not in sys.path:
     sys.path.insert(0, str(ENGINEERING_ROOT))
 from evidence import atomic_write, file_lock
-from workflow_contract import effective_verifier, issue_contract_digest, parse_parent_pointer, validate_completion, verification_contract
+from workflow_contract import DONE_HEAD, effective_verifier, issue_contract_digest, parse_parent_pointer, validate_completion, verification_contract
 
 PROFILE_NAME = re.compile(r"\bprofile:([A-Za-z][A-Za-z0-9_-]*)\b")
 MAPPED_ACTION = re.compile(r"^(\s*-\s*#\d+\s*(?:→|->)\s*)`([^`]+)`")
 ATTEMPT_HEAD = re.compile(r"^###\s+(?:尝试|失败|Attempt)(?:\s|—|-|$)", re.IGNORECASE)
+EVIDENCE_ARG = re.compile(r"^.+;\s*AC\s*[0-9][0-9,\s\-]*$")
 CONTROL_DIRS = {"tmp", "batches", "wave-baselines", "workflow-runs", "evidence", "ci"}
 _PROFILE_UNSET = object()
 
@@ -500,13 +501,41 @@ def _set_status(raw, status, reason=None):
     return "".join(result)
 
 
-def close_issue(root, feature, slug):
+def _completion_block(evidence, candidate):
+    lines = ["### 完成 — %s" % date.today().isoformat(), ""]
+    if candidate:
+        lines.append("- candidate: %s" % candidate)
+    for item in evidence:
+        lines.append("- evidence: %s" % item)
+    lines.append("")
+    return "\n".join(lines) + "\n"
+
+
+def _with_completion(raw, block):
+    """Insert the completion record right under `## Comments`; never overwrite history."""
+    marker = raw.find("\n## Comments")
+    if marker == -1:
+        base = raw if raw.endswith("\n") or not raw else raw + "\n"
+        return base + block
+    line_end = raw.find("\n", marker + 1)
+    insert_at = line_end + 1 if line_end != -1 else len(raw)
+    return raw[:insert_at] + block + raw[insert_at:]
+
+
+def close_issue(root, feature, slug, evidence=None, candidate=None):
     root = Path(root).resolve()
     path = find_issue(root, feature, slug)
     with file_lock(path.with_suffix(".lock")):
         raw, data = issue_state(root, feature, path)
         if data.get("status") != "ready":
             raise ValueError("close requires status: ready")
+        if evidence:
+            if any(DONE_HEAD.match(line) for line in raw.splitlines()):
+                raise ValueError("completion record already exists; close without --evidence validates it")
+            for item in evidence:
+                if not EVIDENCE_ARG.match(item):
+                    raise ValueError("evidence entries must be '<receipt path>; AC <numbers>': %r" % item)
+            raw = _with_completion(raw, _completion_block(evidence, candidate))
         _admission(root, feature, path, raw, data)
         validate_completion(root, path, raw)
         atomic_write(path, _set_status(raw, "done"))
@@ -595,6 +624,11 @@ def main(argv=None):
             cmd.add_argument("slugs", nargs="+")
         if name == "park":
             cmd.add_argument("--reason", required=True)
+        if name == "close":
+            cmd.add_argument("--evidence", action="append", metavar="'<receipt path>; AC 1,2'",
+                             help="generate the completion record from these receipts; repeatable")
+            cmd.add_argument("--candidate", metavar="PATH",
+                             help="explicit fixed candidate for the completion record")
         if name in ("survey", "inspect"):
             cmd.add_argument("--format", choices=("json", "human"), default="human")
         if name == "survey":
@@ -613,8 +647,15 @@ def main(argv=None):
         elif args.command == "packets":
             result = issue_packets(args.root, args.feature, args.slugs)
         else:
-            method = {"packet": issue_packet, "start": start_issue, "close": close_issue, "park": park_issue}[args.command]
-            result = method(args.root, args.feature, args.slug, *([args.reason] if args.command == "park" else []))
+            if args.command == "close":
+                result = close_issue(
+                    args.root, args.feature, args.slug,
+                    evidence=getattr(args, "evidence", None),
+                    candidate=getattr(args, "candidate", None),
+                )
+            else:
+                method = {"packet": issue_packet, "start": start_issue, "park": park_issue}[args.command]
+                result = method(args.root, args.feature, args.slug, *([args.reason] if args.command == "park" else []))
         if getattr(args, "format", "json") == "human":
             print("\n\n".join(render_human(row) for row in result) if isinstance(result, list) else render_human(result))
         else:

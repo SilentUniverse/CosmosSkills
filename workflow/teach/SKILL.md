@@ -14,12 +14,16 @@ Treat the current directory as a teaching workspace. The state of their learning
 Create these lazily when they serve the requested lesson or future continuity; a missing file is
 not a prerequisite to start teaching. Preserve existing workspace content.
 
-- `MISSION.md`: A document capturing the _reason_ the user is interested in the topic. This should be used to ground all teaching. Use the format in [MISSION-FORMAT.md](./MISSION-FORMAT.md).
+- `MISSION.md`: A document capturing the _reason_ the user is interested in the topic. This should be used to ground all teaching. One mission per workspace, in four short sections: **Why** (the concrete real-world goal), **Success looks like** (observable abilities), **Constraints**, **Out of scope**. Concrete over abstract ("run a half marathon by October", not "get fitter"); if it runs past a screen, trim it. Revise it when the user's goal moves.
 - `./reference/*.html`: A directory of reference materials. These are the compressed learnings from the lessons - cheat sheets, reference algorithms, syntax, yoga poses, glossaries. They are the raw units of learning. They should be beautiful documents which print out well, and are designed for quick reference.
-- `RESOURCES.md`: A list of resources which can be explored to ground your teaching in contextual knowledge, or to acquire knowledge and wisdom. Use the format in [RESOURCES-FORMAT.md](./RESOURCES-FORMAT.md).
-- `./learning-records/*.md`: A directory of learning records, which capture what the user has learned. These are loosely equivalent to architectural decision records in software development; they capture non-obvious lessons and key insights that may need to be revised later, or drive future sessions. These should be used to calculate the zone of proximal development. They are titled `0001-<dash-case-name>.md`, where the number increments each time. Use the format in [LEARNING-RECORD-FORMAT.md](./LEARNING-RECORD-FORMAT.md).
+- `RESOURCES.md`: A list of high-trust resources and communities that ground the teaching. Group by **Knowledge** / **Wisdom (communities)**; annotate every entry with what it covers and when to reach for it (a bare link is useless in three months); record explicit `## Gaps` where no good source exists; prune what proved wrong, shallow, or off-mission, and note opted-out communities so future sessions stop proposing them.
+- `./learning-records/*.md`: The teaching equivalent of ADRs — `NNNN-<dash-case>.md`, sequentially numbered, 1–3 sentences: what was learned or what prior knowledge was established, and why it changes what to teach next. Optional `Status`/`Evidence`/`Implications` lines. Write one on demonstrated understanding, disclosed prior knowledge, a corrected misconception, or a mission shift; mere coverage and session logs do not qualify. Supersede an outdated record (`Status: superseded by LR-NNNN`) instead of deleting it.
 - `./lessons/*.html`: A directory of lessons. A **lesson** is a single, self-contained HTML output that teaches one tightly-scoped thing tied to the mission. This is the primary unit of teaching in this workspace.
 - `NOTES.md`: A scratchpad for you to jot down user preferences, or working notes.
+
+Keep the workspace out of engineering repo roots: if the current directory carries engineering
+surfaces (`CODEBASE.md`, `.scratch/`, `CONTEXT.md`), create the teaching files under `teaching/`
+unless the user names a workspace.
 
 ## Philosophy
 

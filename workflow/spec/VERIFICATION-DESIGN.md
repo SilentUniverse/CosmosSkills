@@ -10,8 +10,18 @@ Choose the highest runnable product seam and the cheapest evidence that can fals
    database invariant, browser/simulator action. Record exact action, expected observation, exit or
    assertion tally, and any log/trace/screenshot path.
 2. **Measured non-functional result** — benchmark, profiler, performance trace, heap snapshot.
-   Record baseline, candidate, environment, repetitions, and acceptance threshold. “Faster” without
-   those numbers is not verified.
+   Record baseline, candidate, environment, repetitions, and acceptance threshold. "Faster" without
+   those numbers is not verified. A coverage, size, or timing bar follows three rules:
+   - **Place it by cost.** Seconds-class checks live in RED/GREEN; suite-class at the declared
+     fixed-candidate boundary; campaign-class in explicitly requested `/eval` or project/CI
+     campaigns. A disabled slow gate is no gate.
+   - **Ratchet without an invented target.** Deterministic counts compare exactly. Timing uses
+     repeated samples in the same recorded environment, a named statistic, and an explicit
+     tolerance or confidence rule; the AC records the post-change candidate and compares like
+     for like.
+   - **Use a fitting independent oracle.** An existing checker counts only if this dimension can
+     make it red. Never add an unrelated tool; without a fitting oracle, ratchet the project
+     measurement and state the gap.
 3. **Human judgment** — taste, irreversible choice, permission, inaccessible external account, or a
    property deterministic checks cannot express. Give exact steps and the decision requested. Keep
    it outside issue AC/status; an unadjudicated property stays unverified, not passed.

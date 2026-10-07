@@ -10,7 +10,10 @@ Design **deep modules**: a lot of behaviour behind a small interface, placed at 
 
 ## Glossary
 
-Use these terms exactly. Don't substitute "component," "service," "API," or "boundary."
+Follow the project's and the user's existing architecture terms: Android Service, public API,
+module boundary stay as they are. Define a new term only when ambiguity would change behavior,
+ownership, or a constraint. The glossary below is reference vocabulary for thinking and talking
+about design, not an output protocol.
 
 **Module** — anything with an interface and an implementation. Deliberately scale-agnostic: a function, class, package, or tier-spanning slice. _Avoid_: unit, component, service.
 
@@ -37,7 +40,9 @@ Diagrams, testability patterns, and rejected framings live in
 - **The deletion test.** Imagine deleting the module. If complexity vanishes, it was a pass-through. If complexity reappears across N callers, it was earning its keep.
 - **The interface is the test surface.** Callers and tests cross the same seam. If you want to test *past* the interface, the module is probably the wrong shape.
 - **The interface leads in the file.** Types and exported signatures on top, implementation below; the contract loads first, the body on demand.
-- **One adapter means a hypothetical seam. Two adapters means a real one.** Don't introduce a seam unless something actually varies across it.
+- **A seam earns its keep by what it isolates, not by adapter count.** Judge a seam by whether
+  it isolates real knowledge, a dependency, or a variation that actually exists. A single-adapter
+  seam can be right; a two-adapter seam can still be premature.
 
 ## Going deeper
 

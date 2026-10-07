@@ -67,8 +67,8 @@ run the upgrade it names.
 
 Case 3 uses only the unresolved decisions in [DECISIONS.md](DECISIONS.md)
 (issue tracker; state vocabulary). Case 4's path choice is decided inline in step 2. The doc
-layout is standardized — `CODEBASE.md` (+ optional per-area blocks), optional `CONTEXT.md`,
-optional `docs/adr/` — and is not a per-repo decision.
+layout is standardized — `CODEBASE.md` (legacy repos may carry per-area blocks), optional
+`CONTEXT.md`, optional `docs/adr/` — and is not a per-repo decision.
 
 ### 4. Edit
 
@@ -91,7 +91,7 @@ byte-identical. Keep the block ≤10 lines:
 Non-default only: one-line summary. See `docs/agents/issue-tracker.md`.
 
 ### Orientation
-CODEBASE.md (## Verifier commands + map). Optional: CONTEXT.md (monorepo: CONTEXT-MAP.md), docs/adr/.
+CODEBASE.md (## Verifier commands + map). Optional: CONTEXT.md, docs/adr/.
 ```
 
 **Behavior authority.** Record repo configuration, not duplicate process policy. Existing user

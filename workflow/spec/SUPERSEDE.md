@@ -39,4 +39,8 @@ ask only about consequences the request and repository cannot resolve.
    relocate to `.scratch/tmp/reconcile-<date>/`
    (undo = move back), never `rm`. Pending/ready edits require no active consumer of their contract or verification setup; coordinate affected workers before editing in place; refresh the
    `## 上级` extract.
-4. New + redo units → [CARD-TEST.md](CARD-TEST.md).
+4. New + redo units → [CARD-TEST.md](CARD-TEST.md). A `redo`/`fix` reads its `refines` parent's
+   AC and proof: keep tests for required behavior, update affected assertions in place, and retire
+   a test only when its behavior is superseded or equivalent coverage preserves distinct failure
+   detection. Record relevant changed/deleted test paths; investigate missing lineage and ask only
+   if the intended parent or behavior stays ambiguous.
