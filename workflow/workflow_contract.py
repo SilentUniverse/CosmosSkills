@@ -465,7 +465,7 @@ def parse_ac_spec(value: str) -> List[int]:
     return sorted(result)
 
 
-def verification_contract(root, issue_path, raw=None):
+def verification_contract(root, issue_path, raw=None, *, profile=_PROFILE_UNSET):
     """Resolve the complete AC-to-command contract without executing a check."""
     from evidence import relative
     root, issue_path = Path(root).resolve(), Path(issue_path)
@@ -478,7 +478,7 @@ def verification_contract(root, issue_path, raw=None):
         raise ValueError("engineering contract needs checkbox AC")
     lines = _section(raw, "验证设计")
     if data.get("contract_version") == "3":
-        verifier = dict(effective_verifier(root, data.get("feature", ""), raw))
+        verifier = dict(effective_verifier(root, data.get("feature", ""), raw, profile))
     else:
         cwd = _bullet(lines, "工作目录")
         if not cwd:

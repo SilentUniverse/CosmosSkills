@@ -1,6 +1,7 @@
 # spec — Verification design
 
-Loaded by the Design Receipt and card test when choosing how a result will be proved.
+Loaded by [`/spec`](SKILL.md) when choosing proof or non-functional bars, and by the card test
+when preparing a giant-task queue's readiness.
 
 ## Evidence ladder
 
@@ -94,7 +95,8 @@ behavior.
 baseline with the candidate and classify only new diagnostics as typed impact candidates;
 pre-existing diagnostics and line-only movement are not attributed to the mutation. This does not
 relax an independent repository typecheck gate. Pair static results with pytest at the public seam. Use an installed runtime selector/coverage
-signal when dynamic coupling makes selection uncertain; otherwise run the affected module tests.
+signal when dynamic coupling makes selection uncertain; otherwise select cases for the changed
+public seam under [test policy](../TEST-POLICY.md).
 Dynamic dispatch, fixtures, registries, and `**kwargs` limit static completeness. Property tests are useful for
 broad input spaces when the project already supports them. Report the remaining dynamic-dispatch
 gap.
@@ -107,7 +109,8 @@ predicate/trace. The agent launches and operates the system; the human receives 
 
 Assign each verifier to its behavior loop, module, review candidate, final delivery or declared campaign
 boundary using [test policy](../TEST-POLICY.md). Share existing project commands. Keep safety timeouts
-separate from measured performance targets; an unknown impact map expands verification.
+separate from measured performance targets; investigate unknown influence and widen only to its
+defensible boundary, retaining complete checks when it cannot be bounded.
 
 ## AC-to-evidence rule
 

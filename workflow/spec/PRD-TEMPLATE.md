@@ -1,6 +1,6 @@
 # spec — PRD template
 
-Loaded on demand by [`/spec`](SKILL.md) when the intent warrants a PRD snapshot. Frontmatter per
+Loaded on demand by [`/spec`](SKILL.md) when a giant-task queue needs a shared PRD owner. Frontmatter per
 [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md) (`type: prd`, `feature`, `version`, `supersedes`,
 `created`).
 

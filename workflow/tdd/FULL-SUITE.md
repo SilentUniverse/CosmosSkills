@@ -1,6 +1,8 @@
 # Fixed-candidate verification
 
 Load for declared delivery/integration gates or explicit `/tdd -all`; ordinary RED/GREEN stays scoped.
+Complete means all gates declared for that delivery scope. A local edit or changed prose does not
+load this procedure; reuse matching proof before executing any gate.
 
 ## Fix inputs
 

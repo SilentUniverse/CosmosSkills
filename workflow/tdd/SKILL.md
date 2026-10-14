@@ -27,8 +27,11 @@ holds only dependent work. Explicit user implementation/testing instructions ove
   explicit stop condition, and follow the host's device-stream rules. Scope, readiness, evidence
   identity and completion rules are unchanged.
 
-A settled task needs no Issue/PRD without a durable queue, dependency, delegation or shared-decision
-consumer. Requested plans and consequential unresolved requirements use `/spec`; unknown failures use
+Create new Issues only on Spec's giant-task route with a persistent execution queue. An explicit
+existing Issue path follows its admission and history rules. Ordinary new work uses the inline
+outcome and verification route, without PRD, Issue, artifact checks or issue
+admission; temporary delegation and internal dependencies stay in the native plan.
+Requested plans and consequential unresolved requirements use `/spec`; unknown failures use
 `/diagnose`. Inspect existing ownership before shared writes. Running status comes from the host.
 
 | Engineering status | Action |
@@ -46,20 +49,23 @@ stopped before assigning its paths again. redo/fix contract rules live in
 
 ## Prepare and implement
 
-Read the public seam, existing coverage, governing ADRs and domain terms. Replay P# only when no
+Read the public seam, existing coverage, governing ADRs and domain terms. For queued work, replay P# only when no
 valid matching observation exists; compare action, relevant inputs, prerequisites and environment.
 Session changes alone do not invalidate evidence. Failed readiness pauses only dependent work while
 the declared setup or stale record is repaired. Never substitute weaker proof.
 
 Briefly state the behavior, proof route and material assumption, then act. Use project commands.
 Missing run/drive/observation capabilities use `/verify`; update affected drivers with their scenario.
+Pure prose uses necessary structure checks and skips RED/GREEN. Machine-consumed templates/schema
+use targeted contract cases. For logic, choose a case, class or file covering the changed behavior.
 
 1. Find the existing case that pins the behavior. An already-failing behavioral assertion is RED;
    import/collection failure is an environment problem. Extend existing coverage before adding a case.
 2. Observe RED, implement enough to pass, and run the case driving this change.
-3. At slice completion run affected module/consumer checks, reusing valid evidence. Refactor while
-   green and recheck affected behavior — only debt this change introduced or directly exposed;
-   the full smell baseline lives in `/code-review`.
+3. After related logic edits settle, add checks only for a changed shared seam, fixture or concrete
+   uncovered integration risk. Reuse passing checks whose relevant inputs and environment match;
+   completion or later prose edits do not trigger another pass. Refactor while green and recheck
+   affected behavior. Address only debt introduced or exposed here; the full baseline lives in `/code-review`.
 
 Apply [test quality](tests.md). Load [mocking.md](mocking.md) only for mocks and
 [UI-TESTING.md](UI-TESTING.md) only for graphical behavior. Agent summaries, screenshots or successful
@@ -79,7 +85,7 @@ Apply [TEST-POLICY.md](../TEST-POLICY.md): check selection and evidence validity
 Issue/session/task lifecycles. One valid check can cover several Issues. Native `completed` proves
 no AC by itself; retain every real attempt, including failures.
 
-Fixed candidate checks use [FULL-SUITE.md](FULL-SUITE.md); Issue completion goes through
+Fixed candidate checks use [FULL-SUITE.md](FULL-SUITE.md); queued Issue completion goes through
 `close --evidence/--candidate`, which validates proof and writes the completion record in one
 protected write: [COMPLETION-RECORD.md](COMPLETION-RECORD.md). `close` reads proof without capturing
 the workspace or running tests. Human acceptance separately binds the displayed Spec or fixed

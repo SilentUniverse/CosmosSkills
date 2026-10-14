@@ -21,6 +21,12 @@ SPEC = importlib.util.spec_from_file_location(
 assert SPEC and SPEC.loader
 verify_artifacts = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(verify_artifacts)
+STATE_SPEC = importlib.util.spec_from_file_location(
+    "workflow_state", ROOT / "workflow" / "workflow-state.py"
+)
+assert STATE_SPEC and STATE_SPEC.loader
+workflow_state = importlib.util.module_from_spec(STATE_SPEC)
+STATE_SPEC.loader.exec_module(workflow_state)
 import workflow_contract
 sys.path.insert(0, str(ROOT / "tests"))
 from evidence_fixtures import issue_binding
@@ -1672,6 +1678,104 @@ class SpecReviewAcceptanceGateTests(unittest.TestCase):
             self.assertEqual(1, result)
             self.assertIn("no longer matches accepted_digest", output)
             self.assertIn("--require-accepted", output)
+
+
+class CommandMappingAdmissionTests(unittest.TestCase):
+    def check_entries(self, version, change=None):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            issues = root / ".scratch" / "search" / "issues"
+            issues.mkdir(parents=True)
+            if version == "v2":
+                body = issue_body().replace(
+                    "\n## 前置依赖（Blocked by）\n\n- 无\n", "\n"
+                )
+                command = "pytest tests/test_search.py::test_match"
+            else:
+                body = v3_issue_body(done=False)
+                command = "profile:scoped"
+                plant_v3_profile(root)
+                if version == "v3-schema1":
+                    body = body.replace("verifier_schema: 2", "verifier_schema: 1")
+                    profile = root / ".scratch" / "search" / "verifier.json"
+                    payload = json.loads(profile.read_text(encoding="utf-8"))
+                    payload["schema_version"] = 1
+                    profile.write_text(json.dumps(payload), encoding="utf-8")
+            first_map = next(line for line in body.splitlines() if line.startswith("- #1 →"))
+            if change == "missing":
+                body = body.replace(first_map, "")
+            elif change == "unquoted":
+                body = body.replace(first_map, first_map.replace(f"`{command}`", command))
+            elif change == "empty":
+                body = body.replace(first_map, first_map.replace(f"`{command}`", "``"))
+            elif change == "duplicate":
+                body = body.replace(first_map, first_map + "\n" + first_map)
+            elif change == "unknown-ac":
+                body = body.replace(first_map, first_map + "\n" + first_map.replace("#1", "#3"))
+            elif change == "invalid-command":
+                if version == "v2":
+                    body = body.replace(f"`{command}`", '`pytest "unterminated`')
+                else:
+                    profile = root / ".scratch" / "search" / "verifier.json"
+                    payload = json.loads(profile.read_text(encoding="utf-8"))
+                    payload["commands"]["scoped"] = 'pytest "unterminated'
+                    profile.write_text(json.dumps(payload), encoding="utf-8")
+            issue = issues / "01-search.md"
+            issue.write_text(body, encoding="utf-8")
+            tests = root / "tests"
+            tests.mkdir()
+            (tests / "test_search.py").write_text("# fixture\n", encoding="utf-8")
+            output = io.StringIO()
+            with redirect_stdout(output):
+                result = verify_artifacts.main(
+                    ["verify-artifacts.py", str(root), "--feature", "search"]
+                )
+            try:
+                workflow_state.start_issue(root, "search", "01-search")
+                admission_error = None
+            except ValueError as exc:
+                admission_error = str(exc)
+            self.assertEqual(body, issue.read_text(encoding="utf-8"))
+            return result, output.getvalue(), admission_error
+
+    def test_valid_ready_mapping_passes_both_gate_and_start(self):
+        for version in ("v2", "v3-schema1", "v3-schema2"):
+            with self.subTest(version=version):
+                result, output, admission_error = self.check_entries(version)
+                self.assertEqual(0, result, output)
+                self.assertIsNone(admission_error)
+
+    def test_invalid_ready_mapping_is_rejected_by_both_gate_and_start(self):
+        for version in ("v2", "v3-schema1", "v3-schema2"):
+            for change in ("missing", "unquoted", "empty", "duplicate", "unknown-ac", "invalid-command"):
+                with self.subTest(version=version, change=change):
+                    result, output, admission_error = self.check_entries(version, change)
+                    self.assertIsNotNone(admission_error)
+                    self.assertEqual(1, result, output)
+                    self.assertIn(admission_error, output)
+
+    def test_historical_v2_done_mapping_keeps_compatibility(self):
+        body = issue_body(done=True)
+        body = body.replace("`pytest tests/test_search.py::test_match`", "pytest tests/test_search.py::test_match")
+        body = body.replace("`pytest tests/test_search.py::test_empty`", "pytest tests/test_search.py::test_empty")
+        result, output = VerifyArtifactsV2Tests().run_gate(body)
+        self.assertEqual(0, result, output)
+
+    def test_pending_card_does_not_require_an_executable_contract(self):
+        body = """---
+contract_version: 3
+type: issue
+feature: search
+status: pending
+pending_reason: acceptance decision is unresolved
+---
+
+## 做什么
+
+Deliver search after acceptance is settled.
+"""
+        result, output = VerifyArtifactsV2Tests().run_gate(body)
+        self.assertEqual(0, result, output)
 
 
 if __name__ == "__main__":

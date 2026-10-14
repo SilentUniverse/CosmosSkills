@@ -1,6 +1,7 @@
 # Engineering completion
 
-An Issue contract describes the obligation; immutable machine evidence proves it. Runtime completion
+Used for giant-task queue cards or explicitly selected existing Issues. An Issue contract describes
+the obligation; immutable machine evidence proves it. Runtime completion
 and human acceptance are separate facts.
 
 Before completion, trace owned diffs to ACs, preserve other edits, record actual `test_paths`, and

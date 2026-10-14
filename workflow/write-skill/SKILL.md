@@ -75,11 +75,12 @@ fact in a skill merely to avoid one relevant tool call.
 
 After the final edit:
 
-1. Resolve this skill's source checkout when installed through a link. From that checkout, run
-   `python scripts/validate-skills.py <affected-skill-paths>`; external skills use absolute paths.
-   Run it once without arguments as well: the scoped run measures only the named skills, so the
-   resident budget for all descriptions and `claude/CLAUDE.md` appears only unscoped.
-   Then run the target repository's checks relevant to changed scripts or contracts.
+1. Resolve this skill's source checkout when installed through a link. Run one structure check:
+   `python scripts/validate-skills.py <affected-skill-paths>` for body-only edits; external skills
+   use absolute paths. Use the unscoped command instead when descriptions, shared resident policy,
+   names or cross-skill links change; it includes the complete resident budget and catalog.
+   Reuse that result while its checked inputs match. Pure prose adds no unit suite. Changed scripts,
+   machine templates or schemas use only their affected cases under [test policy](../TEST-POLICY.md).
 2. Run `/atk <scope>` for necessity, semantic consistency, runtime paths, and cost.
    For a large corpus, add one independent read-only review when an agent slot is available.
 3. Run `/lint <scope>` and inspect `wc -l`; line count alone never fails acceptance.

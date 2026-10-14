@@ -31,6 +31,13 @@ def strings(value, label):
     return value
 
 
+def test_targets(value):
+    targets = strings(value, 'test paths')
+    if not targets or any(path != 'tests' and not re.fullmatch(r'tests/test_[a-zA-Z0-9_*?]+\.py', path) for path in targets):
+        raise ValueError('test paths must name tests or tests/test_*.py files and globs')
+    return targets
+
+
 def load_policy(path):
     policy = json.loads(Path(path).read_text(encoding='utf-8'))
     if not isinstance(policy, dict) or policy.get('schema_version') != 1 or not isinstance(policy.get('groups'), dict) or not policy['groups']:
@@ -49,6 +56,10 @@ def load_policy(path):
             raise ValueError('impact rules must assign each known path to at least one group')
         if set(rule['groups']) - set(groups):
             raise ValueError('impact rule names an unknown group')
+        if 'test_paths' in rule:
+            test_targets(rule['test_paths'])
+            if 'regression' not in rule['groups']:
+                raise ValueError('test paths require the regression group')
     return policy
 
 
@@ -57,6 +68,7 @@ def select(policy, paths, full=False):
     if any(path.startswith(('/', '\\')) or '..' in path.replace('\\', '/').split('/') or ':' in path for path in paths):
         raise ValueError('selection needs repository-relative paths')
     reasons = {name: ['always'] for name in policy.get('always', [])}
+    tests = {'tests'} if 'regression' in reasons else set()
     unknown = []
     for path in paths:
         matches = [rule for rule in policy['rules'] if any(fnmatch.fnmatchcase(path, pattern) for pattern in rule['paths'])]
@@ -65,13 +77,25 @@ def select(policy, paths, full=False):
         for rule in matches:
             for name in rule['groups']:
                 reasons.setdefault(name, []).append(path)
+            if 'regression' in rule['groups']:
+                tests.update(rule.get('test_paths', ['tests']))
     fallback = full or not paths or bool(unknown)
     if fallback:
         for name in policy['groups']:
             reasons.setdefault(name, []).append('explicit_full' if full else 'unknown_or_empty_change_set')
+        if 'regression' in policy['groups']:
+            tests.add('tests')
     return {'schema_version': 1, 'selected': sorted(reasons), 'full': fallback, 'unknown_paths': unknown,
+            'test_paths': ['tests'] if 'tests' in tests else sorted(tests),
             'reasons': {name: sorted(set(values)) for name, values in reasons.items()},
             'policy_digest': digest(policy)}
+
+
+def github_output(policy, result, path):
+    with Path(path).open('a', encoding='utf-8') as stream:
+        for name in policy['groups']:
+            stream.write('%s=%s\n' % (name, str(name in result['selected']).lower()))
+        stream.write('test_paths=%s\n' % encoded(result['test_paths']))
 
 
 def timing_limit(contract):
@@ -276,9 +300,7 @@ def main(argv=None):
             paths = json.loads(args.paths_file.read_text(encoding='utf-8')) if args.paths_file else []
             result = select(policy, paths, args.full)
             if args.github_output:
-                with args.github_output.open('a', encoding='utf-8') as stream:
-                    for name in policy['groups']:
-                        stream.write('%s=%s\n' % (name, str(name in result['selected']).lower()))
+                github_output(policy, result, args.github_output)
         elif args.command == 'report':
             receipts = [(str(p), json.loads(p.read_text(encoding='utf-8'))) for p in args.receipts]
             result = summarize(receipts, args.root)

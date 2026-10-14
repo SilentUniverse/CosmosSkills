@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'workflow'))
@@ -49,13 +50,142 @@ class TestGovernanceTests(unittest.TestCase):
                  (['tests/ui_fixture/app.mjs', 'scripts/install.ps1'], {'catalog', 'regression', 'windows', 'ui'}),
                  (['unmapped/new.json'], set(policy['groups'])),
                  ([], set(policy['groups'])),
-                 (['tests/test-policy.json'], set(policy['groups']))]
+                 (['tests/test-policy.json'], {'catalog', 'regression'}),
+                 (['.github/workflows/ci.yml'], set(policy['groups']))]
         for paths, expected in cases:
             with self.subTest(paths=paths):
                 self.assertEqual(expected, set(governance.select(policy, paths)['selected']))
         self.assertEqual(set(policy['groups']), set(governance.select(policy, ['README.md'], True)['selected']))
         with self.assertRaises(ValueError):
             governance.select(policy, ['../escape.py'])
+
+    def test_prose_uses_catalog_and_machine_templates_keep_directed_contracts(self):
+        policy = governance.load_policy(ROOT / 'tests/test-policy.json')
+        for path in ('claude/CLAUDE.md', 'workflow/spec/SKILL.md', 'workflow/tdd/SKILL.md',
+                     'workflow/tdd/UI-TESTING.md', 'workflow/REPORT-FORMAT.md',
+                     'tooling/shell-guardrails/WIRING.md', 'tooling/shell-guardrails/scripts/README.md',
+                     'tests/ui_fixture/README.md', 'tests/packaging_fixture/README.md', '.github/README.md'):
+            with self.subTest(path=path):
+                result = governance.select(policy, [path])
+                self.assertEqual(['catalog'], result['selected'])
+                self.assertEqual([], result['test_paths'])
+        result = governance.select(policy, ['workflow/spec/ISSUE-TEMPLATE.md'])
+        self.assertEqual(['catalog', 'regression'], result['selected'])
+        self.assertEqual(['tests/test_verify_artifacts.py', 'tests/test_workflow_state.py'], result['test_paths'])
+
+    def test_logic_selection_unions_tests_and_unknown_changes_keep_complete_gates(self):
+        policy = governance.load_policy(ROOT / 'tests/test-policy.json')
+        result = governance.select(policy, ['scripts/ci-scope.py', 'scripts/validate-skills.py'])
+        self.assertEqual(['tests/test_test_governance.py', 'tests/test_validate_skills.py'], result['test_paths'])
+        result = governance.select(policy, ['tests/test_dsh_telemetry.py'])
+        self.assertEqual(['tests/test_dsh_telemetry.py'], result['test_paths'])
+        result = governance.select(policy, ['tests/test_installers.py'])
+        self.assertEqual(['catalog', 'regression'], result['selected'])
+        self.assertEqual(['tests/test_installers.py'], result['test_paths'])
+        with self.subTest(path='workflow/verify-artifacts.py'):
+            result = governance.select(policy, ['workflow/verify-artifacts.py'])
+            self.assertIn('windows', result['selected'])
+        with self.subTest(path='workflow/workflow-state.py'):
+            result = governance.select(policy, ['workflow/workflow-state.py'])
+            self.assertIn('tests/test_verify_artifacts.py', result['test_paths'])
+        for path, expected in (
+            ('tests/test_verify_artifacts.py', ['tests/test_verify_artifacts.py']),
+            ('tests/test_spec_review.py', ['tests/test_spec_review.py', 'tests/test_spec_review_encoding.py']),
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(expected, governance.select(policy, [path])['test_paths'])
+        result = governance.select(policy, ['scripts/check-native-packaging.py'])
+        self.assertEqual(['catalog', 'packaging'], result['selected'])
+        self.assertEqual([], result['test_paths'])
+        result = governance.select(policy, ['evals/experiments/verify_loop.py'])
+        self.assertEqual(['tests/test_verify_loop_fixture.py'], result['test_paths'])
+        self.assertIn('tests/test_historical_proof.py', governance.select(policy, ['workflow/workflow_contract.py'])['test_paths'])
+        evidence_tests = governance.select(policy, ['workflow/evidence.py'])['test_paths']
+        self.assertIn('tests/test_spec_review.py', evidence_tests)
+        self.assertIn('tests/test_spec_review_encoding.py', evidence_tests)
+        for paths, full in ((['unknown.py'], False), ([], False), (['README.md'], True)):
+            with self.subTest(paths=paths, full=full):
+                result = governance.select(policy, paths, full)
+                self.assertEqual(set(policy['groups']), set(result['selected']))
+                self.assertEqual(['tests'], result['test_paths'])
+
+    def test_policy_rejects_unsafe_or_unowned_test_targets(self):
+        policy = json.loads((ROOT / 'tests/test-policy.json').read_text())
+        path = self.root / 'policy.json'
+        policy['rules'][0]['groups'] = ['regression']
+        for target in ('../outside.py', 'tests/../outside.py', '--override', 'scripts/ci-scope.py'):
+            with self.subTest(target=target):
+                policy['rules'][0]['test_paths'] = [target]
+                path.write_text(json.dumps(policy))
+                with self.assertRaises(ValueError):
+                    governance.load_policy(path)
+        policy['rules'][0]['groups'] = ['catalog']
+        policy['rules'][0]['test_paths'] = ['tests/test_test_governance.py']
+        path.write_text(json.dumps(policy))
+        with self.assertRaises(ValueError):
+            governance.load_policy(path)
+
+    def test_ci_argv_expands_valid_tests_and_rejects_escape_or_empty_targets(self):
+        tests = self.root / 'tests'
+        tests.mkdir()
+        for name in ('test_one.py', 'test_two.py'):
+            (tests / name).write_text('')
+        argv = ci.regression_argv(self.root, ['tests/test_*.py', 'tests/test_one.py'], 2)
+        self.assertEqual(['tests/test_one.py', 'tests/test_two.py'], argv[4:6])
+        self.assertEqual('2', argv[argv.index('-n') + 1])
+        self.assertIn('junit_logging=all', argv)
+        self.assertIn('tests', ci.regression_argv(self.root, ['tests'], 4))
+        for targets in ([], ['tests/test_missing_*.py'], ['../outside.py'], ['tests/../outside.py'], ['--override']):
+            with self.subTest(targets=targets), self.assertRaises(ValueError):
+                ci.regression_argv(self.root, targets, 2)
+        outside = self.root / 'outside.py'
+        outside.write_text('')
+        try:
+            (tests / 'test_escape.py').symlink_to(outside)
+        except OSError:
+            return
+        with self.assertRaises(ValueError):
+            ci.regression_argv(self.root, ['tests/test_escape.py'], 2)
+
+    def test_deleted_mapped_test_expands_only_the_regression_scope(self):
+        tests = self.root / 'tests'
+        tests.mkdir()
+        (tests / 'test_remaining.py').write_text('')
+        policy = governance.load_policy(ROOT / 'tests/test-policy.json')
+        result = governance.select(policy, ['tests/test_dsh_telemetry.py'])
+        self.assertEqual(['catalog', 'regression'], result['selected'])
+        argv = ci.regression_argv(self.root, result['test_paths'], 2)
+        self.assertEqual('tests', argv[4])
+        self.assertNotIn('tests/test_dsh_telemetry.py', argv)
+
+    def test_ci_workflow_passes_selection_as_json_without_shell_interpolation(self):
+        text = (ROOT / '.github/workflows/ci.yml').read_text()
+        self.assertIn('test_paths: ${{ steps.select.outputs.test_paths }}', text)
+        self.assertIn('COSMOS_TEST_PATHS: ${{ needs.scope.outputs.test_paths }}', text)
+        self.assertIn('python scripts/ci-scope.py --run-regression', text)
+        self.assertNotIn('python -B -m pytest tests ', text)
+        self.assertEqual(2, text.count("if: runner.os == 'Linux' && needs.scope.outputs.windows == 'true'"))
+
+    def test_ci_run_passes_structured_argv_and_keeps_runner_failure(self):
+        expected = ['python', '-m', 'pytest', 'tests/test_one.py']
+        with mock.patch.object(ci, 'regression_argv', return_value=expected) as build, \
+                mock.patch.object(ci.subprocess, 'run', return_value=mock.Mock(returncode=7)) as run:
+            code = ci.main(['--run-regression', '--test-paths-json', '["tests/test_one.py"]', '--jobs', '2'])
+        self.assertEqual(7, code)
+        build.assert_called_once_with(ci.ROOT, ['tests/test_one.py'], 2)
+        run.assert_called_once_with(expected, cwd=ci.ROOT)
+
+    def test_select_cli_outputs_directed_targets_to_github(self):
+        paths = self.root / 'paths.json'
+        paths.write_text(json.dumps(['scripts/ci-scope.py']))
+        output = self.root / 'github-output'
+        result = subprocess.run([sys.executable, '-B', str(ROOT / 'workflow/test-governance.py'),
+                                 'select', '--policy', str(ROOT / 'tests/test-policy.json'),
+                                 '--paths-file', str(paths), '--github-output', str(output)],
+                                capture_output=True, text=True, timeout=10)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual(['tests/test_test_governance.py'], json.loads(result.stdout)['test_paths'])
+        self.assertIn('test_paths=["tests/test_test_governance.py"]\n', output.read_text())
 
     def test_rename_includes_removed_and_added_paths_and_missing_base_expands(self):
         def git(*args):
@@ -69,6 +199,7 @@ class TestGovernanceTests(unittest.TestCase):
         base = git('rev-parse', 'HEAD')
         git('mv', 'old.py', 'new.py')
         git('commit', '-qm', 'move')
+        (self.root / 'uncommitted.py').write_text('value = 2\n')
         self.assertEqual(['new.py', 'old.py'], ci.changed_paths(self.root, base))
         self.assertEqual([], ci.changed_paths(self.root, '0' * 40))
         self.assertEqual([], ci.changed_paths(self.root, 'f' * 40))

@@ -36,7 +36,8 @@ effective delivered behavior via `workflow-state.py inspect`. Neither creates `S
 ## Promoted knowledge
 
 Facts confirmed by an accepted plan live at their narrowest useful scope: task-local in the
-PRD/issue (not auto-loaded later), feature-local in the feature PRD's implementation decisions,
+conversation/native plan or the owning queue's PRD/issue (not auto-loaded later), feature-local in
+the feature PRD's implementation decisions,
 area/project invariants in ADR/CODEBASE/CONTEXT only when they pass `/map`'s two-axis test and
 record scope, source and reason. When the code, schema or decision a promoted fact cites changes,
 revalidate or supersede it; past acceptance does not keep a stale fact true.
@@ -49,4 +50,4 @@ revalidate or supersede it; past acceptance does not keep a stale fact true.
   follow-up contracts. Damaged or contradicted proof is not repaired by editing status; investigate
   the affected obligation and retain all attempts. Test ownership follows ARTIFACT-FORMAT.
 - An ADR superseded by another ADR is immutable: never edit its body. Mark it superseded; the new ADR carries the change.
-- Re-running `/spec` writes `PRD-vN.md` only when a recorded AC or decision goes false. Additive re-runs edit `ready` issues or add `detail`; they do not supersede. The older PRD stays untouched.
+- On the giant-task queue route, re-running `/spec` writes `PRD-vN.md` only when a recorded AC or decision goes false. Additive re-runs edit `ready` issues or add `detail`; they do not supersede. The older PRD stays untouched. Inline plans keep changes in the conversation/native plan.

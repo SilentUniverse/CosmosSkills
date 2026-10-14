@@ -2,8 +2,9 @@
 
 Loaded on demand by [`/spec`](SKILL.md) when writing
 `.scratch/<feat>/issues/<NN>-<slug>.md`. Frontmatter follows [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd); the body uses the template below.
-Issues materialize from an accepted PRD or a settled inline contract; writing them is engineering
-preparation after acceptance, not a second review gate.
+Only giant tasks needing a persistent queue materialize issues, from an accepted PRD or an existing
+settled requirement source. Ordinary inline plans create no issue. Writing a giant-task queue is
+engineering preparation after acceptance, not a second review gate.
 
 Write issues in dependency order (blockers first) so `blocked_by` can reference real filenames.
 `blocked_by` is the single dependency source; do not repeat it in a body section.
@@ -62,13 +63,14 @@ only when it defines the contract more precisely than prose; omit implementation
 - 准备动作：`<exact repo-declared setup already run by SPEC, with result, or 无（已就绪）>`
 - P1 预检：`<exact representative command / browser, service, or device action>` → passed；observed=<exit/assertion>；evidence=<path|inline>；checked=<YYYY-MM-DD>
 - 体验验证：`contract=.scratch/<feat>/experience-contract.json; states=<operated states>; evidence=.scratch/<feat>/evidence/<slug>-experience.json`（仅 graphical UI）
-- #1 → <exact agent-runnable final test / action>；预检：P1；预期证据：<assertion + exit/tally or artifact path>；反证：<the missing/broken behavior that must make this fail>（仅 graphical UI / indirect proof）
-- #2 → ...
+- #1 → `<exact agent-runnable final test / action>`；预检：P1；预期证据：<assertion + exit/tally or artifact path>；反证：<the missing/broken behavior that must make this fail>（仅 graphical UI）
+- #2 → `<exact agent-runnable final test / action>`；预检：P1；预期证据：<assertion + exit/tally or artifact path>
 
-Every AC has one mapping to at least one passed P#. Reuse a verifier instead of duplicating it.
+Every AC has exactly one backticked command mapping and at least one passed P#. Reuse a verifier
+instead of duplicating it.
 SPEC actually runs each P# after durable environment setup; a future test that does not exist yet is
 not the preflight. An actual TDD RED is sufficient falsification for ordinary deterministic code
-tests. Graphical UI and indirect proof name a counterfactual defect so a shape-only assertion cannot
+tests. Opted-in graphical UI names a counterfactual defect so a shape-only assertion cannot
 masquerade as proof. AI judgment is allowed only under
 [VERIFICATION-DESIGN.md](VERIFICATION-DESIGN.md); human-only checks stay outside AC.
 

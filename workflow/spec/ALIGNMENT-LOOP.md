@@ -71,7 +71,8 @@ Give only the context needed to choose, in four blocks:
 For a broad architectural choice, add the smallest useful requirement/evidence/slice table
 (Requirement | Observable outcome | Verification | Slice/dependency). Show only affected rows
 after feedback; reprint the complete design only when interactions changed so much that a delta
-would mislead. Persist settled choices once in the PRD/issue contract. Card count, multiple files,
+would mislead. Keep settled choices in the conversation or native inline plan. On the giant-task
+queue route, persist them once in the owning PRD/issue contract. Card count, multiple files,
 and internal slice-DAG changes do not by themselves require approval; feedback prunes the affected
 subtree instead of restarting alignment.
 
@@ -93,8 +94,9 @@ of the human decision area.
 
 ## Feedback: prune and re-run locally
 
-After current feedback is bound to its item by REVIEW.md, prune the affected subtree, recompute its
-dependents, and re-verify only that scope. The next review is a delta. Reuse settled decisions and
+Apply inline feedback directly to the conversation or native plan. For an anchored giant-task PRD,
+bind feedback to its item through REVIEW.md. Prune the affected subtree, recompute its dependents,
+and re-verify only that scope. The next review covers that delta. Reuse settled decisions and
 unchanged evidence; never re-ask an answered question.
 
 Budget: one full review plus at most one delta review is the target, not a hard guarantee. A
