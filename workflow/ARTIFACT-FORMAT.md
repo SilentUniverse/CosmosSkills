@@ -136,7 +136,9 @@ Rules:
 - **Budgets:** root body ≤40 lines excluding legacy roster lines; area block ≤8 lines. On red:
   relocate → condense → raise. A raise carries justification in the change. A ceiling is set to
   the file's size at adoption.
-- **Drift:** each legacy block's `git_base` vs HEAD — code gone → delete the block (and its roster
+- **Drift:** compare each legacy block's relevant inputs against `git_base`, including committed,
+  staged, working-tree and relevant untracked changes. Matching HEAD alone does not prove freshness.
+  Code gone → delete the block (and its roster
   line, if the roster still lists it); drifted → refresh + re-stamp; duplicate → merge. A refresh
   re-applies the two-axis test and re-verifies surviving lines in place, rewriting only the ones
   that fail; a line that still verifies but became rg-able or stopped biting is dropped. A refresh
@@ -244,14 +246,16 @@ agent-runnable seam, expected evidence, and at least one passed P# preflight. It
 - 工作目录：`<repo-relative cwd>`
 - 环境指纹：`git=<sha|no-vcs>; lock=<hash|none>; runtime=<versions>; tools=<versions>; services=<states>`
 - 前置条件：`fixtures=<state>; services=<state>; permissions=<state>; network=<mode>`
-- 准备动作：`<repo-declared setup already run by SPEC, with result, or 无（已就绪）>`
+- 准备动作：`<repo-declared setup actually executed, with result, or 无（已就绪）>`
 - P1 预检：`<representative action>` → passed；observed=<exit/assertion>；evidence=<path|inline>；checked=<YYYY-MM-DD>
 - 体验验证：`contract=.scratch/<feat>/experience-contract.json; states=<states>; evidence=.scratch/<feat>/evidence/<slug>-experience.json` # only when experience_review is present
 - #1 → `<final verifier>`；预检：P1；预期证据：<assertion + exit/tally/artifact>；反证：<defect that must fail> # append 反证 only for opted-in graphical UI
 ```
 
-Each P# is a representative harness action SPEC actually ran, not a future RED test. `准备动作`
-is either explicit `无` or contains the executed setup's `result=`. P# lines use
+Each P# records an actually observed representative harness action, not a future RED test. Reuse
+matching evidence under [test policy](TEST-POLICY.md), including evidence returned by the authorized
+execution phase. `准备动作` is either explicit `无` or contains the executed setup's `result=`.
+P# lines use
 unique positive integers, contain a backticked action, literal `passed`, `observed=`, `evidence=`,
 and ISO `checked=` date. Every AC mapping references only declared P# IDs. `工作目录`, all fingerprint
 keys (`git/lock/runtime/tools/services`), and all prerequisite keys

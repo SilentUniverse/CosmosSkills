@@ -60,7 +60,7 @@ only when it defines the contract more precisely than prose; omit implementation
 - 工作目录：`<repo-relative cwd>`
 - 环境指纹：`git=<sha|no-vcs>; lock=<sha256|none>; runtime=<versions>; tools=<versions>; services=<states>`
 - 前置条件：`fixtures=<state>; services=<state>; permissions=<state>; network=<mode>`
-- 准备动作：`<exact repo-declared setup already run by SPEC, with result, or 无（已就绪）>`
+- 准备动作：`<exact repo-declared setup actually executed, with result, or 无（已就绪）>`
 - P1 预检：`<exact representative command / browser, service, or device action>` → passed；observed=<exit/assertion>；evidence=<path|inline>；checked=<YYYY-MM-DD>
 - 体验验证：`contract=.scratch/<feat>/experience-contract.json; states=<operated states>; evidence=.scratch/<feat>/evidence/<slug>-experience.json`（仅 graphical UI）
 - #1 → `<exact agent-runnable final test / action>`；预检：P1；预期证据：<assertion + exit/tally or artifact path>；反证：<the missing/broken behavior that must make this fail>（仅 graphical UI）
@@ -68,9 +68,10 @@ only when it defines the contract more precisely than prose; omit implementation
 
 Every AC has exactly one backticked command mapping and at least one passed P#. Reuse a verifier
 instead of duplicating it.
-SPEC actually runs each P# after durable environment setup; a future test that does not exist yet is
-not the preflight. An actual TDD RED is sufficient falsification for ordinary deterministic code
-tests. Opted-in graphical UI names a counterfactual defect so a shape-only assertion cannot
+Each P# records an actually observed representative harness action after durable setup. Reuse
+matching evidence, including evidence returned by the authorized execution phase; a future test
+that does not exist yet is not the preflight. An actual TDD RED is sufficient falsification for
+ordinary deterministic code tests. Opted-in graphical UI names a counterfactual defect so a shape-only assertion cannot
 masquerade as proof. AI judgment is allowed only under
 [VERIFICATION-DESIGN.md](VERIFICATION-DESIGN.md); human-only checks stay outside AC.
 

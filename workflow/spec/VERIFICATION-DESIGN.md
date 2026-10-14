@@ -44,7 +44,9 @@ sufficient when the claim is about what the user receives.
 
 `ready` means a fresh executor can start implementation without designing a verifier, installing a
 runner, discovering a missing service, or requesting access. SPEC proves that before writing the
-card:
+ready card. A missing capability that requires code is a planned execution prerequisite, not
+SPEC implementation. The authorized execution phase completes it through `/verify`, then returns
+observed evidence; dependent behavior cards stay pending until readiness is proven:
 
 1. Group ACs by verifier harness and assign each harness `P1`, `P2`, ... . Each AC names at least
    one P# that makes its final action executable.
@@ -82,8 +84,9 @@ action or environment changed. Session/Issue identity alone does not invalidate 
 A failure reports the mismatch and pauses only dependent work while declared setup or stale readiness
 is repaired. New consequential choices follow the decision rule; never weaken proof to obtain green.
 
-One P# may support several ACs. A textual command that SPEC did not run, a version probe without a
-representative harness action, or a preflight whose evidence cannot be replayed is not readiness.
+One P# may support several ACs. Reuse matching observed evidence, including evidence returned by
+the authorized execution phase. A declared command without matching execution evidence, a version
+probe without a representative harness action, or unreplayable evidence is not readiness.
 
 ## Stack profiles
 
@@ -91,8 +94,10 @@ representative harness action, or a preflight whose evidence cannot be replayed 
 public seam with Vitest/Jest and related-test selection. Static green alone does not prove runtime
 behavior.
 
-**Python.** Pyright/mypy cover typed boundaries only. For a mutation-based impact probe, compare a
-baseline with the candidate and classify only new diagnostics as typed impact candidates;
+**Python.** Pyright/mypy cover typed boundaries only. Planning uses read-only references and existing
+runtime evidence. An optional execution-stage differential probe follows
+[impact detection](impact-detection.md)'s isolation rule. Compare a baseline with the candidate in
+the same task-owned copy and classify only new diagnostics as typed impact candidates;
 pre-existing diagnostics and line-only movement are not attributed to the mutation. This does not
 relax an independent repository typecheck gate. Pair static results with pytest at the public seam. Use an installed runtime selector/coverage
 signal when dynamic coupling makes selection uncertain; otherwise select cases for the changed

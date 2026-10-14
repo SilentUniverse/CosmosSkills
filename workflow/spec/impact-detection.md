@@ -18,10 +18,18 @@ It never replaces them. TypeScript is near-whitebox: the checker
 resolves which `save()` you mean. Python is dynamic: `getattr`, `**kwargs`, DI, registries, and
 fixtures make callers invisible to static tools, so static results are a lower bound.
 
-**Mutation probes are differential.** Capture a type-checker baseline before changing the target,
-make one temporary signature change, capture the candidate, and inspect only new diagnostics.
-Pre-existing diagnostics, a checker's non-zero baseline exit, and diagnostics that only moved lines
-are not impact. Restore the temporary mutation after the probe.
+**Planning uses read-only impact analysis.** Use reference queries, import graphs, existing type
+information and retained runtime evidence. Declare missing runtime checks in the verification plan; do not run
+future behavior suites or temporarily edit product source to discover callers.
+
+**Differential mutation probes are optional execution work.** Use them only when a concrete
+uncertainty warrants the cost, within existing execution authorization and a task-owned isolated
+copy. Include the actual candidate and relevant configuration, including required dirty/untracked
+inputs; HEAD alone need not represent it. Never mutate the real/shared source checkout.
+Capture the baseline and mutated candidate in the same copy, using the same working directory,
+checker command and version. Only new diagnostics are typed impact candidates; pre-existing
+diagnostics, a non-zero baseline exit and line-only movement are not mutation impact. Keep probe
+edits out of the deliverable candidate; they do not prove behavior.
 
 Two kinds of impact, very different confidence:
 
@@ -40,9 +48,9 @@ Two kinds of impact, very different confidence:
   re-deriving it; but only if the run writes its findings back. Write it; don't pause to offer.
 
 Per-language selection principle: the stronger the type system, the more static analysis covers
-(`tsc`/`pyright` baseline-vs-candidate, find-references, import graphs); the weaker it is, the
-more you lean on runtime observation (coverage/test selectors, `rg` for dynamic calls) and report
-the dynamic-dispatch gap. The concrete per-language commands live in the project's
+through find-references and import graphs. Weaker type systems rely more on available runtime
+observations, coverage/test selectors and `rg` for dynamic calls; report the dynamic-dispatch gap.
+The concrete per-language commands live in the project's
 `CODEBASE.md` `## Verifier commands` zone (see "Where the commands live" below), never in a
 skill. For browser/Electron work, static reachability is not runtime integrity — the CSP and
 resource-ownership checks live in [tdd's UI verification](../tdd/UI-TESTING.md).
@@ -51,12 +59,14 @@ resource-ownership checks live in [tdd's UI verification](../tdd/UI-TESTING.md).
 
 ## Python — static under-reports; add runtime
 
-Use the helper from the loaded `spec` skill so Pyright's ordinary non-zero diagnostic exit does not
-become a shell gate:
+Planning inspects typed/structural references and retained runtime coverage without changing source.
+For a necessary execution-stage differential probe, use the helper from the loaded `spec` skill
+in the task-owned isolated copy so Pyright's ordinary non-zero diagnostic exit does not become a
+shell gate:
 
 ```text
 python <spec-skill-dir>/scripts/pyright-impact.py capture .scratch/tmp/pyright-before.json -- pyright --outputjson
-# make one temporary target-signature change
+# change the target signature only in this isolated copy
 python <spec-skill-dir>/scripts/pyright-impact.py capture .scratch/tmp/pyright-after.json -- pyright --outputjson
 python <spec-skill-dir>/scripts/pyright-impact.py diff .scratch/tmp/pyright-before.json .scratch/tmp/pyright-after.json
 ```
@@ -74,8 +84,8 @@ the mutation. An independent repository typecheck gate keeps its configured pass
 Confirm each candidate against the changed symbol; prove behavior at the public seam. Report typed
 candidates, structural `rg` candidates, and runtime-observed tests separately.
 
-**Python report MUST state: "static + runtime coverage below; dynamic-dispatch paths may be
-missed — scan manually."** Never imply the list is complete.
+Report inspected typed/structural facts, observed runtime coverage or its absence, and planned
+checks separately. State that dynamic-dispatch paths may be missed; never imply the list is complete.
 
 ---
 
@@ -90,9 +100,9 @@ These commands are **stack-specific**, so they live as lines in the project's `C
 
 ```markdown
 ## Verifier commands
-- TS 受影响代码：baseline/candidate `tsc --noEmit` 差分；不动代码用 ts-morph findReferences
+- TS 受影响代码：ts-morph findReferences；必要执行探针仅在同一隔离副本做 `tsc --noEmit` 差分
 - TS 受影响测试：`vitest related <file>`
-- Py 受影响代码：`pyright-impact.py capture/diff`（只看 new diagnostics）+ `rg '\bSYM\b'`（动态候选）
+- Py 受影响代码：`rg '\bSYM\b'`；必要执行探针在同一隔离副本用 `pyright-impact.py capture/diff`，只看 new diagnostics
 - Py 受影响测试：`pytest --testmon`
 - import 图：TS `madge`，Py `grimp`
 ```
@@ -102,8 +112,8 @@ skills stay stack-agnostic.
 
 ## Other languages
 
-Same axis. Strong-typed (Go, Rust, Java, C#) → lean on the compiler: rename/change the signature and
-let `go build` / `cargo check` / `tsc`-equivalent enumerate the breaks; pair with each ecosystem's
-"find references" (gopls, rust-analyzer, LSP). Dynamic (Ruby, JS-without-types, PHP) → treat like
-Python: `rg` for dynamic calls + a coverage-based test selector + more subagent reading, and flag
-the dynamic gap in the report.
+Same axis. Strong-typed (Go, Rust, Java, C#) → use each ecosystem's read-only references and import
+queries (gopls, rust-analyzer, LSP), plus existing compiler evidence. A necessary execution-stage
+compiler mutation follows the same isolated-copy rule. Dynamic (Ruby, JS-without-types, PHP) → use
+`rg`, available runtime coverage and source inspection; plan related behavior checks and flag the
+dynamic gap. Missing observations remain explicit rather than forcing suites during planning.

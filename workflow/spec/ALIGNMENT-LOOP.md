@@ -27,7 +27,29 @@ Each node is exactly one state:
 - **FOG** — the question cannot be stated precisely yet. Investigate the nearest concrete
   scenario; fog never becomes an open "how do you want this?" question.
 
-## Loop: at most two autonomous passes
+## Dialogue rounds
+
+The decision frontier contains unresolved HUMAN_DECISION items whose prerequisites are settled.
+Expose only choices that materially change the goal, boundary, public contract, significant cost,
+authority or irreversible effects. Resolve repository facts and reversible implementation details
+yourself. Batch independent choices to target one or two user decision rounds; this is an economy
+target, not permission to skip an unresolved required decision. Each question gives concrete
+options, a recommendation and the result or trade-off of each option. Use the host's conversation
+or question tool; it owns delivery, waiting and context.
+After answers, recompute only affected branches, investigate any newly answerable facts, and
+continue with the next frontier. A dependent choice waits for its prerequisite; do not pack an
+entire conditional decision tree into the first question batch. Reuse answered choices. An additional
+round names the remaining material choice and why its prerequisites or new evidence prevented
+combining it earlier; repeated questions and discoverable details do not justify another round.
+
+Continue until the choices needed for the caller's plan are resolved, or name the missing evidence
+that prevents resolution. Honor an explicitly requested final plan review before implementation.
+Ordinary interviews stay in the conversation/native plan, with no interview ledger or PRD.
+
+## Autonomous convergence within a round
+
+For the affected draft, use at most two autonomous passes. This bounds internal investigation,
+not the number of user dialogue rounds:
 
 1. **Derive** — read the goal, the related code, the latest accepted PRD/ADR/CODEBASE/CONTEXT and
    existing verifiers/tests; build and classify the tree; resolve EVIDENCED nodes, take
@@ -52,7 +74,7 @@ The convergence predicate determines whether the draft is ready to present:
 10. Material findings from the attack are resolved or explicitly attached to a blocking decision
     or missing evidence. Do not run another attack merely to prove there are no further findings.
 
-Present remaining HUMAN_DECISION items as one batched receipt, reusing any already-pending question.
+Present the ready frontier as one focused receipt per round, reusing any already-pending question.
 A failed predicate names the missing evidence and holds its dependent work; two passes do not make
 it complete. With no unresolved decision, follow the original planning or implementation scope and
 any explicitly pending review; convergence itself creates no approval requirement.
@@ -66,7 +88,7 @@ Give only the context needed to choose, in four blocks:
 3. **证据与影响**: inspected facts or prepared diff/prototype, verification route, affected public
    contract, cost or irreversible effect. Mark unavailable evidence honestly.
 4. **问题**: ask the actual missing decision. An answer settles that decision; do not append a
-   second request to reply "对齐". Use choices only when they cover the meaningful alternatives.
+   second request to reply "对齐".
 
 For a broad architectural choice, add the smallest useful requirement/evidence/slice table
 (Requirement | Observable outcome | Verification | Slice/dependency). Show only affected rows
@@ -95,11 +117,15 @@ of the human decision area.
 ## Feedback: prune and re-run locally
 
 Apply inline feedback directly to the conversation or native plan. For an anchored giant-task PRD,
-bind feedback to its item through REVIEW.md. Prune the affected subtree, recompute its dependents,
-and re-verify only that scope. The next review covers that delta. Reuse settled decisions and
-unchanged evidence; never re-ask an answered question.
+bind feedback to its item through REVIEW.md. Pure wording or presentation feedback uses necessary
+structure checks without another attack. For semantic feedback, prune the affected subtree,
+recompute its dependents and re-verify only that scope. Changed consequential decisions, contracts,
+dependencies, proof requirements or a concrete uncovered risk receive a targeted attack. Reuse
+matching prior review and keep fixed acceptance identity intact. The next review covers that delta.
+Reuse settled decisions and unchanged evidence; never re-ask an answered question.
 
-Budget: one full review plus at most one delta review is the target, not a hard guarantee. A
+The following budget applies to anchored PRD review pages, not conversational interview rounds.
+One full review plus at most one delta review is the target, not a hard guarantee. A
 third round requires a material reason: the user changed the goal, a new repository fact overturns
 the design, an external constraint changed, or a new consequential decision surfaced. Missed
 obvious code facts, repeated questions, or internal contradictions are Spec workflow defects:

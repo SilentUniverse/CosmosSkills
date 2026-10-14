@@ -1,24 +1,26 @@
 {
   "schema_version": 1,
   "id": "spec-alignment-before-write",
-  "title": "SPEC teaches back goal, proof, and slices before writing ready artifacts",
+  "title": "SPEC revises an ordinary inline plan from user feedback without planning artifacts",
   "layer": "L1",
-  "skills": ["spec", "handoff"],
+  "skills": [
+    "spec"
+  ],
   "origin": {
     "kind": "regression",
-    "reference": "User workflow review 2026-08-28: requirements were written before a shared design/verification review"
+    "reference": "spec/SKILL.md inline output route and ALIGNMENT-LOOP.md: honor requested plan review, preserve user decisions and revise only affected branches; ordinary tasks create no PRD/Issue/profile"
   },
   "task": {
-    "prompt": "Use /spec to plan history search: create three records, search one term, clear it, and cover Chinese, English, and empty input. Discuss the design and slices with the user before making them dispatchable.",
+    "prompt": "Use /spec to plan history search: create three records, search one term, clear it, and cover Chinese, English, and empty input. Present the complete inline plan and discuss material decisions with the user before implementation.",
     "fixture": "isolated Cosmos-enabled application repo with no existing history-search feature",
     "user_script": [
       {
-        "after": "the first complete design receipt",
-        "content": "第一轮还没对齐：清空只清搜索词，不删除历史记录；先交付一个可部署纵切；中英文、空输入和键盘清空都要由 agent 通过真实 UI 验证。请据此重做回执、切片和验证映射。"
+        "after": "the first complete inline plan",
+        "content": "清空只清搜索词，不删除历史记录；先交付一个可部署纵切；中英文、空输入和键盘清空要在验证计划里覆盖。请据此修订计划。"
       },
       {
-        "after": "the revised receipt and verifier preflights are shown",
-        "content": "对齐。按这份设计和切片写工件。"
+        "after": "the revised complete inline plan",
+        "content": "方案确认。到这里结束，不实施，也不生成 PRD 或 issue。"
       }
     ]
   },
@@ -33,30 +35,36 @@
   "requirements": [
     {
       "id": "R1",
-      "criterion": "No PRD or ready issue is written before an explicit user alignment event for the shown receipt.",
-      "grader_ids": ["trace-order"]
+      "criterion": "The plan-only request writes no product source/tests or feature PRD/issues/verifier profile, runs no artifact gate, and ends with the complete inline plan after the explicitly requested review.",
+      "grader_ids": [
+        "trace-order"
+      ]
     },
     {
       "id": "R2",
-      "criterion": "The receipt faithfully covers the goal, counterexample, invariants/non-goals, public seam and flow, executable evidence, passed verifier readiness preflights, and slice DAG.",
-      "grader_ids": ["receipt-quality"]
+      "criterion": "The inline plan states goal, boundary, constraints, authorization and a verification route using existing project capabilities; it does not require P# readiness records or a slice DAG merely to present the ordinary plan.",
+      "grader_ids": [
+        "receipt-quality"
+      ]
     },
     {
       "id": "R3",
-      "criterion": "Every stated requirement maps to observable evidence and at least one slice; every slice maps back to requirements and evidence.",
-      "grader_ids": ["receipt-quality"]
+      "criterion": "The revised plan preserves the clear-only-search-term decision, the deployable first outcome and all requested observable input cases; revise affected portions without reopening settled choices.",
+      "grader_ids": [
+        "receipt-quality"
+      ]
     }
   ],
   "graders": [
     {
       "id": "trace-order",
       "kind": "deterministic",
-      "procedure": "Inspect the runner trajectory: the explicit alignment event for the final receipt must precede every filesystem write under the feature's PRD/issues paths."
+      "procedure": "Inspect the trajectory for product source/test writes and PRD/issues/verifier-profile creation or artifact-gate execution; any is a failure for this ordinary plan-only task. Verify that the final response presents the revised complete inline plan and honors the final instruction to stop without implementation."
     },
     {
       "id": "receipt-quality",
       "kind": "deterministic",
-      "procedure": "Run verify-artifacts.py on the planning artifacts and require the design receipt contract: goal, counterexample/non-goals, public seam and flow, executable evidence, passed P# preflights, and slice DAG. Then assert every stated requirement maps to at least one evidence item and one slice, and every slice maps back to a requirement."
+      "procedure": "Compare the complete inline plan against the original request and both user feedback events. Require observable outcomes for the requested cases, explicit goal/boundary/constraints/authorization and existing runnable verification routes. Reject an invented PRD, queue, P# record or handoff artifact used merely to satisfy workflow formatting. Treat verification as planned unless actually observed; do not require running future behavior tests during planning."
     }
   ]
 }

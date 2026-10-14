@@ -254,6 +254,48 @@ class NativeLandingTests(LandFixture):
                 1, len(git_out(work, "worktree", "list").splitlines())
             )
 
+    def test_local_default_ahead_cannot_bypass_verification(self):
+        with tempfile.TemporaryDirectory() as directory:
+            work = self.make_repo(Path(directory))
+            sha = self.topic_commit(work, "change")
+            before = git_out(work, "ls-remote", "origin", "refs/heads/main").split()[0]
+            git(work, "switch", "-q", "main")
+            git(work, "merge", "--ff-only", "topic")
+            local_sha = self.topic_commit(work, "local only", "local-only.txt")
+            git(work, "switch", "-q", "topic")
+
+            code, report = run_main(
+                work, "--mode", "native", "--verify-command", "false"
+            )
+
+            self.assertEqual(5, code)
+            self.assertFalse(report["landed"])
+            self.assertEqual(
+                before, git_out(work, "ls-remote", "origin", "refs/heads/main").split()[0]
+            )
+            self.assertEqual(local_sha, git_out(work, "rev-parse", "refs/heads/main"))
+            self.assertEqual(sha, git_out(work, "rev-parse", "HEAD"))
+
+    def test_local_default_ahead_does_not_publish_unrelated_commits(self):
+        with tempfile.TemporaryDirectory() as directory:
+            work = self.make_repo(Path(directory))
+            sha = self.topic_commit(work, "change")
+            git(work, "switch", "-q", "main")
+            git(work, "merge", "--ff-only", "topic")
+            local_sha = self.topic_commit(work, "local only", "local-only.txt")
+            git(work, "switch", "-q", "topic")
+
+            code, report = run_main(work, "--mode", "native")
+
+            self.assertEqual(0, code)
+            self.assertTrue(report["landed"])
+            self.assertEqual(
+                sha, git_out(work, "ls-remote", "origin", "refs/heads/main").split()[0]
+            )
+            self.assertEqual(local_sha, git_out(work, "rev-parse", "refs/heads/main"))
+            self.assertEqual("local only", git_out(work, "show", "main:local-only.txt"))
+            self.assertEqual(sha, git_out(work, "rev-parse", "HEAD"))
+
     def test_conflicting_second_branch_keeps_scoped_commit(self):
         with tempfile.TemporaryDirectory() as directory:
             work = self.make_repo(Path(directory))

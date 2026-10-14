@@ -13,6 +13,9 @@ stay in TDD when existing runners, CLI/API calls or drivers can reach and observ
 A missing test or failing business assertion is ordinary RED. An explicit request to build reusable
 verification tools continues here, reusing those existing capabilities.
 
+A planning caller receives the capability-gap proposal without creating or repairing tools or
+tool tests. Build or repair only in an authorized execution phase.
+
 ## Scope and discovery
 
 Use the current task's project and scenario, or the named area. Inspect its run commands, tests,
@@ -65,10 +68,11 @@ an arbitrary `SKILL.md` directory is automatically registered.
 Local instructions distinguish current operating recipes from historical run evidence. Keep previous
 observations under the retention policy; record new proof at the caller's new run location.
 
-SPEC may prepare verification tooling within accepted implementation scope. If building the tool
-needs its own implementation work, complete that bounded unit before claiming the behavior card
-ready. A plan-only caller receives the proposed tooling work. Preflight exercises an existing smoke
-path or representative harness action; the future behavior remains TDD's RED/GREEN obligation.
+SPEC records missing capabilities as execution prerequisites. The authorized execution phase
+completes the bounded tooling work before dependent behavior and returns observed capability
+evidence to refresh readiness. A queued behavior card remains pending until that evidence exists;
+ordinary work keeps the prerequisite inline. Preflight exercises an existing smoke path or
+representative harness action; the future behavior remains TDD's RED/GREEN obligation.
 
 Use native execution or project/CI runners. The tool exposes an operation and raw observations;
 it owns no Cosmos queue, process supervisor or completion state. Shared devices use their real

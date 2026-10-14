@@ -33,7 +33,8 @@ Priority: host/system > user objective and prior authorization > these defaults 
   irreversible effects, cost or authority. Batch independent questions; ask only the delta.
 - Authorization survives turns and skills within its scope. Return complete plans for plan-only
   requests; honor explicit pending review. Implementation authorizes routine planning and execution.
-  Planning writes no product code or tests; file count never forces it. Follow repository practice:
+  Planning writes no product code, tests or verification tools; tool gaps are execution prerequisites.
+  File count never forces planning. Follow repository practice:
   test-first only when requested or established. A fix still drives a check from failing to passing
   through the existing runner.
 - Hold only work dependent on unresolved material decisions; finish independent authorized work.

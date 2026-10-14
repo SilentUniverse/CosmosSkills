@@ -123,9 +123,9 @@ before any mutation:
 **Blast Radius:** <what this merge can affect beyond its paths: consumers, layout, protocols>
 ```
 
-Pick one visual for Summary, not several: a diff-sketch when the surrounding shape already
-exists, a file or component tree for structure, pseudocode for logic, a sequence diagram for
-interaction. Prose is Chinese with code-matching English terms; no preamble. Evidence cites the
+Use a visual in Summary only when it clarifies structure, logic or interaction; a concise prose
+summary is sufficient for a small change. Prose is Chinese with code-matching English terms;
+no preamble. Evidence cites the
 upstream phase's real checks — the exact failing→passing test or output — never a claim without a
 run, and never a run launched to produce one; when the upstream phase left no check, state that
 absence in one line. Merge Danger states the rollback class and the widest plausible impact of the

@@ -85,21 +85,23 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 
 | 定位 | 要旨 | 性质 | 层级 | 防什么失败 · 出处 / 探针 |
 |---|---|---|---|---|
-| 头部 | 规划不写产品码与业务测试；verifier 缺口入计划前置；报告未决工程义务而不维护 Spec 运行终态；必要方案人审后按既有授权继续 | 权威 | 流程 | 用户要求先方案、review 再实现；spec AFK grill 方案（docs/cosmosskills_spec_afk_grill_implementation.md）；静态冲突：spec 末尾与 caller 自动续跑 / routing-requirement-to-spec |
+| 头部 / Verify | 规划不实现产品或验证工具、不写测试；缺能力列执行前置，授权执行后回填真实就绪；报告未决义务；必要人审后按既有授权继续 | 权威 | 流程 | Spec/Verify 的缺工具执行归属冲突；spec-plans-without-product-writes；spec AFK grill 方案（docs/cosmosskills_spec_afk_grill_implementation.md）；routing-requirement-to-spec |
 | 头部 | 决策摄入推导后自攻一次；可审阅不等于已接受，剩余人类决定与阻塞证据显式保留 | 过程·经济 | 流程 | 逐节点问答与额外自攻税；原第 10 判据要求 further pass 与两 pass 上限冲突；ALIGNMENT-LOOP.md；行为收益未实测 |
-| 头部 | review 预算：全量一次 + delta 一次；第三轮需实质理由，否则修 workflow 而非再审 | 过程·经济 | 流程 | 无界 review 轮次；ALIGNMENT-LOOP.md；未溯源 |
-| §3 | 需 review 的计划先审 PRD，接受后才物化卡与预检；无新实质决定不二审 | 过程·经济 | 流程 | 剪枝后 issues/依赖/测试映射的连带 churn；AFK grill 方案 §15–16；未溯源 |
+| 头部 / ALIGNMENT-LOOP | 访谈按已满足前提的关键选择小批推进，目标一至两轮；每问给选项、建议与取舍；追加轮需实质依赖或新证据；PRD Full/Delta 页预算单独适用 | 过程·经济 | 流程 | 一次问完旧判据阻断依赖式访谈；spec-afk-grill-compresses-human-decisions；重复问题与可查细节不得增加轮数 |
+| §3 | 普通计划按明确要求在原生会话审阅；巨型持久队列需正式 review 时先审 PRD，接受后才物化卡与预检；无新实质决定不二审 | 过程·经济 | 流程 | 内联输出路由；剪枝后 issues/依赖/测试映射的连带 churn；AFK grill 方案 §15–16；未溯源 |
 | §3 / REVIEW | 阅读、反馈与接受规则由 REVIEW 定义；Delta 对照接受快照并覆盖全局约束、Before、测试观察与传递依赖；准入以 Parent 来源限定未受影响的切片 | 权威+产物 | 机器+流程 | AcceptanceBarrierTests、test_spec_review：独立草案被整特性阻塞、漏标与反复 render 丢基线；非法 schema、小写 Refs、范围标题反转绕过准入；普通无 review/Parent 分支不加载模块。语义一致性仍由 Spec 审核 |
+| REVIEW / ALIGNMENT-LOOP | 纯文字反馈只做必要结构与展示更新；改变关键决策、契约、依赖、证明或出现具体风险才定向攻击；固定接受身份保留 | 过程·经济 | 流程 | 无条件反馈 ATK 与未变决策复用冲突；不以标题或错字修改触发重审 |
 | ISSUE-TEMPLATE | 上级 = Parent 设计指针与必要控制约束；refines 保留 Issue 谱系；共享验证环境只活在 verifier.json；AC 完整保留 | 过程·经济 | 机器+流程 | Parent 源文件、S# 与 Covers 验证避免悬空来源；做什么/AC 的语义对应仍须审查；完整 ledger 升级仅补未分配 open 卡，不改 done 历史 |
 | REVIEW / 人审投影 | 人审聚焦目标、行为、边界、取舍和验收结果；完整 PRD 与执行表留在原工件；保留所有反馈框，不折叠 | 过程·经济 | 机器+流程 | 完整 PRD 直接展示造成原文排版问题；与切片/证明表及 Delta 原文重复，增加人审噪声。RenderDeltaTests 保证人审约束、补充正文与反馈保留，内部接缝/普通工程决策不进入正文 |
 | §5 | 接受后按 task/feature/area 作用域晋升新事实；两轴法 + scope/source/reason；引用漂移即复验 | 过程·经济 | 流程 | 同类需求重复问已答问题；AFK grill 方案 §11–14；未溯源 |
 | 输出路由 / Prepare and write | 普通任务内联，不生成 PRD/Issue/profile，不跑工件门；只有巨型任务需要持久跨阶段队列才建卡；队列内共享决策才建 PRD | 过程·经济 | 流程 | 内联无 .scratch 时 feature gate 报不存在；CARD-TEST 可写条件误当建卡门槛；文件数与临时委派不触发持久队列 |
 | ISSUE-TEMPLATE / 工件门 / admission | 每条 AC 恰有一个反引号命令映射；校验与执行共用命令解析 | 产物 | 机器 | v2 模板缺反引号时工件门通过而 start 拒绝；test_verify_artifacts 跨入口回归 |
+| VERIFICATION-DESIGN / ISSUE-TEMPLATE / schema | P# 要求真实且匹配的代表动作证据；允许复用执行阶段返回的观测，不以阶段名称要求重复运行 | 过程·经济 | 流程 | SPEC 执行者限定与 TDD/Verify 回填就绪证据冲突；TEST-POLICY 以输入、动作、环境判断复用 |
 | 头部 | 仅未解决的实质选择用回执，独立工作继续 | 权威 | 流程 | 7be5338（compressed intake）/ spec-holds-alignment-under-pressure |
 | 回执·决策点 | 问实际决定并给建议；回答即对齐，不追问口令 | 权威 | 流程 | 应答成本税与越权代答；dev-skills 对标借入（lowband）；未溯源 |
 | §1 | 定位：点名即 rg 单特性；否则 3–5 关键词 | 过程·经济 | 流程 | 未溯源（token 经济） |
-| §2 | 影响探测非审批门，廉价 rg/ast-grep 先行 | 过程·经济 | 流程 | 10dd737（blast-radius impact）、5f7b1ac（pyright 误报修复） |
-| §2 | 新不变量当场落块，不停顿征询 | 过程 | 流程 | 6b411d8（从失败捕获 invariant） |
+| §2 / impact-detection | 影响探测非审批门；规划只读查询；必要突变仅授权执行阶段的同一隔离副本，不改真实共享源码 | 过程·经济 | 流程 | 10dd737（blast-radius impact）、5f7b1ac（pyright 误报修复）；python-dynamic-verification；规划不写源与临时签名写冲突 |
+| §2 / map | 新不变量当场落入实际归属块，不停顿征询；地图复用核对相关已提交与工作区输入，不仅比较 HEAD | 过程 | 流程 | 未提交 seam 改动与 git_base 同 HEAD 时旧块误复用；6b411d8（从失败捕获 invariant） |
 | §2 | 可运行实验能降低真实不确定性时才 prototype | 过程 | 流程 | prototype skill 立法 |
 | §2 | NFR 门槛走 VERIFICATION-DESIGN 非功能三则（原 NON-FUNCTIONAL-BARS 并入） | 过程 | 流程 | 未溯源 |
 | §3/CARD-TEST | Spec 只固定跨 Issue 共同约定（承诺、公共接口、共享决策、组合验证、资源安全），Issue 内部实现结构不提前设计；边界检验句与两类拆卡反例 | 过程·经济 | 流程 | 规划过深与同步返工税；未溯源 |

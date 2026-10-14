@@ -26,7 +26,9 @@ Phase 1 is done when the loop is **tight** and **red-capable**. You can name **o
 - [ ] **Red-capable** — it drives the actual bug code path and asserts the **user's exact symptom**, so it can go red on this bug and green once fixed. Not "runs without erroring". It must be able to _catch this specific bug_.
 - [ ] **Deterministic** — same verdict every run (flaky bugs: a pinned, high reproduction rate).
 - [ ] **Fast** — seconds, not minutes. (Slow-but-justified: proceed, note the cost.)
-- [ ] **Agent-runnable** — you can run it unattended; a human in the loop only via the HITL template.
+- [ ] **Agent-runnable** — run unattended when possible. Required human operations use the host's
+  available interaction channel with the actual result retained; terminal HITL templates apply
+  only to an explicitly needed, user-accessible replayable terminal loop.
 
 If the loop cannot run, record the missing capability and continue source/trace analysis and local
 repro preparation. Request only the access or artifact still needed; do not claim a verified cause.

@@ -40,10 +40,17 @@ Approval happens only through the review bridge; copying is never acceptance.
 
 ## Feedback re-derivation
 
-Feedback (bridge JSON or pasted SPEC FEEDBACK) locates items by id or content. Prune that item's
-subtree, re-derive only the affected scope, run `/atk` on it, revise the same draft PRD in place,
-then re-render; the next page marks the delta. Reuse settled decisions and unchanged evidence;
-never re-ask an answered question. One full review plus at most one delta is the target; a third
+Feedback (bridge JSON or pasted SPEC FEEDBACK) locates items by id or content. Classify the change
+against the current contract. Pure wording or presentation changes preserve behavior, scope,
+public contracts, authority, dependencies and verification requirements; apply them to the draft
+with necessary structure checks and no `/atk`. Semantic feedback re-derives only the affected
+subtree. Run a targeted `/atk` only for changed consequential decisions, contracts, dependencies,
+proof requirements or a concrete uncovered risk; reuse matching prior review. If the effect is
+unclear, inspect the affected contract before classifying it as prose. Re-render the revised draft
+with its current digest; the next page marks the delta. Feedback binding and acceptance identity
+still apply to prose changes. Reuse settled decisions and unchanged evidence;
+never re-ask an answered question. For anchored PRD pages, one full review plus at most one delta
+is the target; it does not limit the conversational interview. A third page review
 round needs a material reason ([ALIGNMENT-LOOP.md](ALIGNMENT-LOOP.md)). The script never edits
 the PRD; revision is the agent's job against the current draft.
 

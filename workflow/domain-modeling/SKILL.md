@@ -11,7 +11,7 @@ Actively build and sharpen the project's domain model as you design. This is the
 ## File structure
 
 Layout: **[CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md)**. A resolved term alone does not create a
-file: keep term definitions local to the current Spec/Issue unless the same ambiguity recurs or
+file: keep definitions in the conversation/native plan or current queue's Spec/Issue unless the same ambiguity recurs or
 multiple features must share one meaning. Only then create `CONTEXT.md` and record the shared
 term. If no `docs/adr/` exists, create it when the first qualifying ADR is needed. A delegated
 worker returns candidate terms to the main task instead of writing shared glossary or map

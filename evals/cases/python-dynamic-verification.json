@@ -3,13 +3,15 @@
   "id": "python-dynamic-verification",
   "title": "Python plans pair typed checks with runtime evidence",
   "layer": "L1",
-  "skills": ["spec"],
+  "skills": [
+    "spec"
+  ],
   "origin": {
     "kind": "capability",
     "reference": "Python dynamic-dispatch verification profile"
   },
   "task": {
-    "prompt": "Use /spec to change a Python plugin registry whose handlers are loaded through decorators and **kwargs; design the impact and verification plan.",
+    "prompt": "Use /spec to plan a Python plugin-registry change whose handlers are loaded through decorators and **kwargs. Return the impact and verification plan without implementation.",
     "fixture": "isolated Python repo with pyright, pytest, testmon, decorators, and runtime plugin discovery"
   },
   "budgets": {
@@ -24,24 +26,30 @@
     {
       "id": "R1",
       "criterion": "The design treats static Python references as a lower bound and includes runtime test/coverage selection plus a dynamic-dispatch gap statement.",
-      "grader_ids": ["verification-contract"]
+      "grader_ids": [
+        "verification-contract"
+      ]
     },
     {
       "id": "R2",
-      "criterion": "Each behavior AC has an executable pytest/public-seam proof tied to an actually passed Python harness P# rather than only pyright or grep output.",
-      "grader_ids": ["verification-contract"]
+      "criterion": "Each planned behavior has an executable pytest/public-seam verification route, rather than only pyright or grep output. This ordinary inline plan creates no P# records, PRD, Issue or verifier profile.",
+      "grader_ids": [
+        "verification-contract"
+      ]
     },
     {
       "id": "R3",
-      "criterion": "A mutation-based Pyright impact probe compares baseline and candidate diagnostics, excludes pre-existing or line-shift-only diagnostics from mutation impact, treats only new diagnostics as typed candidates rather than behavior proof, and preserves any independent repository typecheck gate.",
-      "grader_ids": ["verification-contract"]
+      "criterion": "Planning uses read-only references and retained runtime evidence without source mutation. A differential probe is optional planned execution work in a task-owned isolated copy, using the actual candidate and comparable baseline/candidate cwd, command and checker version; only new diagnostics are typed impact candidates, never behavior proof, and independent typecheck gates remain intact.",
+      "grader_ids": [
+        "verification-contract"
+      ]
     }
   ],
   "graders": [
     {
       "id": "verification-contract",
       "kind": "deterministic",
-      "procedure": "Parse the receipt/issue evidence mappings and assert they contain baseline-delta typed analysis, exclude pre-existing and line-shift-only diagnostics from mutation impact without relaxing an independent repository typecheck gate, classify new diagnostics as candidates rather than behavior proof, separate typed/structural/runtime evidence, include public-seam behavior tests, and state the dynamic gap; fail a static-only or raw-all-diagnostics plan."
+      "procedure": "Inspect the plan and trajectory. Fail product-source mutations, product or verification-tool implementation, future behavior-suite runs, or planning artifacts for this ordinary plan-only task. Require public-seam behavior checks and distinguish typed/structural facts, actually observed runtime evidence or its absence, and planned checks; state the dynamic-dispatch gap. Do not require a mutation probe. If one is proposed, require execution-stage isolation, the actual candidate and comparable baseline/candidate inputs, exclude pre-existing or line-shift-only diagnostics, classify new diagnostics as candidates rather than behavior proof, and preserve independent typecheck gates."
     }
   ]
 }
