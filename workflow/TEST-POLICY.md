@@ -6,29 +6,44 @@ Cosmos selects and judges checks; host/CI owns execution, scheduling, cancellati
 
 | Trigger | Required evidence |
 |---|---|
+| Pure prose, comments or links with no executable consumer | Necessary structure/link checks; no unit suite |
+| Machine-consumed template, schema or runner configuration | Targeted producer/parser/consumer contract cases |
 | RED/GREEN | The case driving the behavior change |
-| Module/refactor/integration change | Affected module and consumers |
+| Changed shared seam, fixture or integration behavior | Cases covering that changed contract and affected consumers |
 | Fixed human-review candidate | Declared scenario integration and artifact checks |
 | Fixed delivery candidate | Complete declared delivery gates |
 | Stress/platform campaign | Explicit risk, release or cadence trigger |
 
+Select the smallest useful case, class or test file. Batch related edits before widening verification.
+A shared file or import alone does not require every consumer suite; name the changed contract or
+uncovered risk that requires expansion. Pure prose does not invalidate a passing behavior check
+unless the runner consumes it. Task completion and reporting do not add a verification pass.
 Issue/task completion, session resume and human approval are not automatic full-suite triggers.
 Keep required gates. Changing their triggers must preserve obligations with equivalent protection.
 Use project commands/markers. `test-governance.py select --policy FILE --paths-file PATHS.json`
 selects groups without running them. Include fixtures/configuration and both sides of renames in
-influence mappings. Unknown influence expands scope; verify finer selection against independent
-complete checks. Small projects need no extra policy file.
+influence mappings. Investigate unknown influence before expanding to the smallest defensible
+boundary; preserve the complete fallback when it cannot be bounded. Validate finer selection at
+declared complete CI/delivery gates, without duplicating those gates in each local edit loop.
+Small projects need no extra policy file. This repository's `scripts/ci-scope.py` compares committed
+base..HEAD paths, including cumulative PR changes; local checks use current edited inputs and
+project test selectors. Rules may declare `test_paths`; matching paths are unioned into one pytest
+selection. Candidates containing only ordinary Markdown paths select catalog; mapped templates/schema
+add contract tests. Source comments follow their source path's rule. Unmapped changes and explicit
+full verification retain the complete CI fallback. Local proof reuse does not supply a cross-run CI cache.
 
 ## Reuse
 
 Read valid evidence before running. Identity comprises check definition/version, argv/logical cwd,
-source/input closure, dependency artifacts and result-affecting environment. Session IDs, Issue
+relevant source/input closure, dependency artifacts and result-affecting environment. Session IDs, Issue
 numbers, batch IDs and global verification epochs are not validity inputs. AC/check mapping is
 many-to-many: one result may prove several cards.
 
 Default reuse requires the same fixed candidate/check and comparable environment. Cross-candidate
 reuse additionally proves the entire relevant input closure unchanged; incomplete mappings require
-rerun. Check input integrity before/after execution. Concurrent writes or test/build mutations of
+rerun. Unrelated prose edits, a new task boundary or reporting do not invalidate that closure.
+Declare all result-affecting inputs; do not narrow the identity merely to obtain reuse.
+Check input integrity before/after execution. Concurrent writes or test/build mutations of
 inputs invalidate the original candidate claim. Separate outputs from declared inputs.
 
 Import raw native results, tester reports and logs deterministically. Chat summaries are not receipts.
@@ -47,7 +62,8 @@ add an unrelated input merely to evade a conflict. A prose explanation alone can
 Provider/transport retries belong to the host. Assertion failures are engineering evidence. Timeout
 retry must be bounded and diagnostically useful at the narrowest reproducing scope. After code or
 environment repair, rerun affected checks; no new evidence means no repeated full suite. Update the
-existing root cause; create a Repair Issue only for an independent persistent gap.
+existing root cause. Within a giant-task queue, create a Repair Issue only for an independent
+persistent gap; ordinary work remains inline.
 
 Use native background execution for long checks. Stable inputs require actual isolated checkouts or
 equivalent input control. Devices/databases/ports use their fixture/resource-service/CI owner for

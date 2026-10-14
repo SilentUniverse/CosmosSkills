@@ -68,7 +68,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | §4·e | 按原始范围完成；已授权提交同任务进入 /pr | 产物 | 流程 | 未经检查的提交；9263475 / pr-holds-scope-under-pressure |
 | §5·a | 字典序优化：质量与正确性 > 交付速度 > token；后两者不得削弱证据、安全、可访问性 | 权威 | 流程 | 用户明确优先级；防止以省时省 token 为由降级产品门 |
 | §5·b | 简述行动与验证，阶段边界不截断整体任务 | 过程 | 自审 | 38a1fa2（why + shakiest-steps） |
-| §5·d | 风险决定验证范围，相关变更或证据才触发重跑 | 过程·经济 | 流程 | c4e34f2（scope per-cycle, batch-end suite） |
+| §5·d / TEST-POLICY | 纯文案仅结构；模板/schema 定向合同；逻辑按用例；具体未覆盖风险才扩围；输入与环境未变复用，保留交付门 | 过程·经济 | 流程 | 文案触发整个 regression 与收尾追加消费者整组；test-policy 的路径选组、test_test_governance 的定向选择回归 |
 | §5·e | 同因两次修复失败 → 换路或 /diagnose | 过程 | 流程 | 97a7998（anti-thrash）/ diagnose-holds-repro-under-pressure（近邻） |
 | §5·f | 纠正改变现有契约才更新，不为一轮对话建工件 | 过程 | 流程 | 未溯源 |
 | §2·开场 / §5·完成 | 新请求或意图实质变化时简短复述；不反复复述既定意图，不新增确认门；如实报完成/受阻 | 过程·经济 | 自审 | 用户要求 Restate my intent before continuing；51a7d4a 的防重复意图保留；行为收益未实测 |
@@ -93,7 +93,8 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | ISSUE-TEMPLATE | 上级 = Parent 设计指针与必要控制约束；refines 保留 Issue 谱系；共享验证环境只活在 verifier.json；AC 完整保留 | 过程·经济 | 机器+流程 | Parent 源文件、S# 与 Covers 验证避免悬空来源；做什么/AC 的语义对应仍须审查；完整 ledger 升级仅补未分配 open 卡，不改 done 历史 |
 | REVIEW / 人审投影 | 人审聚焦目标、行为、边界、取舍和验收结果；完整 PRD 与执行表留在原工件；保留所有反馈框，不折叠 | 过程·经济 | 机器+流程 | 完整 PRD 直接展示造成原文排版问题；与切片/证明表及 Delta 原文重复，增加人审噪声。RenderDeltaTests 保证人审约束、补充正文与反馈保留，内部接缝/普通工程决策不进入正文 |
 | §5 | 接受后按 task/feature/area 作用域晋升新事实；两轴法 + scope/source/reason；引用漂移即复验 | 过程·经济 | 流程 | 同类需求重复问已答问题；AFK grill 方案 §11–14；未溯源 |
-| Prepare and write | settled intake 直接推进；卡片自足，共享决策才建 PRD | 过程·经济 | 流程 | spec intake 与 ISSUE-TEMPLATE 的无 PRD 分支；spec-alignment-before-write |
+| 输出路由 / Prepare and write | 普通任务内联，不生成 PRD/Issue/profile，不跑工件门；只有巨型任务需要持久跨阶段队列才建卡；队列内共享决策才建 PRD | 过程·经济 | 流程 | 内联无 .scratch 时 feature gate 报不存在；CARD-TEST 可写条件误当建卡门槛；文件数与临时委派不触发持久队列 |
+| ISSUE-TEMPLATE / 工件门 / admission | 每条 AC 恰有一个反引号命令映射；校验与执行共用命令解析 | 产物 | 机器 | v2 模板缺反引号时工件门通过而 start 拒绝；test_verify_artifacts 跨入口回归 |
 | 头部 | 仅未解决的实质选择用回执，独立工作继续 | 权威 | 流程 | 7be5338（compressed intake）/ spec-holds-alignment-under-pressure |
 | 回执·决策点 | 问实际决定并给建议；回答即对齐，不追问口令 | 权威 | 流程 | 应答成本税与越权代答；dev-skills 对标借入（lowband）；未溯源 |
 | §1 | 定位：点名即 rg 单特性；否则 3–5 关键词 | 过程·经济 | 流程 | 未溯源（token 经济） |
@@ -107,11 +108,13 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 
 | Previous rule | Disposition | Current owner and invariant |
 |---|---|---|
-| Durable consumer before Issue creation | Keep | TDD invocation; file count does not require planning |
+| Giant-task queue before Issue creation | Narrow | Spec output route / TDD invocation; ordinary work and temporary delegation stay inline |
 | Default parallel drain | Move | Native tasks; Cosmos keeps independence/write/resource selection |
 | One RED/GREEN slice, no speculative implementation | Keep | TDD method, subject to explicit user instructions |
 | Comment deletion test | Keep | Existing diff review and lint reference |
 | P# replay on every execution | Narrow | Reuse matching evidence; replay only invalidated relevant inputs/environment |
+| Module suites at every slice completion | Narrow | Changed behavior cases first; wider checks only for changed shared contracts or uncovered integration risk |
+| CI path selection | Keep | Producer/consumer mappings retain gate/start contracts and the CODEBASE native harness; test fixture consumers follow actual imports |
 | Environment restoration outside behavior wave | Replace | Pause only dependent work; native execution has no Cosmos wave |
 | Refactor only while green | Keep | TDD/refactoring; recheck affected behavior |
 | Repeated patching as design signal | Keep | Re-derive the affected contract/seam before another patch |

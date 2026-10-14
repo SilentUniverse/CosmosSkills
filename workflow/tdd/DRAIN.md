@@ -1,12 +1,12 @@
 # Complete an authorized ready scope
 
-Load for `/tdd <feature>` or an explicit request to complete several Issues. The ordinary host
+Load for a giant-task queue or an explicit request to execute existing Issues. The ordinary host
 session executes the work; Cosmos selects engineering work without a runtime queue or ledger.
 
 Use `workflow-state.py survey ROOT --format human`, then `packet` or read-only `start`. Restrict
 selection to authorized scope, `blocked_by`, accepted Spec anchors and concrete readiness gaps.
-`ready` is not a running status. Resolve failures at their root cause; create a Repair Issue only
-for an independent durable engineering gap.
+`ready` is not a running status. Resolve failures at their root cause; only a giant-task queue
+creates a Repair Issue for an independent durable engineering gap.
 
 ## Native execution
 

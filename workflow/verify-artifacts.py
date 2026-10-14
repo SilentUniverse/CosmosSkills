@@ -17,7 +17,7 @@ from pathlib import Path
 ENGINEERING_ROOT = Path(__file__).resolve().parent
 if str(ENGINEERING_ROOT) not in sys.path:
     sys.path.insert(0, str(ENGINEERING_ROOT))
-from workflow_contract import effective_verifier, load_verifier_profile, validate_completion, parse_parent_pointer
+from workflow_contract import effective_verifier, load_verifier_profile, validate_completion, parse_parent_pointer, verification_contract
 
 _SPEC_REVIEW = None
 
@@ -1178,13 +1178,18 @@ def main(argv):
                                     workdir, fingerprint, prerequisites, setup
                                 )
                                 ready_v2_environments.setdefault(key, []).append(f)
-                        else:
-                            try:
+                        try:
+                            if fm.get("status") == "ready":
+                                verification_contract(
+                                    Path(root), Path(f), issue_raw,
+                                    profile=profile_for(feat) if contract_version == "3" else None,
+                                )
+                            elif contract_version == "3":
                                 effective_verifier(
                                     Path(root), feat, issue_raw, profile_for(feat)
                                 )
-                            except (OSError, UnicodeError, ValueError) as exc:
-                                err("%s: %s" % (f, exc))
+                        except (OSError, UnicodeError, ValueError) as exc:
+                            err("%s: %s" % (f, exc))
 
                         experience = bullet_value(verification, TIYAN_YANZHENG)
                         if experience_review:

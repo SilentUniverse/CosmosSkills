@@ -232,8 +232,9 @@ Field rules:
   recovery. The field declares a constraint; Cosmos maintains no resource registry.
 - **created** — ISO date, set once at creation, never changed.
 
-The body keeps the section headings from `/spec`'s issue template. Dependency state comes only from
-frontmatter `blocked_by`; legacy `前置依赖` sections remain readable but are not generated or
+The body keeps the section headings from `/spec`'s issue template. Ready v2/v3 cards give each AC
+exactly one backticked command mapping; validation and issue admission use the same command parser.
+Dependency state comes only from frontmatter `blocked_by`; legacy `前置依赖` sections remain readable but are not generated or
 projected into worker packets. The feature-scoped write gate rejects that duplicate section on new
 ready v2/v3 cards. `验证设计` maps every AC to an
 agent-runnable seam, expected evidence, and at least one passed P# preflight. It includes:

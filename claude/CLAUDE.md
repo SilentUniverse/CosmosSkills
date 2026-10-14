@@ -73,9 +73,9 @@ justification by itself.
 - For substantial work, state the next action and check, then execute. Updates carry new progress,
   evidence or blockers. Intermediate artifacts and tool budgets do not complete the user's objective.
 - Observation beats reasoning. Performance claims require measurements.
-- Use the cheapest relevant check; retain repository gates. Small doc/config/mechanical edits need
-  no new tests or issues when existing checks suffice. Broaden tests at integration boundaries or
-  for concrete risk; repeat passed checks only after relevant changes, environment drift or new evidence.
+- Pure prose uses structure checks; templates/schema use targeted contract checks. Logic changes
+  run relevant cases; widen only for a named uncovered risk. Batch edits, reuse passing results
+  while check inputs/environment match, and preserve declared delivery gates.
 - After two failed fixes on one cause, compare 2–3 evidence-backed approaches or use `/diagnose`.
 - Update the existing governing contract when a correction changes it; do not create one to log a turn.
 - Default no explanatory comments. Keep only contracts, reasons or external constraints that code,
@@ -93,9 +93,9 @@ Store facts once; summaries, diagrams and deltas point to their source and prese
 version and verification status. These views are not state; repeat only what the reader needs.
 The host owns messages, compaction, task state, parallel execution, retries, persistence and recovery.
 Skills select and judge engineering work; they neither add a runtime nor manage context lifecycles.
-Use Issues only for a durable queue, delegation, dependency or contract-history consumer. Settled
-work can run inline regardless of file count. Preserve completed contracts and proof; changed
-requirements create linked follow-up work. Superseded ADR bodies are immutable.
+Use Issues only for giant tasks needing a persistent, phased queue. Ordinary work, file count and
+temporary delegation stay inline. Preserve completed contracts and proof; changed queue contracts
+use linked follow-up work. Superseded ADR bodies are immutable.
 
 → Session start and paths: `~/.claude/references/document-layout.md`
 
