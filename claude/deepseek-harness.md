@@ -78,9 +78,9 @@ Observed on DSH 0.2.0-rc.2, macOS, 2026-09-30.
 - `present` puts the statically rendered review page in front of the user as an artifact card,
   which is the native-artifact-card path REVIEW.md allows; it never substitutes for the durable
   acceptance event.
-- `ask_user_question` is a conversation channel, not an approval transport: REVIEW.md forbids an
-  agent-written approval event, so batched decisions may use it while Spec acceptance still goes
-  through the bridge or the pasted `SPEC FEEDBACK` block.
+- `ask_user_question` carries ordinary decision rounds in the native conversation. An anchored
+  PRD requiring formal acceptance uses the review bridge's durable human event; pasted
+  `SPEC FEEDBACK` carries revision feedback only. It does not record acceptance.
 
 ## Measuring a run
 

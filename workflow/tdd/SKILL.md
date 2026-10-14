@@ -55,7 +55,10 @@ Session changes alone do not invalidate evidence. Failed readiness pauses only d
 the declared setup or stale record is repaired. Never substitute weaker proof.
 
 Briefly state the behavior, proof route and material assumption, then act. Use project commands.
-Missing run/drive/observation capabilities use `/verify`; update affected drivers with their scenario.
+Implement missing run/drive/observation capabilities as bounded prerequisites through `/verify`
+before dependent behavior. Refresh only dependent readiness with observed evidence; queued behavior
+cards remain pending until their required capability and preflight exist. Ordinary prerequisites
+stay inline. Update affected existing drivers with their scenario.
 Pure prose uses necessary structure checks and skips RED/GREEN. Machine-consumed templates/schema
 use targeted contract cases. For logic, choose a case, class or file covering the changed behavior.
 

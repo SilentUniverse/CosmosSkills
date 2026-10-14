@@ -58,9 +58,9 @@ benefit from diagrams; load [HTML-REPORT.md](HTML-REPORT.md) only for that outpu
 
 For HTML output, write one file to the OS temp directory: `$env:TEMP` on Windows, `$TMPDIR` or `/tmp` on Unix. Use `<tmpdir>/architecture-review-<timestamp>.html`, open it with an available viewer, and return its absolute path. If viewing is unavailable, report that verification gap.
 
-The report uses **Tailwind via CDN** for layout and styling, and **Mermaid via CDN** for diagrams where a graph/flow/sequence reliably communicates the structure. Both CDNs need network access. If the user is fully offline, fall back to a plain-markdown report instead. Each candidate gets a **before/after visualisation**. Be visual.
-
-For each candidate, render the card defined in [HTML-REPORT.md](./HTML-REPORT.md): files, problem, solution, wins, before/after diagram, recommendation strength.
+For HTML output, use the styling and before/after cards in [HTML-REPORT.md](HTML-REPORT.md).
+The CDN assets require network access; use plain text when offline. In a text report, give each
+candidate's problem, proposed interface, evidence and trade-offs; add a diagram only when it helps.
 
 End the report with a **Top recommendation** section: which candidate you'd tackle first and why.
 
@@ -69,8 +69,6 @@ and the project's own architecture terms otherwise. If `CONTEXT.md` defines "Ord
 "the Order intake module", not "the FooBarHandler".
 
 **ADR conflicts**: if a candidate contradicts an existing ADR, only surface it when the friction is real enough to warrant revisiting the ADR. Mark it clearly in the card (e.g. a warning callout: _"contradicts ADR-0007 — but worth reopening because…"_). Don't list every theoretical refactor an ADR forbids.
-
-See [HTML-REPORT.md](HTML-REPORT.md) for the full HTML scaffold, diagram patterns, and styling guidance.
 
 For an audit-only request, deliver recommendations. If deeper work is authorized, use the named
 candidate or strongest reversible option within scope; ask only when unresolved priorities change
@@ -84,8 +82,10 @@ unavailable, ask a focused question directly while continuing independent analys
 
 Side effects happen inline as decisions crystallize. Run the `/domain-modeling` skill to keep the domain model current as you go:
 
-- **Naming a deepened module after a concept not in `CONTEXT.md`?** Add the term to `CONTEXT.md`. Create the file lazily if it doesn't exist.
-- **Sharpening a fuzzy term during the conversation?** Update `CONTEXT.md` right there.
+- **Naming a deepened module after a new domain concept?** Apply `/domain-modeling`'s sharing gate;
+  keep task-local definitions in the conversation/native plan unless shared persistence is warranted.
+- **Sharpening a fuzzy term during the conversation?** Update its existing definition; create a
+  shared entry only when `/domain-modeling`'s sharing gate applies.
 - **A settled rejection meets the ADR criteria?** Record it when domain-document updates are in scope. Skip ephemeral or self-evident reasons; no separate permission to document a settled decision.
 - **Alternative interfaces would resolve a trade-off?** Use `/codebase-design`'s design-it-twice comparison, inline when delegation is unavailable or unnecessary.
 

@@ -26,7 +26,9 @@ Third-party services (Stripe, Twilio, etc.) you don't control. The deepened modu
 
 ## Seam discipline
 
-- **One adapter means a hypothetical seam. Two adapters means a real one.** Don't introduce a port unless at least two adapters are justified (typically production + test). A single-adapter seam is just indirection.
+- Introduce a port only when it hides real dependency knowledge or an existing source of change.
+  A single adapter can justify that boundary; adapter count alone proves neither need nor depth.
+  Production and test adapters are one concrete use, not a quota.
 - **Don't expose internal seams through the interface** just because the module's own tests use them.
 
 ## Testing strategy: replace, don't layer

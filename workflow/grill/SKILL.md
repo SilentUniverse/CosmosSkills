@@ -19,7 +19,9 @@ change behavior, public contract, cost or authority, and recommend an answer wit
 
 Work in rounds:
 
-1. Ask a small batch of the frontier's highest-impact questions and lead with a recommended answer.
+1. Ask a small batch of the frontier's highest-impact material choices, with concrete options,
+   recommendations and trade-offs. Target one or two decision rounds; an additional round names
+   the prerequisite or new evidence that prevented combining it earlier.
 2. Resolve reversible implementation details within agreed constraints.
 3. Continue fact-finding and independent branches while answers are pending. When local evidence is
    insufficient, use `/research`; only downstream questions wait.

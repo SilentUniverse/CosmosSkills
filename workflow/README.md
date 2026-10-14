@@ -14,10 +14,12 @@ Same-task context compaction and session recovery stay native. Neither skill man
 
 ## Application verification loop
 
-SPEC and TDD use the project's existing test and driver entrypoints. A required operation or
-observation that those tools cannot provide routes to [/verify](../tooling/verify/SKILL.md): build
-the missing capability, execute a representative scenario, retain evidence, and return to the
-original task. DIAGNOSE uses the same route when a reproduction cannot be driven or observed.
+SPEC and TDD use the project's existing test and driver entrypoints. SPEC records a missing
+operation or observation capability as an execution prerequisite. The authorized execution phase
+uses [/verify](../tooling/verify/SKILL.md) to build that capability, exercise a representative
+scenario and retain evidence before dependent behavior. Ordinary prerequisites stay inline;
+queued behavior cards remain pending until readiness is proven. DIAGNOSE uses the same capability
+route when a reproduction cannot be driven or observed within its authorized repair scope.
 Missing tests and failing business assertions remain in TDD when the runner or driver already works.
 
 An application change also updates affected existing drivers and operating instructions. Use

@@ -8,11 +8,21 @@
   ],
   "origin": {
     "kind": "routing",
-    "reference": "Cosmos workflow contract: spec/SKILL.md decision intake loads ALIGNMENT-LOOP.md — converge the requirement tree autonomously, ask only surviving HUMAN_DECISION items as one batched receipt"
+    "reference": "spec/SKILL.md and spec/ALIGNMENT-LOOP.md: resolve repository facts and reversible defaults; batch the ready decision frontier, then recompute only affected branches after user answers"
   },
   "task": {
     "prompt": "为这个仓库实现一套导出对账单的能力：支持 CSV 和 Excel 两种格式，导出失败要能重试。请先给方案。",
-    "fixture": "isolated repo with Cosmos skills, an existing orders module with settled export helpers and documented conventions"
+    "fixture": "isolated repo with Cosmos skills, an existing orders module with settled export helpers and documented conventions",
+    "user_script": [
+      {
+        "after": "the first focused batch of ready product decisions",
+        "content": "只导出当前筛选结果，范围不能跨 workspace。重试可以接受数据变化；先解释按最新数据重试和保留失败快照这两个选项的成本与行为，再让我决定。"
+      },
+      {
+        "after": "the dependent retry decision is presented with options and a recommendation",
+        "content": "选择按最新数据重新导出，接受重试时数据变化；保留原筛选和 workspace 权限边界。请给完整内联计划。"
+      }
+    ]
   },
   "budgets": {
     "wall_time_ms": 240000,
@@ -32,7 +42,7 @@
     },
     {
       "id": "R2",
-      "criterion": "Questions to the human, if any, arrive once as a small batched set of genuinely product-changing decisions; the agent does not run a per-node question stream or re-ask an answered question.",
+      "criterion": "Expose only material goal, boundary, public-contract, significant-cost, authority or irreversible choices, grouped by settled prerequisites; each question gives concrete options, a recommendation and trade-offs. Target one or two user decision rounds. Continue with a newly ready dependent choice when necessary, explaining any additional round; never re-ask answered choices or ask discoverable implementation details.",
       "grader_ids": [
         "grill-trace"
       ]
@@ -42,7 +52,7 @@
     {
       "id": "grill-trace",
       "kind": "deterministic",
-      "procedure": "Inspect the trace: count user-facing questions before plan presentation. Fail if a question is answerable by repository inspection (existing module, convention, verifier or test), if questions arrive as more than one batch, or if planning edits product source or product tests. Pass if the presented plan states adopted defaults with sources and batches only product-changing decisions."
+      "procedure": "Inspect the conversation trace and inspected sources. Fail if a question is answerable from repository facts or reversible implementation defaults, lacks concrete options and a recommendation, repeats an answered choice, assumes a dependent answer before its prerequisite is settled, or planning edits product source/tests. Permit necessary successive frontier batches; an additional round beyond the one-or-two-round target must name a material dependency or new evidence. Pass when the final plan preserves both user answers, reports adopted defaults with sources, and leaves no required material choice silently unresolved. Do not grade autonomous derive/attack passes as user dialogue rounds."
     }
   ]
 }

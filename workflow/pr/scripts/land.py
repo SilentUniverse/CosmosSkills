@@ -401,26 +401,6 @@ def land_native(
         _cleanup_remote_topic(repo, remote, branch, sha, report)
         return
 
-    local_base_sha = _git(
-        repo, ["rev-parse", "--verify", "refs/heads/%s" % base], check=False
-    ).stdout.strip()
-    if (
-        local_base_sha
-        and _is_ancestor(repo, old_remote, local_base_sha)
-        and _is_ancestor(repo, sha, local_base_sha)
-    ):
-        push = _git(
-            repo, ["push", remote, "%s:refs/heads/%s" % (local_base_sha, base)],
-            check=False,
-        )
-        if push.returncode == 0:
-            report.update(
-                landed=True, basis="resume-push", default_published=local_base_sha
-            )
-            report.setdefault("steps", []).append("pushed previously merged local default")
-            _cleanup_remote_topic(repo, remote, branch, sha, report)
-            return
-
     for subject in _git(
         repo, ["log", "--format=%s", "%s..%s" % (merge_base, sha)]
     ).stdout.splitlines():

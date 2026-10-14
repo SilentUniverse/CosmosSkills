@@ -63,9 +63,10 @@ supersede it rather than trusting past acceptance.
 Re-running on a mapped area, or refreshing after drift. Existing legacy area blocks are
 preserved and re-verified, never newly created; new earned facts land in the root 不变量 section.
 
-- **Drift check:** diff each block's `git_base` against HEAD. `git_base` at HEAD → reuse the block
-  untouched. A whole-map rerun stops here for every current block; it re-derives nothing that
-  still verifies.
+- **Drift check:** compare the block's relevant paths against `git_base`, including committed,
+  staged, working-tree and relevant untracked inputs. An unchanged HEAD alone does not prove a
+  current map. Reuse verified lines only when those inputs and the cited contracts still match.
+  A whole-map rerun leaves unaffected areas untouched.
   - Code gone (file/symbol deleted) → delete the block and its roster line.
   - Code drifted → refresh + re-stamp `git_base`.
   - Duplicate → merge.
@@ -77,7 +78,7 @@ preserved and re-verified, never newly created; new earned facts land in the roo
   defect.
 - **Same-change refresh:** a change that alters an area's seam or invariant refreshes that area's
   block in the same change (duty rule in ARTIFACT-FORMAT.md).
-- **Consumption:** a block whose `git_base` is behind HEAD is a lead, not fact. Re-verify its named
+- **Consumption:** a block with relevant committed or local drift is a lead, not fact. Re-verify its named
   facts before relying on it, then fix, drop, or re-stamp the affected lines in place; escalate to
   a scoped refresh only when the area's structure itself moved.
 

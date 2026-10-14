@@ -1,7 +1,7 @@
 ---
 name: spec
 description: >-
-  Use when the user explicitly asks for a plan or specification, or when a durable work queue or consequential product-boundary decision needs planning. Plans requirements and execution readiness; converges decision-heavy requirements autonomously before one batched human review; honors plan-only review and continues authorized implementation through tdd.
+  Use when the user explicitly asks for a plan or specification, or when a durable work queue or consequential product-boundary decision needs planning. Plans requirements and execution readiness; resolves material choices through focused dialogue rounds and repository evidence; honors plan-only review and continues authorized implementation through tdd.
 argument-hint: "The need — anything from one line to a full design"
 ---
 
@@ -22,8 +22,10 @@ new details use detail issues, changed contracts use redo, and delivered defects
 This phase may run declared setup, read-only analysis and representative verifier preflights; it
 may write planning artifacts on the giant-task route and confirmed engineering facts
 (ADR/CONTEXT/CODEBASE). It never edits product source or product behavior tests, and never
-implements the request through a convenience fix. A missing verifier or tool becomes a stated
-prerequisite in the plan; the code change itself belongs to TDD.
+implements the request through a convenience fix. It creates or repairs no verification tools or
+tool tests. A missing capability becomes an execution prerequisite in the plan; authorized TDD
+executes that bounded work before the dependent behavior. A queued behavior card remains pending
+until its required capability and observed readiness exist.
 
 Intent has two paths:
 
@@ -40,13 +42,14 @@ Intent has two paths:
   (API/ABI/schema/protocol), measurement semantics, irreversible effects, significant cost, or
   authority, including two visibly different product outcomes, key decisions shared across
   slices, or an irreversible migration. A request for a plan alone does not imply an unresolved
-  decision. Load [ALIGNMENT-LOOP.md](ALIGNMENT-LOOP.md) and converge the requirement tree first: answer
-  repo-answerable questions, take safe reversible defaults, and attack the draft once. The
-convergence predicate separates reviewable decisions from missing evidence. What survives is one
-batched receipt (shape in [ALIGNMENT-LOOP.md](ALIGNMENT-LOOP.md)) asking exactly the remaining
-decisions together;
-hold only their dependent work. Missing implementation detail, card boundaries, or a previously
-authorized change does not reopen alignment.
+  decision. Load [ALIGNMENT-LOOP.md](ALIGNMENT-LOOP.md): answer repository questions, take safe
+  reversible defaults, and attack the draft. Ask one focused batch of consequential choices whose
+  prerequisites are settled. After the user's answers, recompute the affected branches and ask the
+  next ready batch until the choices needed by the plan are resolved. Target one or two user
+  decision rounds, with concrete options, recommendations and trade-offs; additional rounds need
+  a material dependency or new evidence. The convergence predicate
+  separates reviewable choices from missing evidence; hold only dependent work. Missing
+  implementation detail, card boundaries, or a previously authorized change does not reopen alignment.
 
 The receipt is conversation state, separate from issue engineering status. Confidence never closes a decision
 frontier. A settled request already supplies the decision. Only graphical UI loads
@@ -110,7 +113,9 @@ bar rules in [VERIFICATION-DESIGN.md](VERIFICATION-DESIGN.md).
 
 ## 3. Prepare and write
 
-Use `/verify` only when that route lacks a required run, drive or observation tool.
+For a missing run, drive or observation capability, state the required operation, expected
+observation and dependent work. Plan its bounded implementation through `/verify` in the authorized
+execution phase; a plan-only request returns this prerequisite without building it.
 Run the deletion test on the plan's structure: deleting any proposed boundary, interface, artifact
 kind, PRD, or verifier profile must break a real delivery, authorization, verification, handoff, or
 recovery scenario; this workflow's own format validation failing is not such a scenario. Anything
