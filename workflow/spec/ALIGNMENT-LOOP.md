@@ -2,7 +2,8 @@
 
 Loaded by [`/spec`](SKILL.md) for unresolved material decisions. Resolve repository facts and
 reversible implementation choices before asking the human. Ask a concrete missing decision once
-evidence establishes it; continue independent preparation under the batched receipt below.
+evidence establishes it; continue independent preparation while the current round's focused
+receipt awaits answers.
 
 ## Requirement tree
 
