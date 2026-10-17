@@ -40,7 +40,7 @@ Emit no lead, chat, disposition, or change explanation. The classification value
 
 At most two reviewer cycles. A host that cannot guarantee fresh-context isolation, reviewer
 unavailability, or an unresolved classification takes the
-safe exit: append the exact observed evidence to the issue, keep it `ready`, stop production-code
+safe exit: record the exact observed evidence against the unit, keep it `ready`, stop production-code
 writes, and return to `/spec` within the current task. The caller resolves evidence gaps or
 contract-preserving repairs autonomously and resumes; only a new consequential user decision
 requires realignment. Reviewer unavailability alone does not create a permission requirement. The reviewer never edits the contract.

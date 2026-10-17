@@ -98,17 +98,14 @@ $blockAlpha = $blockGood -replace 'AREA', 'src/alpha'
 $blockBeta = $blockGood -replace 'AREA', 'src/beta'
 $filler = (1..45 | ForEach-Object { "filler line $_" }) -join "`r`n"
 $rootLong = $rootGood -replace 'Synthesis line two\.', ("Synthesis line two.`r`n" + $filler)
-$issueGood = @'
+# Unit/section rules are covered by tests/test_verify_artifacts.py; this harness only needs a
+# structurally valid feature document alongside the CODEBASE.md leaves.
+$featureGood = @'
 ---
-type: issue
+type: feature
 feature: featA
-status: ready
-category: enhancement
-blocked_by: []
 created: 2026-08-18
 ---
-
-## body
 '@
 
 # --- fixtures ---
@@ -201,13 +198,13 @@ $d = New-FixtureDir "f14"
 Write-Fixture "f14/CODEBASE.md" $rootGood
 Write-Fixture "f14/src/alpha/CLAUDE.md" $blockAlpha
 Write-Fixture "f14/src/beta/CLAUDE.md" $blockBeta
-Write-Fixture "f14/.scratch/featA/issues/01-slice.md" $issueGood
+Write-Fixture "f14/.scratch/featA/FEATURE.md" $featureGood
 Assert-Case "F14 CODEBASE + valid .scratch" $d 0
 
 $d = New-FixtureDir "f15"
 Write-Fixture "f15/CODEBASE.md" $rootGood
 Write-Fixture "f15/src/alpha/CLAUDE.md" $blockAlpha
-Write-Fixture "f15/.scratch/featA/issues/01-slice.md" ($issueGood -replace 'status: ready', 'status: bogus')
+Write-Fixture "f15/.scratch/featA/FEATURE.md" ($featureGood -replace 'type: feature', 'type: bogus')
 Assert-Case "F15 broken .scratch still caught alongside CODEBASE" $d 1
 
 $fen = [string][char]0x5206 + [string][char]0x533A
@@ -239,85 +236,23 @@ Write-Fixture "f20/src/alpha/CLAUDE.md" $blockAlpha
 Write-Fixture "f20/src/beta/CLAUDE.md" $blockBeta
 Assert-Case "F20 roster placeholder/brace syntax rejected as violation, not crash" $d 1 'placeholder/glob syntax'
 
-$issueArchived = @'
----
-type: issue
-feature: featA
-status: done
-category: enhancement
-blocked_by: []
-created: 2026-08-18
----
-
-## body
-'@
-# PS 5.1 parses this BOM-less file as ANSI, so the done heading is built from code points.
-$issueArchived = $issueArchived + "`n### " + [string][char]0x5B8C + [string][char]0x6210 + "`n"
-$issueChild = @'
----
-type: issue
-feature: featA
-status: ready
-category: detail
-blocked_by: [01-slice]
-refines: 01-slice
-created: 2026-08-18
----
-
-## body
-'@
 $d = New-FixtureDir "f21"
-Write-Fixture "f21/CODEBASE.md" $rootGood
-Write-Fixture "f21/src/alpha/CLAUDE.md" $blockAlpha
-Write-Fixture "f21/src/beta/CLAUDE.md" $blockBeta
-Write-Fixture "f21/.scratch/featA/issues/archive/01-slice.md" $issueArchived
-Write-Fixture "f21/.scratch/featA/issues/02-detail.md" $issueChild
-Assert-Case "F21 live blocked_by/refines resolve archived done parent" $d 0
+New-Item -ItemType Directory -Path (Join-Path $d ".scratch/featA") -Force | Out-Null
+$f21 = [System.Collections.Generic.List[byte]]::New()
+$f21.AddRange([Text.Encoding]::ASCII.GetBytes($featureGood))
+$f21.AddRange([Text.Encoding]::ASCII.GetBytes("`nstray byte: "))
+$f21.Add(0xFF)
+$f21.AddRange([Text.Encoding]::ASCII.GetBytes("`n"))
+[IO.File]::WriteAllBytes((Join-Path $d ".scratch/featA/FEATURE.md"), $f21.ToArray())
+Assert-Case "F21 stray non-UTF-8 byte in FEATURE.md reported as violation" $d 1 "can't decode byte 0xff"
 
 $d = New-FixtureDir "f22"
 Write-Fixture "f22/CODEBASE.md" $rootGood
 Write-Fixture "f22/src/alpha/CLAUDE.md" $blockAlpha
 Write-Fixture "f22/src/beta/CLAUDE.md" $blockBeta
-Write-Fixture "f22/.scratch/featA/issues/02-detail.md" $issueChild
-Assert-Case "F22 live blocked_by missing parent still red" $d 1 'no sibling or archived file'
-
-$d = New-FixtureDir "f23"
-New-Item -ItemType Directory -Path (Join-Path $d ".scratch/featA/issues") -Force | Out-Null
-$f23 = [System.Collections.Generic.List[byte]]::New()
-$f23.AddRange([Text.Encoding]::ASCII.GetBytes($issueGood))
-$f23.AddRange([Text.Encoding]::ASCII.GetBytes("stray byte: "))
-$f23.Add(0xFF)
-$f23.AddRange([Text.Encoding]::ASCII.GetBytes("`n"))
-[IO.File]::WriteAllBytes((Join-Path $d ".scratch/featA/issues/01-slice.md"), $f23.ToArray())
-Assert-Case "F23 stray non-UTF-8 byte in issue body reported as violation" $d 1 'not valid UTF-8'
-
-$WANC = [string][char]0x5B8C + [string][char]0x6210        # 完成
-$Xinz = [string][char]0x65B0 + [string][char]0x589E + [string][char]0x6D4B + [string][char]0x8BD5  # 新增测试
-$issueDoneRec = ($issueGood -replace 'status: ready', 'status: done') -replace '## body', ("## body`n`n## Comments`n`n### " + $WANC + " - 2026-08-19`n`n- " + $Xinz + ": tests/demo_test.py (3 cases)")
-
-$d = New-FixtureDir "f24"
-Write-Fixture "f24/.scratch/featA/issues/01-slice.md" ($issueGood -replace 'status: ready', 'status: done')
-Assert-Case "F24 done issue without completion record" $d 1 'no ###'
-
-$d = New-FixtureDir "f25"
-Write-Fixture "f25/.scratch/featA/issues/01-slice.md" $issueDoneRec
-Assert-Case "F25 record names missing test file" $d 1 'missing test file'
-
-$d = New-FixtureDir "f26"
-Write-Fixture "f26/.scratch/featA/issues/01-slice.md" $issueDoneRec
-Write-Fixture "f26/tests/demo_test.py" "def test_ok():`n    pass`n"
-Assert-Case "F26 record names existing test file" $d 0
-
-$d = New-FixtureDir "f27"
-Write-Fixture "f27/.scratch/featA/issues/01-slice.md" $issueDoneRec
-Write-Fixture "f27/.scratch/featA/tests/demo_test.py" "def test_ok():`n    pass`n"
-Assert-Case "F27 record names test file inside the feature dir" $d 0
-
-$issueDoneColon = $issueDoneRec -replace [regex]::Escape("### " + $WANC + " - "), ("### " + $WANC + [string][char]0xFF1A + " ")
-$d = New-FixtureDir "f28"
-Write-Fixture "f28/.scratch/featA/issues/01-slice.md" $issueDoneColon
-Write-Fixture "f28/tests/demo_test.py" "def test_ok():`n    pass`n"
-Assert-Case "F28 fullwidth-colon heading variant accepted" $d 0
+Write-Fixture "f22/.scratch/featA/FEATURE.md" $featureGood
+Write-Fixture "f22/.scratch/featA/issues/01-slice.md" "legacy card"
+Assert-Case "F22 legacy issues/ directory beside FEATURE.md rejected" $d 1 'legacy planning artifacts (issues)'
 
 # --- report ---
 if ($failures.Count -gt 0) {

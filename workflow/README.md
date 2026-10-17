@@ -18,7 +18,7 @@ SPEC and TDD use the project's existing test and driver entrypoints. SPEC record
 operation or observation capability as an execution prerequisite. The authorized execution phase
 uses [/verify](../tooling/verify/SKILL.md) to build that capability, exercise a representative
 scenario and retain evidence before dependent behavior. Ordinary prerequisites stay inline;
-queued behavior cards remain pending until readiness is proven. DIAGNOSE uses the same capability
+queued behavior units remain pending until readiness is proven. DIAGNOSE uses the same capability
 route when a reproduction cannot be driven or observed within its authorized repair scope.
 Missing tests and failing business assertions remain in TDD when the runner or driver already works.
 

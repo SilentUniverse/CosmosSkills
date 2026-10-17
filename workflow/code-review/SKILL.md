@@ -2,7 +2,7 @@
 name: code-review
 description: >-
   Use when reviewing a branch, pull request, worktree, work in progress, or diff from a fixed reference. Checks standards and specification compliance, with an opt-in evidence-backed experience axis for graphical UI work. Use atk to stress-test a design or decision instead.
-argument-hint: "Fixed point (commit/branch/tag); optional spec path (issue/PRD)"
+argument-hint: "Fixed point (commit/branch/tag); optional spec (FEATURE.md path or feat T<n>)"
 ---
 
 # Code Review
@@ -12,7 +12,7 @@ Review the explicitly fixed source/artifact and its executed proof. A review fin
 Review the diff between `HEAD` (or a named branch) and a pinned fixed point:
 
 - **Standards** — does the code follow this repo's documented coding standards, plus a fixed Fowler smell baseline?
-- **Spec** — does the code faithfully implement the originating issue / PRD?
+- **Spec** — does the code faithfully implement the originating FEATURE.md unit and contract?
 - **Experience (opt-in graded UI only)** — does a graphical UI meet its aligned rubric after runtime integrity passed?
 
 Use the user's language and concise outcome/evidence reporting; keep Fowler smell names in English.
@@ -43,19 +43,21 @@ SHAs and restart affected review only if the reviewed tree changes.
 
 Look for the originating spec, in this order:
 
-1. A path the user (or caller) passed as an argument — an issue file or PRD.
-2. The issue referenced by the branch / feature slug: `.scratch/<feat>/issues/NN-*.md`; its `## 验收标准（AC）` block is the spec. Read it from
-   `python ../workflow-state.py packet <repo-root> <feat> <slug>` (the packet's `acceptance` field) instead of re-parsing the issue markdown. For a `redo`/`fix` issue, also read the parent named by `refines:`. Review a set of issues against each issue contract; ask only when a requirement cannot be attributed after lookup.
-3. The feature's live PRD: inspect `PRD.md` and `PRD-vN.md` frontmatter and follow `supersedes` to
-   the unique live head. Do not default to v1 or guess between multiple heads. If a supplied source
-   was superseded, retain any requested historical comparison and identify the current contract.
+1. A source the user (or caller) passed as an argument — a FEATURE.md path or `<feat> T<n>`.
+2. The unit referenced by the branch / feature slug in `.scratch/<feat>/FEATURE.md`: its contract
+   and covered anchors are the spec. For a ready unit read them from
+   `python ../workflow-state.py start <repo-root> <feat> T<n>` (the packet's `contract` and `covers`
+   fields); otherwise read the `### T<n>` block and its `covers:` anchors. For a unit with
+   `refines:`, also read the refined unit. Review a set of units against each unit contract; ask only
+   when a requirement cannot be attributed after lookup.
+3. The feature's reviewed contract: FEATURE.md's 目标与边界, 需求, 决策, 不变量 and 端到端验证.
 4. Use the user's explicit requirements if no artifact exists. If no contract is available,
    report "无 spec 可比对" and complete the available axes; never infer a Spec pass.
 
 Consult the relevant [artifact schema](../ARTIFACT-FORMAT.md) section only when interpreting
-issue, PRD or completion-record fields requires it.
+unit, contract or completion-record fields requires it.
 
-> Issue-tracker layout is configured. Default convention (`.scratch/` local markdown) needs no setup; run `/cosmos-setup` only if this repo deviates (non-default tracker/paths or legacy states).
+> Tracker layout is configured. Default convention (`.scratch/<feat>/FEATURE.md`) needs no setup; run `/cosmos-setup` only if this repo deviates (non-default tracker/paths or legacy planning files).
 
 ### 3. Identify the standards sources
 
@@ -80,12 +82,12 @@ and [SMELL-BASELINE.md](SMELL-BASELINE.md). Brief: §Standards.
 **Spec sub-agent** — pass the same review inputs and the resolved requirements, including inherited
 constraints or pending manual checks relevant to this scope. Brief: §Spec.
 
-**Experience sub-agent (conditional)** — only if the originating issue says
-`experience_review: graded`. Pass the canonical experience contract and anonymous operated-state
+**Experience sub-agent (conditional)** — only if the originating unit says
+`- experience: graded`. Pass the feature's 共享验证 `experience` contract and anonymous operated-state
 screenshots/traces/judge inputs, never implementation rationale or self-assessment. Brief:
 §Experience. Missing required evidence is a finding, not a reason to skip the axis.
 
-If the spec is missing, skip the Spec sub-agent and note it in the final report. A caller that already ran one axis (e.g. the drain close ran Spec; caller-ran-Spec entry) may ask for the other alone: skip the ran axis's sub-agent and note that in the report.
+If the spec is missing, skip the Spec sub-agent and note it in the final report. A caller that already ran one axis (caller-ran-Spec entry) may ask for the other alone: skip the ran axis's sub-agent and note that in the report.
 
 ### 5. Aggregate
 

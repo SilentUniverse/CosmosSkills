@@ -32,14 +32,14 @@ The essential difference from conventional standards (SOLID, Clean Code, Design 
 
 ### Five Pillars
 
-**A machine gate.** `verify-artifacts.py` intercepts dependency cycles, missing frontmatter, and v2 issues without AC-to-evidence-to-P# mappings. Native tools or CI run checks; Cosmos imports raw results and validates fixed inputs, exit results and log identity. Prose cannot self-report success.
+**A machine gate.** `verify-artifacts.py` intercepts dependency cycles, missing FEATURE.md anchors or unit fields, broken AC-to-command-to-preflight mappings, and leftover legacy planning files. Native tools or CI run checks; Cosmos imports raw results and validates fixed inputs, exit results and log identity. Prose cannot self-report success.
 
 **Opt-in behavior evals.** The normal development path does not run them. Explicit `/eval smoke|full` sessions retain same-project previous/candidate/no-skill comparisons; `/eval export` creates a standalone public exam for native or arbitrary external harnesses, then grades returned evidence blindly in an N-way report. Reports keep Verified Success, speed, same-scope cost, alignment rounds, and handoff friction separate; raw cross-provider token and tool-call counters are diagnostic only. Without a real full run, the project makes no “faster” or “better” claim.
 
-**Incremental collaboration.** Spec maintains requirements, issues and reviewable scenes. TDD
+**Incremental collaboration.** Spec maintains requirements, units and reviewable scenes in one FEATURE.md. TDD
 continues authorized implementation and verification in the same task. Humans review a fixed,
 actually tested release while independent work continues. Feedback returns to its requirements and
-issues; changed completed requirements create linked follow-up work. Tidy deletes released temporary
+units; changed completed requirements create a new `refines:` unit. Tidy deletes released temporary
 files and retains tests, reusable experience, pending releases and portable completion evidence.
 Live source preview runs in the original repository while edits continue. The three entries hand off
 within one task. See the [collaboration design](incremental-collaboration-plan.zh.md).

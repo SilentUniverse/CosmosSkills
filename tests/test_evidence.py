@@ -1,7 +1,6 @@
 """Contracts for immutable evidence without invoking check commands."""
 import hashlib
 import io
-import json
 from contextlib import redirect_stdout
 from pathlib import Path
 import sys
@@ -13,7 +12,7 @@ from unittest import mock
 TESTS = Path(__file__).resolve().parent
 if str(TESTS) not in sys.path:
     sys.path.insert(0, str(TESTS))
-from evidence_fixtures import EvidenceRepository, evidence, rewrite_record
+from evidence_fixtures import EvidenceRepository, evidence, feature_doc, feature_text, rewrite_record
 
 
 class EvidenceTests(unittest.TestCase):
@@ -54,15 +53,35 @@ class EvidenceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "input or artifact changed"):
             self.repo.prepare(path)
 
-    def test_candidate_requires_the_exact_accepted_spec(self):
-        changed = "# Different accepted text\n"
-        self.repo.spec.write_bytes(changed.encode("utf-8"))
-        with self.assertRaisesRegex(ValueError, "exact accepted Spec"):
+    def test_candidate_binds_the_exact_accepted_feature_contract(self):
+        fixed = evidence.validate_candidate(self.root, self.repo.candidate())
+        text = feature_doc.contract_text(self.repo.spec.read_text(encoding="utf-8"))
+        self.assertEqual(text, fixed["spec_text"])
+        self.assertEqual(hashlib.sha256(text.encode("utf-8")).hexdigest(), fixed["spec_digest"])
+
+    def test_candidate_requires_the_exact_accepted_contract(self):
+        accepted = self.repo.spec.read_text(encoding="utf-8")
+        self.repo.spec.write_text(accepted.replace("first requirement", "edited requirement"), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "exact accepted feature contract"):
             self.repo.candidate()
-        (self.repo.feature / "spec-review.json").write_text(json.dumps({
-            "accepted_digest": hashlib.sha256(changed.encode("utf-8")).hexdigest(),
-        }), encoding="utf-8")
-        with self.assertRaisesRegex(ValueError, "exact accepted Spec"):
+        self.repo.accept_spec()
+        self.assertIn("edited requirement", evidence.read_record(self.repo.candidate())["spec_text"])
+
+    def test_engineering_edits_keep_the_accepted_contract(self):
+        text = self.repo.spec.read_text(encoding="utf-8")
+        self.repo.spec.write_text(text.replace("Deliver the first result.", "Deliver it differently."),
+                                  encoding="utf-8")
+        self.assertIsNotNone(evidence.read_record(self.repo.candidate())["spec_digest"])
+
+    def test_candidate_spec_must_be_a_feature_document(self):
+        other = self.repo.feature / "spec.md"
+        other.write_text("# not a feature document\n", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "FEATURE.md"):
+            evidence.candidate(self.root, "HEAD", other, [], self.repo.feature / "c" / "candidate.json")
+
+    def test_unreviewed_feature_cannot_bind_a_contract(self):
+        (self.repo.feature / "reviews").rename(self.repo.feature / "reviews-removed")
+        with self.assertRaisesRegex(ValueError, "exact accepted feature contract"):
             self.repo.candidate()
 
     def test_preflight_evidence_needs_no_spec_or_acceptance_artifact(self):
@@ -74,8 +93,8 @@ class EvidenceTests(unittest.TestCase):
         receipt = evidence.validate_receipt(self.root, repo.receipt(candidate, scope="preflight"))
         self.assertEqual("pass", receipt["outcome"])
         self.assertIsNone(receipt["spec_digest"])
-        self.assertFalse((repo.feature / "spec-review.json").exists())
-        self.assertFalse((repo.feature / "spec-accepted.md").exists())
+        self.assertFalse((repo.feature / "FEATURE.md").exists())
+        self.assertFalse((repo.feature / "reviews").exists())
 
     def test_uncommitted_tree_candidate_keeps_head_and_index_unchanged(self):
         head = self.repo.git("rev-parse", "HEAD")
@@ -131,7 +150,7 @@ class EvidenceTests(unittest.TestCase):
         self.repo.write("src/check.py", "VALUE = 2\n")
         self.repo.git("add", "--", "src/check.py")
         self.repo.git("commit", "--quiet", "-m", "Unrelated ongoing development")
-        self.repo.accept_spec("# A later Spec\n")
+        self.repo.accept_spec(feature_text(self.repo.feature.name, requirement="a later requirement"))
         self.repo.write(external, b"new external bytes")
         self.repo.write(artifact, b"<p>new delivery</p>")
         receipt = evidence.read_record(receipt_path)

@@ -8,7 +8,7 @@
   ],
   "origin": {
     "kind": "regression",
-    "reference": "spec/SKILL.md inline output route and ALIGNMENT-LOOP.md: honor requested plan review, preserve user decisions and revise only affected branches; ordinary tasks create no PRD/Issue/profile"
+    "reference": "spec/SKILL.md inline output route and ALIGNMENT-LOOP.md: honor requested plan review, preserve user decisions and revise only affected branches; ordinary tasks create no .scratch FEATURE.md"
   },
   "task": {
     "prompt": "Use /spec to plan history search: create three records, search one term, clear it, and cover Chinese, English, and empty input. Present the complete inline plan and discuss material decisions with the user before implementation.",
@@ -20,7 +20,7 @@
       },
       {
         "after": "the revised complete inline plan",
-        "content": "方案确认。到这里结束，不实施，也不生成 PRD 或 issue。"
+        "content": "方案确认。到这里结束，不实施，也不生成 FEATURE.md。"
       }
     ]
   },
@@ -35,14 +35,15 @@
   "requirements": [
     {
       "id": "R1",
-      "criterion": "The plan-only request writes no product source/tests or feature PRD/issues/verifier profile, runs no artifact gate, and ends with the complete inline plan after the explicitly requested review.",
+      "criterion": "The plan-only request writes no product source/tests or `.scratch/*/FEATURE.md`, runs no artifact gate, and ends with the complete inline plan after the explicitly requested review.",
       "grader_ids": [
-        "trace-order"
+        "trace-order",
+        "receipt-quality"
       ]
     },
     {
       "id": "R2",
-      "criterion": "The inline plan states goal, boundary, constraints, authorization and a verification route using existing project capabilities; it does not require P# readiness records or a slice DAG merely to present the ordinary plan.",
+      "criterion": "The inline plan states goal, boundary, constraints, authorization and a verification route using existing project capabilities; it does not require 预检 records or a unit queue merely to present the ordinary plan.",
       "grader_ids": [
         "receipt-quality"
       ]
@@ -59,12 +60,14 @@
     {
       "id": "trace-order",
       "kind": "deterministic",
-      "procedure": "Inspect the trajectory for product source/test writes and PRD/issues/verifier-profile creation or artifact-gate execution; any is a failure for this ordinary plan-only task. Verify that the final response presents the revised complete inline plan and honors the final instruction to stop without implementation."
+      "procedure": "The trace has no Write/Edit inside the worktree and no verify-artifacts run, and git status is clean at the end.",
+      "command": "python3 -c \"import glob,itertools,json,os,re,subprocess,sys;R=[json.loads(l) for l in open(os.environ['EVAL_TRACE'],encoding='utf-8') if l.strip()];B=[dict(b,role=r.get('type'),seg=g) for g,r in zip(itertools.accumulate(int(r.get('subtype')=='init') for r in R),R) if isinstance(r.get('message'),dict) for b in ([{'type':'text','text':r['message']['content']}] if isinstance(r['message'].get('content'),str) else r['message'].get('content') or [])];E={b.get('tool_use_id'):bool(b.get('is_error')) for b in B if b.get('type')=='tool_result'};T=[(i,b.get('name'),b.get('input') or {},E.get(b.get('id')),b['seg']) for i,b in enumerate(B) if b.get('type')=='tool_use'];W=[(i,x.get('file_path') or x.get('notebook_path') or '',g) for i,n,x,e,g in T if n in ('Write','Edit','MultiEdit','NotebookEdit')];X=[(i,x.get('command',''),e,g) for i,n,x,e,g in T if n=='Bash'];rel=lambda p:os.path.relpath(os.path.realpath(p),os.path.realpath(os.environ.get('EVAL_WORKTREE','.')));ist=lambda p:bool(re.search(r'(^|/)(tests?/|test_|[^/]*_test\\.|[^/]*\\.(test|spec)\\.)',rel(p)));src=lambda p:not ist(p) and not rel(p).startswith(('..','.scratch'));sk=lambda n,x:n=='Skill' and str(x.get('skill','')).split(':')[-1];RUN=r'(pytest|unittest|jest|vitest|mocha|npm (run )?test|pnpm test|yarn test|go test|cargo test|gradle|mvn|ctest|make test)';w=[p for i,p,g in W if not rel(p).startswith('..')];s=subprocess.run(['git','status','--porcelain','--untracked-files=all'],capture_output=True,text=True).stdout.strip();a=[c for i,c,e,g in X if 'verify-artifacts' in c];print(w,s,a);sys.exit(bool(w or s or a))\""
     },
     {
       "id": "receipt-quality",
-      "kind": "deterministic",
-      "procedure": "Compare the complete inline plan against the original request and both user feedback events. Require observable outcomes for the requested cases, explicit goal/boundary/constraints/authorization and existing runnable verification routes. Reject an invented PRD, queue, P# record or handoff artifact used merely to satisfy workflow formatting. Treat verification as planned unless actually observed; do not require running future behavior tests during planning."
+      "kind": "human",
+      "procedure": "Compare the final complete inline plan against the original request and both user feedback events. Require observable outcomes for the requested cases, explicit goal/boundary/constraints/authorization and existing runnable verification routes, and an ending that honors the instruction to stop without implementation. Reject an invented FEATURE.md, unit queue, 预检 record or handoff artifact used merely to satisfy workflow formatting. Treat verification as planned unless actually observed; do not require running future behavior tests during planning.",
+      "why_not_automated": "Whether the plan's goal, boundary, decisions and verification routes match the request and both feedback events is a semantic reading of plan prose."
     }
   ]
 }

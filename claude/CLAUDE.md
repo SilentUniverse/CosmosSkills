@@ -65,7 +65,8 @@ justification by itself.
 - Wide verification around a small change may signal excess coupling; check whether a shared
   contract requires it before proposing a refactor.
 - When submission is requested, continue through `/pr` after validation in the same task.
-  Otherwise stop at validated changes; preserve plan-only or review-only scope.
+  Otherwise stop at validated changes (a closed feature unit gets an unpushed commit);
+  preserve plan-only or review-only scope.
 
 ## 5. Execute against evidence
 
@@ -86,17 +87,17 @@ justification by itself.
 
 ## 6. Load context on demand
 
-Start from named files or issue pointers. Load a skill only when its description matches the task
+Start from named files or unit pointers. Load a skill only when its description matches the task
 and changes the approach. Load map/glossary sections and ADR titles to navigate; expand for discovered
 dependencies. Keep settled decisions across phases.
 
-Store facts once; summaries, diagrams and deltas point to their source and preserve its constraints,
-version and verification status. These views are not state; repeat only what the reader needs.
+Store facts once; summaries, diagrams and deltas point to their source and keep its constraints,
+version and verification status. Views are not state; repeat only what the reader needs.
 The host owns messages, compaction, task state, parallel execution, retries, persistence and recovery.
-Skills select and judge engineering work; they neither add a runtime nor manage context lifecycles.
-Use Issues only for giant tasks needing a persistent, phased queue. Ordinary work, file count and
-temporary delegation stay inline. Preserve completed contracts and proof; changed queue contracts
-use linked follow-up work. Superseded ADR bodies are immutable.
+Skills select and judge engineering work; they add no runtime or context lifecycle.
+Only giant tasks needing a persistent, phased queue get one feature document of units;
+ordinary work, file count and temporary delegation stay inline. Done units and proof stay intact;
+changes use linked follow-up units. Superseded ADR bodies are immutable.
 
 → Session start and paths: `~/.claude/references/document-layout.md`
 

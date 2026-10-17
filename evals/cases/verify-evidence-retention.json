@@ -19,6 +19,6 @@
     {"id": "R2", "criterion": "The public business path, false-completion detection, state cleanup and external-state preservation still work.", "grader_ids": ["retention-gates"]}
   ],
   "graders": [
-    {"id": "retention-gates", "kind": "deterministic", "procedure": "Run evals/experiments/verify_loop.py with --retention and with --command finish. Require every check to pass; retain the original failing output, repaired source, gate output and any model trace separately."}
+    {"id": "retention-gates", "kind": "deterministic", "procedure": "Run evals/experiments/verify_loop.py with --retention and with --command finish; every check must pass. Retain the original failing output, repaired source, gate output and any model trace separately.", "command": "python3 \"$EVAL_COSMOS_ROOT/evals/experiments/verify_loop.py\" . --retention | python3 -c \"import json,sys;sys.exit(not json.load(sys.stdin)['passed'])\" && python3 \"$EVAL_COSMOS_ROOT/evals/experiments/verify_loop.py\" . --command finish | python3 -c \"import json,sys;sys.exit(not all(v.get('passed') for v in json.load(sys.stdin).values()))\""}
   ]
 }

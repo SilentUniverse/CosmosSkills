@@ -31,9 +31,9 @@ always fails, so use `python`.
 
 ## Key distinctions
 
-- `jq` is JSON-only; YAML frontmatter needs `yq`. To read an issue's `status` / `blocked_by` / `refines` deterministically: `yq --front-matter=extract '.blocked_by[]' <file>`, use the workflow parser for mutations; `rg` is sufficient for a simple status inventory.
-- `rg` and `ast-grep` are complementary, not interchangeable. `rg` matches text/lines (fast, use for `^status:` and prose); `ast-grep` matches syntax tree nodes (use for "find all calls to X", "find all `as Type` assertions"). Reach for `ast-grep` only when text matching would be brittle.
-- `rg`/`fd` respect `.gitignore` and let glob exclude paths, e.g. `rg '^status:' -g '**/issues/*.md'` matches active issues without touching `issues/archive/`.
+- `jq` is JSON-only; YAML frontmatter needs `yq`. FEATURE.md unit fields are body lines, not frontmatter: read unit state through `workflow-state.py survey`, use the workflow parser for mutations; `rg` is sufficient for a simple status inventory.
+- `rg` and `ast-grep` are complementary, not interchangeable. `rg` matches text/lines (fast, use for `^- status:` and prose); `ast-grep` matches syntax tree nodes (use for "find all calls to X", "find all `as Type` assertions"). Reach for `ast-grep` only when text matching would be brittle.
+- `rg`/`fd` respect `.gitignore` and let glob exclude paths, e.g. `rg '^- status:' -g '**/FEATURE.md' .scratch` lists unit statuses without touching other `.scratch` files.
 
 ## Quoting
 

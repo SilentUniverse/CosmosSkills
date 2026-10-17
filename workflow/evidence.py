@@ -76,6 +76,8 @@ def atomic_write(path, content):
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, temporary = tempfile.mkstemp(prefix="." + path.name + ".", dir=path.parent)
     try:
+        if path.exists():
+            os.chmod(temporary, path.stat().st_mode & 0o7777)
         with os.fdopen(fd, "wb") as stream:
             stream.write(content.encode("utf-8") if isinstance(content, str) else content)
             stream.flush()
@@ -257,26 +259,16 @@ def candidate(root, ref, spec, inputs, out):
     source = source_manifest(root, tree)
     text, spec_digest = None, None
     if spec is not None:
+        import feature_doc
         spec_path = Path(spec).resolve()
-        text = spec_path.read_text(encoding="utf-8-sig").replace("\r\n", "\n").replace("\r", "\n")
+        feature = feature_doc.load(root, spec_path.parent.name)
+        if feature.path != spec_path:
+            raise ValueError("candidate Spec must be a .scratch/<feat>/FEATURE.md")
+        text = feature_doc.contract_text(feature.text)
         spec_digest = hashlib.sha256(text.encode()).hexdigest()
-        state_path = spec_path.parent / "spec-review.json"
-        state = json.loads(state_path.read_text(encoding="utf-8"))
-        accepted_path = None
-        digest_name = state.get("accepted_digest")
-        if isinstance(digest_name, str) and re.fullmatch(r"[0-9a-f]{64}", digest_name):
-            archive = spec_path.parent / "spec-acceptances" / (digest_name + ".md")
-            if archive.is_file():
-                accepted_path = archive
-        if accepted_path is None:
-            legacy = spec_path.parent / "spec-accepted.md"
-            if legacy.is_file():
-                accepted_path = legacy
-        if accepted_path is None:
-            raise ValueError("accepted Spec snapshot is missing")
-        accepted = accepted_path.read_text(encoding="utf-8-sig").replace("\r\n", "\n").replace("\r", "\n")
-        if state.get("accepted_digest") != spec_digest or accepted != text:
-            raise ValueError("candidate needs the exact accepted Spec bytes")
+        record = feature_doc.accepted_record(feature)
+        if record is None or record["spec_digest"] != spec_digest:
+            raise ValueError("candidate needs the exact accepted feature contract")
     files, retained = retain_files(root, inputs, out)
     value = {"schema_version": 1, "kind": "candidate", "commit": commit, "tree": tree,
              "source": source, "spec_digest": spec_digest, "spec_text": text,

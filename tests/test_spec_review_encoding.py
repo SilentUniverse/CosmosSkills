@@ -23,47 +23,35 @@ NODE = shutil.which("node")
 
 
 class EncodingTests(unittest.TestCase):
-    def test_cli_preserves_unicode_with_legacy_stream_encodings(self):
+    def test_cli_preserves_unicode_bom_crlf_with_legacy_stream_encodings(self):
         for encoding in ("cp1252", "gbk"):
             with self.subTest(encoding=encoding), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory) / "中文 路径 🧪"
-                feature = root / ".scratch/import"
-                feature.mkdir(parents=True)
-                text = fixtures.PRD.replace("导入取消后仍可能显示成功。", "中文输入 🧪：取消后仍可能显示成功。")
-                (feature / "PRD.md").write_bytes(
-                    b"\xef\xbb\xbf" + text.replace("\n", "\r\n").encode("utf-8")
-                )
+                text = fixtures.FEATURE.replace("导入取消后仍可能显示成功。", "中文输入 🧪：取消后仍可能显示成功。")
+                path = fixtures.plant(root)
+                path.write_bytes(b"\xef\xbb\xbf" + text.replace("\n", "\r\n").encode("utf-8"))
                 env = dict(os.environ, PYTHONIOENCODING=encoding, PYTHONUTF8="0")
-                for command in ("render", "validate"):
-                    args = [sys.executable, "-B", str(SCRIPT), command, str(root), "import"]
-                    if command == "validate":
-                        fixtures.accepted_spec_fixture(root)
-                        args.append("--require-accepted")
-                    result = subprocess.run(args, env=env, capture_output=True, timeout=20)
-                    output = result.stdout.decode("utf-8", errors="strict")
-                    errors = result.stderr.decode("utf-8", errors="strict")
-                    self.assertEqual(0, result.returncode, errors)
-                    if command == "render":
-                        html_path = Path(json.loads(output)["html"])
-                        self.assertEqual(feature, html_path.parent)
-                        self.assertRegex(html_path.name, r"^spec-review-[0-9a-f]{64}\.html$")
-                state = json.loads((feature / "spec-review.json").read_bytes().decode("utf-8"))
-                self.assertEqual(review.prd_digest(feature / "PRD.md"), state["accepted_digest"])
-                snapshot = feature / "spec-acceptances" / (state["accepted_digest"] + ".md")
-                self.assertEqual(text.encode("utf-8"), snapshot.read_bytes())
+                run = lambda *args: subprocess.run([sys.executable, "-B", str(SCRIPT)] + list(args),
+                                                   env=env, capture_output=True, timeout=20)
+                result = run("render", str(root), "import")
+                self.assertEqual(0, result.returncode, result.stderr.decode("utf-8", errors="replace"))
+                html_path = Path(json.loads(result.stdout.decode("utf-8", errors="strict"))["html"])
+                self.assertEqual((path.parent / "reviews").resolve(), html_path.parent.resolve())
                 html = html_path.read_bytes().decode("utf-8", errors="strict")
                 self.assertIn("中文输入 🧪", html)
                 self.assertIn('<meta charset="utf-8">', html)
-                state = json.loads((feature / "spec-review.json").read_bytes().decode("utf-8"))
-                self.assertEqual(review.prd_digest(feature / "PRD.md"), state["accepted_digest"])
+                fixtures.accept(root)
+                record = review.feature_doc.accepted_record(review.feature_doc.load(root, "import"))
+                self.assertEqual(review.feature_doc.contract_text(text), record["text"])
+                self.assertNotIn("\r", record["text"])
+                result = run("validate", str(root), "import", "--require-accepted")
+                self.assertEqual(0, result.returncode, result.stdout.decode("utf-8", errors="replace"))
+                self.assertIn("accepted", result.stdout.decode("utf-8", errors="strict"))
                 missing = root / "不存在 🧪"
-                result = subprocess.run(
-                    [sys.executable, "-B", str(SCRIPT), "render", str(missing), "中文功能"],
-                    env=env, capture_output=True, timeout=20,
-                )
+                result = run("render", str(missing), "中文功能")
                 self.assertEqual(1, result.returncode)
-                self.assertIn(str(missing), result.stderr.decode("utf-8", errors="strict"))
-                self.assertIn("中文功能", result.stderr.decode("utf-8", errors="strict"))
+                errors = result.stderr.decode("utf-8", errors="strict")
+                self.assertIn("中文功能", errors)
 
     def test_http_unicode_feedback_survives_approve_and_feedback_actions(self):
         comment = "中文反馈 🧪\r\n第二行保留"
@@ -74,19 +62,15 @@ class EncodingTests(unittest.TestCase):
             with self.subTest(action=action, item=has_item, global_=has_global):
                 with tempfile.TemporaryDirectory() as directory:
                     root = Path(directory) / "中文 HTTP 🧪"
-                    fixtures.plant_feature(root)
-                    prepared, holder, thread, outcomes = fixtures.BridgeTests().bridge(root)
-                    payload = {
-                        "token": holder["token"], "spec_digest": prepared["digest"],
-                        "action": action, "items": [],
-                    }
+                    fixtures.plant(root)
+                    prepared, url, token, thread, outcomes = fixtures.start(root)
+                    payload = {"token": token, "spec_digest": prepared["digest"], "action": action, "items": []}
                     if has_item:
                         payload["items"].append({"id": "D1", "action": "change", "comment": comment})
                     if has_global:
                         payload["global_feedback"] = global_feedback
                     raw = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-                    self.assertIn(("🧪" if has_item else "🚫").encode("utf-8"), raw)
-                    request = Request(holder["url"] + "submit", data=raw,
+                    request = Request(url + "submit", data=raw,
                                       headers={"Content-Type": "application/json; charset=utf-8"})
                     try:
                         with urlopen(request, timeout=5) as response:
@@ -103,9 +87,12 @@ class EncodingTests(unittest.TestCase):
                     if has_global:
                         self.assertEqual(global_feedback, result["global_feedback"])
                     self.assertEqual(result, outcomes[0])
-                    state = review.load_state(root / ".scratch/import")
-                    self.assertIsNone(state["accepted_digest"])
-                    self.assertFalse((root / ".scratch/import/spec-accepted.md").exists())
+                    (record,) = fixtures.records(root)
+                    self.assertFalse(record["accepted"])
+                    if has_item:
+                        self.assertEqual(comment, record["event"]["items"][0]["comment"])
+                    if has_global:
+                        self.assertEqual(global_feedback, record["event"]["global_feedback"])
 
 
 @unittest.skipUnless(NODE, "Node is required to execute review JavaScript")
@@ -121,7 +108,7 @@ class FeedbackJavaScriptTests(unittest.TestCase):
 const vm=require('vm'); const callbacks={}; let copiedText=null;
 const out={value:'',focus(){},select(){},set textContent(value){this.value=value;}};
 const button={textContent:'复制反馈',addEventListener(event,fn){callbacks[event]=fn;}};
-const nodes={'feedback-data':{textContent:JSON.stringify({spec:'PRD.md',spec_digest:'abc',items:{}})},
+const nodes={'feedback-data':{textContent:JSON.stringify({spec:'import',spec_digest:'abc',items:{}})},
  'feedback-text':out,'global-feedback':{value:'中文意见 🧪\n第二行'},'copy-feedback':button,
  'approve':{addEventListener(){}}};
 const navigator={};
@@ -155,7 +142,7 @@ const out={value:'',focus(){},select(){},set textContent(value){this.value=value
 const global={value:inputs==='global'?'整体意见 🧪':'',addEventListener(event,fn){callbacks.input=fn;}};
 const text={value:inputs==='item'?'保留条目意见 🧪':''};
 const boxes=[{querySelector(){return text;},getAttribute(){return 'D1';}}];
-const nodes={'feedback-data':{textContent:JSON.stringify({spec:'PRD-v2.md',spec_digest:'abc',items:{}})},
+const nodes={'feedback-data':{textContent:JSON.stringify({spec:'import',spec_digest:'abc',items:{}})},
  'feedback-text':out,'global-feedback':global,
  'copy-feedback':{addEventListener(event,fn){callbacks.copy=fn;}}};
 const document={getElementById(id){return nodes[id];},
@@ -171,7 +158,7 @@ const document={getElementById(id){return nodes[id];},
         for mode in ("empty", "item", "global"):
             with self.subTest(mode=mode):
                 result = self.run_js(review.STATIC_JS, harness, mode)
-                self.assertIn("Spec: PRD-v2.md\nDigest: abc", result["feedback"])
+                self.assertIn("Spec: import\nDigest: abc", result["feedback"])
                 self.assertTrue(result["feedback"].startswith("SPEC FEEDBACK"))
                 self.assertNotIn("我已审阅并批准", result["feedback"])
                 if mode != "empty":

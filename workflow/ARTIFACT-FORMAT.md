@@ -1,52 +1,31 @@
 # Artifact Format
 
-The single source of truth for the YAML frontmatter and index files that the engineering
-skills produce and consume. Every skill that reads or writes an issue, PRD, evidence, or index
-file references THIS document instead of restating the schema. Keeping the contract in one
-place is what lets `/tdd` and engineering-view tools parse deterministically instead of
-grepping prose.
+The single source of truth for the engineering artifacts the skills produce and consume. Skills
+reference this document instead of restating schemas; the shared parser `feature_doc.py` implements
+it once for every reader (artifact gate, engineering state, review surface and candidate binding).
 
-Shared gate scripts and contracts (`workflow-state.py`, `evidence.py`, `verify-artifacts.py`, `test-governance.py`,
-`TEST-POLICY.md`, this file) sit one directory above every skill; skills reference them as
-`../<name>`. Path text resolves `..` against the loading skill's directory: through an installed
-skill link it stays at the shared skills root instead of traversing the physical link target.
-A tooling skill reads them from the sibling `workflow/` tree in the source checkout; installed
-roots merge both trees.
+Shared gate scripts and contracts (`feature_doc.py`, `workflow-state.py`, `evidence.py`,
+`verify-artifacts.py`, `test-governance.py`, `TEST-POLICY.md`, this file) sit one directory above
+every skill; skills reference them as `../<name>`. Path text resolves `..` against the loading
+skill's directory: through an installed skill link it stays at the shared skills root instead of
+traversing the physical link target. A tooling skill reads them from the sibling `workflow/` tree
+in the source checkout; installed roots merge both trees.
 
-All frontmatter is YAML between `---` fences at the very top of the file. The human-readable
-body (Chinese, per `~/.claude/CLAUDE.md`) follows below the closing `---`.
-
-New fields are optional at introduction; a field becomes required only via a `/cosmos-setup`
-migration pass.
+Frontmatter is YAML between `---` fences at the very top of a file. The human-readable body is
+Chinese, per `~/.claude/CLAUDE.md`.
 
 ## Naming & location conventions
 
-Where an artifact lives and how it is cased are not arbitrary; both follow rules. When you add a
-new artifact, place and name it by these rules instead of guessing; if it doesn't fit, the rules
-(not the artifact) are what to revisit.
-
-**Location — three tiers by scope and lifespan:**
-
 | Tier | Lives at | What belongs here | Test |
 |---|---|---|---|
-| **Project-level singletons** | repo **root** | `CONTEXT.md`, `CODEBASE.md` | one per repo, read at session start, true project-wide |
+| **Project-level singletons** | repo **root** | `CONTEXT.md`, `CODEBASE.md` | one per repo, true project-wide |
 | **Long-lived series docs** | `docs/` | `adr/`, `agents/` | kept long-term, humans read them, grows file-by-file |
-| **Feature-local work state** | `.scratch/` | `<feat>/PRD`, `issues/`, receipts and review objects | feature-local; required evidence is retained |
+| **Feature-local work state** | `.scratch/<feat>/` | `FEATURE.md`, `runs/`, `reviews/`, receipts, candidates, evidence | tracked in Git with the code; referenced evidence is retained; `*.lock` files are disposable |
 
-The rule of thumb: **the more project-wide / long-lived / read-at-startup an artifact is, the closer
-to root it lives; the more feature-local and disposable, the deeper into `.scratch/` it goes.**
-
-**Casing — two classes:**
-
-- **ALL-CAPS** (`CONTEXT.md`, `CODEBASE.md`,
-  `PRD.md`) — a **singleton with special standing** in its directory: at most one exists, and it is
-  the landmark file you look for by name.
-- **kebab-case** (`adr/NNNN-slug.md`, `issues/NN-slug.md`, `agents/*.md`) — a **member of a series**:
-  many will exist, the name carries content (a slug, a number, a date).
-
-**One deliberate exception:** everything under `.scratch/` that is *per-feature
-working state* uses lowercase names apart from the established PRD landmark. A `.scratch` path
-alone never makes a referenced proof or pending review disposable.
+The more project-wide and long-lived an artifact is, the closer to root it lives. ALL-CAPS names a
+singleton landmark (`CONTEXT.md`, `CODEBASE.md`, `FEATURE.md`); kebab-case names a series member
+(`adr/NNNN-slug.md`). A `.scratch` path alone never makes a referenced proof or pending review
+disposable.
 
 ## CODEBASE.md — structural map (generated, not authored)
 
@@ -155,204 +134,89 @@ Rules:
 - Use **CONTEXT.md domain vocabulary** and the project's own architecture terms; [codebase-design](codebase-design/SKILL.md) supplies reference vocabulary (module, seam, depth), not a mandate.
   Decisions → ADR; vocabulary → CONTEXT.md; transient focus and speculation → nowhere.
 
-## Issue files — `.scratch/<feat>/issues/NN-slug.md`
+## Feature document — `.scratch/<feat>/FEATURE.md`
 
-```markdown
----
-contract_version: 2           # verification + SPEC preflight contract; omitted = legacy v1
-# verifier_schema: 2          # add only with contract_version 3 + verifier schema 2
-type: issue
-feature: balance
-status: ready       # pending | ready | done; pending is not dispatchable
-category: enhancement         # enhancement | detail | redo | fix
-blocked_by: [01-init-schema]  # list of sibling issue slugs; [] if none
-refines: 03-balance-api       # parent slice this elaborates; omit for top-level slices
-touches: [src/balance]
-test_paths: [tests/balance/test_api.py]
-exclusive_resources: [device:pixel-9] # omit when no exclusive runtime resource
-created: 2026-06-18           # ISO date
----
+Only giant tasks needing a persistent execution queue create one, and each feature has exactly one.
+Ordinary work creates no `.scratch` planning file. The writing template is
+[spec/FEATURE-TEMPLATE.md](spec/FEATURE-TEMPLATE.md); this section is the machine contract.
 
-## 上级（Parent）
-## 做什么（What to build）
-## 验收标准（Acceptance Criteria）
-## 验证设计（Verification Design）
-## Comments
-```
+Frontmatter: `type: feature`, `feature` equal to the directory name, ISO `created`, and optional
+`review: required`. H2 sections are found by keyword:
 
-Field rules:
+| Section | Owner of | Machine rules |
+|---|---|---|
+| 目标与边界 | `- 问题：/- 结果：/- IN：/- OUT：` lines | reviewed contract |
+| 需求 | `- R<n> — text`, optional indented `Before：` and `验收：` | unique R ids |
+| 决策 | `### D<n> — title` with optional `Refs:` (R only), `Door: one-way\|two-way`, `Blast radius:`, `Review: human` | unique D ids; refs declared |
+| 不变量 | `- C<n> — text` | unique C ids |
+| 端到端验证 / 尚未明确 / other sections | prose and questions | reviewed contract |
+| 共享验证 | one fenced JSON block plus `- 预检 <name>：…` lines | see below |
+| 任务 | `### T<n> — title` units | see below |
+| 变更记录 | one dated line per contract change | engineering record |
 
-- **contract_version** — before writing cards, `/spec` selects `3` when two or more non-graphical
-  cards share the feature's `verifier.json` base; standalone, non-sharing, and graphical cards use
-  `2`. Changed profile fingerprint keys or commands go on
-  the card's 偏差 lines rather than back to v2 boilerplate. Version 2 makes `验证设计`, the
-  execution-readiness fields, passed P# preflights, and every AC→evidence→P# mapping
-  machine-required. Historical v2 prose completion uses `预检重放` and `验证命令`; new
-  completion cites validated check evidence and its covered ACs. Omitted means legacy v1 so upgrades do not break old projects.
-  `/spec` upgrades a legacy `ready` issue it edits only after actually running and recording the
-  preflights; it never upgrades immutable `done` issues in place.
-- **verifier_schema** — schema-2 verifier cards pin `2`; the gate rejects a profile downgrade.
-  Omitted only on existing schema-1 cards, whose unbound prose receipts remain read-only compatible.
-- **type** — always `issue`.
-- **feature** — the `<feat>` slug; must equal the parent directory name. Lets the consuming
-  skills group issues without parsing paths.
-- **status** — `pending`, `ready` and `done`. Pending needs `pending_reason` and a concrete goal; ready records engineering readiness, not human acceptance. TDD may park a chronically failing ready
-  card (`workflow-state.py park <repo-root> <feat> <slug> --reason TEXT`), recording `pending`
-  with a `parked <date>: <reason>` prefix; un-parking is a `/spec` revision or explicit
-  re-authorization. A completed contract preserves its history. Later behavior changes create
-  detail/redo/fix work; missing or contradicted evidence refuses effective completion independently
-  of a status marker. Native execution status is never copied into this field.
-  Hands-on checks no agent can run live in the PRD's 端到端验证 or, without a parent PRD, the
-  issue's `## 手动验证`; never encoded as an engineering status or as issue AC.
-- **category** —
-  - `enhancement` — a normal vertical slice from the PRD.
-  - `detail` — a small sub-behavior added later that does NOT warrant a PRD revision. MUST carry
-    a `refines:` pointing at the parent slice. This is the field that keeps incremental detail
-    work from becoming orphan issues.
-  - `redo` — re-does a `done` issue the new PRD invalidated. Filename is `NN-redo-<slug>.md`.
-  - `fix` — a regression fix against a `done` slice. Filename is `NN-fix-<slug>.md`.
-- **experience_review** — graphical-UI-only opt-in. Omit the field for backend, library, API, CLI,
-  document, report, configuration, and other non-graphical work; omission preserves the ordinary V2
-  path byte-for-byte. `runtime` requires operated-state and runtime-integrity evidence. `graded`
-  adds an independent rubric review when visual hierarchy/usability is itself part of the aligned
-  goal. Agent-capturable visual quality is not human-only work.
-- **blocked_by** — list of slugs (filename without `.md`) that must reach `done` first.
-  A slug may be a live sibling under `issues/` **or** a legacy `done` issue in `issues/archive/`.
-  The gate validates both locations and `/tdd`'s drain mode topologically
-  sorts on this. `[]` (or omit) means no blocker. It is the only dependency field; new cards do not
-  repeat the list in a body section.
-- **refines** — slug of the parent slice this elaborates (live or legacy `issues/archive/`). Required
-  for `detail`/`redo`/`fix`, omitted for top-level `enhancement` slices. Missing or ambiguous lineage
-  returns to `/spec`; cleanup never guesses it.
-- **touches** — expected edited directories/modules; shared root files are named explicitly.
-  This is engineering write scope, not an execution lock. Overlapping writes in a shared checkout
-  serialize; independent checkouts must be real and supported by the native execution entry.
-- **test_paths** — repo-relative test files created or modified. Record actual ownership; preserve
-  completed history. Log-only slices can omit it. Existing coverage should be reused before adding tests.
-- **exclusive_resources** — stable IDs such as device/database/build-output names observed from
-  real verifier requirements. The project fixture/resource service or CI provides exclusion and
-  recovery. The field declares a constraint; Cosmos maintains no resource registry.
-- **created** — ISO date, set once at creation, never changed.
+**Reviewed contract.** Every H2 section except 共享验证, 任务 and 变更记录, normalized to LF. Its
+SHA-256 is the feature's `spec_digest`. A feature has a **recorded gate** when frontmatter says
+`review: required`, any decision carries `Door: one-way`, or any acceptance was ever recorded;
+`Review: human` alone is confirmed in conversation. Engineering edits (units, verification, change
+log) never invalidate acceptance.
 
-The body keeps the section headings from `/spec`'s issue template. Ready v2/v3 cards give each AC
-exactly one backticked command mapping; validation and issue admission use the same command parser.
-Dependency state comes only from frontmatter `blocked_by`; legacy `前置依赖` sections remain readable but are not generated or
-projected into worker packets. The feature-scoped write gate rejects that duplicate section on new
-ready v2/v3 cards. `验证设计` maps every AC to an
-agent-runnable seam, expected evidence, and at least one passed P# preflight. It includes:
+**共享验证 JSON.** Keys: `cwd` (repo-relative existing directory), `environment` (non-empty map of
+identity name → value; every completion receipt's check definition must carry the same pairs),
+`prepare` (executed setup with result, or `无（已就绪）`), `commands` (name → exact command line),
+and optional `experience` for graphical UI (`id`, `surface: graphical-ui`, positive `viewport`,
+`theme`, unique `states`, `runtime_gate` with `unexpected_console_errors`, `uncaught_page_errors`,
+`unexpected_failed_requests`, `csp_violations`, `decoded_media_failures` all `0`, and for graded
+review a satisfiable `rubric` with `id`, `dimensions`, `score_min`, `score_max`, `min_total`,
+`min_dimension`). Unknown keys are rejected. `- 预检 <name>：`<action>` → passed；evidence=…；checked=YYYY-MM-DD`
+records the observed readiness of a command.
 
-```markdown
-- 接缝：<public seam>
-- 工作目录：`<repo-relative cwd>`
-- 环境指纹：`git=<sha|no-vcs>; lock=<hash|none>; runtime=<versions>; tools=<versions>; services=<states>`
-- 前置条件：`fixtures=<state>; services=<state>; permissions=<state>; network=<mode>`
-- 准备动作：`<repo-declared setup actually executed, with result, or 无（已就绪）>`
-- P1 预检：`<representative action>` → passed；observed=<exit/assertion>；evidence=<path|inline>；checked=<YYYY-MM-DD>
-- 体验验证：`contract=.scratch/<feat>/experience-contract.json; states=<states>; evidence=.scratch/<feat>/evidence/<slug>-experience.json` # only when experience_review is present
-- #1 → `<final verifier>`；预检：P1；预期证据：<assertion + exit/tally/artifact>；反证：<defect that must fail> # append 反证 only for opted-in graphical UI
-```
+**Units.** A unit is the H3 block `### T<n> — title` under 任务, ending at the next heading. Field
+lines, each at most once:
 
-Each P# records an actually observed representative harness action, not a future RED test. Reuse
-matching evidence under [test policy](TEST-POLICY.md), including evidence returned by the authorized
-execution phase. `准备动作` is either explicit `无` or contains the executed setup's `result=`.
-P# lines use
-unique positive integers, contain a backticked action, literal `passed`, `observed=`, `evidence=`,
-and ISO `checked=` date. Every AC mapping references only declared P# IDs. `工作目录`, all fingerprint
-keys (`git/lock/runtime/tools/services`), and all prerequisite keys
-(`fixtures/services/permissions/network`) are required. The completion record still
-appends to `## Comments`. An opted-in graphical-UI mapping also carries a non-empty `反证`; an actual
-TDD RED result is sufficient falsification for ordinary deterministic code tests and needs no prose
-duplicate. An opted-in experience line references the single contract and planned evidence files;
-its done record references a validated passing evidence JSON. Schema + template:
-`tdd/COMPLETION-RECORD.md`; frontmatter `status` and the `### 完成` block move together.
+- `- status:` `pending | ready | done`; `pending` needs `- reason:`. `done` is written only by
+  `workflow-state.py close`; `park` writes `pending` with a reason; `run` executes a unit command and
+  keeps its log under `runs/`.
+- `- covers:` R/D anchors whose accepted text the worker must honor; `- blocked_by:` and
+  `- refines:` name sibling units; `- touches:`, `- test_paths:`, `- resources:` declare write
+  scope, owned tests and exclusive runtime resources (constraints, not locks).
+- `- 做什么：` one to three sentences of this unit's delta (required).
+- `- [ ] <observable result> → `<command name>`` — at least one for `ready`/`done`; every AC maps
+  to exactly one command known to the effective verifier, and every used command has a passed 预检.
+- `- 命令 <name>：`<command>`` / `- 预检 <name>：…` add or override a command for this unit only.
+- `- experience: runtime|graded; states=a,b; evidence=.scratch/<feat>/evidence/<file>.json` only for
+  opted-in graphical UI; requires 共享验证 `experience` (graded ⇔ rubric).
 
-## Graphical UI experience contract and evidence
+The unit **contract digest** is the SHA-256 of its body lines excluding `status` and `reason`, with
+trailing blank lines removed. A done unit's `#### 完成 — YYYY-MM-DD` block holds `- contract:` that
+digest, optional `- candidate:`, and evidence lines: `- evidence: <run log> sha256=<hex>; AC <numbers>`
+(written by `close` from a `workflow-state.py run` log) or `- evidence: <receipt>.json; AC <numbers>`. A
+later edit to a done unit's contract invalidates it; changes go to a new `refines:` unit.
 
-Created only when an issue opts into `experience_review`. The contract
-`.scratch/<feat>/experience-contract.json` is the single durable source for the aligned UI
-contract (schema_version, id, surface `graphical-ui`, mode `runtime|graded`, viewport, theme,
-states, all-zero `runtime_gate` counters; `graded` adds `rubric` with the
-[EXPERIENCE-RUBRIC.md](code-review/EXPERIENCE-RUBRIC.md) shape and floors). Evidence
-`.scratch/<feat>/evidence/<slug>-experience.json` is written only after the operated states ran:
-verdict `pass`, one entry per declared state with a retained real screenshot (signature-checked),
-the same zero counters, and for `graded` a `judge` block whose floors the gate re-checks. Runtime
-artifacts reject `rubric`/`judge` fields; a scored claim must opt into `graded` before execution
-rather than smuggling an unchecked score into runtime evidence. Both paths stay repo-relative under
-`.scratch/<feat>/`. Canonical JSON examples, exact field rules,
-and the rubric dimensions live in [EXPERIENCE-RUBRIC.md](code-review/EXPERIENCE-RUBRIC.md).
+**Engineering states** (`workflow-state.py survey`): `done` (record proves every AC), `invalid`
+(done without valid proof), `pending`, `blocked` (structural problem, unfinished or invalid
+dependency, missing acceptance, or covered anchors changed since acceptance) and `ready`.
 
-## Execution state and historical proof
+**Completion proof.** Evidence lines together cover every AC. A run log keeps its pinned SHA-256,
+starts with `$ <the mapped command>`, records `# tree=<git tree of the working files outside
+.scratch/>` (or `no-vcs`), and ends with `exit=0`; one log proves AC of one command, and `close`
+accepts it only while the working files still have that tree. Without Git the tree cannot be
+checked; use receipts when that matters. A
+receipt validates through `evidence.py`, passes, is not a preflight, applies to the named candidate
+(or all receipts share one candidate), matches the mapped command argv (POSIX or Windows parsing),
+共享验证 `cwd` and `environment`. A feature with a recorded gate accepts only receipts, whose
+candidate carries an accepted contract digest; at close time its
+covered anchors must match the latest acceptance and no known failed attempt of the same check may
+exist. Experience units also need passing experience evidence: matching contract id and mode, zero
+runtime counters, a valid retained screenshot per declared state, and for graded mode scores within
+the rubric floors.
 
-Native host records are authoritative for running tasks, sessions, retries, cancellation and
-recovery. Engineering artifacts may retain a native correlation ID but never mirror its lifecycle.
-New work has no Cosmos wave ledger, managed batch, job queue or global verification epoch.
+## Review records — `.scratch/<feat>/reviews/`
 
-Historical managed-proof closures remain read-only compatible while needed: preserve original
-contract/digest, log and dependency closure. A compatibility reader must not import or start the
-retired orchestrator. Migrate retained objects only after their complete closure is verified;
-active old writers finish or hand over explicitly at a quiescent boundary.
-
-Preflight evidence is reusable when action, logical cwd, relevant inputs, prerequisites and
-result-affecting environment still match. It is not scoped to a session or batch. A representative
-observation can be referenced directly in P#; reusable machine proof uses the same `evidence.py`
-check format with scope `preflight` and no mandatory Spec. There is no separate preflight cache or
-receipt writer. Readiness proof cannot substitute for behavioral or final-candidate verification.
-
-## Continuation notes
-
-A note is optional, unstructured Markdown at an explicit path, normally
-`.scratch/<feat>/handoff.md` or `.scratch/handoff.md`. It contains only otherwise inaccessible
-unfinished facts and exact pointers; see [handoff](handoff/SKILL.md) and [resume](resume/SKILL.md).
-There is no frontmatter schema, active/consumed state, automatic latest-note selection or integrity
-protocol. Validate the referenced engineering objects at use; note text is never approval or proof.
-
-## Verifier profile — `.scratch/<feat>/verifier.json`（contract v3）
-
-Feature-scoped defaults owned by `/spec`; selection and ownership of the shared profile follow the
-single-source algorithm in [VERIFICATION-DESIGN.md](spec/VERIFICATION-DESIGN.md), and PRDs do not
-copy this readiness data. The feature-scoped `verify-artifacts.py --feature <feat>` gate rejects a newly
-written all-v2 queue when such a sharing group exists, while whole-tree checks remain compatible
-with legacy queues; when a profile is active, it also rejects any ready v2 card that copies that
-profile's environment base instead of referencing it, and rejects an unreferenced profile. Cards
-with `contract_version: 3` reference it from
-`## 验证设计` via `- profile: verifier.json` and carry only machine-readable deviations. A
-`profile:NAME` action resolves through `commands`.
-
-```json
-{
-  "schema_version": 2,
-  "cwd": ".",
-  "fingerprint": "git=<sha|no-vcs>; lock=<sha256|none>; runtime=<versions>; tools=<versions>; services=<states>",
-  "prerequisites": "fixtures=<state>; services=<state>; permissions=<state>; network=<mode>",
-  "prepare": "<setup with result, or 无（已就绪）>",
-  "commands": {"scoped": "<command>", "full": "<command>", "build": "<command>"},
-  "completion_commands": ["scoped"]
-}
-```
-
-Only two deviation forms exist. Fingerprint `KEY` must already exist; a command deviation may
-replace a shared `NAME` or fill a card-local name declared by `completion_commands`:
-
-```markdown
-- 偏差 fingerprint.KEY：`<replacement value>`
-- 偏差 command.NAME：`<replacement command>`
-```
-
-Use `profile:NAME` in both P# and AC mappings when the same named command is the evidence; do not
-repeat its expanded command in every card. Under schema 2, each AC maps to exactly one
-`profile:NAME`, and that name must appear in `completion_commands`. One or more named final commands
-may divide AC coverage; every receipt can claim only the ACs mapped to its verifier, and their union
-must cover every AC. Readiness-only commands cannot close an issue.
-
-New profiles use schema 2 and their cards pin `verifier_schema: 2`. Schema 1 is read-only
-compatibility for unpinned cards with prose AC receipt references.
-The gate requires the file (valid JSON, non-empty `commands`, schema-2 `completion_commands`,
-fingerprint keys git/lock/runtime/tools/services, and schema-2 readiness keys
-fixtures/services/permissions/network) for every v3 card. Graphical-UI issues stay on
-contract_version 2. Machine
-execution receipts under `.scratch/<feat>/receipts/` are retained evidence. Legacy schema-2
-receipts preserve their original issue/profile bindings for compatibility. New proof can map one
-valid check to several Issues; execution identity excludes Issue/session/batch membership.
+Written only by `spec/scripts/spec-review.py`. Each human event is one immutable, self-digested
+`<event-id>.json` of kind `spec_decision` with `spec_digest`, `accepted`, `decided_at`, the raw event
+and, when accepted, the exact accepted contract `text`. The latest accepted record is the baseline
+for Delta review and unit admission. Rendered pages `page-<hash>.html` are immutable projections,
+never approval. Any malformed record fails the gate.
 
 ## Fixed candidate, evidence and delivery review
 
@@ -369,7 +233,7 @@ import validates these facts; a model-authored summary cannot become a passing r
 attempts are immutable, including failures. Shared proof is valid only where the mapped AC/check
 contract matches. Cross-candidate reuse needs proof that the complete relevant input closure is unchanged.
 
-Delivery review binds the accepted `spec_digest` when a Spec is required, scope, `candidate_ref`, external/artifact digests,
+Delivery review binds the accepted `spec_digest` when review is required, scope, `candidate_ref`, external/artifact digests,
 review-model/page digest, required proof references and original human decision event. The displayed
 object is fixed before approval; current workspace HEAD is not a substitute. New candidates do not
 inherit old approvals. Review can proceed while unrelated development continues.
@@ -381,11 +245,11 @@ Render versions are immutable; navigation cards must open the actual fixed bytes
 local review bridge remains a transport until native UI preserves these fields and raw event origin.
 
 Evidence records have `schema_version`, `kind` and canonical JSON `digest`. Kind `candidate` retains
-`commit` (null for a tree-only candidate), `tree`, source entries, accepted `spec_digest`/`spec_text`
-(both null when no Spec applies) and explicit input hashes; Git retains the source through a
-candidate ref. A Parent-bound Issue still requires a matching accepted Spec. Completion may name
-one `candidate` path so unchanged-input receipts from different source candidates can prove that
-explicit target; without it, all completion receipts must share one candidate. Kind `check_input` binds the prepared definition,
+`commit` (null for a tree-only candidate), `tree`, source entries, the accepted contract
+`spec_digest`/`spec_text` (both null without review) and explicit input hashes; Git retains the
+source through a candidate ref. Completion may name one `candidate` path so unchanged-input receipts
+from different source candidates can prove that explicit target; without it, all completion
+receipts must share one candidate. Kind `check_input` binds the prepared definition,
 candidate/input digests and native log/exit locations. Kind `check_receipt` binds that context,
 check/input identities, outcome/exit, optional measured duration, retained log/exit hashes and declared
 output files with their retained bytes. Review artifacts must match verified output or fixed input hashes.
@@ -394,179 +258,27 @@ Kind `candidate_review` binds candidate/Spec, scope, receipts and artifact hashe
 Later conflicting checks block a new delivery decision; they do not erase the recorded human event.
 Validation of an existing decision checks its fixed references and retained bytes.
 
-New completion uses `- evidence: <receipt path>; AC 1,2`; several Issues may cite one valid check.
-Its check definition must match the AC command, logical cwd and declared environment contract;
-the accepted candidate Spec must cover the Issue's Parent anchors. See the environment example in
-[FULL-SUITE.md](tdd/FULL-SUITE.md).
-Commands are `candidate`, `prepare`, `reuse`, `seal`, `review` and `validate`; exact invocation is in
+Several units may cite one valid check. Commands are `candidate`, `prepare`, `reuse`, `seal`, `review` and `validate`; exact invocation is in
 [FULL-SUITE.md](tdd/FULL-SUITE.md). The helper never runs tests or schedules tasks.
 
-## PRD files — `.scratch/<feat>/PRD.md` / `PRD-vN.md`
+## Continuation notes
 
-```markdown
----
-type: prd
-feature: balance
-version: 2                    # 1 for PRD.md, N for PRD-vN.md
-supersedes: PRD.md            # filename of the version this replaces; omit for v1
-created: 2026-06-18
----
-
-## 问题（Problem）
-## 方案（Solution） ... (template: `/spec`'s PRD-TEMPLATE.md)
-```
-
-The skills read the highest `version` whose file is not listed in any other file's `supersedes`.
-A compressed PRD is recognizable by `## 需求记录源`; that section must contain `- 路径：` with a
-backticked repo-relative Git-tracked file and `- SHA-256：` with its 64-character lowercase digest.
-The gate reads and hashes the source on demand. Ordinary PRDs omit this section and pay no Git/hash
-probe.
-
-A PRD may carry stable review anchors: `R#` requirement bullets in 用户场景, `D#` decision
-subsections (optional `Refs:`/`Door:`/`Blast radius:` lines) in 实现决策, `S#` rows in 实施切片,
-and `R#` ID rows in 测试决策. Declared anchors are gate-validated: family-unique IDs, closed refs
-(D→R, S covers→R/D, S depends→S, 测试决策→R), acyclic `Depends`, and a `key|routine|verification`
-review token. A PRD without anchors stays compatible. Anchored PRDs feed the deterministic review
-surface ([spec/REVIEW.md](spec/REVIEW.md)).
-
-## Spec review state — `.scratch/<feat>/spec-review.json` + `spec-accepted.md`
-
-Minimal machine state of the human review bridge, written only by
-`spec/scripts/spec-review.py` (`render`/`review`). Raw submissions are retained in
-`spec-review-events/`; the current-state JSON stores references and hashes. Schema 1:
-
-```json
-{
-  "schema_version": 1,
-  "spec": "PRD-v3.md",
-  "last_rendered_digest": "<64-hex>",
-  "last_rendered_items": {"R1": "<64-hex>", "D1": "<64-hex>", "S1": "<64-hex>"},
-  "accepted_digest": null,
-  "accepted_spec": "PRD-v3.md",
-  "accepted_items": {"R1": "<64-hex>", "D1": "<64-hex>", "S1": "<64-hex>"}
-}
-```
-
-Delta uses the intact accepted snapshot when present; before first acceptance, `last_rendered_*`
-supplies the comparison hashes. Re-rendering cannot reset pending changes. The `accepted_*` half records human acceptance of
-exact bytes: the digest, the PRD name, and the item-level ledger at accept time. Acceptance also
-writes the accepted PRD bytes to `.scratch/<feat>/spec-acceptances/<digest>.md` (single immutable
-snapshot; no second alias copy) and records the raw event digest in `accepted_event`; the snapshot
-digest equals `accepted_digest`, so in-place edits of the snapshot are detectable. Readers resolve
-the snapshot by `accepted_digest`, falling back to a legacy `spec-accepted.md` alias written by
-older versions. The ledger and snapshot are
-the recovery path for an edited-after-acceptance alarm:
-`spec-review.py validate <repo-root> <feature> --require-accepted` prints the item-level delta
-against `accepted_items`, and the digest-named snapshot holds the bytes to diff against. Item keys are
-`[RDSCKQ]\d+` plus `section:problem`, `section:solution`, `section:scope`, `section:acceptance`,
-`section:context`, `section:change`. R hashes include Before and complete test rows; section hashes
-include semantic headings. C/K/Q and global sections participate in change detection; only
-`section:change` is explanatory, not a design constraint. Older R/D/S-only maps remain readable;
-without an accepted snapshot they require Full review before complete Delta comparisons.
-
-Read-only issue start and ready-card validation share state shape and acceptance
-integrity checks. With a complete ledger, each ready card names a Parent PRD/S/R/D pointer in 上级;
-refs must cover its slice's Covers. Both source and live head must match the accepted snapshot for
-those anchors, their transitive dependencies and global constraints. Independent pending additions
-can coexist with old ready work; affected or unbound cards cannot proceed. Legacy acceptance records
-without complete hashes allow cards without Parent only when the whole head matches the accepted digest.
-`/spec` binds unassigned open cards when upgrading; done
-history is preserved. These checks establish source identity and declared coverage, not semantic
-equivalence of Issue prose. See [REVIEW.md](spec/REVIEW.md#acceptance-and-materialization) for human acceptance.
-Without review state or Parent, admission does not load the review module. Either requires the helper.
-The gate requires schema 1, `spec` naming an existing PRD in the directory, and well-formed digests and
-item keys; `accepted_items` without the snapshot
-file, or a snapshot whose digest drifted, are violations. Once any issue or `verifier.json` is
-materialized in the feature, `accepted_digest` must be non-null and match an intact PRD file; an
-unaccepted review therefore cannot materialize, and an accepted snapshot cannot be edited in
-place. Rendered review pages are fixed by review identity and never overwritten while referenced.
-A page is a deterministic projection, not an approval event; retain its bytes when review provenance
-or an outstanding decision references it.
-
-## Current-reality projection
-
-`workflow-state.py inspect <repo-root> <feat> --format json|human` derives effective delivered
-behavior from canonical done issues whose retained completion proof validates. Invalid or missing
-proof is reported separately; a status marker alone never enters delivered. It reads top-level and legacy archive locations, folds completed
-`redo` siblings by `refines`, and includes source paths plus SHA-256 digests. It never writes a file.
-
-Legacy `.scratch/<feat>/SUMMARY.md` is a migration input only. The gate accepts its basic shape so
-old repositories remain readable, but no skill treats it as current reality or regenerates it.
-
-## Directory layout (canonical)
-
-```
-repo/
-├── CONTEXT.md
-├── CODEBASE.md                          ← structural map (generated by /map)
-├── docs/
-│   ├── adr/NNNN-slug.md
-│   └── agents/                       ← only with a non-default tracker (issue-tracker.md)
-└── .scratch/
-    └── <feat>/
-        ├── PRD.md / PRD-vN.md
-        ├── spec-review.json             ← review bridge state (spec-review.py only)
-        ├── spec-acceptances/
-        │   └── <digest>.md              ← accepted PRD bytes, written at accept (single snapshot)
-        └── issues/
-            ├── NN-slug.md            ← active issues
-            └── archive/
-                └── NN-slug.md        ← legacy done location; still resolved
-```
-
-## Inspecting state (active working set only)
-
-Use `rg` with a glob so matches reflect live work, not history. `**/issues/*.md` matches each
-feature's top-level issues but not the nested `archive/`:
-
-```bash
-rg '^status: ready' -g '**/issues/*.md' .scratch   # dispatchable
-```
-
-To read a single field deterministically (for `/tdd`'s drain order), use `yq`
-against the frontmatter rather than line-matching:
-
-```bash
-yq --front-matter=extract '.status'       .scratch/balance/issues/02-api.md
-yq --front-matter=extract '.blocked_by[]' .scratch/balance/issues/02-api.md
-```
-
-To inspect effective delivered behavior without loading history bodies:
-
-```bash
-python ../workflow-state.py inspect . balance --format human
-```
+A note is optional, unstructured Markdown at an explicit path, normally `.scratch/<feat>/handoff.md`
+or `.scratch/handoff.md`, containing only otherwise inaccessible unfinished facts and exact pointers;
+see [handoff](handoff/SKILL.md) and [resume](resume/SKILL.md). Note text is never approval or proof.
 
 ## Machine gate
 
-The mechanically checkable subset of this contract ships as a script next to this file
-(`verify-artifacts.py`): non-UTF-8 content, required frontmatter fields and enum values, `done`
-issues carry a `### 完成` record whose named test files exist, `test_paths` declared ⇒ legacy
-`新增测试` entries are within it,
-V2 readiness/P# mappings, V3 verifier profiles (`verifier.json` JSON, strict deviations, non-empty
-`commands`, fingerprint keys) plus contract-bound done-record receipts, and opted-in graphical UI contracts plus structured evidence (real files,
-zero unexpected runtime counters, graded thresholds),
-`NN` uniqueness per directory, `blocked_by` / `refines` resolution + acyclicity, `feature` vs
-directory name, PRD `version` vs filename, `supersedes` target existence, single live PRD head,
-declared PRD R/D/S anchors (uniqueness, closed refs, acyclic slice `Depends`, review token) and
-spec-review.json shape plus the acceptance gate (materialized issues require an intact accepted
-snapshot). CODEBASE.md leaves: root `type`/`generated` + body budget (excl. legacy
-roster lines; `budget:` frontmatter override), legacy nested generated-block marker pairs + `git_base` + block
-budget, roster placeholder syntax rejected, roster lines must name an existing directory. Missing `.scratch/` and absent `CODEBASE.md` pass
-clean. Run it wherever state could drift: `/spec` post-write, before scoped artifact cleanup, or any time the
-state looks off:
+`verify-artifacts.py` checks: UTF-8; FEATURE.md frontmatter, anchors and refs; 共享验证 schema;
+unit fields, statuses, AC→command→预检 mapping, dependency/refines resolution and cycles; review
+record integrity; every done unit's completion proof; legacy planning files (`PRD*.md`, `issues/`,
+`verifier.json`, `spec-review.json`, `spec-acceptances/`, `experience-contract*.json`,
+`SUMMARY.md`), which must be folded into FEATURE.md and deleted; and the CODEBASE.md leaves above.
+Missing `.scratch/` and absent `CODEBASE.md` pass clean.
 
     python verify-artifacts.py [<repo-root>] [--feature <feat>]
     # if the `python` interpreter is missing: python3 verify-artifacts.py [<repo-root>]
-    # --feature checks one feature while it is being written; omit it for the whole-tree artifact/CI gate.
+    # --feature checks one feature while it is being written; omit it for the whole-tree gate.
     # Do not retry python3 after a non-zero gate exit (violations).
 
-Prompt-enforced remainder: body sections, AC quality, `touches` honesty.
-
-## Migration
-
-Repos created before frontmatter existed carry a bare `Status:` line.
-`/cosmos-setup` handles the upgrade (its Case 5). It is idempotent: it skips files that already
-have frontmatter. It is dry-run-first: it prints the full plan before touching anything, covering
-which files get frontmatter and which legacy archive or SUMMARY inputs remain. It does not generate
-new SUMMARY files.
+Prompt-enforced remainder: AC quality, unit grain, and `touches` honesty.

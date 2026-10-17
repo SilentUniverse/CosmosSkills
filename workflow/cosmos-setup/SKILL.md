@@ -8,8 +8,8 @@ disable-model-invocation: true
 # Setup (cosmos-setup)
 
 Configure what the engineering skills **cannot assume**: deviations from the default
-conventions. Defaults need no setup — the issue tracker is local markdown under
-`.scratch/<feat>/issues/` and the status vocabulary `pending|ready|done`, both defined in
+conventions. Defaults need no setup — the tracker is local markdown at
+`.scratch/<feat>/FEATURE.md` and the unit status vocabulary `pending|ready|done`, both defined in
 [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md); verifier commands live lazily in
 `CODEBASE.md`'s `## Verifier commands` zone.
 
@@ -26,8 +26,8 @@ Look at the current repo to understand its starting state. Read whatever exists;
   `## Agent skills` section in either?
 - `docs/agents/` — a legacy `issue-tracker.md` (non-default tracker) or a legacy `domain.md`
   (legacy command cache)
-- `.scratch/` — sample one issue file: YAML frontmatter with `type: issue`, or only a bare
-  `Status:` line? Any `issues/archive/` directories? Deprecated states?
+- `.scratch/` — one `FEATURE.md` per feature, or legacy planning files (`PRD*.md`, `issues/`,
+  `verifier.json`, `spec-review.json`, `spec-acceptances/`, `experience-contract*.json`, `SUMMARY.md`)?
 - Other PRD-like locations (`docs/prd/`, `docs/specs/`, `requirements/`, `prds/`, `specs/`)
   and issue-like locations (`issues/`, `tasks/`, `tickets/`)
 
@@ -42,9 +42,7 @@ real command lines into `CODEBASE.md`'s `## Verifier commands` zone (lazy-birth 
 ARTIFACT-FORMAT stub), then remove `domain.md` only when nothing non-template remains —
 otherwise rename it `domain.md.bak`. Detail: [MIGRATION.md](MIGRATION.md).
 
-**Case 3 — Legacy states or tracker change.** Issue files use deprecated states (`needs-triage`,
-`needs-info`, `wontfix`, `inbox`, `blocked`, `doing`, `shelved`, `ready-for-human`,
-`ready-for-agent`), or the user requests a tracker switch. An existing `gh` / `glab` tracker alone
+**Case 3 — Tracker change.** The user requests a tracker switch. An existing `gh` / `glab` tracker alone
 is not a migration trigger. Preserve it unless the user chose a replacement. Procedure:
 [MIGRATION.md](MIGRATION.md).
 
@@ -57,8 +55,8 @@ The bundled Python workflow tools use `.scratch/`; a path declaration alone does
 - (ii) **Adopt new layout.** Help the user move/symlink existing files into
   `.scratch/<feat>/`. Show the planned moves before executing; use `git mv` where possible.
 
-**Case 5 — Frontmatter migration (bare `Status:` lines).** Idempotent, dry-run-first upgrade
-to the ARTIFACT-FORMAT contract: full scan → preview → execute ([MIGRATION.md](MIGRATION.md)).
+**Case 5 — Legacy planning files.** Fold them by hand into one `FEATURE.md` per feature, then
+delete them; dry-run first ([MIGRATION.md](MIGRATION.md)).
 
 **Case 6 — Schema upgrade.** A field is becoming required per an ARTIFACT-FORMAT revision;
 run the upgrade it names.
@@ -66,7 +64,7 @@ run the upgrade it names.
 ### 3. The decisions (deviation cases only)
 
 Case 3 uses only the unresolved decisions in [DECISIONS.md](DECISIONS.md)
-(issue tracker; state vocabulary). Case 4's path choice is decided inline in step 2. The doc
+(tracker; state vocabulary). Case 4's path choice is decided inline in step 2. The doc
 layout is standardized — `CODEBASE.md` (legacy repos may carry per-area blocks), optional
 `CONTEXT.md`, optional `docs/adr/` — and is not a per-repo decision.
 
@@ -87,7 +85,7 @@ byte-identical. Keep the block ≤10 lines:
 <!-- what this repo is: 1 line; repo-specific constraints the skills can't know: 1 line each -->
 
 ### Issue tracker
-<!-- omit this subsection entirely while the default (local markdown under .scratch/) holds -->
+<!-- omit this subsection entirely while the default (.scratch/<feat>/FEATURE.md) holds -->
 Non-default only: one-line summary. See `docs/agents/issue-tracker.md`.
 
 ### Orientation

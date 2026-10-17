@@ -45,13 +45,13 @@ known-positive string before trusting a clean run.
 |---|---|
 | Instrumental "used to" | "the key used to sign requests" |
 | Runtime old/new lifecycle | "the old connection drains before the new accepts" |
-| Sanctioned change-story surfaces | issue `## Comments`, ADR Alternatives-considered |
+| Sanctioned change-story surfaces | FEATURE.md 变更记录, ADR Alternatives-considered |
 | 评审 as domain term | "两轴评审（Standards + Spec）" — the review activity |
 | 私有 as access modifier | "`_debit` 是私有的" |
 | 遗留 describing deliberate absence | "没有协作场景遗留状态" |
 | `this PR` substring hits "this PRD" | the English battery's `this PR` matches PRD-document prose |
 | Definitional "no longer" | "is no longer a prototype" — genre definition, not history |
-| Migration-doc legacy references | "the old tracker", "old `Status:` line" — migration procedures necessarily name legacy forms that resolve at HEAD |
+| Migration-doc legacy references | "the old tracker", "legacy `PRD*.md` / `issues/`" — migration procedures necessarily name legacy forms that resolve at HEAD |
 | Workflow runtime state | "repro no longer reproduces" in a diagnose loop; "from a prior run" in a status guard |
 
 When a hit turns out benign in a new recurring way, add its family here in the same change.

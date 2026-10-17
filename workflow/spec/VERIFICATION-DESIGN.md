@@ -1,7 +1,7 @@
 # spec — Verification design
 
-Loaded by [`/spec`](SKILL.md) when choosing proof or non-functional bars, and by the card test
-when preparing a giant-task queue's readiness.
+Loaded by [`/spec`](SKILL.md) when choosing proof or non-functional bars, and when preparing a
+feature document's 共享验证.
 
 ## Evidence ladder
 
@@ -25,7 +25,7 @@ Choose the highest runnable product seam and the cheapest evidence that can fals
      measurement and state the gap.
 3. **Human judgment** — taste, irreversible choice, permission, inaccessible external account, or a
    property deterministic checks cannot express. Give exact steps and the decision requested. Keep
-   it outside issue AC/status; an unadjudicated property stays unverified, not passed.
+   it outside unit AC/status; an unadjudicated property stays unverified, not passed.
 
 AI can summarize deterministic evidence; it cannot replace it. A screenshot proves pixels existed,
 not that the interaction or business invariant worked, unless the rubric is explicitly visual.
@@ -34,59 +34,37 @@ not that the interaction or business invariant worked, unless the rubric is expl
 
 Evidence is useful only if the target defect makes it fail. An ordinary deterministic code test
 proves this with its actual TDD RED; snapshots and other deterministic assertions use that same RED,
-with no duplicate `反证` prose. Only an opted-in graphical UI records one concrete counterfactual
-after `反证：`. Human-judged or measurement-proxy claims belong to explicit `/eval`, whose case
-contract owns its negative controls; they do not add prose fields to ordinary non-UI issues.
+with no duplicate falsifier prose. Only an opted-in graphical UI names one concrete counterfactual
+in its AC text. Human-judged or measurement-proxy claims belong to explicit `/eval`, whose case
+contract owns its negative controls; they do not add prose fields to ordinary non-UI units.
 DOM presence, a non-empty `src`, source snapshots, and an agent's own success report are not
 sufficient when the claim is about what the user receives.
 
 ## SPEC-stage execution readiness
 
 `ready` means a fresh executor can start implementation without designing a verifier, installing a
-runner, discovering a missing service, or requesting access. SPEC proves that before writing the
-ready card. A missing capability that requires code is a planned execution prerequisite, not
-SPEC implementation. The authorized execution phase completes it through `/verify`, then returns
-observed evidence; dependent behavior cards stay pending until readiness is proven:
+runner, discovering a missing service, or requesting access. A missing capability that requires
+code is a planned prerequisite unit, not SPEC implementation; dependent units stay `pending` until
+its observed evidence exists.
 
-1. Group ACs by verifier harness and assign each harness `P1`, `P2`, ... . Each AC names at least
-   one P# that makes its final action executable.
-2. Record the repo-relative working directory and prerequisites: runtime/tool versions, services,
-   fixtures/data, permission or account reachability, and network mode. Record secret *names* and
-   access state, never values.
-3. Prepare a durable project environment using repository-declared setup/bootstrap commands. Do
-   not use a temporary environment that disappears before execution. Routine local setup already implied by the task needs no additional approval, including
-   declared installs and generated configuration. Ask only for a new consequential dependency
-   choice, cost, external mutation, or authority not already granted. Prepare the reviewable change
-   first when possible, record the executed diff/result, and rerun preflight; do not implement behavior.
-   The behavior card is not `ready` while any preparation remains outstanding.
-4. Actually run a cheap representative preflight through every harness. This is not the future RED
-   test: use collection, an existing smoke test, tool/version probe, browser launch, service health,
-   fixture round-trip, or device/log probe to prove the route can execute. Record command/action,
-   `passed`, observed exit/assertion, evidence, and checked date.
-5. Fingerprint `git`, dependency lock, runtime, tools, and relevant service state. Use `none` or
-   `no-vcs` explicitly when absent. The fingerprint makes later drift visible; it does not promise
-   that an environment can never change.
+1. Prepare a durable project environment with repository-declared setup/bootstrap commands, never a
+   temporary one that disappears before execution. Routine local setup implied by the task needs no
+   additional approval; ask only for a new consequential dependency, cost, external mutation or
+   authority. Record the executed setup and result in 共享验证 `prepare`.
+2. Record `cwd` and the result-affecting `environment` identities (runtime, tools, dependency lock,
+   relevant services; secret *names* and access state, never values). These are the identities a
+   completion receipt must match; they make drift visible, not impossible.
+3. Name each harness once in `commands` and actually run a cheap representative preflight through
+   it: collection, an existing smoke test, a browser launch, service health, a fixture round-trip or
+   a device/log probe — not the future RED test. Record the action, `passed`, evidence and date.
+4. A unit needing a command the shared block lacks adds one `命令` line and its own `预检`; it never
+   copies shared fields.
 
-Before card materialization, compare the proposed harness records. This is the single-source
-profile-selection algorithm; the profile schema and deviation semantics live in
-[ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md). Pair ordering and incidental
-spacing do not distinguish a fingerprint or prerequisite map. If two or more non-graphical cards
-have the same cwd, fingerprint, prerequisites, and prepare state, `/spec` selects the largest
-sharing group (dependency order breaks a size tie) and writes one schema-2 `verifier.json` before
-the cards. Its named commands are the union needed by that group; each member references it and
-records only a real fingerprint or command deviation. Other groups stay v2 because the feature has
-one profile path. Do not create a profile merely because several cards exist, and do not copy profile fields back into v3 cards.
-Per-card seams, AC mappings, and passed-preflight evidence remain on the card because they establish
-that slice's runnable proof rather than the shared environment.
-
-Before implementation, validate matching retained P# evidence or replay it when relevant inputs,
-action or environment changed. Session/Issue identity alone does not invalidate a shared check.
-A failure reports the mismatch and pauses only dependent work while declared setup or stale readiness
-is repaired. New consequential choices follow the decision rule; never weaken proof to obtain green.
-
-One P# may support several ACs. Reuse matching observed evidence, including evidence returned by
-the authorized execution phase. A declared command without matching execution evidence, a version
-probe without a representative harness action, or unreplayable evidence is not readiness.
+Before implementation, validate matching retained preflight evidence or replay it when the action,
+relevant inputs or environment changed; session or unit identity alone does not invalidate it. A
+failure pauses only dependent work while declared setup or stale readiness is repaired; never weaken
+proof to obtain green. A declared command without matching execution evidence, a version probe
+without a representative harness action, or unreplayable evidence is not readiness.
 
 ## Stack profiles
 
@@ -119,7 +97,8 @@ defensible boundary, retaining complete checks when it cannot be bounded.
 
 ## AC-to-evidence rule
 
-For every AC, write `action → observation → evidence` and the passed P# that proves the action can
-run. Opted-in graphical UI also writes `反证：<the defect that makes it fail>`; ordinary
-deterministic tests retain their actual RED result instead. Reuse one verifier across several ACs.
+Every AC names exactly one command whose 预检 proves the action can run, and states the
+observation that the command's evidence must show. Opted-in graphical UI also names, in the AC text,
+the defect that must make it fail; ordinary deterministic tests retain their actual RED result
+instead. Reuse one verifier across several ACs.
 A verifier that cannot go red on the missing behavior is not evidence.

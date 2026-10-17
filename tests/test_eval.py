@@ -26,7 +26,7 @@ CASE = {
     "budgets": {"wall_time_ms": 1000, "total_tokens": 100, "tool_calls": 10},
     "hard_limits": {"scope_leakage_count": 0},
     "requirements": [{"id": "R1", "criterion": "observable result", "grader_ids": ["gate"]}],
-    "graders": [{"id": "gate", "kind": "deterministic", "procedure": "run the test"}],
+    "graders": [{"id": "gate", "kind": "deterministic", "procedure": "run the test", "command": "python3 -m unittest"}],
 }
 
 EXPECTED_CASE_IDS = {
@@ -91,7 +91,13 @@ def make_run(arm="candidate", success=True, wall=900, tokens=80, tools=8):
             "retry_count": 0,
         },
         "grader_results": [
-            {"id": "gate", "kind": "deterministic", "passed": success, "evidence_ids": ["proof"] if success else []}
+            {
+                "id": "gate",
+                "kind": "deterministic",
+                "passed": success,
+                "exit_code": 0 if success else 1,
+                "evidence_ids": ["proof"] if success else [],
+            }
         ],
         "evidence": [
             {
@@ -132,6 +138,35 @@ class EvalTests(unittest.TestCase):
                 case["task"]["user_script"] = [event]
                 with self.assertRaises(cosmos_eval.EvalError):
                     cosmos_eval.validate_case(case)
+
+    def test_deterministic_grader_requires_a_command(self):
+        for command in (None, "", "   ", 3):
+            with self.subTest(command=command):
+                case = copy.deepcopy(CASE)
+                if command is None:
+                    del case["graders"][0]["command"]
+                else:
+                    case["graders"][0]["command"] = command
+                with self.assertRaises(cosmos_eval.EvalError):
+                    cosmos_eval.validate_case(case)
+
+    def test_human_grader_needs_no_command(self):
+        case = copy.deepcopy(CASE)
+        case["graders"] = [
+            {"id": "gate", "kind": "human", "procedure": "read it", "why_not_automated": "taste"}
+        ]
+        cosmos_eval.validate_case(case)
+
+    def test_deterministic_result_exit_code_must_match_passed(self):
+        for passed, exit_code in ((True, None), (True, 1), (True, True), (True, "0"), (False, 0), (False, None)):
+            with self.subTest(passed=passed, exit_code=exit_code):
+                run = make_run(success=passed)
+                if exit_code is None:
+                    del run["grader_results"][0]["exit_code"]
+                else:
+                    run["grader_results"][0]["exit_code"] = exit_code
+                with self.assertRaises(cosmos_eval.EvalError):
+                    cosmos_eval.validate_run(run, {"demo-case": CASE})
 
     def test_success_requires_replayable_evidence(self):
         run = make_run()
@@ -360,7 +395,7 @@ class EvalTests(unittest.TestCase):
                 "retry_count": 0,
             },
             "grader_results": [
-                {"id": "gate", "kind": "deterministic", "passed": True, "evidence_ids": ["proof"]}
+                {"id": "gate", "kind": "deterministic", "passed": True, "exit_code": 0, "evidence_ids": ["proof"]}
             ],
             "evidence": [make_run()["evidence"][0]],
         }

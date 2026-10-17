@@ -1,98 +1,106 @@
 ---
 name: tdd
 description: >-
-  Use when implementing a named issue or feature test-first, running red-green-refactor, completing ready issues, or recording verification evidence. Defines engineering method and completion; the host owns execution, tasks, parallelism and recovery.
-argument-hint: "Issue path, feature slug, -s, -p, -all, -log, or the current goal"
+  Use when implementing a named unit or feature test-first, completing ready units, or recording verification evidence. Defines engineering method and completion; the host owns execution, tasks, parallelism and recovery.
+argument-hint: "Feature slug, feature unit (feat T3), -all, -log, or the current goal"
 ---
 
 # Test-Driven Development
 
 Use the accepted outcome, constraints and existing authorization. A new unresolved material decision
-holds only dependent work. Explicit user implementation/testing instructions override this default method.
+holds only dependent work. Explicit user implementation/testing instructions override this method.
 
-## Invocation and admission
+## Invocation
 
-- `/tdd <issue-path>`: inspect contract and proof. `workflow-state.py start ROOT FEATURE SLUG` is
-  a read-only engineering admission check returning a packet; it starts no task or execution lock.
-  The packet is the worker input at an execution boundary ([DRAIN.md](DRAIN.md)) — no second,
-  re-transcribed dispatch brief.
-- Bare `/tdd`: continue the accepted goal. Missing arguments never authorize repository-wide work.
-- `/tdd <feature>`: complete authorized ready work using [DRAIN.md](DRAIN.md).
-- `-s` requests serial work; `-p` permits native parallelism when dependencies, writes and resources
-  allow it. Neither creates a Cosmos scheduler or fixed concurrency limit.
+- Bare `/tdd` or an inline goal: implement the accepted inline plan. No file, artifact check or
+  admission step; temporary delegation and internal dependencies stay in the native plan.
+- `/tdd <feat>` or `/tdd <feat> T3`: work ready units of `.scratch/<feat>/FEATURE.md`
+  (see [Feature units](#feature-units)). Missing arguments never authorize repository-wide work.
 - `-all` requests the whole applicable suite/build: [FULL-SUITE.md](FULL-SUITE.md).
 - `-log` replaces test-writing with a control action plus a log predicate that fails when the
-  behavior is absent; a launcher/capture exit alone is insufficient. Retain action, exit,
-  input/candidate identity, log digest and a decisive excerpt; bound long-stream capture with an
-  explicit stop condition, and follow the host's device-stream rules. Scope, readiness, evidence
-  identity and completion rules are unchanged.
+  behavior is absent; a launcher/capture exit alone is insufficient. Retain action, exit, input
+  identity, log digest and a decisive excerpt; bound long streams with an explicit stop condition
+  and follow the host's device-stream rules.
 
-Create new Issues only on Spec's giant-task route with a persistent execution queue. An explicit
-existing Issue path follows its admission and history rules. Ordinary new work uses the inline
-outcome and verification route, without PRD, Issue, artifact checks or issue
-admission; temporary delegation and internal dependencies stay in the native plan.
-Requested plans and consequential unresolved requirements use `/spec`; unknown failures use
-`/diagnose`. Inspect existing ownership before shared writes. Running status comes from the host.
+Requested plans and unresolved consequential requirements use `/spec`; unknown failures use
+`/diagnose`. Running status, retries, cancellation and resume come from the host; across a host
+boundary use [handoff](../handoff/SKILL.md)/[resume](../resume/SKILL.md).
 
-| Engineering status | Action |
-|---|---|
-| `ready` | Validate accepted scope, dependencies and readiness, then implement. |
-| `pending` | Resolve its concrete engineering gap; independent work continues. |
-| `done` | Inspect existing proof; changed behavior uses a linked detail/redo/fix contract. |
+## Implement
 
-Status cannot override missing or contradictory proof. Prior completion on an open Issue keeps the
-previous record; old status never validates stale evidence, and a session change alone reopens
-nothing. Interrupted work reads native task/session state; across a host boundary use
-[handoff](../handoff/SKILL.md)/[resume](../resume/SKILL.md), and confirm a previous writer has
-stopped before assigning its paths again. redo/fix contract rules live in
-[SUPERSEDE.md](../spec/SUPERSEDE.md).
+Read the public seam, existing coverage, governing ADRs and domain terms. Briefly state the
+behavior, proof route and material assumption, then act with project commands. Build a missing
+run/drive/observation capability first through `/verify`; ordinary prerequisites stay inline.
 
-## Prepare and implement
+Tests are written before the implementation so they stay an independent oracle; they are **run**
+only at the two points that carry information:
 
-Read the public seam, existing coverage, governing ADRs and domain terms. For queued work, replay P# only when no
-valid matching observation exists; compare action, relevant inputs, prerequisites and environment.
-Session changes alone do not invalidate evidence. Failed readiness pauses only dependent work while
-the declared setup or stale record is repaired. Never substitute weaker proof.
+1. **Write.** For the whole unit (or inline goal), extend existing coverage first, then add the
+   cases its AC need. Do not run them yet.
+2. **RED, once.** Run only those cases and confirm each fails for the missing behavior, not for an
+   import/collection error; keep the command and its failing line for the change summary. The
+   tests are now frozen: change one only when it is wrong, and say why.
+3. **Implement** to completion. Do not run tests between edits unless diagnosing a specific failure.
+4. **GREEN, once.** Run the AC command once; that run is the completion evidence (feature units:
+   `workflow-state.py run`, or for a gated feature the `evidence.py` prepare → host run → seal
+   sequence in [FULL-SUITE.md](FULL-SUITE.md) instead). Add checks only for a changed shared seam, fixture or concrete integration
+   risk; reuse passing results whose inputs and environment match. Refactor while green and rerun
+   only what the refactor touched.
 
-Briefly state the behavior, proof route and material assumption, then act. Use project commands.
-Implement missing run/drive/observation capabilities as bounded prerequisites through `/verify`
-before dependent behavior. Refresh only dependent readiness with observed evidence; queued behavior
-cards remain pending until their required capability and preflight exist. Ordinary prerequisites
-stay inline. Update affected existing drivers with their scenario.
-Pure prose uses necessary structure checks and skips RED/GREEN. Machine-consumed templates/schema
-use targeted contract cases. For logic, choose a case, class or file covering the changed behavior.
-
-1. Find the existing case that pins the behavior. An already-failing behavioral assertion is RED;
-   import/collection failure is an environment problem. Extend existing coverage before adding a case.
-2. Observe RED, implement enough to pass, and run the case driving this change.
-3. After related logic edits settle, add checks only for a changed shared seam, fixture or concrete
-   uncovered integration risk. Reuse passing checks whose relevant inputs and environment match;
-   completion or later prose edits do not trigger another pass. Refactor while green and recheck
-   affected behavior. Address only debt introduced or exposed here; the full baseline lives in `/code-review`.
+Skip RED and go straight to one GREEN run for pure prose, configuration, behavior-preserving
+refactors already pinned by existing tests, prototypes, and exploratory UI layout. Machine-consumed
+templates/schema use their targeted contract cases. The full suite runs once per delivery
+candidate ([FULL-SUITE.md](FULL-SUITE.md)), never per unit.
 
 Apply [test quality](tests.md). Load [mocking.md](mocking.md) only for mocks and
-[UI-TESTING.md](UI-TESTING.md) only for graphical behavior. Agent summaries, screenshots or successful
-launcher exits cannot replace acceptance predicates.
+[UI-TESTING.md](UI-TESTING.md) only for graphical behavior. Agent summaries, screenshots or launcher
+exits cannot replace acceptance predicates. A clear contract conflict records exact evidence and
+routes the affected scope to `/spec`; an ambiguous one uses the
+[classifier](../atk/RECEIPT-CONFLICT.md). Repeated failure without new evidence needs `/diagnose`;
+repeated patches on one seam mean re-deriving its design.
 
-A clear contract conflict records exact evidence and routes the affected scope to `/spec`; an
-ambiguous conflict uses the independent [classifier](../atk/RECEIPT-CONFLICT.md). Preserve unrelated
-work. Contract-preserving fixes stay in the slice. Repeated failure without new evidence requires
-diagnosis, not automatic Repair Issues.
+## Feature units
 
-Repeated follow-up patches on one seam are a design signal: re-derive the affected design before
-adding another workaround.
+`python ../workflow-state.py survey <root> --feature <feat>` lists units as ready, blocked, pending,
+done or invalid with reasons; `start <root> <feat> T<n>` is a read-only admission returning the
+worker packet (unit contract, covered anchors, invariants, resolved commands).
+
+- **You decide the parallelism.** Default to working ready units one at a time inline. Use native
+  parallel tasks only when units are independent, their `touches`/`test_paths` and `resources` do
+  not overlap, and each is large enough to repay the coordination; give each worker its packet,
+  never a re-transcription of the document.
+- **Workers never write FEATURE.md.** They return commands run, log or receipt paths, changed paths
+  and remaining gaps. The integrating session resolves shared-file conflicts and closes units one at
+  a time.
+- **Checkpoint per unit.** After `close`, make one local commit of that unit's changes, the updated
+  FEATURE.md and the `runs/` log or receipts it references (no push unless requested); `.scratch/<feat>/`
+  must be tracked, not ignored, or a fresh checkout sees the unit as invalid. The commit and FEATURE.md are the progress record a
+  fresh session resumes from; see [handoff](../handoff/SKILL.md).
+- **Readiness drift.** Replay a 预检 only when no valid matching observation exists; a failure
+  pauses dependent work while setup is repaired, never substituting weaker proof.
 
 ## Evidence and completion
 
-Apply [TEST-POLICY.md](../TEST-POLICY.md): check selection and evidence validity are independent of
-Issue/session/task lifecycles. One valid check can cover several Issues. Native `completed` proves
-no AC by itself; retain every real attempt, including failures.
+Apply [TEST-POLICY.md](../TEST-POLICY.md): one valid check may prove several units; native task
+completion proves no AC; keep failed attempts visible.
 
-Fixed candidate checks use [FULL-SUITE.md](FULL-SUITE.md); queued Issue completion goes through
-`close --evidence/--candidate`, which validates proof and writes the completion record in one
-protected write: [COMPLETION-RECORD.md](COMPLETION-RECORD.md). `close` reads proof without capturing
-the workspace or running tests. Human acceptance separately binds the displayed Spec or fixed
-delivery candidate; pending review holds only dependent work.
+Before closing, trace owned diffs to AC, record actual `test_paths`, review changed tests with
+[tests.md](tests.md), apply the [comment deletion test](../lint/references/code-comments.md) to
+changed comment blocks, and challenge the most plausible failure against the evidence. Then:
 
-Retain hard-to-recover invariants at their existing owner under `/map`'s two-axis rule. Transient
-hypotheses stay in the native task. Use `/tidy` for obligations and cleanup; `/pr` only when requested.
+    python ../workflow-state.py run <root> <feat> T<n> <command>      # GREEN; prints the evidence line
+    python ../workflow-state.py close <root> <feat> T<n> --evidence "<log>; AC 1,2"
+
+`run` executes the named command from 共享验证 `cwd` and keeps `.scratch/<feat>/runs/<unit>-<command>-<id>.log`
+(command header, full output, `exit=` trailer). `close` never runs tests: it pins the log's SHA-256,
+checks the command and `exit=0`, appends the `完成` record with the unit's contract digest, and flips
+`status: done` in one locked write. A failure writes nothing. A feature with a recorded review gate
+(`Door: one-way` or `review: required`) instead needs fixed receipts from `evidence.py` bound to the
+accepted contract ([FULL-SUITE.md](FULL-SUITE.md)); pass them as `--evidence "<receipt>.json; AC 1"`.
+
+A chronically failing unit with a concrete gap is parked:
+`workflow-state.py park <root> <feat> T<n> --reason TEXT`. Changed behavior after `done` is a new
+unit with `refines:`; the gate rejects edits to a done unit's contract or its pinned log.
+
+Retain hard-to-recover invariants at their existing owner under `/map`'s two-axis rule. Use `/tidy`
+for obligations and cleanup; `/pr` only when requested.

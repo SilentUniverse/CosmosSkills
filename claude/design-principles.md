@@ -8,14 +8,14 @@ time (spec, prototype, grill sessions) or when a decision needs the reasoning be
 | Word | Definition | Question | Fires |
 |---|---|---|---|
 | First Principles | Reason from fundamentals, not analogy | 为什么？ | every design turn (CLAUDE.md §2) |
-| Invariant | What must always be true; the design derives from it | 什么绝不能错？ | PRD 实现决策 leads with it; AC derive from it |
-| Parsimony | Minimize concepts, states, special cases — not LOC | 什么可以不要？ | §3 ladder; PRD adversarial self-review |
-| Locality | Understanding, change, and failure stay local | 影响能否限制在这里？ | spec impact detection; CARD-TEST reasoning radius; §4 |
-| Provability | Prefer the design with the shorter correctness argument | 为什么确信它对？ | equivalent-design tie-break (PRD self-review) |
-| Adversarial Review | Attack your own work before declaring done | 怎么把它打爆？ | PRD 对抗自审; tdd 审查; `/atk` |
+| Invariant | What must always be true; the design derives from it | 什么绝不能错？ | FEATURE.md 不变量 lead; AC derive from them |
+| Parsimony | Minimize concepts, states, special cases — not LOC | 什么可以不要？ | §3 ladder; spec deletion test |
+| Locality | Understanding, change, and failure stay local | 影响能否限制在这里？ | spec impact detection; FEATURE-TEMPLATE unit grain; §4 |
+| Provability | Prefer the design with the shorter correctness argument | 为什么确信它对？ | equivalent-design tie-break (CLAUDE.md §2) |
+| Adversarial Review | Attack your own work before declaring done | 怎么把它打爆？ | spec `/atk` on the written contract; tdd 审查; `/atk` |
 | Empiricism | Observation beats model; claims carry measurements | 现实怎么说？ | diagnose red loop; review test quality; perf claims |
-| Reversibility | Uncertainty prefers cheap-to-undo decisions | 错了能回来吗？ | one-way doors (ABI/schema/protocol) flagged in PRD, reviewed hardest |
-| Evolution | Systems grow from a smallest correct working core | 最小正确下一步？ | CARD-TEST slice order; expand→contract |
+| Reversibility | Uncertainty prefers cheap-to-undo decisions | 错了能回来吗？ | one-way doors (ABI/schema/protocol) flagged `Door: one-way` in FEATURE.md, reviewed hardest |
+| Evolution | Systems grow from a smallest correct working core | 最小正确下一步？ | FEATURE-TEMPLATE foundational unit first; expand→contract |
 
 ## The loop
 

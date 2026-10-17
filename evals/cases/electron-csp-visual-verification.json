@@ -23,7 +23,7 @@
   "requirements": [
     {
       "id": "R1",
-      "criterion": "Before writing a ready card, SPEC inspects the existing CSP and main/preload/renderer resource boundary and chooses a design that can actually render the cover without contradicting that invariant.",
+      "criterion": "Before writing a ready unit, SPEC inspects the existing CSP and main/preload/renderer resource boundary and chooses a design that can actually render the cover without contradicting that invariant.",
       "grader_ids": ["runtime-contract"]
     },
     {
@@ -41,12 +41,14 @@
     {
       "id": "runtime-contract",
       "kind": "deterministic",
-      "procedure": "Inspect the trajectory and final tests: require CSP/resource-boundary inspection before ready write, complete && naturalWidth > 0 or equivalent decoded-media assertion, fixed viewport state capture, and failure collectors for console, page, request, and CSP."
+      "procedure": "From the trace: a tool result containing the renderer CSP (img-src) precedes the first FEATURE.md write that sets a unit ready. In the final test files: a decoded-media assertion (naturalWidth or decode()), a fixed viewport, and collectors for console, pageerror, requestfailed and CSP violations.",
+      "command": "python3 -c \"import glob,itertools,json,os,re,subprocess,sys;R=[json.loads(l) for l in open(os.environ['EVAL_TRACE'],encoding='utf-8') if l.strip()];B=[dict(b,role=r.get('type'),seg=g) for g,r in zip(itertools.accumulate(int(r.get('subtype')=='init') for r in R),R) if isinstance(r.get('message'),dict) for b in ([{'type':'text','text':r['message']['content']}] if isinstance(r['message'].get('content'),str) else r['message'].get('content') or [])];E={b.get('tool_use_id'):bool(b.get('is_error')) for b in B if b.get('type')=='tool_result'};T=[(i,b.get('name'),b.get('input') or {},E.get(b.get('id')),b['seg']) for i,b in enumerate(B) if b.get('type')=='tool_use'];W=[(i,x.get('file_path') or x.get('notebook_path') or '',g) for i,n,x,e,g in T if n in ('Write','Edit','MultiEdit','NotebookEdit')];X=[(i,x.get('command',''),e,g) for i,n,x,e,g in T if n=='Bash'];rel=lambda p:os.path.relpath(os.path.realpath(p),os.path.realpath(os.environ.get('EVAL_WORKTREE','.')));ist=lambda p:bool(re.search(r'(^|/)(tests?/|test_|[^/]*_test\\.|[^/]*\\.(test|spec)\\.)',rel(p)));src=lambda p:not ist(p) and not rel(p).startswith(('..','.scratch'));sk=lambda n,x:n=='Skill' and str(x.get('skill','')).split(':')[-1];RUN=r'(pytest|unittest|jest|vitest|mocha|npm (run )?test|pnpm test|yarn test|go test|cargo test|gradle|mvn|ctest|make test)';txt=''.join(open(f,encoding='utf-8',errors='replace').read() for f in subprocess.run(['git','ls-files','-co','--exclude-standard'],capture_output=True,text=True).stdout.split() if ist(f) and os.path.isfile(f));miss=[n for n in (r'naturalWidth|decode\\(\\)',r'setViewportSize|viewport',r'.console.',r'pageerror',r'requestfailed',r'securitypolicyviolation|Content-Security-Policy') if not re.search(n,txt,re.I)];c=min([i for i,b in enumerate(B) if b.get('type')=='tool_result' and 'img-src' in json.dumps(b.get('content'))]+[len(B)]);r=min([i for i,n,x,e,g in T if n in ('Write','Edit','MultiEdit') and str(x.get('file_path','')).endswith('FEATURE.md') and 'status: ready' in json.dumps(x)]+[len(B)]);print(miss);sys.exit(bool(miss) or not c<r)\""
     },
     {
       "id": "artifact-gate",
       "kind": "deterministic",
-      "procedure": "Run verify-artifacts.py; require experience_review=graded, a canonical graphical-UI contract, per-AC UI falsifiers, and structured evidence whose retained artifacts exist, runtime counters are zero, and rubric result clears the frozen threshold."
+      "procedure": "Run verify-artifacts.py (it checks experience evidence, retained screenshots, zero runtime counters and rubric floors for done units); FEATURE.md must declare a graphical-ui experience with a rubric and a graded experience unit.",
+      "command": "python3 \"$EVAL_COSMOS_ROOT/workflow/verify-artifacts.py\" . && python3 -c \"import glob,re,sys;t=open(glob.glob('.scratch/*/FEATURE.md')[0],encoding='utf-8').read();sys.exit(not(re.search(r'^- experience: *graded;',t,re.M) and 'graphical-ui' in t and re.search(r'.rubric.\\s*:',t)))\""
     },
     {
       "id": "experience-review",

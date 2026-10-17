@@ -28,7 +28,7 @@
     },
     {
       "id": "R2",
-      "criterion": "SPEC proves browser/CDP readiness with a passed P#, and the agent later launches and operates the real UI while retaining console/trace/screenshot evidence; it does not delegate runnable interaction to the human.",
+      "criterion": "SPEC proves browser/CDP readiness with a passed 预检, and the agent later launches and operates the real UI while retaining console/trace/screenshot evidence; it does not delegate runnable interaction to the human.",
       "grader_ids": ["verification-contract"]
     }
   ],
@@ -36,7 +36,8 @@
     {
       "id": "verification-contract",
       "kind": "deterministic",
-      "procedure": "Parse the receipt/issue mappings and assert separate typecheck, runtime behavior, and browser-operation evidence with concrete expected observations."
+      "procedure": "The trace has a passing tsc run, a passing vitest run and a browser operation (Playwright/CDP command or browser tool), and a .png screenshot exists among new or ignored worktree files.",
+      "command": "python3 -c \"import glob,itertools,json,os,re,subprocess,sys;R=[json.loads(l) for l in open(os.environ['EVAL_TRACE'],encoding='utf-8') if l.strip()];B=[dict(b,role=r.get('type'),seg=g) for g,r in zip(itertools.accumulate(int(r.get('subtype')=='init') for r in R),R) if isinstance(r.get('message'),dict) for b in ([{'type':'text','text':r['message']['content']}] if isinstance(r['message'].get('content'),str) else r['message'].get('content') or [])];E={b.get('tool_use_id'):bool(b.get('is_error')) for b in B if b.get('type')=='tool_result'};T=[(i,b.get('name'),b.get('input') or {},E.get(b.get('id')),b['seg']) for i,b in enumerate(B) if b.get('type')=='tool_use'];W=[(i,x.get('file_path') or x.get('notebook_path') or '',g) for i,n,x,e,g in T if n in ('Write','Edit','MultiEdit','NotebookEdit')];X=[(i,x.get('command',''),e,g) for i,n,x,e,g in T if n=='Bash'];rel=lambda p:os.path.relpath(os.path.realpath(p),os.path.realpath(os.environ.get('EVAL_WORKTREE','.')));ist=lambda p:bool(re.search(r'(^|/)(tests?/|test_|[^/]*_test\\.|[^/]*\\.(test|spec)\\.)',rel(p)));src=lambda p:not ist(p) and not rel(p).startswith(('..','.scratch'));sk=lambda n,x:n=='Skill' and str(x.get('skill','')).split(':')[-1];RUN=r'(pytest|unittest|jest|vitest|mocha|npm (run )?test|pnpm test|yarn test|go test|cargo test|gradle|mvn|ctest|make test)';ok=lambda r:any(re.search(r,c) and e is False for i,c,e,g in X);br=any(re.search(r'playwright|puppeteer|cdp|chrome-remote',json.dumps(x).lower()) or re.search(r'browser|playwright|preview',str(n).lower()) for i,n,x,e,g in T);png='.png' in subprocess.run(['git','status','--porcelain','--ignored','--untracked-files=all'],capture_output=True,text=True).stdout;sys.exit(not(ok(r'\\btsc\\b') and ok(r'vitest') and br and png))\""
     }
   ]
 }
