@@ -69,9 +69,10 @@ class TestGovernanceTests(unittest.TestCase):
                 result = governance.select(policy, [path])
                 self.assertEqual(['catalog'], result['selected'])
                 self.assertEqual([], result['test_paths'])
-        result = governance.select(policy, ['workflow/spec/ISSUE-TEMPLATE.md'])
+        result = governance.select(policy, ['workflow/spec/FEATURE-TEMPLATE.md'])
         self.assertEqual(['catalog', 'regression'], result['selected'])
-        self.assertEqual(['tests/test_verify_artifacts.py', 'tests/test_workflow_state.py'], result['test_paths'])
+        self.assertEqual(['tests/test_spec_review.py', 'tests/test_verify_artifacts.py', 'tests/test_workflow_state.py'],
+                         result['test_paths'])
 
     def test_logic_selection_unions_tests_and_unknown_changes_keep_complete_gates(self):
         policy = governance.load_policy(ROOT / 'tests/test-policy.json')
@@ -87,7 +88,7 @@ class TestGovernanceTests(unittest.TestCase):
             self.assertIn('windows', result['selected'])
         with self.subTest(path='workflow/workflow-state.py'):
             result = governance.select(policy, ['workflow/workflow-state.py'])
-            self.assertIn('tests/test_verify_artifacts.py', result['test_paths'])
+            self.assertIn('tests/test_workflow_state.py', result['test_paths'])
         for path, expected in (
             ('tests/test_verify_artifacts.py', ['tests/test_verify_artifacts.py']),
             ('tests/test_spec_review.py', ['tests/test_spec_review.py', 'tests/test_spec_review_encoding.py']),
@@ -99,7 +100,7 @@ class TestGovernanceTests(unittest.TestCase):
         self.assertEqual([], result['test_paths'])
         result = governance.select(policy, ['evals/experiments/verify_loop.py'])
         self.assertEqual(['tests/test_verify_loop_fixture.py'], result['test_paths'])
-        self.assertIn('tests/test_historical_proof.py', governance.select(policy, ['workflow/workflow_contract.py'])['test_paths'])
+        self.assertIn('tests/test_workflow_state.py', governance.select(policy, ['workflow/feature_doc.py'])['test_paths'])
         evidence_tests = governance.select(policy, ['workflow/evidence.py'])['test_paths']
         self.assertIn('tests/test_spec_review.py', evidence_tests)
         self.assertIn('tests/test_spec_review_encoding.py', evidence_tests)

@@ -75,11 +75,10 @@ Observed on DSH 0.2.0-rc.2, macOS, 2026-09-30.
   900 s, `--no-browser` and `--port` available). DSH promotes a command past the bash timeout to a
   background job instead of killing it, so run it with `run_in_background` and collect the result
   JSON with `job_output(wait: true)`; the foreground form works when given a larger `timeoutMs`.
-- `present` puts the statically rendered review page in front of the user as an artifact card,
-  which is the native-artifact-card path REVIEW.md allows; it never substitutes for the durable
-  acceptance event.
-- `ask_user_question` carries ordinary decision rounds in the native conversation. An anchored
-  PRD requiring formal acceptance uses the review bridge's durable human event; pasted
+- `present` may show the statically rendered review page as an artifact card for reading only; it
+  never substitutes for the bridge's durable acceptance event.
+- `ask_user_question` carries ordinary decision rounds in the native conversation. A
+  feature requiring formal acceptance uses the review bridge's durable human event; pasted
   `SPEC FEEDBACK` carries revision feedback only. It does not record acceptance.
 
 ## Measuring a run

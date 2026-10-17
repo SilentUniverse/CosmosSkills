@@ -47,8 +47,8 @@ param(
 $ErrorActionPreference = "Stop"
 $root = Split-Path $PSScriptRoot -Parent
 $sharedInstall = -not ($PSBoundParameters.ContainsKey("Target") -or $PSBoundParameters.ContainsKey("ClaudeRoot"))
-$policyHelpers = @("verify-artifacts.py", "workflow-state.py", "workflow_contract.py", "evidence.py", "historical_proof.py", "TEST-POLICY.md", "test_governance.py", "test-governance.py", "workflow_ui.py")
-$retiredHelpers = @("workflow_runtime.py", "workflow_batch.py", "checkpoint_store.py", "workflow_managed.py", "workflow_incremental.py", "workflow_jobs.py", "workflow_resources.py", "workflow_members.py", "process_tree.py")
+$policyHelpers = @("verify-artifacts.py", "workflow-state.py", "feature_doc.py", "evidence.py", "TEST-POLICY.md", "test_governance.py", "test-governance.py", "workflow_ui.py")
+$retiredHelpers = @("workflow_contract.py", "historical_proof.py", "workflow_runtime.py", "workflow_batch.py", "checkpoint_store.py", "workflow_managed.py", "workflow_incremental.py", "workflow_jobs.py", "workflow_resources.py", "workflow_members.py", "process_tree.py")
 
 function New-JunctionCompat {
     param(

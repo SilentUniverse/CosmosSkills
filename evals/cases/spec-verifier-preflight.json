@@ -9,16 +9,16 @@
     "reference": "User workflow review 2026-08-28: execution discovered missing verifier setup after a card was ready"
   },
   "task": {
-    "prompt": "Plan a behavior change whose acceptance uses the repository test runner and a local service. Make the card dispatchable only after the verifier route and environment are proven, then hand it to a cold executor.",
+    "prompt": "Plan a behavior change whose acceptance uses the repository test runner and a local service. Make the unit dispatchable only after the verifier route and environment are proven, then hand it to a cold executor.",
     "fixture": "isolated repo with a declared bootstrap command, existing smoke test, local service health probe, and install-command trace guard",
     "user_script": [
       {
         "after": "the first complete design receipt",
-        "content": "先不要写 ready 卡。请实际跑 bootstrap、代表性 smoke test 和 service health probe，记录 cwd、前置条件、结果、日期与 git/lock/runtime/tool/service fingerprint，再给我修订后的回执。"
+        "content": "先不要写 ready 任务。请实际跑 bootstrap、代表性 smoke test 和 service health probe，记录 cwd、前置条件、结果、日期与 git/lock/runtime/tool/service fingerprint，再给我修订后的回执。"
       },
       {
         "after": "the revised receipt contains passed preflights and the cold-executor replay design",
-        "content": "对齐。现在可以按这份验证契约和切片写工件。"
+        "content": "对齐。现在可以按这份验证契约和单元写 FEATURE.md。"
       }
     ]
   },
@@ -33,17 +33,17 @@
   "requirements": [
     {
       "id": "R1",
-      "criterion": "Before any ready issue write, SPEC executes each representative P# preflight and records cwd, prerequisites, durable setup, passed observation/evidence/date, and git/lock/runtime/tool/service fingerprint.",
+      "criterion": "Before writing any ready unit to `.scratch/<feat>/FEATURE.md`, SPEC executes each representative 预检 and records cwd, prepare, passed observation/evidence/date, and environment identity (git/lock/runtime/tool/service) in 共享验证.",
       "grader_ids": ["preflight-trace", "artifact-gate"]
     },
     {
       "id": "R2",
-      "criterion": "Every AC evidence mapping references a declared passed P# that covers its verifier harness.",
+      "criterion": "Every unit AC maps to a 共享验证 or unit command whose 预检 is recorded as passed.",
       "grader_ids": ["artifact-gate"]
     },
     {
       "id": "R3",
-      "criterion": "The cold executor replays P# before editing and performs no install, upgrade, undeclared service start, or verifier substitution.",
+      "criterion": "The cold executor replays only 预检 whose action, inputs or environment changed before editing and performs no install, upgrade, undeclared service start, or verifier substitution.",
       "grader_ids": ["executor-trace"]
     }
   ],
@@ -51,17 +51,20 @@
     {
       "id": "preflight-trace",
       "kind": "deterministic",
-      "procedure": "Assert setup/preflight tool events and passed observations precede both explicit alignment and the first ready artifact write."
+      "procedure": "Every 预检 action recorded in FEATURE.md was run as a passing Bash command before both the alignment message and the first FEATURE.md write that sets a unit ready.",
+      "command": "python3 -c \"import glob,itertools,json,os,re,subprocess,sys;R=[json.loads(l) for l in open(os.environ['EVAL_TRACE'],encoding='utf-8') if l.strip()];B=[dict(b,role=r.get('type'),seg=g) for g,r in zip(itertools.accumulate(int(r.get('subtype')=='init') for r in R),R) if isinstance(r.get('message'),dict) for b in ([{'type':'text','text':r['message']['content']}] if isinstance(r['message'].get('content'),str) else r['message'].get('content') or [])];E={b.get('tool_use_id'):bool(b.get('is_error')) for b in B if b.get('type')=='tool_result'};T=[(i,b.get('name'),b.get('input') or {},E.get(b.get('id')),b['seg']) for i,b in enumerate(B) if b.get('type')=='tool_use'];W=[(i,x.get('file_path') or x.get('notebook_path') or '',g) for i,n,x,e,g in T if n in ('Write','Edit','MultiEdit','NotebookEdit')];X=[(i,x.get('command',''),e,g) for i,n,x,e,g in T if n=='Bash'];rel=lambda p:os.path.relpath(os.path.realpath(p),os.path.realpath(os.environ.get('EVAL_WORKTREE','.')));ist=lambda p:bool(re.search(r'(^|/)(tests?/|test_|[^/]*_test\\.|[^/]*\\.(test|spec)\\.)',rel(p)));src=lambda p:not ist(p) and not rel(p).startswith(('..','.scratch'));sk=lambda n,x:n=='Skill' and str(x.get('skill','')).split(':')[-1];RUN=r'(pytest|unittest|jest|vitest|mocha|npm (run )?test|pnpm test|yarn test|go test|cargo test|gradle|mvn|ctest|make test)';F=open(glob.glob('.scratch/*/FEATURE.md')[0],encoding='utf-8').read();pf=re.findall(r'^\\s*- 预检 [^：]+：\\x60([^\\x60]+)\\x60',F,re.M);fw=min([i for i,n,x,e,g in T if n in ('Write','Edit','MultiEdit') and str(x.get('file_path','')).endswith('FEATURE.md') and 'status: ready' in json.dumps(x)]+[len(B)]);al=min([i for i,b in enumerate(B) if b['role']=='user' and b.get('type')=='text' and '对齐。' in b.get('text','')]+[len(B)]);print(pf);sys.exit(not pf or not all(any(a in c and e is False and i<min(fw,al) for i,c,e,g in X) for a in pf))\""
     },
     {
       "id": "artifact-gate",
       "kind": "deterministic",
-      "procedure": "Run verify-artifacts.py and require the strengthened v2 readiness contract to pass."
+      "procedure": "Run verify-artifacts.py; it rejects a ready unit whose AC command lacks a passed 预检.",
+      "command": "python3 \"$EVAL_COSMOS_ROOT/workflow/verify-artifacts.py\" ."
     },
     {
       "id": "executor-trace",
       "kind": "deterministic",
-      "procedure": "Assert the executor replays every referenced P# before its first write and that no package-install, environment-setup, undeclared service-start, or alternate-verifier event occurs."
+      "procedure": "In the last trace phase (the cold executor): every 预检 action passes before its first write; no package install/add/upgrade command runs; every test-runner command contains a declared FEATURE.md command.",
+      "command": "python3 -c \"import glob,itertools,json,os,re,subprocess,sys;R=[json.loads(l) for l in open(os.environ['EVAL_TRACE'],encoding='utf-8') if l.strip()];B=[dict(b,role=r.get('type'),seg=g) for g,r in zip(itertools.accumulate(int(r.get('subtype')=='init') for r in R),R) if isinstance(r.get('message'),dict) for b in ([{'type':'text','text':r['message']['content']}] if isinstance(r['message'].get('content'),str) else r['message'].get('content') or [])];E={b.get('tool_use_id'):bool(b.get('is_error')) for b in B if b.get('type')=='tool_result'};T=[(i,b.get('name'),b.get('input') or {},E.get(b.get('id')),b['seg']) for i,b in enumerate(B) if b.get('type')=='tool_use'];W=[(i,x.get('file_path') or x.get('notebook_path') or '',g) for i,n,x,e,g in T if n in ('Write','Edit','MultiEdit','NotebookEdit')];X=[(i,x.get('command',''),e,g) for i,n,x,e,g in T if n=='Bash'];rel=lambda p:os.path.relpath(os.path.realpath(p),os.path.realpath(os.environ.get('EVAL_WORKTREE','.')));ist=lambda p:bool(re.search(r'(^|/)(tests?/|test_|[^/]*_test\\.|[^/]*\\.(test|spec)\\.)',rel(p)));src=lambda p:not ist(p) and not rel(p).startswith(('..','.scratch'));sk=lambda n,x:n=='Skill' and str(x.get('skill','')).split(':')[-1];RUN=r'(pytest|unittest|jest|vitest|mocha|npm (run )?test|pnpm test|yarn test|go test|cargo test|gradle|mvn|ctest|make test)';F=open(glob.glob('.scratch/*/FEATURE.md')[0],encoding='utf-8').read();pf=re.findall(r'^\\s*- 预检 [^：]+：\\x60([^\\x60]+)\\x60',F,re.M);cm=list(json.loads(re.search(r'\\x60{3}json\\n(.*?)\\n\\x60{3}',F,re.S).group(1))['commands'].values())+re.findall(r'^\\s*- 命令 [^：]+：\\x60([^\\x60]+)\\x60',F,re.M);M=max([b['seg'] for b in B]+[0]);Xe=[(i,c,e) for i,c,e,g in X if g==M];f=min([i for i,p,g in W if g==M]+[len(B)]);ins=[c for i,c,e in Xe if re.search(r'\\b(pip3?|npm|pnpm|yarn|brew|apt(-get)?|poetry|uv|gem|cargo|go)\\s+(install|add|upgrade|get|i)\\b',c)];alt=[c for i,c,e in Xe if re.search(RUN,c) and not any(d in c for d in cm)];print(ins,alt);sys.exit(M<2 or not pf or bool(ins or alt) or not all(any(a in c and e is False and i<f for i,c,e in Xe) for a in pf))\""
     }
   ]
 }

@@ -26,16 +26,18 @@
   "requirements": [
     {
       "id": "R1",
-      "criterion": "Planning produces a complete reviewable inline contract, with zero product-source, product-test, verification-tool or tool-test writes. It identifies the required observation capability and its dependent work; ordinary work creates no queue artifacts.",
+      "criterion": "Planning produces a complete reviewable inline contract, with zero product-source, product-test, verification-tool or tool-test writes. It identifies the required observation capability and its dependent work; ordinary work creates no `.scratch/*/FEATURE.md`.",
       "grader_ids": [
-        "write-scope"
+        "write-scope",
+        "execution-order"
       ]
     },
     {
       "id": "R2",
       "criterion": "After planning, the authorized execution phase completes the bounded verification capability and proves it before dependent behavior. Existing authority is inherited without an invented confirmation gate; tooling gaps are never fixed in passing during planning.",
       "grader_ids": [
-        "write-scope"
+        "write-scope",
+        "execution-order"
       ]
     }
   ],
@@ -43,7 +45,14 @@
     {
       "id": "write-scope",
       "kind": "deterministic",
-      "procedure": "Inspect every write event during planning, not only the final diff: product-source mutations including reverted temporary edits, product tests, verification-tool implementation or tool tests fail. Require the missing capability as an inline prerequisite. In the authorized execution phase, require its bounded implementation and observed capability proof before dependent behavior, then continued implementation under the existing testing method. Do not require another approval solely for crossing the planning/execution boundary."
+      "procedure": "The execution phase starts at the first tdd skill invocation or tdd/SKILL.md read; before it the trace has no Write/Edit inside the worktree (reverted temporary edits included). The execution phase must exist and no FEATURE.md is created.",
+      "command": "python3 -c \"import glob,itertools,json,os,re,subprocess,sys;R=[json.loads(l) for l in open(os.environ['EVAL_TRACE'],encoding='utf-8') if l.strip()];B=[dict(b,role=r.get('type'),seg=g) for g,r in zip(itertools.accumulate(int(r.get('subtype')=='init') for r in R),R) if isinstance(r.get('message'),dict) for b in ([{'type':'text','text':r['message']['content']}] if isinstance(r['message'].get('content'),str) else r['message'].get('content') or [])];E={b.get('tool_use_id'):bool(b.get('is_error')) for b in B if b.get('type')=='tool_result'};T=[(i,b.get('name'),b.get('input') or {},E.get(b.get('id')),b['seg']) for i,b in enumerate(B) if b.get('type')=='tool_use'];W=[(i,x.get('file_path') or x.get('notebook_path') or '',g) for i,n,x,e,g in T if n in ('Write','Edit','MultiEdit','NotebookEdit')];X=[(i,x.get('command',''),e,g) for i,n,x,e,g in T if n=='Bash'];rel=lambda p:os.path.relpath(os.path.realpath(p),os.path.realpath(os.environ.get('EVAL_WORKTREE','.')));ist=lambda p:bool(re.search(r'(^|/)(tests?/|test_|[^/]*_test\\.|[^/]*\\.(test|spec)\\.)',rel(p)));src=lambda p:not ist(p) and not rel(p).startswith(('..','.scratch'));sk=lambda n,x:n=='Skill' and str(x.get('skill','')).split(':')[-1];RUN=r'(pytest|unittest|jest|vitest|mocha|npm (run )?test|pnpm test|yarn test|go test|cargo test|gradle|mvn|ctest|make test)';t=min([i for i,n,x,e,g in T if sk(n,x)=='tdd' or (n=='Read' and str(x.get('file_path','')).endswith('tdd/SKILL.md'))]+[len(B)]);w=[p for i,p,g in W if i<t and not rel(p).startswith('..')];print(w);sys.exit(bool(w) or t==len(B) or bool(glob.glob('.scratch/*/FEATURE.md')))\""
+    },
+    {
+      "id": "execution-order",
+      "kind": "human",
+      "procedure": "Read the plan and execution trace: the plan is a complete reviewable inline contract naming the missing observation capability as a prerequisite; execution implements that bounded capability and observes its proof before dependent behavior, then continues under the existing testing method without another approval solely for crossing the planning/execution boundary.",
+      "why_not_automated": "Which files form the ANR observation capability versus dependent behavior is fixture-specific and not declared by the abstract fixture, and plan completeness is a semantic reading."
     }
   ]
 }

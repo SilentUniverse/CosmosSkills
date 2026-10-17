@@ -11,7 +11,7 @@ Don't restate what the environment answers (package.json scripts, config values,
 ## Session start protocol
 
 Start with named inputs. For unfamiliar nontrivial work, use `CODEBASE.md` routing and relevant
-`CONTEXT.md` terms; read ADR titles and open only decisions governing the affected area. Issue or
+`CONTEXT.md` terms; read ADR titles and open only decisions governing the affected area. Feature-unit or
 explicit task pointers are the initial read set, not a ban on investigating a discovered dependency.
 Skip missing orientation files. Create/refresh a map only when navigation or a changed invariant
 needs it; no bootstrap offer or full-map drift scan on every session. A generated block with
@@ -22,23 +22,19 @@ fix, drop, or re-stamp the affected lines in place; do not re-derive the map for
 A host may inject per-area `CLAUDE.md` blocks automatically; where it does not, read the relevant
 referenced blocks explicitly when needed. Do not assume one host's automatic loading applies to
 every host.
-Same-task compaction/reopening uses native context and session recovery. For a named prior task,
-use an actually available native history reader. Native continuation may omit engineering facts.
-Use the Cosmos `handoff` skill for an explicit handoff or necessary facts the destination cannot
-retrieve; use `resume` to resolve the source, verify relevant drift and continue the objective.
-Their contracts live in `workflow/handoff/SKILL.md` and `workflow/resume/SKILL.md` in the source
-checkout, or the corresponding directories beside installed skills. These are engineering skills,
-not host built-ins; select them through the current surface's skill entry.
-Notes use explicit pointers, not a generation, publish/consume status or lifecycle ledger.
+Context is finite, so long work spans sessions. At a unit boundary use the Cosmos `handoff` skill
+(checkpoint into Git and FEATURE.md, then a short pointer note only for facts without an owner);
+a fresh session uses `resume` (note, `git log`, `survey`, one re-check, continue). Contracts live in
+`workflow/handoff/SKILL.md` and `workflow/resume/SKILL.md`, or beside installed skills; a host's
+same-name native command is not these skills.
 
-Issue state is queried on demand: live roster via `rg '^status:' -g '**/issues/*.md' .scratch`;
-effective delivered behavior via `workflow-state.py inspect`. Neither creates `SUMMARY.md`.
+Unit state is queried on demand via `workflow-state.py survey`; it creates no summary file.
 
 ## Promoted knowledge
 
 Facts confirmed by an accepted plan live at their narrowest useful scope: task-local in the
-conversation/native plan or the owning queue's PRD/issue (not auto-loaded later), feature-local in
-the feature PRD's implementation decisions,
+conversation/native plan or the owning unit (not auto-loaded later), feature-local in
+the feature's FEATURE.md decisions and invariants,
 area/project invariants in ADR/CODEBASE/CONTEXT only when they pass `/map`'s two-axis test and
 record scope, source and reason. When the code, schema or decision a promoted fact cites changes,
 revalidate or supersede it; past acceptance does not keep a stale fact true.
@@ -47,8 +43,8 @@ revalidate or supersede it; past acceptance does not keep a stale fact true.
 
 ## Immutability rules
 
-- A completed Issue preserves its contract and evidence. Later requirement changes use linked
-  follow-up contracts. Damaged or contradicted proof is not repaired by editing status; investigate
+- A done unit preserves its contract and evidence. Later requirement changes use a new
+  `refines:` unit. Damaged or contradicted proof is not repaired by editing status; investigate
   the affected obligation and retain all attempts. Test ownership follows ARTIFACT-FORMAT.
 - An ADR superseded by another ADR is immutable: never edit its body. Mark it superseded; the new ADR carries the change.
-- On the giant-task queue route, re-running `/spec` writes `PRD-vN.md` only when a recorded AC or decision goes false. Additive re-runs edit `ready` issues or add `detail`; they do not supersede. The older PRD stays untouched. Inline plans keep changes in the conversation/native plan.
+- On the giant-task queue route, re-running `/spec` edits the one FEATURE.md in place and adds a 变更记录 line for each contract change; a changed reviewed contract needs new acceptance. Inline plans keep changes in the conversation/native plan.

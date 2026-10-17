@@ -40,7 +40,7 @@
     },
     {
       "id": "R3",
-      "criterion": "The task stays inside the ordinary TDD slice: no verification BUILD branch or new work queue; the affected existing driver is executed after its final edit.",
+      "criterion": "The task stays inside the ordinary TDD slice: no verification BUILD branch or `.scratch/*/FEATURE.md`; the affected existing driver is executed after its final edit.",
       "grader_ids": [
         "inline-gates"
       ]
@@ -50,7 +50,8 @@
     {
       "id": "inline-gates",
       "kind": "deterministic",
-      "procedure": "Run the private public-command contract and evals/experiments/verify_loop.py --command finish against the final isolated snapshot. Inspect trace order and final source/docs: the explicitly invoked TDD skill is loaded before edits, a behavioral RED precedes the product change, the affected driver is replayed after its last edit, the BUILD branch is not loaded, and no .scratch issue queue is created. Preserve source, raw trace and gate output."
+      "procedure": "Run verify_loop.py --command finish and the public command contract (add then finish succeeds; complete is rejected). From the trace: the tdd skill is loaded before the first write, a failing run precedes the first tasks.py write, replay.py passes after the last write, BUILD.md is never referenced, and no FEATURE.md exists.",
+      "command": "python3 \"$EVAL_COSMOS_ROOT/evals/experiments/verify_loop.py\" . --command finish | python3 -c \"import json,sys;sys.exit(not all(v.get('passed') for v in json.load(sys.stdin).values()))\" && d=$(mktemp -d) && python3 tasks.py --state \"$d/s.json\" add Read >/dev/null && python3 tasks.py --state \"$d/s.json\" finish 1 >/dev/null && ! python3 tasks.py --state \"$d/s.json\" complete 1 >/dev/null 2>&1 && python3 -c \"import glob,itertools,json,os,re,subprocess,sys;R=[json.loads(l) for l in open(os.environ['EVAL_TRACE'],encoding='utf-8') if l.strip()];B=[dict(b,role=r.get('type'),seg=g) for g,r in zip(itertools.accumulate(int(r.get('subtype')=='init') for r in R),R) if isinstance(r.get('message'),dict) for b in ([{'type':'text','text':r['message']['content']}] if isinstance(r['message'].get('content'),str) else r['message'].get('content') or [])];E={b.get('tool_use_id'):bool(b.get('is_error')) for b in B if b.get('type')=='tool_result'};T=[(i,b.get('name'),b.get('input') or {},E.get(b.get('id')),b['seg']) for i,b in enumerate(B) if b.get('type')=='tool_use'];W=[(i,x.get('file_path') or x.get('notebook_path') or '',g) for i,n,x,e,g in T if n in ('Write','Edit','MultiEdit','NotebookEdit')];X=[(i,x.get('command',''),e,g) for i,n,x,e,g in T if n=='Bash'];rel=lambda p:os.path.relpath(os.path.realpath(p),os.path.realpath(os.environ.get('EVAL_WORKTREE','.')));ist=lambda p:bool(re.search(r'(^|/)(tests?/|test_|[^/]*_test\\.|[^/]*\\.(test|spec)\\.)',rel(p)));src=lambda p:not ist(p) and not rel(p).startswith(('..','.scratch'));sk=lambda n,x:n=='Skill' and str(x.get('skill','')).split(':')[-1];RUN=r'(pytest|unittest|jest|vitest|mocha|npm (run )?test|pnpm test|yarn test|go test|cargo test|gradle|mvn|ctest|make test)';S=[i for i,p,g in W if os.path.basename(p)=='tasks.py'];L=max([i for i,p,g in W if not rel(p).startswith('..')]+[-1]);k=min([i for i,n,x,e,g in T if sk(n,x)=='tdd' or str(x.get('file_path','')).endswith('tdd/SKILL.md')]+[len(B)]);ok=S and k<min(i for i,p,g in W) and any(e and i<S[0] for i,c,e,g in X) and any(i>L and e is False and 'replay.py' in c for i,c,e,g in X) and not any('BUILD.md' in json.dumps(x) for i,n,x,e,g in T) and not glob.glob('.scratch/*/FEATURE.md');sys.exit(not ok)\""
     }
   ]
 }

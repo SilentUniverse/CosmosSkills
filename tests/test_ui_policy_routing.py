@@ -6,6 +6,33 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+NON_UI_FEATURE = """---
+type: feature
+feature: demo
+created: 2026-09-22
+---
+
+## 目标与边界
+- 问题：the CLI hides the interpreter version
+- 结果：the CLI prints it
+
+## 需求
+- R1 — Print the interpreter version.
+
+## 共享验证
+```json
+{"cwd": ".", "environment": {"runtime": "python"}, "prepare": "无（已就绪）",
+ "commands": {"version": "python --version"}}
+```
+- 预检 version：`python --version` → passed；evidence=inline fixture；checked=2026-09-22
+
+## 任务
+### T1 — print the version
+- status: ready
+- covers: R1
+- 做什么：Return the interpreter version through the CLI.
+- [ ] Print the interpreter version successfully. → `version`
+"""
 
 
 class UIPolicyRoutingTests(unittest.TestCase):
@@ -35,38 +62,14 @@ runpy.run_path(sys.argv[0], run_name='__main__')
 """
         with tempfile.TemporaryDirectory(prefix="cosmos non ui ") as directory:
             root = Path(directory).resolve()
-            issue = root / ".scratch/demo/issues/01-work.md"
+            issue = root / ".scratch/demo/FEATURE.md"
             issue.parent.mkdir(parents=True)
-            issue.write_text("""---
-contract_version: 2
-type: issue
-feature: demo
-status: ready
-category: enhancement
-touches: [src]
-test_paths: []
-blocked_by: []
-created: 2026-09-22
----
-## 做什么
-Return the interpreter version through the CLI.
-## 验收标准
-- [ ] Print the interpreter version successfully.
-## 验证设计
-- 接缝：CLI
-- 工作目录：`.`
-- 环境指纹：`git=no-vcs; lock=none; runtime=python; tools=stdlib; services=none`
-- 前置条件：`fixtures=none; services=none; permissions=local; network=off`
-- 准备动作：`无（已就绪）`
-- P1 预检：`python --version` → passed；observed=exit 0；evidence=inline fixture；checked=2026-09-22
-- #1 → `python --version`；预检：P1；预期证据：version text and exit 0
-## Comments
-""", encoding="utf-8")
+            issue.write_text(NON_UI_FEATURE, encoding="utf-8")
             state = str(ROOT / "workflow/workflow-state.py")
             evidence = str(ROOT / "workflow/evidence.py")
             original = issue.read_bytes()
             for command in ([state, "survey", str(root), "--format", "json"],
-                            [state, "start", str(root), "demo", "01-work"],
+                            [state, "start", str(root), "demo", "T1"],
                             [evidence, "--help"]):
                 result = subprocess.run([sys.executable, "-B", "-c", wrapper, *command], cwd=root,
                                         capture_output=True, text=True, encoding="utf-8", timeout=15)

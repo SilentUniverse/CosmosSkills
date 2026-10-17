@@ -42,17 +42,25 @@
     },
     {
       "id": "R2",
-      "criterion": "Expose only material goal, boundary, public-contract, significant-cost, authority or irreversible choices, grouped by settled prerequisites; each question gives concrete options, a recommendation and trade-offs. Target one or two user decision rounds. Continue with a newly ready dependent choice when necessary, explaining any additional round; never re-ask answered choices or ask discoverable implementation details.",
+      "criterion": "Expose only material goal, boundary, public-contract, significant-cost, authority or irreversible choices, grouped by settled prerequisites; each question gives concrete options, a recommendation and trade-offs. Target one or two user decision rounds. Continue with a newly ready dependent choice when necessary, explaining any additional round; never re-ask answered choices or ask discoverable implementation details. Planning writes no product source, tests or `.scratch` file.",
       "grader_ids": [
-        "grill-trace"
+        "grill-trace",
+        "no-planning-writes"
       ]
     }
   ],
   "graders": [
     {
       "id": "grill-trace",
+      "kind": "human",
+      "procedure": "Inspect the conversation trace and inspected sources. Fail if a question is answerable from repository facts or reversible implementation defaults, lacks concrete options and a recommendation, repeats an answered choice, or assumes a dependent answer before its prerequisite is settled. Permit necessary successive frontier batches; an additional round beyond the one-or-two-round target must name a material dependency or new evidence. Pass when the final plan preserves both user answers, reports adopted defaults with sources, and leaves no required material choice silently unresolved. Do not grade autonomous derive/attack passes as user dialogue rounds.",
+      "why_not_automated": "Whether a question was answerable from the repository, material, or adequately optioned is a semantic judgment of dialogue against repository facts."
+    },
+    {
+      "id": "no-planning-writes",
       "kind": "deterministic",
-      "procedure": "Inspect the conversation trace and inspected sources. Fail if a question is answerable from repository facts or reversible implementation defaults, lacks concrete options and a recommendation, repeats an answered choice, assumes a dependent answer before its prerequisite is settled, or planning edits product source/tests. Permit necessary successive frontier batches; an additional round beyond the one-or-two-round target must name a material dependency or new evidence. Pass when the final plan preserves both user answers, reports adopted defaults with sources, and leaves no required material choice silently unresolved. Do not grade autonomous derive/attack passes as user dialogue rounds."
+      "procedure": "The trace has no Write/Edit inside the worktree and git status is clean at the end.",
+      "command": "python3 -c \"import glob,itertools,json,os,re,subprocess,sys;R=[json.loads(l) for l in open(os.environ['EVAL_TRACE'],encoding='utf-8') if l.strip()];B=[dict(b,role=r.get('type'),seg=g) for g,r in zip(itertools.accumulate(int(r.get('subtype')=='init') for r in R),R) if isinstance(r.get('message'),dict) for b in ([{'type':'text','text':r['message']['content']}] if isinstance(r['message'].get('content'),str) else r['message'].get('content') or [])];E={b.get('tool_use_id'):bool(b.get('is_error')) for b in B if b.get('type')=='tool_result'};T=[(i,b.get('name'),b.get('input') or {},E.get(b.get('id')),b['seg']) for i,b in enumerate(B) if b.get('type')=='tool_use'];W=[(i,x.get('file_path') or x.get('notebook_path') or '',g) for i,n,x,e,g in T if n in ('Write','Edit','MultiEdit','NotebookEdit')];X=[(i,x.get('command',''),e,g) for i,n,x,e,g in T if n=='Bash'];rel=lambda p:os.path.relpath(os.path.realpath(p),os.path.realpath(os.environ.get('EVAL_WORKTREE','.')));ist=lambda p:bool(re.search(r'(^|/)(tests?/|test_|[^/]*_test\\.|[^/]*\\.(test|spec)\\.)',rel(p)));src=lambda p:not ist(p) and not rel(p).startswith(('..','.scratch'));sk=lambda n,x:n=='Skill' and str(x.get('skill','')).split(':')[-1];RUN=r'(pytest|unittest|jest|vitest|mocha|npm (run )?test|pnpm test|yarn test|go test|cargo test|gradle|mvn|ctest|make test)';w=[p for i,p,g in W if not rel(p).startswith('..')];s=subprocess.run(['git','status','--porcelain','--untracked-files=all'],capture_output=True,text=True).stdout.strip();print(w,s);sys.exit(bool(w or s))\""
     }
   ]
 }

@@ -1,6 +1,6 @@
 # Experience rubric — `experience-v1`
 
-Default rubric for opt-in `experience_review: graded` graphical UI states. SPEC may replace it with
+Default rubric for opt-in `- experience: graded` graphical UI units. SPEC may replace it with
 a domain-specific versioned rubric, but the user aligns it before dispatch. Runtime-only UI does not
 load or pay for this rubric.
 
@@ -32,12 +32,12 @@ task-relevant labeled calibration set and declared accuracy threshold.
 
 ## Canonical contract example
 
+The feature's 共享验证 `experience` object:
+
 ```json
 {
-  "schema_version": 1,
   "id": "balance-ui-v1",
   "surface": "graphical-ui",
-  "mode": "runtime",
   "viewport": {"width": 1440, "height": 900},
   "theme": "light",
   "states": ["initial", "success", "empty", "error"],
@@ -51,10 +51,10 @@ task-relevant labeled calibration set and declared accuracy threshold.
 }
 ```
 
-`mode: graded` also requires
+A `graded` unit also requires
 `rubric: {"id":"experience-v1","dimensions":["information_hierarchy","consistency","readability","state_clarity","affordance"],"score_min":0,"score_max":4,"min_total":15,"min_dimension":2}`.
 Expected events used to operate an error state are assertions/fixtures, not `unexpected_*`
-failures. Contract paths are repo-relative and must remain under `.scratch/<feat>/`.
+failures. The unit's `evidence=` path is repo-relative and must remain under `.scratch/<feat>/`.
 
 ## Canonical evidence example
 
@@ -77,7 +77,7 @@ failures. Contract paths are repo-relative and must remain under `.scratch/<feat
 }
 ```
 
-Every issue-declared state appears once and retains at least one real PNG/JPEG/WebP/GIF
+Every unit-declared state appears once and retains at least one real PNG/JPEG/WebP/GIF
 screenshot; `verify-artifacts.py` checks file signatures and non-zero dimensions where the format
 exposes them cheaply. `graded` evidence additionally carries
 `judge: {"rubric_id":"experience-v1","total":17,"dimensions":{"information_hierarchy":3,

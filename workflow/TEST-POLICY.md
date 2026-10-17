@@ -62,8 +62,8 @@ add an unrelated input merely to evade a conflict. A prose explanation alone can
 Provider/transport retries belong to the host. Assertion failures are engineering evidence. Timeout
 retry must be bounded and diagnostically useful at the narrowest reproducing scope. After code or
 environment repair, rerun affected checks; no new evidence means no repeated full suite. Update the
-existing root cause. Within a giant-task queue, create a Repair Issue only for an independent
-persistent gap; ordinary work remains inline.
+existing root cause. Within a feature document, add a unit only for an independent persistent
+gap; ordinary work remains inline.
 
 Use native background execution for long checks. Stable inputs require actual isolated checkouts or
 equivalent input control. Devices/databases/ports use their fixture/resource-service/CI owner for

@@ -49,7 +49,7 @@ AI 不永久记住机械错误；只有真正被 CI / hook / workflow 消费的�
 产物 / 权威规则（保留真实授权边界）。不入表的自证方式：机器红灯行由 tests/ 与
 verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交）由人的可判断性自证；
 九定律常驻词汇由 design-principles 定义，
-不退役。仅覆盖常驻层与主链（spec / tdd / DRAIN / pr）；opt-in 技能与参考细则不入表，
+不退役。仅覆盖常驻层与主链（spec / tdd / pr）；opt-in 技能与参考细则不入表，
 某技能出现降级候选时其参考文件再入表（Evolution）。
 
 ## A. 常驻层 — claude/CLAUDE.md（每轮付费）
@@ -87,16 +87,15 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 |---|---|---|---|---|
 | 头部 / Verify | 规划不实现产品或验证工具、不写测试；缺能力列执行前置，授权执行后回填真实就绪；报告未决义务；必要人审后按既有授权继续 | 权威 | 流程 | Spec/Verify 的缺工具执行归属冲突；spec-plans-without-product-writes；spec AFK grill 方案（docs/cosmosskills_spec_afk_grill_implementation.md）；routing-requirement-to-spec |
 | 头部 | 决策摄入推导后自攻一次；可审阅不等于已接受，剩余人类决定与阻塞证据显式保留 | 过程·经济 | 流程 | 逐节点问答与额外自攻税；原第 10 判据要求 further pass 与两 pass 上限冲突；ALIGNMENT-LOOP.md；行为收益未实测 |
-| 头部 / ALIGNMENT-LOOP | 访谈按已满足前提的关键选择小批推进，目标一至两轮；每问给选项、建议与取舍；追加轮需实质依赖或新证据；PRD Full/Delta 页预算单独适用 | 过程·经济 | 流程 | 一次问完旧判据阻断依赖式访谈；spec-afk-grill-compresses-human-decisions；重复问题与可查细节不得增加轮数 |
-| §3 | 普通计划按明确要求在原生会话审阅；巨型持久队列需正式 review 时先审 PRD，接受后才物化卡与预检；无新实质决定不二审 | 过程·经济 | 流程 | 内联输出路由；剪枝后 issues/依赖/测试映射的连带 churn；AFK grill 方案 §15–16；未溯源 |
-| §3 / REVIEW | 阅读、反馈与接受规则由 REVIEW 定义；Delta 对照接受快照并覆盖全局约束、Before、测试观察与传递依赖；准入以 Parent 来源限定未受影响的切片 | 权威+产物 | 机器+流程 | AcceptanceBarrierTests、test_spec_review：独立草案被整特性阻塞、漏标与反复 render 丢基线；非法 schema、小写 Refs、范围标题反转绕过准入；普通无 review/Parent 分支不加载模块。语义一致性仍由 Spec 审核 |
+| 头部 / ALIGNMENT-LOOP | 访谈按已满足前提的关键选择小批推进，目标一至两轮；每问给选项、建议与取舍；追加轮需实质依赖或新证据；人审 Full/Delta 页预算单独适用 | 过程·经济 | 流程 | 一次问完旧判据阻断依赖式访谈；spec-afk-grill-compresses-human-decisions；重复问题与可查细节不得增加轮数 |
+| §4 | 普通计划按明确要求在原生会话审阅；巨型持久队列需正式 review 时先审 FEATURE.md 合同，接受后单元才启动；无新实质决定不二审 | 过程·经济 | 流程 | 内联输出路由；剪枝后单元/依赖/测试映射的连带 churn；AFK grill 方案 §15–16；未溯源 |
+| §4 / REVIEW | 阅读、反馈与接受规则由 REVIEW 定义；Delta 对照最新接受记录并覆盖全局约束、Before、测试观察与传递依赖；准入以 covers 锚点限定未受影响的单元 | 权威+产物 | 机器+流程 | AcceptanceBarrierTests、test_spec_review：独立草案被整特性阻塞、漏标与反复 render 丢基线；非法 schema、小写 Refs、范围标题反转绕过准入；普通无 review 分支不加载模块。语义一致性仍由 Spec 审核 |
 | REVIEW / ALIGNMENT-LOOP | 纯文字反馈只做必要结构与展示更新；改变关键决策、契约、依赖、证明或出现具体风险才定向攻击；固定接受身份保留 | 过程·经济 | 流程 | 无条件反馈 ATK 与未变决策复用冲突；不以标题或错字修改触发重审 |
-| ISSUE-TEMPLATE | 上级 = Parent 设计指针与必要控制约束；refines 保留 Issue 谱系；共享验证环境只活在 verifier.json；AC 完整保留 | 过程·经济 | 机器+流程 | Parent 源文件、S# 与 Covers 验证避免悬空来源；做什么/AC 的语义对应仍须审查；完整 ledger 升级仅补未分配 open 卡，不改 done 历史 |
-| REVIEW / 人审投影 | 人审聚焦目标、行为、边界、取舍和验收结果；完整 PRD 与执行表留在原工件；保留所有反馈框，不折叠 | 过程·经济 | 机器+流程 | 完整 PRD 直接展示造成原文排版问题；与切片/证明表及 Delta 原文重复，增加人审噪声。RenderDeltaTests 保证人审约束、补充正文与反馈保留，内部接缝/普通工程决策不进入正文 |
+| REVIEW / 人审投影 | 人审聚焦目标、行为、边界、取舍和验收结果；共享验证、任务与变更记录留在 FEATURE.md；保留所有反馈框，不折叠 | 过程·经济 | 机器+流程 | 完整规划文档直接展示造成原文排版问题；与切片/证明表及 Delta 原文重复，增加人审噪声。RenderDeltaTests 保证人审约束、补充正文与反馈保留，内部接缝/普通工程决策不进入正文 |
 | §5 | 接受后按 task/feature/area 作用域晋升新事实；两轴法 + scope/source/reason；引用漂移即复验 | 过程·经济 | 流程 | 同类需求重复问已答问题；AFK grill 方案 §11–14；未溯源 |
-| 输出路由 / Prepare and write | 普通任务内联，不生成 PRD/Issue/profile，不跑工件门；只有巨型任务需要持久跨阶段队列才建卡；队列内共享决策才建 PRD | 过程·经济 | 流程 | 内联无 .scratch 时 feature gate 报不存在；CARD-TEST 可写条件误当建卡门槛；文件数与临时委派不触发持久队列 |
-| ISSUE-TEMPLATE / 工件门 / admission | 每条 AC 恰有一个反引号命令映射；校验与执行共用命令解析 | 产物 | 机器 | v2 模板缺反引号时工件门通过而 start 拒绝；test_verify_artifacts 跨入口回归 |
-| VERIFICATION-DESIGN / ISSUE-TEMPLATE / schema | P# 要求真实且匹配的代表动作证据；允许复用执行阶段返回的观测，不以阶段名称要求重复运行 | 过程·经济 | 流程 | SPEC 执行者限定与 TDD/Verify 回填就绪证据冲突；TEST-POLICY 以输入、动作、环境判断复用 |
+| 输出路由 / Write the feature document | 普通任务内联，不生成 .scratch 规划文件，不跑工件门；只有巨型任务需要持久跨阶段队列才写唯一 FEATURE.md | 过程·经济 | 流程 | 内联无 .scratch 时 feature gate 报不存在；文件数与临时委派不触发持久队列 |
+| FEATURE-TEMPLATE / 工件门 / admission | 每条 AC 恰有一个反引号命令映射；校验与执行共用命令解析 | 产物 | 机器 | v2 模板缺反引号时工件门通过而 start 拒绝；test_verify_artifacts 跨入口回归 |
+| VERIFICATION-DESIGN / FEATURE-TEMPLATE / schema | 预检 要求真实且匹配的代表动作证据；允许复用执行阶段返回的观测，不以阶段名称要求重复运行 | 过程·经济 | 流程 | SPEC 执行者限定与 TDD/Verify 回填就绪证据冲突；TEST-POLICY 以输入、动作、环境判断复用 |
 | 头部 | 仅未解决的实质选择用回执，独立工作继续 | 权威 | 流程 | 7be5338（compressed intake）/ spec-holds-alignment-under-pressure |
 | 回执·决策点 | 问实际决定并给建议；回答即对齐，不追问口令 | 权威 | 流程 | 应答成本税与越权代答；dev-skills 对标借入（lowband）；未溯源 |
 | §1 | 定位：点名即 rg 单特性；否则 3–5 关键词 | 过程·经济 | 流程 | 未溯源（token 经济） |
@@ -104,18 +103,18 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | §2 / map | 新不变量当场落入实际归属块，不停顿征询；地图复用核对相关已提交与工作区输入，不仅比较 HEAD | 过程 | 流程 | 未提交 seam 改动与 git_base 同 HEAD 时旧块误复用；6b411d8（从失败捕获 invariant） |
 | §2 | 可运行实验能降低真实不确定性时才 prototype | 过程 | 流程 | prototype skill 立法 |
 | §2 | NFR 门槛走 VERIFICATION-DESIGN 非功能三则（原 NON-FUNCTIONAL-BARS 并入） | 过程 | 流程 | 未溯源 |
-| §3/CARD-TEST | Spec 只固定跨 Issue 共同约定（承诺、公共接口、共享决策、组合验证、资源安全），Issue 内部实现结构不提前设计；边界检验句与两类拆卡反例 | 过程·经济 | 流程 | 规划过深与同步返工税；未溯源 |
+| FEATURE-TEMPLATE | Spec 只固定跨单元共同约定（承诺、公共接口、共享决策、组合验证、资源安全），单元内部实现结构不提前设计；边界检验句与拆单元判据 | 过程·经济 | 流程 | 规划过深与同步返工税；未溯源 |
 
 ## C. TDD and engineering selection
 
 | Previous rule | Disposition | Current owner and invariant |
 |---|---|---|
 | Giant-task queue before Issue creation | Narrow | Spec output route / TDD invocation; ordinary work and temporary delegation stay inline |
-| Default parallel drain | Move | Native tasks; Cosmos keeps independence/write/resource selection |
-| One RED/GREEN slice, no speculative implementation | Keep | TDD method, subject to explicit user instructions |
+| Default parallel drain | Replace | Executor-chosen parallelism, default inline sequential; FEATURE.md supplies dependencies, writes and resources |
+| One RED/GREEN slice, no speculative implementation | Replace | Per-unit batch: write tests, RED once, implement, GREEN once; subject to explicit user instructions |
 | Comment deletion test | Keep | Existing diff review and lint reference |
 | P# replay on every execution | Narrow | Reuse matching evidence; replay only invalidated relevant inputs/environment |
-| Module suites at every slice completion | Narrow | Changed behavior cases first; wider checks only for changed shared contracts or uncovered integration risk |
+| Module suites at every unit completion | Narrow | Changed behavior cases first; wider checks only for changed shared contracts or uncovered integration risk |
 | CI path selection | Keep | Producer/consumer mappings retain gate/start contracts and the CODEBASE native harness; test fixture consumers follow actual imports |
 | Environment restoration outside behavior wave | Replace | Pause only dependent work; native execution has no Cosmos wave |
 | Refactor only while green | Keep | TDD/refactoring; recheck affected behavior |
@@ -123,18 +122,18 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | Full suite at batch end through supervisor | Replace | Fixed candidate's declared gates through native/project/CI runner |
 | Driver enumeration, dependency and packet | Split | Read-only engineering survey/packet; native dispatch |
 | Context rotation and cumulative runtime budget | Delete | Host owns context lifecycle and budgets |
-| Concrete blocked reason, independent work continues | Keep | DRAIN engineering selection |
-| Baseline attribution and scoped revert | Keep | tdd/SKILL existing-work 段（原 EDGE-CASES）+ spec/SUPERSEDE redo/fix；preserve other writers and unknown ownership |
-| Self-contained worker brief | Keep | DRAIN 委派段（原 WORKER 并入）：start 输入包直供 worker，不二次转写；no full Spec duplication |
-| Start packet as worker input | Add | DRAIN：`workflow-state.py start` 输入包+关键短约束直供 worker；仅歧义、新依赖或合同变化才重读原 Issue/verifier/PRD |
-| Completion record written by close | Add | workflow-state `close --evidence/--candidate`：工具校验后生成标准完成段并同锁改状态；失败不落半成品记录；手工记录仍兼容 |
-| Shared verifier environment | Keep | ARTIFACT-FORMAT profile; per-card AC mappings remain local |
+| Concrete blocked reason, independent work continues | Keep | tdd/SKILL Feature units：`survey` 原因 + `park --reason` |
+| Baseline attribution and scoped revert | Keep | FEATURE-TEMPLATE `refines:` 单元；preserve other writers and unknown ownership |
+| Self-contained worker brief | Keep | tdd/SKILL Feature units：start 输入包直供 worker，不二次转写；no full Spec duplication |
+| Start packet as worker input | Add | tdd/SKILL：`workflow-state.py start` 输入包+关键短约束直供 worker；仅歧义、新依赖或合同变化才重读 FEATURE.md |
+| Completion record written by close | Add | workflow-state `close --evidence/--candidate`：工具校验后生成标准完成段并同锁改状态；失败不落半成品记录；`done` 只由 close 写入 |
+| Shared verifier environment | Keep | ARTIFACT-FORMAT 共享验证; per-unit AC mappings remain local |
 | blocked_by as dependency source | Keep | ARTIFACT-FORMAT; no duplicate body dependency list |
 | Four outcomes, wave collection and global barrier | Delete | Native runtime state; completion derives from immutable proof |
 | Wave supervision, zombie ledger and retry count | Delete | Native task lifecycle; engineering conflicts remain scoped |
 | External agent keeper and automatic resume | Delete | Native session continuation; no replacement Cron chain |
 | Handoff/resume user capabilities | Keep | Native history first; necessary engineering note and explicit-source continuation; no recovery ledger |
-| Separate preflight cache/writer | Delete | P# observed evidence or unified check receipts; no second identity/reuse mechanism |
+| Separate preflight cache/writer | Delete | 预检 observed evidence or unified check receipts; no second identity/reuse mechanism |
 | Managed diagnostic/repair queue | Delete | TEST-POLICY failure classification; independent lasting gaps only |
 | Fixed candidate | Keep | Git/project fixed source; explicit external inputs; before/after integrity |
 | Human approval | Keep | Spec/candidate/review digest and raw event; no workspace-following approval |
@@ -175,3 +174,9 @@ several Issues; timing baselines still require comparable contexts and sufficien
 Source evidence is the two-system code audit and accepted implementation plan. This change has no
 model-run evaluation result; no measured quality, speed or token improvement is claimed. Earlier
 audit documents retain their dated baseline and are not current execution instructions.
+
+## Retirement record: 2026-10-18
+
+| 原定位 | 原要旨 | 退役理由 |
+|---|---|---|
+| ISSUE-TEMPLATE | 上级 = Parent 设计指针与必要控制约束；refines 保留 Issue 谱系；共享验证环境只活在 verifier.json；AC 完整保留 | 单功能单文档取代：Parent 指针与独立卡文件不复存在；`covers:` 锚点、`refines:` 与 共享验证 由 FEATURE-TEMPLATE 和 C 节对应行承接 |

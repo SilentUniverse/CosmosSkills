@@ -192,6 +192,8 @@ def validate_case(case: Mapping[str, Any], label: str = "case") -> None:
         _text(grader["procedure"], f"{grader_label}.procedure")
         if grader["kind"] == "human":
             _text(grader.get("why_not_automated"), f"{grader_label}.why_not_automated")
+        else:
+            _text(grader.get("command"), f"{grader_label}.command")
 
     raw_requirements = _list(case["requirements"], f"{label}.requirements", nonempty=True)
     requirements = [
@@ -797,6 +799,12 @@ def validate_run(
                 _fail(result_label, f"unknown evidence {evidence_id!r}")
         if result["passed"] and not evidence_ids:
             _fail(result_label, "a passing grader needs evidence")
+        if result["kind"] == "deterministic":
+            exit_code = result.get("exit_code")
+            if isinstance(exit_code, bool) or not isinstance(exit_code, int):
+                _fail(f"{result_label}.exit_code", "a deterministic result needs the command's integer exit code")
+            if result["passed"] != (exit_code == 0):
+                _fail(f"{result_label}.exit_code", "passed must equal exit_code == 0")
 
     if cases is None:
         if run["verified_success"] and not evidence:

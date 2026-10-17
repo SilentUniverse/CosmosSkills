@@ -25,7 +25,7 @@
   "requirements": [
     {
       "id": "R1",
-      "criterion": "The agent implements and verifies the fix directly without invoking /spec, creating a PRD, or creating issues for this settled task.",
+      "criterion": "The agent implements and verifies the fix directly without invoking /spec or creating any `.scratch` planning file such as `.scratch/*/FEATURE.md` for this settled task.",
       "grader_ids": [
         "route-trace"
       ]
@@ -34,7 +34,8 @@
       "id": "R2",
       "criterion": "The fix lands with scoped verification evidence; unrelated files are untouched.",
       "grader_ids": [
-        "route-trace"
+        "route-trace",
+        "scope-review"
       ]
     }
   ],
@@ -42,7 +43,14 @@
     {
       "id": "route-trace",
       "kind": "deterministic",
-      "procedure": "Inspect the trace and worktree: any /spec invocation, PRD file, or issue file created for this task fails routing. Verify the cancel behavior changed, a scoped test run was executed with its result reported, and changed files all belong to the cancel fix."
+      "procedure": "The trace never invokes the spec skill, a source file is written, a test-runner command passes after the last source write, and no file under .scratch/ is created or changed since eval-base.",
+      "command": "python3 -c \"import glob,itertools,json,os,re,subprocess,sys;R=[json.loads(l) for l in open(os.environ['EVAL_TRACE'],encoding='utf-8') if l.strip()];B=[dict(b,role=r.get('type'),seg=g) for g,r in zip(itertools.accumulate(int(r.get('subtype')=='init') for r in R),R) if isinstance(r.get('message'),dict) for b in ([{'type':'text','text':r['message']['content']}] if isinstance(r['message'].get('content'),str) else r['message'].get('content') or [])];E={b.get('tool_use_id'):bool(b.get('is_error')) for b in B if b.get('type')=='tool_result'};T=[(i,b.get('name'),b.get('input') or {},E.get(b.get('id')),b['seg']) for i,b in enumerate(B) if b.get('type')=='tool_use'];W=[(i,x.get('file_path') or x.get('notebook_path') or '',g) for i,n,x,e,g in T if n in ('Write','Edit','MultiEdit','NotebookEdit')];X=[(i,x.get('command',''),e,g) for i,n,x,e,g in T if n=='Bash'];rel=lambda p:os.path.relpath(os.path.realpath(p),os.path.realpath(os.environ.get('EVAL_WORKTREE','.')));ist=lambda p:bool(re.search(r'(^|/)(tests?/|test_|[^/]*_test\\.|[^/]*\\.(test|spec)\\.)',rel(p)));src=lambda p:not ist(p) and not rel(p).startswith(('..','.scratch'));sk=lambda n,x:n=='Skill' and str(x.get('skill','')).split(':')[-1];RUN=r'(pytest|unittest|jest|vitest|mocha|npm (run )?test|pnpm test|yarn test|go test|cargo test|gradle|mvn|ctest|make test)';S=[i for i,p,g in W if src(p)];k=[sk(n,x) for i,n,x,e,g in T];z=subprocess.run('git ls-files -o --exclude-standard -- .scratch; git diff --name-only eval-base -- .scratch',shell=True,capture_output=True,text=True).stdout.split();ok=S and 'spec' not in k and not z and any(i>S[-1] and e is False and re.search(RUN,c) for i,c,e,g in X);print(z);sys.exit(not ok)\""
+    },
+    {
+      "id": "scope-review",
+      "kind": "human",
+      "procedure": "Read the final diff: the cancel behavior is corrected and every changed file belongs to the cancel fix.",
+      "why_not_automated": "Whether a changed file belongs to the cancel flow requires reading it; the abstract fixture declares no owned-path list."
     }
   ]
 }

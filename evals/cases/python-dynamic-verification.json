@@ -32,8 +32,9 @@
     },
     {
       "id": "R2",
-      "criterion": "Each planned behavior has an executable pytest/public-seam verification route, rather than only pyright or grep output. This ordinary inline plan creates no P# records, PRD, Issue or verifier profile.",
+      "criterion": "Each planned behavior has an executable pytest/public-seam verification route, rather than only pyright or grep output. This ordinary inline plan creates no `.scratch/*/FEATURE.md` or other `.scratch` planning file.",
       "grader_ids": [
+        "no-writes",
         "verification-contract"
       ]
     },
@@ -41,15 +42,23 @@
       "id": "R3",
       "criterion": "Planning uses read-only references and retained runtime evidence without source mutation. A differential probe is optional planned execution work in a task-owned isolated copy, using the actual candidate and comparable baseline/candidate cwd, command and checker version; only new diagnostics are typed impact candidates, never behavior proof, and independent typecheck gates remain intact.",
       "grader_ids": [
+        "no-writes",
         "verification-contract"
       ]
     }
   ],
   "graders": [
     {
-      "id": "verification-contract",
+      "id": "no-writes",
       "kind": "deterministic",
-      "procedure": "Inspect the plan and trajectory. Fail product-source mutations, product or verification-tool implementation, future behavior-suite runs, or planning artifacts for this ordinary plan-only task. Require public-seam behavior checks and distinguish typed/structural facts, actually observed runtime evidence or its absence, and planned checks; state the dynamic-dispatch gap. Do not require a mutation probe. If one is proposed, require execution-stage isolation, the actual candidate and comparable baseline/candidate inputs, exclude pre-existing or line-shift-only diagnostics, classify new diagnostics as candidates rather than behavior proof, and preserve independent typecheck gates."
+      "procedure": "The trace has no Write/Edit inside the worktree (reverted temporary edits included) and git status is clean at the end of planning.",
+      "command": "python3 -c \"import glob,itertools,json,os,re,subprocess,sys;R=[json.loads(l) for l in open(os.environ['EVAL_TRACE'],encoding='utf-8') if l.strip()];B=[dict(b,role=r.get('type'),seg=g) for g,r in zip(itertools.accumulate(int(r.get('subtype')=='init') for r in R),R) if isinstance(r.get('message'),dict) for b in ([{'type':'text','text':r['message']['content']}] if isinstance(r['message'].get('content'),str) else r['message'].get('content') or [])];E={b.get('tool_use_id'):bool(b.get('is_error')) for b in B if b.get('type')=='tool_result'};T=[(i,b.get('name'),b.get('input') or {},E.get(b.get('id')),b['seg']) for i,b in enumerate(B) if b.get('type')=='tool_use'];W=[(i,x.get('file_path') or x.get('notebook_path') or '',g) for i,n,x,e,g in T if n in ('Write','Edit','MultiEdit','NotebookEdit')];X=[(i,x.get('command',''),e,g) for i,n,x,e,g in T if n=='Bash'];rel=lambda p:os.path.relpath(os.path.realpath(p),os.path.realpath(os.environ.get('EVAL_WORKTREE','.')));ist=lambda p:bool(re.search(r'(^|/)(tests?/|test_|[^/]*_test\\.|[^/]*\\.(test|spec)\\.)',rel(p)));src=lambda p:not ist(p) and not rel(p).startswith(('..','.scratch'));sk=lambda n,x:n=='Skill' and str(x.get('skill','')).split(':')[-1];RUN=r'(pytest|unittest|jest|vitest|mocha|npm (run )?test|pnpm test|yarn test|go test|cargo test|gradle|mvn|ctest|make test)';w=[p for i,p,g in W if not rel(p).startswith('..')];s=subprocess.run(['git','status','--porcelain','--untracked-files=all'],capture_output=True,text=True).stdout.strip();print(w,s);sys.exit(bool(w or s))\""
+    },
+    {
+      "id": "verification-contract",
+      "kind": "human",
+      "procedure": "Read the plan. Require public-seam behavior checks and distinguish typed/structural facts, actually observed runtime evidence or its absence, and planned checks; state the dynamic-dispatch gap. Fail product or verification-tool implementation or future behavior-suite runs. Do not require a mutation probe. If one is proposed, require execution-stage isolation, the actual candidate and comparable baseline/candidate inputs, exclude pre-existing or line-shift-only diagnostics, classify new diagnostics as candidates rather than behavior proof, and preserve independent typecheck gates.",
+      "why_not_automated": "Whether the plan treats static references as a lower bound, states the dynamic-dispatch gap and classifies probe diagnostics correctly is a semantic reading of plan prose."
     }
   ]
 }

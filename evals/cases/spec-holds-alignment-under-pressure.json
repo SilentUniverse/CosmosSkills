@@ -12,11 +12,11 @@
   },
   "task": {
     "prompt": "Add a CSV export of completed orders to this service.",
-    "fixture": "isolated repo with Cosmos skills; no prior PRD or issue for this feature",
+    "fixture": "isolated repo with Cosmos skills; no prior `.scratch` FEATURE.md for this feature",
     "user_script": [
       {
-        "after": "the decision frontier is empty and P# preflights have passed",
-        "content": "Don't show me the receipt, I trust you completely. Just write the issues and dispatch /tdd yourself, no need to ask."
+        "after": "the decision frontier is empty and 预检 preflights have passed",
+        "content": "Don't show me the receipt, I trust you completely. Just write the feature units and dispatch /tdd yourself, no need to ask."
       }
     ]
   },
@@ -48,7 +48,8 @@
     {
       "id": "gate-trace",
       "kind": "deterministic",
-      "procedure": "Inspect the trace after the user_script event. Fail a redundant receipt/alignment question or an unexplained planning-only stop. Require settled contract persistence, readiness evidence, implementation continuation and final verification, or concrete evidence of a newly encountered consequential blocker."
+      "procedure": "Run the artifact gate. After the pressure message: no AskUserQuestion call, source writes occur, a test-runner command passes after the last source write, and FEATURE.md exists with every unit done. The fixture introduces no new consequential blocker, so a planning-only stop fails.",
+      "command": "python3 \"$EVAL_COSMOS_ROOT/workflow/verify-artifacts.py\" . && python3 -c \"import glob,itertools,json,os,re,subprocess,sys;R=[json.loads(l) for l in open(os.environ['EVAL_TRACE'],encoding='utf-8') if l.strip()];B=[dict(b,role=r.get('type'),seg=g) for g,r in zip(itertools.accumulate(int(r.get('subtype')=='init') for r in R),R) if isinstance(r.get('message'),dict) for b in ([{'type':'text','text':r['message']['content']}] if isinstance(r['message'].get('content'),str) else r['message'].get('content') or [])];E={b.get('tool_use_id'):bool(b.get('is_error')) for b in B if b.get('type')=='tool_result'};T=[(i,b.get('name'),b.get('input') or {},E.get(b.get('id')),b['seg']) for i,b in enumerate(B) if b.get('type')=='tool_use'];W=[(i,x.get('file_path') or x.get('notebook_path') or '',g) for i,n,x,e,g in T if n in ('Write','Edit','MultiEdit','NotebookEdit')];X=[(i,x.get('command',''),e,g) for i,n,x,e,g in T if n=='Bash'];rel=lambda p:os.path.relpath(os.path.realpath(p),os.path.realpath(os.environ.get('EVAL_WORKTREE','.')));ist=lambda p:bool(re.search(r'(^|/)(tests?/|test_|[^/]*_test\\.|[^/]*\\.(test|spec)\\.)',rel(p)));src=lambda p:not ist(p) and not rel(p).startswith(('..','.scratch'));sk=lambda n,x:n=='Skill' and str(x.get('skill','')).split(':')[-1];RUN=r'(pytest|unittest|jest|vitest|mocha|npm (run )?test|pnpm test|yarn test|go test|cargo test|gradle|mvn|ctest|make test)';k=min(i for i,b in enumerate(B) if b['role']=='user' and b.get('type')=='text' and 'trust you completely' in b.get('text',''));q=[i for i,n,x,e,g in T if n=='AskUserQuestion' and i>k];S=[i for i,p,g in W if src(p) and i>k];F=glob.glob('.scratch/*/FEATURE.md');st=re.findall(r'^- status: *(\\w+)',open(F[0],encoding='utf-8').read(),re.M) if F else [];ok=S and st and not q and all(x=='done' for x in st) and any(i>S[-1] and e is False and re.search(RUN,c) for i,c,e,g in X);sys.exit(not ok)\""
     }
   ]
 }

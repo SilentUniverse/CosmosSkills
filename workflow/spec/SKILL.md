@@ -7,203 +7,82 @@ argument-hint: "The need — anything from one line to a full design"
 
 # Spec
 
-Owns requirements, incremental planning and execution readiness. A plan-only request returns the
-complete reviewable plan. An implementation request authorizes routine planning and implementation
-within its stated scope; hand off to TDD in the same task. Honor an explicitly pending plan review.
-Acceptance follows the agreed outcome, constraints and public contract, including later repairs and
-internal slices. Only a new unresolved material decision holds its dependent work. User-requested
-changes supply their stated authorization; do not ask for the same decision again.
+Owns requirements and execution readiness. Authorization, plan-only scope and the planning write
+limit follow the resident policy (`CLAUDE.md` §2); this skill adds only what planning needs.
+Planning never edits product source, product tests or verification tools. A missing run, drive or
+observation capability becomes an execution prerequisite; authorized TDD builds it through
+`/verify` before dependent behavior.
 
-Before changing an Issue, verifier or shared setup, inspect its actual native task consumers.
-Coordinate affected active writers; card status is engineering readiness, not execution ownership.
-Independent additions continue. Preserve completed contracts and proofs. Within a giant-task queue,
-new details use detail issues, changed contracts use redo, and delivered defects use linked fix issues.
+## 1. Classify intent
 
-This phase may run declared setup, read-only analysis and representative verifier preflights; it
-may write planning artifacts on the giant-task route and confirmed engineering facts
-(ADR/CONTEXT/CODEBASE). It never edits product source or product behavior tests, and never
-implements the request through a convenience fix. It creates or repairs no verification tools or
-tool tests. A missing capability becomes an execution prerequisite in the plan; authorized TDD
-executes that bounded work before the dependent behavior. A queued behavior card remains pending
-until its required capability and observed readiness exist.
+- **Settled.** Outcome and constraints are clear from the request, prior decisions and repository
+  evidence. An existing requirement document or explicit conversation is the source: fill only
+  missing goal, boundary, authorization or acceptance; never re-package it. Choose routine details
+  and a deterministic verifier yourself and report material reversible assumptions.
+- **Decision.** An unresolved choice would change outcome, scope, public contract
+  (API/ABI/schema/protocol), measurement semantics, irreversible effects, significant cost or
+  authority. Load [ALIGNMENT-LOOP.md](ALIGNMENT-LOOP.md) and resolve only the decisions the plan needs.
 
-Intent has two paths:
+File count, module reach or expected unit count never turns settled work into a decision. Only
+graphical UI loads [UI verification](../tdd/UI-TESTING.md).
 
-- **Settled intake.** The request itself is alignment when its outcome and constraints are clear
-  from the request, prior decisions, and repository evidence. An existing requirement document, a
-  native plan, or a sufficiently explicit conversation is consumed as the source: check the four
-  gaps (goal, boundary, authorization, acceptance validity) and fill only what is missing;
-  never re-package it into a standard PRD. Choose routine implementation details
-  and a suitable deterministic verifier autonomously; report material reversible assumptions.
-  File count, module reach, or expected card count alone never turns settled work into decision
-  intake. An implementation request on the inline route goes straight to TDD;
-  a plan-only request follows the output route below and returns a complete reviewable plan.
-- **Decision intake.** An unresolved material ambiguity about outcome, scope, public contract
-  (API/ABI/schema/protocol), measurement semantics, irreversible effects, significant cost, or
-  authority, including two visibly different product outcomes, key decisions shared across
-  slices, or an irreversible migration. A request for a plan alone does not imply an unresolved
-  decision. Load [ALIGNMENT-LOOP.md](ALIGNMENT-LOOP.md): answer repository questions, take safe
-  reversible defaults, and attack the draft. Ask one focused batch of consequential choices whose
-  prerequisites are settled. After the user's answers, recompute the affected branches and ask the
-  next ready batch until the choices needed by the plan are resolved. Target one or two user
-  decision rounds, with concrete options, recommendations and trade-offs; additional rounds need
-  a material dependency or new evidence. The convergence predicate
-  separates reviewable choices from missing evidence; hold only dependent work. Missing
-  implementation detail, card boundaries, or a previously authorized change does not reopen alignment.
+## 2. Choose the output
 
-The receipt is conversation state, separate from issue engineering status. Confidence never closes a decision
-frontier. A settled request already supplies the decision. Only graphical UI loads
-[UI verification](../tdd/UI-TESTING.md); experience grading is opt-in.
+Default to an **inline plan** in the conversation or native plan: outcome, constraints, decisions,
+verification route. It creates no file and runs no artifact check; an implementation request
+continues through TDD in the same task.
 
-Choose the output route before preparing artifacts. Default to an inline plan with the outcome,
-constraints, authorization and verification route. Only giant tasks create cards: independently
-deliverable stages need a persistent execution queue across delivery rounds, carrying dependencies
-and readiness beyond what the native plan can retain. File count, module reach, internal steps,
-temporary delegation and the presence of old issues do not meet this threshold by themselves.
-Inline planning creates no PRD, issues or verifier profile and runs no artifact check. Review it in
-the conversation; skip card materialization, P# readiness records and issue admission. Return the
-complete plan or continue authorized implementation through TDD. Existing contracts and proofs stay
-intact; an explicit update to a tracked contract follows its governing history rules.
+Use a **feature document** only for a giant task: independently deliverable stages that need a
+persistent queue across delivery rounds or sessions, with dependencies and readiness the native plan
+cannot retain. Temporary delegation, internal steps or file count do not qualify. A feature has
+exactly one `.scratch/<feat>/FEATURE.md` written from [FEATURE-TEMPLATE.md](FEATURE-TEMPLATE.md).
 
-## 1. Locate
+Locate first: `rg` the named feature, else 3–5 keywords over `.scratch/*/FEATURE.md` and any
+requirement document the request names. No hit means inspect the related code and live contracts;
+absence from `.scratch` is not absence from the product. A hit in another feature changes it only
+when ownership and the requested outcome say so.
 
-Named `<feat>` → `rg` that feature only; else 3–5 keywords over `.scratch/**/PRD*.md`,
-`.scratch/**/issues/*.md`, `.scratch/**/research-*.md`, and any requirement document the request
-names.
+## 3. Impact and verification design
 
-- No hit → inspect the related code and live contracts before classifying it as new work; absence
-  from the issue queue does not establish absence from the product. On the giant-task route, use
-  [PRD-TEMPLATE.md](PRD-TEMPLATE.md) when shared scenarios/decisions need
-  a durable owner across slices. Multi-module reach or card count alone does not require a PRD.
-  A settled plan can stay inline;
-  native session continuation handles a session boundary without creating an engineering queue.
-- Hit in the target feature: read the live PRD's 实现决策 (if any) and the hit issue's AC/`status`.
-  Treat them as existing evidence; only the giant-task route materializes the cards below.
-  - Nothing recorded goes false → additive re-run within existing authorization. Growing an
-    existing unit → edit an unassigned `pending`/`ready` issue in place, refreshing its
-    `## 上级` extract if the cited parent lines moved; new sub-behaviour on an existing unit →
-    `detail` issue (`refines:` parent slug); new independent behaviour → new `enhancement`
-    issue. `done` issues are never edited; a change that invalidates one goes to
-    [SUPERSEDE.md](SUPERSEDE.md). A reviewed PRD needing new anchors writes a new `PRD-vN.md`
-    with `supersedes:`; independent accepted cards continue under the scoped acceptance gate in
-    [REVIEW.md](REVIEW.md). Wait only for a new unresolved material decision.
-  - A recorded AC or decision goes false → [SUPERSEDE.md](SUPERSEDE.md).
-- Hit elsewhere → inspect ownership and the requested outcome. Ask only if competing interpretations
-  would change behavior or scope; a keyword match alone never supersedes another feature.
+Not an approval gate. Use cheap `rg`/`ast-grep` first; for many references, several modules or an
+invariant area, load [impact-detection.md](impact-detection.md). Persist a newly found invariant to
+`CODEBASE.md` 不变量. Use `/prototype` only when a runnable experiment answers a concrete design
+question more cheaply. Wide refactors use expand → migrate → contract with each batch green.
 
-## 2. Impact (touches existing code)
+Choose checks with [test policy](../TEST-POLICY.md) and evidence with
+[VERIFICATION-DESIGN.md](VERIFICATION-DESIGN.md). A plan declares future checks; it does not run
+future behavior suites to manufacture readiness.
 
-Not an approval gate. Cheap `rg`/`ast-grep` first. Small radius (few callers, one module, no
-known invariant): write `touches:`, continue. Coupled (many refs, multiple modules, or an
-invariant area): [impact-detection.md](impact-detection.md). Persist a new invariant to
-`CODEBASE.md`'s 不变量 section, or to the area's legacy block when one exists (two-axis); don't
-pause to offer.
+## 4. Write the feature document
 
-Use `/prototype` only when a concrete unresolved design question is cheaper to answer with a runnable
-experiment. Wide refactors use expand → migrate → contract; each batch stays green.
+Only on the feature-document route:
 
-When choosing verification groups, triggers or test-cost constraints, apply
-[test policy](../TEST-POLICY.md). Preserve required delivery gates and choose conservative influence boundaries.
-Pure prose needs only necessary structure checks; templates/schema use their targeted contract
-cases. Select the smallest behavior checks for logic changes. A plan declares these checks; it
-does not run future behavior suites to manufacture readiness.
+1. Write goals, requirements, decisions and invariants once. Mark direction decisions
+   `Review: human` and confirm them with the user in the conversation. Mark public-contract or
+   irreversible ones `Door: one-way` (or set `review: required`); only these record a human
+   acceptance before execution.
+2. Prepare the durable environment with repository-declared setup, then run one cheap
+   representative preflight per command and record it in 共享验证. Reuse an identical
+   just-observed action when cwd, prerequisites and environment are unchanged. A unit whose
+   capability or readiness is missing stays `pending` with a concrete `reason`.
+3. Write units in dependency order. Apply the deletion test to every unit, command and section:
+   it must break a real delivery, authorization, verification, handoff or recovery scenario, not
+   only this workflow's format check.
+4. Run `python ../verify-artifacts.py <repo-root> --feature <feat>` after writing (`python3` only
+   when `python` is missing; never as a retry). Re-run only after relevant fixes.
 
-A proposed coverage, size, or timing bar follows the non-functional
-bar rules in [VERIFICATION-DESIGN.md](VERIFICATION-DESIGN.md).
+For a feature with a recorded gate, present it through [REVIEW.md](REVIEW.md) before execution;
+units start only after acceptance. Preparation surfacing no new consequential decision needs no
+second review. A new public seam, irreversible change, coupled unit graph or uncertain proof calls `/atk`
+on the written contract; reuse the alignment attack for unchanged decisions.
 
-## 3. Prepare and write
+## 5. Hand off
 
-For a missing run, drive or observation capability, state the required operation, expected
-observation and dependent work. Plan its bounded implementation through `/verify` in the authorized
-execution phase; a plan-only request returns this prerequisite without building it.
-Run the deletion test on the plan's structure: deleting any proposed boundary, interface, artifact
-kind, PRD, or verifier profile must break a real delivery, authorization, verification, handoff, or
-recovery scenario; this workflow's own format validation failing is not such a scenario. Anything
-without one leaves the plan.
-For a giant task needing a persistent queue, read [CARD-TEST.md](CARD-TEST.md) to choose
-independently executable slices,
-[VERIFICATION-DESIGN.md](VERIFICATION-DESIGN.md) to prepare each verifier, and
-[ISSUE-TEMPLATE.md](ISSUE-TEMPLATE.md) plus the relevant
-[issue schema](../ARTIFACT-FORMAT.md#issue-files--scratchfeatissuesnn-slugmd) when writing cards.
-Load each selected instruction once; reuse it across cards until it changes.
+Return the inline plan or the document path, material assumptions, observed evidence and
+unresolved decisions. A plan-only request ends with the complete plan. Otherwise continue through
+TDD without another confirmation; `workflow-state.py start` packets are the worker input.
 
-When a giant-task PRD requires human review, present it before materializing the execution queue:
-load [REVIEW.md](REVIEW.md) for the human reading/feedback surfaces, deterministic rendering,
-acceptance binding and materialization gate. Keep the requirement tree transient. Review an anchored
-consequential PRD through that surface; a settled inline plan uses the conversation.
-Materialize issues, verifier profiles and preflights after acceptance when review is required.
-This preparation needs no second review unless it surfaces a new consequential decision.
-
-Before marking an issue ready:
-
-1. Resolve code/environment facts and consequential open decisions. An `UNVERIFIED:` claim cannot
-   support an AC or readiness. Continue independent settled units; unresolved required work stays
-   visible to the caller.
-2. Run the representative P# preflights after durable repo-declared setup. Record cwd, prerequisites,
-   observed result, evidence, date, and fingerprint per verification design. Reuse an identical
-   just-observed action when cwd, prerequisites, preparation, and fingerprint are unchanged.
-   Use a cheap representative harness action, not its whole suite; reuse it across matching cards.
-   Known engineering work with a concrete readiness gap stays `pending` with `pending_reason`; vague future work stays in requirements. Ask only about new consequential
-   choices or authority; routine setup is part of this phase.
-3. Choose verifier ownership by the single-source algorithm in
-   [VERIFICATION-DESIGN.md](VERIFICATION-DESIGN.md) and write `verifier.json` before its v3 cards.
-   Preserve a profile bound to a done card; new differences use card deviations or v2. For opted-in
-   UI, operate the baseline and prove capture/runtime checks before writing the canonical
-   experience contract.
-4. Write a PRD only when shared scenarios or decisions need one. A tracked delegation may replace
-   that PRD with the path/hash stub in [PRD-TEMPLATE.md](PRD-TEMPLATE.md). Chat, URLs, mutable or
-   untracked sources become the needed facts in the PRD or self-contained issue. Source location
-   alone never requires a PRD. Write settled cards in dependency order with `status: ready`, declared
-   paths/resources, and the read pointers needed by their reasoning radius. Preserve shipped done
-   contracts; additive and superseding work follow their selected branch.
-
-## 4. Validate and present for review
-
-Read each written card from only its declared inputs. Check 做什么 against every AC, the passed P#
-mapping and exact final action/evidence, required parent constraints, and dependencies. Reuse the
-existing Parent R/D/S pointer to verify that 做什么 and AC preserve the cited scenario and decision
-meaning; mechanical source/coverage checks cannot establish this. Each human review names its
-requirements, fixed object and dependent scope. Keep slices independently useful and prove only
-their new behavior.
-Reuse the recorded preflight under TDD's drift guard. A new public seam, irreversible change, coupled
-slice DAG, or uncertain proof calls `/atk` on those artifacts. Reuse the alignment attack for an
-unchanged decision; inspect only newly materialized contracts and findings that could invalidate it.
-Fix contract-preserving defects directly; reopen only decisions whose outcome, public contract,
-cost, authority, or proof changes.
-
-Keep valid pending cards visible with their missing readiness. Repair malformed fields separately;
-never manufacture passed preflight for pending work. Ready requires a complete contract and observed
-preflight. Engineering dependencies and manual obligations remain separate from this three-state vocabulary.
-
-Only after writing or changing feature artifacts, run
-`python ../verify-artifacts.py <repo-root> --feature <feat>`. Inline plans skip this gate. Use `python3`
-only if `python` is missing, never as a retry for a gate failure. Re-run only after relevant fixes.
-The whole-tree form remains the artifact/CI/migration gate.
-
-Return written paths or the inline plan, material assumptions, actual evidence, and unresolved
-decisions. Honor the request’s planning or execution scope when handing the cards or inline contract to TDD;
-at an execution boundary the read-only `start` packet is the worker's input — do not re-transcribe
-cards into a separate dispatch brief.
-When the user requested plan review, present the complete plan. Otherwise continue authorized work
-in the same task without another confirmation or session reset.
-
-A plan-only request ends with a complete reviewable plan. An authorized implementation continues
-under its requested method, defaulting to the repository's existing practice and verification
-conventions. Missing decisions hold only dependent work;
-these are engineering outcomes, not persisted runtime phases.
-
-## 5. Promote confirmed facts
-
-After acceptance, classify what the review newly confirmed by scope:
-
-- **Task-local** — stays in the conversation/native plan, or the owning PRD/issue on the queue
-  route; later specs do not auto-load it.
-- **Feature-local** — stays in the feature PRD's 实现决策 or its existing knowledge entry.
-- **Area/project invariant** — a future spec would design wrongly without it: ADR, CODEBASE or
-  CONTEXT under `/map`'s two-axis test.
-
-Promotion requires one of: the user declared it a long-term rule, the same consequential decision
-has recurred, multiple features consume the invariant, or omitting it would repeat a wrong design.
-Each promoted fact records scope, source and reason. A promoted fact travels as accepted fact plus
-source, never as unattributed truth: when the code, schema or decision it cites changes,
-revalidate or supersede it — past acceptance does not keep a stale fact true.
+Promote a confirmed fact beyond the feature only when a future spec would design wrongly without
+it, the user declared it long-term, or multiple features consume it: ADR, `CODEBASE.md` or
+`CONTEXT.md` under `/map`'s two-axis rule, with scope, source and reason. A promoted fact is
+revalidated when the code, schema or decision it cites changes.

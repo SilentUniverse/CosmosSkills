@@ -1,6 +1,7 @@
 # Fixed-candidate verification
 
-Load for declared delivery/integration gates or explicit `/tdd -all`; ordinary RED/GREEN stays scoped.
+Load for declared delivery/integration gates, explicit `/tdd -all`, or closing a unit of a gated feature;
+ordinary RED/GREEN stays scoped.
 Complete means all gates declared for that delivery scope. A local edit or changed prose does not
 load this procedure; reuse matching proof before executing any gate.
 
@@ -42,16 +43,16 @@ applicable project-owned aggregation policy as described in TEST-POLICY; prose i
 - Timeout: preserve the active phase; retry only with diagnostic value at a bounded, narrower scope.
 - Unknown/cancelled/incomplete: cannot prove completion.
 
-Final delivery needs its declared complete gates. Issue completion, session recovery and human
+Final delivery needs its declared complete gates. Unit completion, session recovery and human
 approval are not full-suite triggers. Tests reserved by the user remain explicitly unexecuted.
 
 ## Evidence CLI
 
 Use the installed skills root or source `workflow/` directory. `ROOT` is the isolated candidate
 checkout and evidence root; referenced files stay within it. Git/project tooling materializes the
-checkout. An existing accepted Spec can be bound with `--spec`; omit it for preflight, settled
-inline work or a standalone Issue without a Parent. No approval is invented for that case. A
-Parent-bound Issue still requires its candidate's matching accepted Spec before completion.
+checkout. A feature with a recorded review gate binds its accepted contract with
+`--spec .scratch/<feat>/FEATURE.md`; the command refuses unaccepted bytes. Omit `--spec` for
+preflight, inline work or a feature without review; no approval is invented for that case.
 
 ```text
 python evidence.py candidate ROOT --ref REF [--spec SPEC_PATH] [--input REPO_REL_FILE] --out CANDIDATE
@@ -77,23 +78,16 @@ overlap fixed source or the candidate/context/receipt records. Failed checks can
 outputs; a passing check needs every declared output. Review artifacts must match these outputs or
 the selected check's fixed inputs, so a later workspace replacement cannot inherit old proof.
 
-When a receipt closes an Issue, `environment.contract` must match the verifier's declared
-`fingerprint` (excluding `git`), `prerequisites`, and `prepare`. Record actual runtime/dependency
-identities alongside this contract, without Issue or session IDs in the check key. For example:
+When a receipt closes a feature unit, every key of the feature's 共享验证 `environment` must appear
+with the same value in the check definition's `environment`; add actual identities beside them,
+without unit or session IDs in the check key. `cwd` must equal 共享验证 `cwd`. For example:
 
 ```json
 {
   "argv": ["python", "-m", "pytest", "tests/test_example.py"],
   "cwd": ".",
   "scope": "targeted",
-  "environment": {
-    "runtime": "Python 3.12.9",
-    "contract": {
-      "fingerprint": {"lock": "requirements.lock@sha256:…", "runtime": "Python 3.12", "tools": "pytest", "services": "none"},
-      "prerequisites": {"fixtures": "local", "services": "none", "permissions": "workspace", "network": "none"},
-      "prepare": "无（已就绪）"
-    }
-  }
+  "environment": {"runtime": "python 3.12", "lock": "sha256:…", "observed_runtime": "Python 3.12.9"}
 }
 ```
 

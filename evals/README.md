@@ -8,7 +8,7 @@
 行为 eval 是一条**旁路实验线**，不是每次开发的必经管道。没有显式 `/eval` 或
 `start-session`，就不启动额外 agent、不跑 previous/no-skill 对照、不调用 AI judge，也不采集
 全量轨迹。正常 `/spec → /tdd` 只保留两种便宜保护：artifact 静态门，以及当前任务验证器的
-SPEC preflight；它们证明“这张卡现在能执行”，不评价“整套 workflow 是否优于上一版”。
+SPEC preflight；它们证明“这个单元现在能执行”，不评价“整套 workflow 是否优于上一版”。
 
 需要检查工作流时再打开：
 
@@ -35,7 +35,7 @@ smoke 超过两个 case 会被 CLI 拒绝，避免“快速检查”意外变成
 
 | | 什么时候跑 | 回答什么问题 |
 |---|---|---|
-| 任务验证器 + P# preflight | 每次 SPEC/TDD，范围只限当前卡 | 这条 AC 的证明现在能不能执行？结果对不对？ |
+| 任务验证器 + P# preflight | 每次 SPEC/TDD，范围只限当前单元 | 这条 AC 的证明现在能不能执行？结果对不对？ |
 | workflow eval | 仅手动 `/eval` | 新版 SPEC/TDD policy 是否比旧版更稳、更快、更省？ |
 
 前者是安全带，成本应是秒级或少量分钟；后者是碰撞试验，可以昂贵，所以默认关闭。
@@ -50,7 +50,7 @@ smoke 超过两个 case 会被 CLI 拒绝，避免“快速检查”意外变成
 | L3 端到端 | 从用户目标到可重放证据 | product scenario + human adjudication if irreducible |
 
 最有价值的是 L2：同一需求、同一 repo snapshot、同一 model/tool/budget，planner 产出后换一
-个 fresh executor。执行者看不到 planner 的思考，只读 issue。卡片好不好最终由交接后的结果
+个 fresh executor。执行者看不到 planner 的思考，只读 `.scratch/<feat>/FEATURE.md`。单元写得好不好最终由交接后的结果
 判定，而不是 planner 自评。
 
 ## 对照实验
@@ -89,7 +89,11 @@ trade-off；wall time 必须来自同一口径（同一 adapter 的活跃时长�
 
 `cases/*.json` 是 runner-neutral 测试规格。每个 requirement 指向一个或多个 grader：
 
-- `deterministic`：测试、compiler、CLI、trace event、browser/device action。
+- `deterministic`：测试、compiler、CLI、trace event、browser/device action。`procedure` 只给人读；
+  必填的 `command` 是在 trial worktree 根目录执行的命令行，退出 0 即通过，其 result 必须记录
+  `exit_code` 且与 `passed` 一致。可用环境变量：`$EVAL_TRACE`（保留的 trace JSONL；多阶段 trace 按顺序
+  拼接，每阶段以 `system/init` 开头）、`$EVAL_WORKTREE`、`$EVAL_COSMOS_ROOT`（本仓库，用于
+  `verify-artifacts.py` 与 `evals/experiments/`）；fixture 起点打 `eval-base` git tag。
 - `human`：品味、权限、不可逆决策或 agent 无法访问的外部账号，必须说明为何不能自动化。
 
 runner 输出 JSONL。成功记录至少包含：
@@ -129,7 +133,7 @@ runner 输出 JSONL。成功记录至少包含：
     "retry_count": 0
   },
   "grader_results": [
-    {"id": "trace-order", "kind": "deterministic", "passed": true, "evidence_ids": ["trace"]}
+    {"id": "trace-order", "kind": "deterministic", "passed": true, "exit_code": 0, "evidence_ids": ["trace"]}
   ],
   "evidence": [
     {

@@ -11,7 +11,7 @@ and remaining conflicts in the user's language.
 
 1. **See the current state** of the merge/rebase — `git status`, `git log --oneline --graph -20`, and the conflicting files (`git diff --name-only --diff-filter=U`). Know which two commits/branches are meeting and what the merge is *for*.
 
-2. **Find the primary sources** for each conflicting hunk — the intent behind each change. Read the commit messages and, since this repo tracks work locally, the originating issue under `.scratch/<feat>/issues/NN-*.md` (its `## 验收标准` and `### 完成` record) and any `docs/adr/` decision the hunk touches.
+2. **Find the primary sources** for each conflicting hunk — the intent behind each change. Read the commit messages and, since this repo tracks work locally, the originating unit in `.scratch/<feat>/FEATURE.md` (its `### T<n>` block, AC and `#### 完成` record) and any `docs/adr/` decision the hunk touches.
 
 3. **Resolve each hunk.** Preserve both intents where possible. Resolve incompatible changes against the stated goal and prior decisions; if neither settles a consequential conflict, ask with the concrete alternatives and continue other hunks. Never silently drop a side. Use `CONTEXT.md` vocabulary when present.
 

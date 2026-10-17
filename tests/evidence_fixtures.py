@@ -2,6 +2,7 @@
 import hashlib
 import json
 import os
+import shlex
 from pathlib import Path
 import subprocess
 import sys
@@ -12,54 +13,49 @@ WORKFLOW = Path(__file__).resolve().parents[1] / "workflow"
 if str(WORKFLOW) not in sys.path:
     sys.path.insert(0, str(WORKFLOW))
 import evidence
-from workflow_contract import AC_CHECKBOX, _frontmatter, _section, effective_verifier, issue_contract_digest
+import feature_doc
+
+FIXTURE_ARGV = [sys.executable, "-c", "print('fixture result')"]
+FIXTURE_COMMAND = shlex.join(FIXTURE_ARGV)
+FIXTURE_VERIFIER = {"cwd": ".", "environment": {"runtime": "fixture"}, "prepare": "无（已就绪）",
+                    "commands": {"unit": FIXTURE_COMMAND, "full": "python -m unittest"}}
+FIXTURE_UNITS = """### T1 — first unit
+- status: ready
+- covers: R1
+- 做什么：Deliver the first result.
+- [ ] first result → `unit`
+"""
 
 
-def issue_binding(issue_path, verifier_name, ac=None):
-    """Fabricate the legacy schema-1 receipt issue binding for read-path fixtures."""
-    issue_path = Path(issue_path).resolve()
-    if issue_path.parent.name != "issues" or issue_path.parent.parent.parent.name != ".scratch":
-        raise ValueError("--issue must be .scratch/<feat>/issues/<slug>.md")
-    feature = issue_path.parent.parent.name
-    root = issue_path.parent.parent.parent.parent
-    raw = issue_path.read_text(encoding="utf-8-sig")
-    data = _frontmatter(raw, issue_path)
-    if data.get("type") != "issue" or data.get("feature") != feature:
-        raise ValueError("--issue identity does not match its feature directory")
-    if data.get("contract_version") != "3" or data.get("status") != "ready":
-        raise ValueError("--issue binding requires a ready contract v3 card")
-    verifier = effective_verifier(root, feature, raw)
-    if verifier_name not in verifier["commands"]:
-        raise ValueError(f"verifier profile has no command '{verifier_name}'")
-    if verifier["schema_version"] == 2 and verifier_name not in verifier["completion_commands"]:
-        raise ValueError(f"verifier '{verifier_name}' is not a completion command")
-    ac_count = sum(1 for line in _section(raw, "验收标准") if AC_CHECKBOX.match(line))
-    if ac_count == 0:
-        raise ValueError("--issue has no checkbox AC")
-    requested_ac = list(ac if ac is not None else range(1, ac_count + 1))
-    if any(type(value) is not int for value in requested_ac):
-        raise ValueError("--ac must contain integers")
-    selected_ac = sorted(set(requested_ac))
-    if not selected_ac or any(value < 1 or value > ac_count for value in selected_ac):
-        raise ValueError("--ac must select existing AC")
-    mismatched = [
-        value for value in selected_ac
-        if verifier["schema_version"] == 2
-        and verifier["ac_commands"].get(value) != verifier_name
-    ]
-    if mismatched:
-        raise ValueError(
-            "verifier %r is not mapped by AC: %s"
-            % (verifier_name, ", ".join("#%d" % value for value in mismatched))
-        )
-    return {
-        "feature": feature,
-        "slug": issue_path.stem,
-        "contract_sha256": issue_contract_digest(raw),
-        "ac": selected_ac,
-        "verifier": verifier_name,
-        "verifier_sha256": verifier["effective_sha256"],
-    }
+def feature_text(feature, *, review=True, verifier=None, units=FIXTURE_UNITS, requirement="first requirement"):
+    """A minimal valid FEATURE.md; tests derive variants with plain string replacement."""
+    return "\n".join([
+        "---", "type: feature", "feature: " + feature, "created: 2026-10-01",
+        *(["review: required"] if review else []), "---", "",
+        "## 目标与边界", "- 问题：fixture problem", "- 结果：fixture outcome", "",
+        "## 需求", "- R1 — " + requirement, "- R2 — second requirement", "",
+        "## 决策", "### D1 — fixture decision", "Refs: R1", "Door: two-way", "Keep the fixture small.", "",
+        "## 不变量", "- C1 — fixture invariant", "",
+        "## 共享验证", "```json", json.dumps(FIXTURE_VERIFIER if verifier is None else verifier, ensure_ascii=False),
+        "```", "- 预检 unit：`python -V` → passed；evidence=inline；checked=2026-10-01", "",
+        "## 任务", units, "## 变更记录", "- 2026-10-01 created", "",
+    ])
+
+
+def accept(feature_dir, event_id=None):
+    """Record a human acceptance of the current contract, as spec-review.py would."""
+    feature_dir = Path(feature_dir)
+    text = feature_doc.contract_text((feature_dir / feature_doc.FILE).read_bytes().decode("utf-8-sig"))
+    reviews = feature_dir / feature_doc.REVIEWS
+    reviews.mkdir(parents=True, exist_ok=True)
+    count = len(list(reviews.glob("*.json")))
+    event_id = event_id or "accept-%d" % (count + 1)
+    path = reviews / (event_id + ".json")
+    evidence.write_record(path, {
+        "kind": "spec_decision", "schema_version": 1, "event_id": event_id, "source": "test",
+        "spec_digest": hashlib.sha256(text.encode("utf-8")).hexdigest(), "accepted": True,
+        "decided_at": float(count + 1), "text": text, "event": {}})
+    return path
 
 
 class EvidenceRepository:
@@ -68,7 +64,7 @@ class EvidenceRepository:
         self.root.mkdir(parents=True, exist_ok=True)
         self.feature = self.root / ".scratch" / feature
         self.feature.mkdir(parents=True, exist_ok=True)
-        self.spec = self.feature / "spec.md" if with_spec else None
+        self.spec = self.feature / feature_doc.FILE if with_spec else None
         if not (self.root / ".git").exists():
             self.git("init", "--quiet")
             self.git("config", "core.autocrlf", "false")
@@ -81,9 +77,8 @@ class EvidenceRepository:
                 self.write(name, content)
             self.git("add", "--", ".gitignore", "src/check.py", "docs/readme.txt", "module/.keep")
             self.git("commit", "--quiet", "-m", "Evidence fixture")
-        if self.spec is not None and not (self.feature / "spec-review.json").exists():
-            text = self.spec.read_text(encoding="utf-8") if self.spec.exists() else "# Fixed evidence fixture\n\nKeep accepted bytes.\n"
-            self.accept_spec(text)
+        if self.spec is not None and not self.spec.exists():
+            self.accept_spec(feature_text(feature))
 
     def git(self, *args):
         env = os.environ.copy()
@@ -106,13 +101,11 @@ class EvidenceRepository:
         path.write_bytes(content.encode("utf-8") if isinstance(content, str) else content)
         return path
 
-    def accept_spec(self, text):
-        text = text.replace("\r\n", "\n").replace("\r", "\n")
-        for name in ("spec.md", "spec-accepted.md"):
-            (self.feature / name).write_bytes(text.encode("utf-8"))
-        (self.feature / "spec-review.json").write_text(json.dumps({
-            "accepted_digest": hashlib.sha256(text.encode("utf-8")).hexdigest(),
-        }), encoding="utf-8")
+    def accept_spec(self, text=None):
+        """Optionally replace FEATURE.md, then accept its current contract."""
+        if text is not None:
+            (self.feature / feature_doc.FILE).write_bytes(text.encode("utf-8"))
+        return accept(self.feature)
 
     def candidate(self, *, inputs=(), ref="HEAD"):
         directory = self.feature / "candidates"

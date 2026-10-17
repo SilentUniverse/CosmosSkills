@@ -1,1781 +1,378 @@
+"""Mechanical gate for FEATURE.md documents (CODEBASE.md leaves: workflow/test-verify-codebase.ps1)."""
 import base64
-import builtins
-import hashlib
 import importlib.util
 import io
 import json
-import re
-import subprocess
 import sys
 import tempfile
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
-from unittest import mock
 
+TESTS = Path(__file__).resolve().parent
+ROOT = TESTS.parent
+if str(TESTS) not in sys.path:
+    sys.path.insert(0, str(TESTS))
+from evidence_fixtures import FIXTURE_VERIFIER, EvidenceRepository, accept, feature_doc, feature_text
 
-ROOT = Path(__file__).resolve().parents[1]
-SPEC = importlib.util.spec_from_file_location(
-    "verify_artifacts", ROOT / "workflow" / "verify-artifacts.py"
-)
-assert SPEC and SPEC.loader
+SPEC = importlib.util.spec_from_file_location("verify_artifacts", ROOT / "workflow" / "verify-artifacts.py")
 verify_artifacts = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(verify_artifacts)
-STATE_SPEC = importlib.util.spec_from_file_location(
-    "workflow_state", ROOT / "workflow" / "workflow-state.py"
-)
-assert STATE_SPEC and STATE_SPEC.loader
+STATE_SPEC = importlib.util.spec_from_file_location("workflow_state", ROOT / "workflow" / "workflow-state.py")
 workflow_state = importlib.util.module_from_spec(STATE_SPEC)
 STATE_SPEC.loader.exec_module(workflow_state)
-import workflow_contract
-sys.path.insert(0, str(ROOT / "tests"))
-from evidence_fixtures import issue_binding
 
 PNG_1X1 = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
 )
-
-
-def plant_compressed_prd(root, *, tracked=True, digest=None):
-    source = root / "docs" / "requirements" / "search.md"
-    source.parent.mkdir(parents=True)
-    source.write_text("Search requirements.\n", encoding="utf-8")
-    subprocess.run(["git", "init", "-q"], cwd=root, check=True)
-    if tracked:
-        subprocess.run(["git", "add", "docs/requirements/search.md"], cwd=root, check=True)
-    observed = hashlib.sha256(source.read_bytes()).hexdigest()
-    prd = root / ".scratch" / "search" / "PRD.md"
-    prd.write_text(
-        """---
-type: prd
-feature: search
-version: 1
-created: 2026-08-31
----
-
-## 需求记录源
-
-- 路径：`docs/requirements/search.md`
-- SHA-256：`%s`
-- 完整性：该文档已固定 acceptance、verification 与 constraints。
-""" % (digest or observed),
-        encoding="utf-8",
-    )
-
-
-def issue_body(
-    verification=True,
-    second_map=True,
-    done=False,
-    verify_command=True,
-    preflight_replay=True,
-    readiness=True,
-    preflight_passed=True,
-    first_preflight="P1",
-    second_preflight="P1",
-    falsifiers=None,
-    experience_review="",
-    experience_contract=True,
-    experience_record=True,
-):
-    if falsifiers is None:
-        falsifiers = bool(experience_review)
-    proof = ""
-    if verification:
-        proof = """
-## 验证设计（Verification Design）
-
-- 接缝：HistorySearch public API
+UNIT = """### T1 — first unit
+- status: ready
+- covers: R1
+- 做什么：Deliver the first result.
+- [ ] first result → `unit`
 """
-        if readiness:
-            result = "passed" if preflight_passed else "failed"
-            proof += f"""- 工作目录：`.`
-- 环境指纹：`git=abc123; lock=none; runtime=python-3.13; tools=pytest-8; services=none`
-- 前置条件：`fixtures=ready; services=none; permissions=local; network=off`
-- 准备动作：`无（已就绪）`
-- P1 预检：`python -m pytest --collect-only -q` → {result}；observed=exit 0, 2 collected；evidence=inline；checked=2026-08-28
-"""
-        if experience_review and experience_contract:
-            proof += """- 体验验证：`contract=.scratch/search/experience-contract.json; states=results,empty; evidence=.scratch/search/evidence/01-search-experience.json`
-"""
-        falsifier_one = "；反证：matching record omitted" if falsifiers else ""
-        proof += (
-            "- #1 → `pytest tests/test_search.py::test_match`；"
-            f"预检：{first_preflight}{falsifier_one}；预期证据：exit 0\n"
-        )
-        if second_map:
-            falsifier_two = "；反证：empty query returns no records" if falsifiers else ""
-            proof += (
-                "- #2 → `pytest tests/test_search.py::test_empty`；"
-                f"预检：{second_preflight}{falsifier_two}；预期证据：exit 0\n"
-            )
-    status = "done" if done else "ready"
-    completion = ""
-    if done:
-        command = "- 验证命令：`pytest tests/test_search.py -q` → exit 0，2 passed\n" if verify_command else ""
-        replay = "- 预检重放：P1 → fingerprint match，exit 0, 2 collected\n" if preflight_replay else ""
-        experience = ""
-        if experience_review and experience_record:
-            experience = "- 体验验证：`run browser review` → passed；evidence=.scratch/search/evidence/01-search-experience.json\n"
-        completion = f"""
-### 完成 — 2026-08-28
-
-- 新增测试：tests/test_search.py（2 cases）
-{replay}{command}{experience}- 验收：#1 → tests/test_search.py::test_match
-- 验收：#2 → tests/test_search.py::test_empty
-- 审查：边界输入→测试覆盖→保留；diff 范围→AC→无越界
-"""
-    return f"""---
-contract_version: 2
-type: issue
-feature: search
-status: {status}
-category: enhancement
-{f'experience_review: {experience_review}' if experience_review else ''}
-blocked_by: []
-created: 2026-08-28
----
-
-## 上级
-
-（无）
-
-## 做什么（What to build）
-
-Search history.
-
-## 验收标准（Acceptance Criteria）
-
-- [ ] Matching query returns one record.
-- [ ] Empty query returns all records.
-{proof}
-## 前置依赖（Blocked by）
-
-- 无
-
-## Comments
-{completion}
-"""
-
-
-class VerifyArtifactsV2Tests(unittest.TestCase):
-    def run_gate(self, body, mutate=None):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            issue_dir = root / ".scratch" / "search" / "issues"
-            issue_dir.mkdir(parents=True)
-            (issue_dir / "01-search.md").write_text(body, encoding="utf-8")
-            mode_match = re.search(r"^experience_review:\s*(runtime|graded)\s*$", body, re.M)
-            if mode_match:
-                mode = mode_match.group(1)
-                contract = {
-                    "schema_version": 1,
-                    "id": "search-ui-v1",
-                    "surface": "graphical-ui",
-                    "mode": mode,
-                    "viewport": {"width": 1440, "height": 900},
-                    "theme": "light",
-                    "states": ["results", "empty"],
-                    "runtime_gate": {
-                        "unexpected_console_errors": 0,
-                        "uncaught_page_errors": 0,
-                        "unexpected_failed_requests": 0,
-                        "csp_violations": 0,
-                        "decoded_media_failures": 0,
-                    },
-                }
-                if mode == "graded":
-                    contract["rubric"] = {
-                        "id": "experience-v1",
-                        "dimensions": [
-                            "information_hierarchy",
-                            "consistency",
-                            "readability",
-                            "state_clarity",
-                            "affordance",
-                        ],
-                        "score_min": 0,
-                        "score_max": 4,
-                        "min_total": 15,
-                        "min_dimension": 2,
-                    }
-                (root / ".scratch" / "search" / "experience-contract.json").write_text(
-                    json.dumps(contract), encoding="utf-8"
-                )
-                if "status: done" in body and "01-search-experience.json" in body:
-                    evidence_dir = root / ".scratch" / "search" / "evidence"
-                    evidence_dir.mkdir()
-                    for name in ("results", "empty"):
-                        (evidence_dir / f"{name}.png").write_bytes(PNG_1X1)
-                    evidence = {
-                        "schema_version": 1,
-                        "contract_id": "search-ui-v1",
-                        "mode": mode,
-                        "verdict": "pass",
-                        "states": [
-                            {
-                                "name": name,
-                                "artifacts": [f".scratch/search/evidence/{name}.png"],
-                            }
-                            for name in ("results", "empty")
-                        ],
-                        "runtime": {
-                            "unexpected_console_errors": 0,
-                            "uncaught_page_errors": 0,
-                            "unexpected_failed_requests": 0,
-                            "csp_violations": 0,
-                            "decoded_media_failures": 0,
-                        },
-                    }
-                    if mode == "graded":
-                        evidence["judge"] = {
-                            "rubric_id": "experience-v1",
-                            "total": 17,
-                            "dimensions": {
-                                "information_hierarchy": 3,
-                                "consistency": 3,
-                                "readability": 4,
-                                "state_clarity": 3,
-                                "affordance": 4,
-                            },
-                        }
-                    (evidence_dir / "01-search-experience.json").write_text(
-                        json.dumps(evidence), encoding="utf-8"
-                    )
-            test_dir = root / "tests"
-            test_dir.mkdir()
-            (test_dir / "test_search.py").write_text("# fixture\n", encoding="utf-8")
-            if mutate:
-                mutate(root)
-            output = io.StringIO()
-            with redirect_stdout(output):
-                result = verify_artifacts.main(["verify-artifacts.py", str(root)])
-            return result, output.getvalue()
-
-    def test_feature_gate_rejects_ready_card_body_dependency_copy(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            issue_dir = root / ".scratch" / "search" / "issues"
-            issue_dir.mkdir(parents=True)
-            (issue_dir / "01-search.md").write_text(issue_body(), encoding="utf-8")
-            output = io.StringIO()
-            with redirect_stdout(output):
-                result = verify_artifacts.main(
-                    ["verify-artifacts.py", str(root), "--feature", "search"]
-                )
-
-            self.assertEqual(1, result)
-            self.assertIn("duplicates blocked_by in a body dependency section", output.getvalue())
-
-    def test_v2_issue_with_all_evidence_maps_passes(self):
-        result, output = self.run_gate(issue_body())
-        self.assertEqual(0, result, output)
-
-    def test_feature_gate_requires_shared_ready_v2_environment_to_use_profile(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            issues = root / ".scratch" / "search" / "issues"
-            issues.mkdir(parents=True)
-            v2_body = issue_body().replace(
-                "\n## 前置依赖（Blocked by）\n\n- 无\n", "\n"
-            )
-            first = v2_body.replace("tests/test_search.py", "tests/test_one.py")
-            second = (
-                v2_body
-                .replace("tests/test_search.py", "tests/test_two.py")
-                .replace("- 工作目录：`.`", "- 工作目录：`./`")
-                .replace(
-                    "git=abc123; lock=none; runtime=python-3.13; tools=pytest-8; services=none",
-                    "services=none ; tools=pytest-8; runtime=python-3.13; lock=none ; git=abc123",
-                )
-                .replace(
-                    "fixtures=ready; services=none; permissions=local; network=off",
-                    "network=off; permissions=local ; services=none; fixtures=ready",
-                )
-                .replace("`无（已就绪）`", "`  无（已就绪）  `")
-            )
-            (issues / "01-search.md").write_text(first, encoding="utf-8")
-            (issues / "02-more.md").write_text(second, encoding="utf-8")
-            tests = root / "tests"
-            tests.mkdir()
-            (tests / "test_one.py").write_text("# fixture\n", encoding="utf-8")
-            (tests / "test_two.py").write_text("# fixture\n", encoding="utf-8")
-            output = io.StringIO()
-            with redirect_stdout(output):
-                result = verify_artifacts.main(
-                    ["verify-artifacts.py", str(root), "--feature", "search"]
-                )
-
-            self.assertEqual(1, result)
-            self.assertIn("duplicate verifier environment", output.getvalue())
-            self.assertIn("write verifier.json first", output.getvalue())
-
-            (root / ".scratch" / "search" / "verifier.json").write_text("{}\n", encoding="utf-8")
-            output = io.StringIO()
-            with redirect_stdout(output):
-                result = verify_artifacts.main(
-                    ["verify-artifacts.py", str(root), "--feature", "search"]
-                )
-            self.assertEqual(1, result)
-            self.assertIn("duplicate verifier environment", output.getvalue())
-
-    def test_v2_issue_without_verification_section_fails(self):
-        result, output = self.run_gate(issue_body(verification=False))
-        self.assertEqual(1, result)
-        self.assertIn("missing ## 验证设计", output)
-
-    def test_compressed_prd_accepts_tracked_source_with_matching_hash(self):
-        result, output = self.run_gate(
-            issue_body(), mutate=lambda root: plant_compressed_prd(root)
-        )
-        self.assertEqual(0, result, output)
-
-    def test_compressed_prd_rejects_untracked_source(self):
-        result, output = self.run_gate(
-            issue_body(), mutate=lambda root: plant_compressed_prd(root, tracked=False)
-        )
-        self.assertEqual(1, result)
-        self.assertIn("requirements source is not Git-tracked", output)
-
-    def test_compressed_prd_rejects_changed_source(self):
-        result, output = self.run_gate(
-            issue_body(),
-            mutate=lambda root: plant_compressed_prd(root, digest="0" * 64),
-        )
-        self.assertEqual(1, result)
-        self.assertIn("requirements source SHA-256 mismatch", output)
-
-    def test_v2_issue_requires_each_ac_mapping(self):
-        result, output = self.run_gate(issue_body(second_map=False))
-        self.assertEqual(1, result)
-        self.assertIn("#2", output)
-
-    def test_v2_issue_requires_spec_readiness_fields(self):
-        result, output = self.run_gate(issue_body(readiness=False))
-        self.assertEqual(1, result)
-        self.assertIn("工作目录", output)
-        self.assertIn("passed P# 预检", output)
-
-    def test_v2_issue_rejects_unpassed_preflight(self):
-        result, output = self.run_gate(issue_body(preflight_passed=False))
-        self.assertEqual(1, result)
-        self.assertIn("P1 预检 needs", output)
-
-    def test_v2_issue_requires_each_ac_to_reference_preflight(self):
-        result, output = self.run_gate(issue_body(second_preflight=""))
-        self.assertEqual(1, result)
-        self.assertIn("AC #2 missing 预检 P# reference", output)
-
-    def test_v2_issue_rejects_unknown_preflight_reference(self):
-        result, output = self.run_gate(issue_body(second_preflight="P2"))
-        self.assertEqual(1, result)
-        self.assertIn("unknown 预检: P2", output)
-
-    def test_non_ui_v2_does_not_require_falsifier_or_experience_field(self):
-        result, output = self.run_gate(issue_body(falsifiers=False))
-        self.assertEqual(0, result, output)
-
-    def test_ui_v2_requires_falsifier_for_each_ac(self):
-        result, output = self.run_gate(issue_body(falsifiers=False, experience_review="runtime"))
-        self.assertEqual(1, result)
-        self.assertIn("missing 反证", output)
-
-    def test_v2_issue_rejects_placeholder_falsifier(self):
-        body = issue_body(experience_review="runtime").replace("matching record omitted", "<defect>")
-        result, output = self.run_gate(body)
-        self.assertEqual(1, result)
-        self.assertIn("AC #1 missing 反证", output)
-
-    def test_experience_contract_path_escape_rejected(self):
-        body = issue_body(experience_review="runtime").replace(
-            "contract=.scratch/search/experience-contract.json",
-            "contract=.scratch/search/../evil/experience-contract.json",
-        )
-
-        def plant_escape(root):
-            evil = root / ".scratch" / "evil"
-            evil.mkdir(parents=True)
-            (evil / "experience-contract.json").write_text(
-                (root / ".scratch" / "search" / "experience-contract.json").read_text(),
-                encoding="utf-8",
-            )
-
-        result, output = self.run_gate(body, mutate=plant_escape)
-        self.assertEqual(1, result)
-        self.assertIn("must stay under .scratch/search/", output)
-
-    def test_jpeg_with_trailing_bytes_accepted_as_screenshot(self):
-        body = issue_body(done=True, experience_review="runtime")
-
-        def swap_jpeg(root):
-            evidence_dir = root / ".scratch" / "search" / "evidence"
-            for name in ("results", "empty"):
-                (evidence_dir / f"{name}.png").unlink()
-                (evidence_dir / f"{name}.jpg").write_bytes(
-                    b"\xff\xd8" + b"\x00" * 20 + b"\xff\xd9" + b"pad" * 8
-                )
-            evidence_path = evidence_dir / "01-search-experience.json"
-            evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
-            for state in evidence["states"]:
-                state["artifacts"] = [item.replace(".png", ".jpg") for item in state["artifacts"]]
-            evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
-
-        result, output = self.run_gate(body, mutate=swap_jpeg)
-        self.assertEqual(0, result, output)
-
-    def test_unsatisfiable_rubric_threshold_rejected(self):
-        body = issue_body(experience_review="graded")
-
-        def inflate_min_total(root):
-            path = root / ".scratch" / "search" / "experience-contract.json"
-            contract = json.loads(path.read_text(encoding="utf-8"))
-            contract["rubric"]["min_total"] = 100
-            path.write_text(json.dumps(contract), encoding="utf-8")
-
-        result, output = self.run_gate(body, mutate=inflate_min_total)
-        self.assertEqual(1, result)
-        self.assertIn("no run can pass", output)
-
-    def test_runtime_contract_rejects_graded_rubric(self):
-        body = issue_body(experience_review="runtime")
-
-        def add_rubric(root):
-            path = root / ".scratch" / "search" / "experience-contract.json"
-            contract = json.loads(path.read_text(encoding="utf-8"))
-            contract["rubric"] = {
-                "id": "experience-v1",
-                "dimensions": ["readability"],
-                "score_min": 0,
-                "score_max": 4,
-                "min_total": 3,
-                "min_dimension": 3,
-            }
-            path.write_text(json.dumps(contract), encoding="utf-8")
-
-        result, output = self.run_gate(body, mutate=add_rubric)
-        self.assertEqual(1, result)
-        self.assertIn("runtime experience contract must not contain rubric", output)
-
-    def test_runtime_evidence_rejects_graded_judge(self):
-        body = issue_body(done=True, experience_review="runtime")
-
-        def add_judge(root):
-            path = root / ".scratch" / "search" / "evidence" / "01-search-experience.json"
-            evidence = json.loads(path.read_text(encoding="utf-8"))
-            evidence["judge"] = {
-                "rubric_id": "experience-v1",
-                "total": 4,
-                "dimensions": {"readability": 4},
-            }
-            path.write_text(json.dumps(evidence), encoding="utf-8")
-
-        result, output = self.run_gate(body, mutate=add_judge)
-        self.assertEqual(1, result)
-        self.assertIn("runtime experience evidence must not contain judge", output)
-
-    def test_falsifier_with_comparison_operator_is_not_scrubbed(self):
-        body = issue_body(experience_review="runtime").replace(
-            "matching record omitted", "空文件时输出行数 < 1 且不产生请求"
-        )
-        result, output = self.run_gate(body)
-        self.assertEqual(0, result, output)
-
-    def test_experience_review_enum_checked_without_contract_v2(self):
-        body = issue_body(experience_review="runtime")
-        body = body.replace("contract_version: 2", "contract_version: 1")
-        body = body.replace("experience_review: runtime", "experience_review: bogus")
-        result, output = self.run_gate(body)
-        self.assertEqual(1, result)
-        self.assertIn("experience_review 'bogus' not in runtime|graded", output)
-
-    def test_non_ui_v2_omits_experience_classification(self):
-        result, output = self.run_gate(issue_body())
-        self.assertEqual(0, result, output)
-
-    def test_required_experience_needs_full_contract(self):
-        result, output = self.run_gate(
-            issue_body(experience_review="runtime", experience_contract=False)
-        )
-        self.assertEqual(1, result)
-        self.assertIn("missing 体验验证 contract", output)
-
-    def test_required_experience_done_needs_retained_verdict(self):
-        result, output = self.run_gate(
-            issue_body(
-                done=True,
-                experience_review="runtime",
-                experience_record=False,
-            )
-        )
-        self.assertEqual(1, result)
-        self.assertIn("opted-in experience done record", output)
-
-    def test_required_experience_with_contract_and_record_passes(self):
-        result, output = self.run_gate(
-            issue_body(done=True, experience_review="runtime")
-        )
-        self.assertEqual(0, result, output)
-
-    def test_experience_done_rejects_failed_runtime_even_when_prose_says_passed(self):
-        body = issue_body(done=True, experience_review="runtime")
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            issue_dir = root / ".scratch" / "search" / "issues"
-            issue_dir.mkdir(parents=True)
-            (issue_dir / "01-search.md").write_text(body, encoding="utf-8")
-            evidence_dir = root / ".scratch" / "search" / "evidence"
-            evidence_dir.mkdir()
-            for name in ("results", "empty"):
-                (evidence_dir / f"{name}.png").write_bytes(PNG_1X1)
-            contract = {
-                "schema_version": 1,
-                "id": "search-ui-v1",
-                "surface": "graphical-ui",
-                "mode": "runtime",
-                "viewport": {"width": 1440, "height": 900},
-                "theme": "light",
-                "states": ["results", "empty"],
-                "runtime_gate": {key: 0 for key in verify_artifacts.EXPERIENCE_RUNTIME_KEYS},
-            }
-            (root / ".scratch" / "search" / "experience-contract.json").write_text(
-                json.dumps(contract), encoding="utf-8"
-            )
-            evidence = {
-                "schema_version": 1,
-                "contract_id": "search-ui-v1",
-                "mode": "runtime",
-                "verdict": "pass",
-                "states": [
-                    {"name": name, "artifacts": [f".scratch/search/evidence/{name}.png"]}
-                    for name in ("results", "empty")
-                ],
-                "runtime": {key: 0 for key in verify_artifacts.EXPERIENCE_RUNTIME_KEYS},
-            }
-            evidence["runtime"]["csp_violations"] = 3
-            (evidence_dir / "01-search-experience.json").write_text(
-                json.dumps(evidence), encoding="utf-8"
-            )
-            test_dir = root / "tests"
-            test_dir.mkdir()
-            (test_dir / "test_search.py").write_text("# fixture\n", encoding="utf-8")
-            output = io.StringIO()
-            with redirect_stdout(output):
-                result = verify_artifacts.main(["verify-artifacts.py", str(root)])
-            self.assertEqual(1, result)
-            self.assertIn("non-zero or missing runtime counters", output.getvalue())
-
-    def test_graded_experience_with_contract_and_evidence_passes(self):
-        result, output = self.run_gate(issue_body(done=True, experience_review="graded"))
-        self.assertEqual(0, result, output)
-
-    def test_experience_done_rejects_missing_retained_artifact(self):
-        def remove_artifact(root):
-            (root / ".scratch" / "search" / "evidence" / "results.png").unlink()
-
-        result, output = self.run_gate(
-            issue_body(done=True, experience_review="runtime"), mutate=remove_artifact
-        )
-        self.assertEqual(1, result)
-        self.assertIn("experience state artifact file does not exist", output)
-
-    def test_experience_done_rejects_fake_screenshot_artifact(self):
-        def replace_artifact(root):
-            (root / ".scratch" / "search" / "evidence" / "results.png").write_bytes(
-                b"not-a-screenshot"
-            )
-
-        result, output = self.run_gate(
-            issue_body(done=True, experience_review="runtime"), mutate=replace_artifact
-        )
-        self.assertEqual(1, result)
-        self.assertIn("valid retained screenshot", output)
-
-    def test_graded_experience_rejects_score_below_contract(self):
-        def lower_score(root):
-            path = root / ".scratch" / "search" / "evidence" / "01-search-experience.json"
-            evidence = json.loads(path.read_text(encoding="utf-8"))
-            evidence["judge"]["dimensions"] = {
-                "information_hierarchy": 1,
-                "consistency": 1,
-                "readability": 1,
-                "state_clarity": 1,
-                "affordance": 1,
-            }
-            evidence["judge"]["total"] = 5
-            path.write_text(json.dumps(evidence), encoding="utf-8")
-
-        result, output = self.run_gate(
-            issue_body(done=True, experience_review="graded"), mutate=lower_score
-        )
-        self.assertEqual(1, result)
-        self.assertIn("below contract threshold", output)
-        self.assertIn("below contract floor", output)
-
-    def test_malformed_graded_contract_is_rejected_without_crashing(self):
-        def corrupt_contract(root):
-            path = root / ".scratch" / "search" / "experience-contract.json"
-            contract = json.loads(path.read_text(encoding="utf-8"))
-            contract["rubric"]["min_total"] = "fifteen"
-            path.write_text(json.dumps(contract), encoding="utf-8")
-
-        result, output = self.run_gate(
-            issue_body(done=True, experience_review="graded"), mutate=corrupt_contract
-        )
-        self.assertEqual(1, result)
-        self.assertIn("needs rubric id/min_total/min_dimension", output)
-
-    def test_runtime_boolean_false_cannot_masquerade_as_zero(self):
-        def corrupt_evidence(root):
-            path = root / ".scratch" / "search" / "evidence" / "01-search-experience.json"
-            evidence = json.loads(path.read_text(encoding="utf-8"))
-            evidence["runtime"]["csp_violations"] = False
-            path.write_text(json.dumps(evidence), encoding="utf-8")
-
-        result, output = self.run_gate(
-            issue_body(done=True, experience_review="runtime"), mutate=corrupt_evidence
-        )
-        self.assertEqual(1, result)
-        self.assertIn("numeric zero required", output)
-
-    def test_experience_contract_mode_must_match_issue(self):
-        def change_mode(root):
-            path = root / ".scratch" / "search" / "experience-contract.json"
-            contract = json.loads(path.read_text(encoding="utf-8"))
-            contract["mode"] = "graded"
-            path.write_text(json.dumps(contract), encoding="utf-8")
-
-        result, output = self.run_gate(
-            issue_body(done=True, experience_review="runtime"), mutate=change_mode
-        )
-        self.assertEqual(1, result)
-        self.assertIn("contract mode", output)
-
-    def test_experience_evidence_mode_must_match_issue(self):
-        def change_mode(root):
-            path = root / ".scratch" / "search" / "evidence" / "01-search-experience.json"
-            evidence = json.loads(path.read_text(encoding="utf-8"))
-            evidence["mode"] = "graded"
-            path.write_text(json.dumps(evidence), encoding="utf-8")
-
-        result, output = self.run_gate(
-            issue_body(done=True, experience_review="runtime"), mutate=change_mode
-        )
-        self.assertEqual(1, result)
-        self.assertIn("evidence mode", output)
-
-    def test_v2_done_record_requires_replay_command(self):
-        result, output = self.run_gate(issue_body(done=True, verify_command=False))
-        self.assertEqual(1, result)
-        self.assertIn("missing 验证命令", output)
-
-    def test_v2_done_record_requires_preflight_replay(self):
-        result, output = self.run_gate(issue_body(done=True, preflight_replay=False))
-        self.assertEqual(1, result)
-        self.assertIn("missing 预检重放", output)
-
-    def test_legacy_issue_without_contract_version_stays_compatible(self):
-        legacy = issue_body(verification=False).replace("contract_version: 2\n", "")
-        result, output = self.run_gate(legacy)
-        self.assertEqual(0, result, output)
-
-    def test_archived_done_issue_with_completion_record_passes(self):
-        def archive_issue(root):
-            issue = root / ".scratch" / "search" / "issues" / "01-search.md"
-            archive = issue.parent / "archive"
-            archive.mkdir()
-            issue.rename(archive / issue.name)
-
-        result, output = self.run_gate(issue_body(done=True), mutate=archive_issue)
-        self.assertEqual(0, result, output)
-
-    def test_archived_ready_issue_fails(self):
-        def archive_issue(root):
-            issue = root / ".scratch" / "search" / "issues" / "01-search.md"
-            archive = issue.parent / "archive"
-            archive.mkdir()
-            issue.rename(archive / issue.name)
-
-        result, output = self.run_gate(issue_body(), mutate=archive_issue)
-        self.assertEqual(1, result)
-        self.assertIn("archived issue must be done", output)
-
-    def test_archived_done_issue_without_completion_record_fails(self):
-        body = issue_body(done=True).replace("### 完成", "### 记录")
-
-        def archive_issue(root):
-            issue = root / ".scratch" / "search" / "issues" / "01-search.md"
-            archive = issue.parent / "archive"
-            archive.mkdir()
-            issue.rename(archive / issue.name)
-
-        result, output = self.run_gate(body, mutate=archive_issue)
-        self.assertEqual(1, result)
-        self.assertIn("archived done issue has no ### 完成 record", output)
-
-
-def plant_v3_profile(root):
-    profile = root / ".scratch" / "search" / "verifier.json"
-    profile.parent.mkdir(parents=True, exist_ok=True)
-    profile.write_text(
-        json.dumps(
-            {
-                "schema_version": 2,
-                "cwd": ".",
-                "fingerprint": "git=abc123; lock=none; runtime=python-3.13; tools=pytest-8; services=none",
-                "prerequisites": "fixtures=ready; services=none; permissions=local; network=off",
-                "prepare": "无（已就绪）",
-                "commands": {"scoped": "python -m pytest tests/test_search.py -q"},
-                "completion_commands": ["scoped"],
-            }
-        ),
-        encoding="utf-8",
-    )
-
-
-def plant_v3_receipt(root, outcome="pass", *, ac=None, bound=True):
-    receipts = root / ".scratch" / "search" / "receipts"
-    receipts.mkdir(parents=True, exist_ok=True)
-    log = root / ".scratch" / "tmp" / "01-search-targeted.log"
-    log.parent.mkdir(parents=True, exist_ok=True)
-    log.write_text("2 passed\n", encoding="utf-8")
-    issue = root / ".scratch" / "search" / "issues" / "01-search.md"
-    original = issue.read_text(encoding="utf-8")
-    if bound and "status: done" in original:
-        issue.write_text(original.replace("status: done", "status: ready"), encoding="utf-8")
-    try:
-        binding = dict(issue_binding(issue, "scoped")) if bound else None
-    finally:
-        if bound and "status: done" in original:
-            issue.write_text(original, encoding="utf-8")
-    if ac is not None and binding is not None:
-        binding["ac"] = ac
-    payload = {
-        "schema_version": 1,
-        "argv_style": "posix",
-        "scope": "targeted",
-        "outcome": outcome,
-        "argv": ["python", "-m", "pytest", "tests/test_search.py", "-q"],
-        "cwd": ".",
-        "exit_code": 0,
-        "log": ".scratch/tmp/01-search-targeted.log",
-        "log_sha256": hashlib.sha256(log.read_bytes()).hexdigest(),
-    }
-    if binding is not None:
-        payload["issue"] = binding
-    (receipts / "01-search-targeted.json").write_text(
-        json.dumps(payload),
-        encoding="utf-8",
-    )
-
-
-def v3_issue_body(
-    done=True,
-    receipt_ref=".scratch/search/receipts/01-search-targeted.json",
-):
-    completion = ""
-    if done:
-        completion = (
-            "\n### 完成 — 2026-09-03\n\n"
-            f"- receipt: {receipt_ref}\n"
-        )
-    return f"""---
-contract_version: 3
-verifier_schema: 2
-type: issue
-feature: search
-status: {'done' if done else 'ready'}
-category: enhancement
-blocked_by: []
-test_paths: [tests/test_search.py]
-created: 2026-09-03
----
-
-## 上级
-
-（无）
-
-## 做什么（What to build）
-
-Search history.
-
-## 验收标准（Acceptance Criteria）
-
-- [ ] Matching query returns one record.
-- [ ] Empty query returns all records.
-
-## 验证设计（Verification Design）
-
-- profile: verifier.json
-- 接缝：HistorySearch public API
-- P1 预检：`profile:scoped` → passed；observed=exit 0, 2 collected；evidence=inline；checked=2026-09-03
-- #1 → `profile:scoped`；预检：P1；预期证据：exit 0
-- #2 → `profile:scoped`；预检：P1；预期证据：exit 0
-
-## 相关面（Read contract）
-
-- invariants: CODEBASE.md 的 search 不变量块
-
-## Comments
-{completion}
-"""
-
-
-class VerifyArtifactsV3Tests(unittest.TestCase):
-    def run_gate(self, body, mutate=None):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            (root / ".scratch" / "search" / "issues").mkdir(parents=True)
-            (root / ".scratch" / "search" / "issues" / "01-search.md").write_text(
-                body, encoding="utf-8"
-            )
-            plant_v3_profile(root)
-            if "status: done" in body:
-                plant_v3_receipt(root)
-            tests = root / "tests"
-            tests.mkdir()
-            (tests / "test_search.py").write_text("# fixture\n", encoding="utf-8")
-            if mutate:
-                mutate(root)
-            output = io.StringIO()
-            with redirect_stdout(output):
-                result = verify_artifacts.main(["verify-artifacts.py", str(root)])
-            return result, output.getvalue()
-
-    def test_v3_done_issue_with_valid_receipt_passes(self):
-        result, output = self.run_gate(v3_issue_body())
-        self.assertEqual(0, result, output)
-
-    def test_v3_ready_issue_without_completion_passes(self):
-        result, output = self.run_gate(v3_issue_body(done=False))
-        self.assertEqual(0, result, output)
-
-    def test_issue_contract_digest_ignores_line_endings(self):
-        body = v3_issue_body()
-        lf = workflow_contract.issue_contract_digest(body)
-        crlf = workflow_contract.issue_contract_digest(body.replace("\n", "\r\n"))
-        cr_only = workflow_contract.issue_contract_digest(body.replace("\n", "\r"))
-        self.assertEqual(lf, crlf)
-        self.assertEqual(lf, cr_only)
-
-    def test_v3_missing_receipt_file_fails(self):
-        def drop_receipt(root):
-            (root / ".scratch" / "search" / "receipts" / "01-search-targeted.json").unlink()
-
-        result, output = self.run_gate(v3_issue_body(), mutate=drop_receipt)
-        self.assertEqual(1, result)
-        self.assertIn("receipt missing", output)
-
-    def test_feature_gate_reads_one_shared_profile_once(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            issues = root / ".scratch" / "search" / "issues"
-            issues.mkdir(parents=True)
-            body = v3_issue_body(done=False)
-            (issues / "01-search.md").write_text(body, encoding="utf-8")
-            (issues / "02-more.md").write_text(body, encoding="utf-8")
-            plant_v3_profile(root)
-            tests = root / "tests"
-            tests.mkdir()
-            (tests / "test_search.py").write_text("# fixture\n", encoding="utf-8")
-            profile = root / ".scratch" / "search" / "verifier.json"
-            original_read_bytes = Path.read_bytes
-            profile_reads = []
-
-            def tracked_read_bytes(path):
-                if path.resolve() == profile.resolve():
-                    profile_reads.append(path)
-                return original_read_bytes(path)
-
-            output = io.StringIO()
-            with mock.patch.object(Path, "read_bytes", tracked_read_bytes):
-                with redirect_stdout(output):
-                    result = verify_artifacts.main(
-                        ["verify-artifacts.py", str(root), "--feature", "search"]
-                    )
-
-            self.assertEqual(0, result, output.getvalue())
-            self.assertEqual(1, len(profile_reads))
-
-    def test_feature_gate_reads_each_v3_issue_once(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            issues = root / ".scratch" / "search" / "issues"
-            issues.mkdir(parents=True)
-            issue = issues / "01-search.md"
-            issue.write_text(v3_issue_body(done=False), encoding="utf-8")
-            plant_v3_profile(root)
-            tests = root / "tests"
-            tests.mkdir()
-            (tests / "test_search.py").write_text("# fixture\n", encoding="utf-8")
-            original_open = builtins.open
-            issue_reads = []
-
-            def tracked_open(file, *args, **kwargs):
-                if Path(file).resolve() == issue.resolve() and "r" in (args[:1] or ("r",))[0]:
-                    issue_reads.append(file)
-                return original_open(file, *args, **kwargs)
-
-            output = io.StringIO()
-            with mock.patch("builtins.open", tracked_open):
-                with redirect_stdout(output):
-                    result = verify_artifacts.main(
-                        ["verify-artifacts.py", str(root), "--feature", "search"]
-                    )
-
-            self.assertEqual(0, result, output.getvalue())
-            self.assertEqual(1, len(issue_reads))
-
-    def test_feature_gate_rejects_v2_copy_of_active_profile_environment(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            issues = root / ".scratch" / "search" / "issues"
-            issues.mkdir(parents=True)
-            (issues / "01-lean.md").write_text(
-                v3_issue_body(done=False), encoding="utf-8"
-            )
-            v2 = issue_body().replace(
-                "\n## 前置依赖（Blocked by）\n\n- 无\n", "\n"
-            )
-            (issues / "02-copy.md").write_text(v2, encoding="utf-8")
-            plant_v3_profile(root)
-            tests = root / "tests"
-            tests.mkdir()
-            (tests / "test_search.py").write_text("# fixture\n", encoding="utf-8")
-            output = io.StringIO()
-            with redirect_stdout(output):
-                result = verify_artifacts.main(
-                    ["verify-artifacts.py", str(root), "--feature", "search"]
-                )
-
-            self.assertEqual(1, result)
-            self.assertIn("ready v2 card repeats active verifier profile", output.getvalue())
-
-    def test_feature_gate_rejects_unreferenced_verifier_profile(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            issues = root / ".scratch" / "search" / "issues"
-            issues.mkdir(parents=True)
-            v2 = issue_body().replace(
-                "\n## 前置依赖（Blocked by）\n\n- 无\n", "\n"
-            )
-            (issues / "01-only.md").write_text(v2, encoding="utf-8")
-            plant_v3_profile(root)
-            output = io.StringIO()
-            with redirect_stdout(output):
-                result = verify_artifacts.main(
-                    ["verify-artifacts.py", str(root), "--feature", "search"]
-                )
-
-            self.assertEqual(1, result)
-            self.assertIn("verifier.json has no v3 card", output.getvalue())
-
-    def test_feature_gate_rejects_profile_without_issue_directory(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            (root / ".scratch" / "search").mkdir(parents=True)
-            plant_v3_profile(root)
-            output = io.StringIO()
-            with redirect_stdout(output):
-                result = verify_artifacts.main(
-                    ["verify-artifacts.py", str(root), "--feature", "search"]
-                )
-
-            self.assertEqual(1, result)
-            self.assertIn("verifier.json has no v3 card", output.getvalue())
-
-    def test_v3_receipt_outcome_not_pass_fails(self):
-        def flip_outcome(root):
-            plant_v3_receipt(root, outcome="fail")
-
-        result, output = self.run_gate(v3_issue_body(), mutate=flip_outcome)
-        self.assertEqual(1, result)
-        self.assertIn("receipt outcome 'fail'/exit 0 != pass/0", output)
-
-    def test_v3_receipt_not_json_fails(self):
-        def corrupt_receipt(root):
-            (root / ".scratch" / "search" / "receipts" / "01-search-targeted.json").write_text(
-                "{not json", encoding="utf-8"
-            )
-
-        result, output = self.run_gate(v3_issue_body(), mutate=corrupt_receipt)
-        self.assertEqual(1, result)
-        self.assertIn("receipt not valid JSON", output)
-
-    def test_v3_missing_profile_file_fails(self):
-        def drop_profile(root):
-            (root / ".scratch" / "search" / "verifier.json").unlink()
-
-        result, output = self.run_gate(v3_issue_body(), mutate=drop_profile)
-        self.assertEqual(1, result)
-        self.assertIn("profile file unreadable", output)
-
-    def test_v3_done_without_review_line_passes(self):
-        result, output = self.run_gate(v3_issue_body())
-        self.assertEqual(0, result, output)
-
-    def test_v3_receipt_without_full_ac_coverage_fails(self):
-        result, output = self.run_gate(
-            v3_issue_body(), mutate=lambda root: plant_v3_receipt(root, ac=[1])
-        )
-        self.assertEqual(1, result)
-        self.assertIn("completion receipts do not cover AC: #2", output)
-
-    def test_v3_unbound_passing_receipt_fails(self):
-        result, output = self.run_gate(
-            v3_issue_body(), mutate=lambda root: plant_v3_receipt(root, bound=False)
-        )
-        self.assertEqual(1, result)
-        self.assertIn("receipt has no issue binding", output)
-
-    def test_v3_profile_v1_keeps_legacy_prose_receipts_readable(self):
-        def make_legacy(root):
-            issue = root / ".scratch" / "search" / "issues" / "01-search.md"
-            issue.write_text(
-                issue.read_text(encoding="utf-8").replace("verifier_schema: 2\n", ""),
-                encoding="utf-8",
-            )
-            profile = root / ".scratch" / "search" / "verifier.json"
-            payload = json.loads(profile.read_text(encoding="utf-8"))
-            payload["schema_version"] = 1
-            profile.write_text(json.dumps(payload), encoding="utf-8")
-            plant_v3_receipt(root, bound=False)
-
-        result, output = self.run_gate(
-            v3_issue_body(
-                receipt_ref=".scratch/search/receipts/01-search-targeted.json；AC 1-2 pass"
-            ),
-            mutate=make_legacy,
-        )
-        self.assertEqual(0, result, output)
-
-    def test_v3_profile_v1_accepts_old_minimum_and_multiple_ac_claims(self):
-        def make_old_minimum(root):
-            issue = root / ".scratch" / "search" / "issues" / "01-search.md"
-            issue.write_text(
-                issue.read_text(encoding="utf-8").replace("verifier_schema: 2\n", ""),
-                encoding="utf-8",
-            )
-            profile = root / ".scratch" / "search" / "verifier.json"
-            profile.write_text(
-                json.dumps({
-                    "commands": {"scoped": "python -m pytest tests/test_search.py -q"},
-                    "fingerprint": "git=abc123; lock=none; runtime=python-3.13; tools=pytest-8; services=none",
-                }),
-                encoding="utf-8",
-            )
-            receipt = root / ".scratch" / "search" / "receipts" / "01-search-targeted.json"
-            receipt.write_text(json.dumps({"outcome": "pass"}), encoding="utf-8")
-
-        result, output = self.run_gate(
-            v3_issue_body(
-                receipt_ref=".scratch/search/receipts/01-search-targeted.json；AC 1；AC 2 pass"
-            ),
-            mutate=make_old_minimum,
-        )
-        self.assertEqual(0, result, output)
-
-    def test_v3_prose_containing_deviation_word_is_not_machine_syntax(self):
-        body = v3_issue_body(done=False).replace(
-            "- #1 →", "- 偏差（仅有时写）：环境略有不同\n- 偏差说明：无命令变化\n- #1 →"
-        )
-        result, output = self.run_gate(body)
-        self.assertEqual(0, result, output)
-
-    def test_v3_misspelled_machine_deviation_is_rejected(self):
-        body = v3_issue_body(done=False).replace(
-            "- #1 →", "- 偏差 fingerprit.git：abc\n- #1 →"
-        )
-        result, output = self.run_gate(body)
-        self.assertEqual(1, result)
-        self.assertIn("invalid v3 deviation syntax", output)
-
-    def test_v3_done_receipt_still_rejects_invalid_log_shape(self):
-        def corrupt_log_path(root):
-            receipt = root / ".scratch" / "search" / "receipts" / "01-search-targeted.json"
-            payload = json.loads(receipt.read_text(encoding="utf-8"))
-            payload["log"] = "/missing/run.log"
-            receipt.write_text(json.dumps(payload), encoding="utf-8")
-
-        result, output = self.run_gate(v3_issue_body(), mutate=corrupt_log_path)
-        self.assertEqual(1, result)
-        self.assertIn("receipt log must identify .scratch/tmp/", output)
-
-    def test_v3_missing_retained_evidence_cannot_pass_the_completion_gate(self):
-        def remove_machine_local_evidence(root):
-            receipt = root / ".scratch" / "search" / "receipts" / "01-search-targeted.json"
-            payload = json.loads(receipt.read_text(encoding="utf-8"))
-            (root / payload["log"]).unlink()
-            payload["log"] = "/old/checkout/.scratch/tmp/01-search-targeted.log"
-            payload["cwd"] = "/old/checkout"
-            receipt.write_text(json.dumps(payload), encoding="utf-8")
-
-        result, output = self.run_gate(
-            v3_issue_body(), mutate=remove_machine_local_evidence
-        )
-        self.assertEqual(1, result, output)
-        self.assertIn("historical receipt cwd differs", output)
-
-    def test_v3_profile_downgrade_cannot_enable_legacy_receipt(self):
-        def downgrade(root):
-            profile = root / ".scratch" / "search" / "verifier.json"
-            payload = json.loads(profile.read_text(encoding="utf-8"))
-            payload["schema_version"] = 1
-            profile.write_text(json.dumps(payload), encoding="utf-8")
-            plant_v3_receipt(root, bound=False)
-
-        result, output = self.run_gate(v3_issue_body(), mutate=downgrade)
-        self.assertEqual(1, result)
-        self.assertIn("verifier_schema '2' != profile schema 1", output)
-
-    def test_v3_receipt_verifier_must_match_each_bound_ac(self):
-        def swap_verifier(root):
-            profile = root / ".scratch" / "search" / "verifier.json"
-            profile_data = json.loads(profile.read_text(encoding="utf-8"))
-            profile_data["commands"]["noop"] = "python -c pass"
-            profile_data["completion_commands"].append("noop")
-            profile.write_text(json.dumps(profile_data), encoding="utf-8")
-            plant_v3_receipt(root)
-            receipt = root / ".scratch" / "search" / "receipts" / "01-search-targeted.json"
-            payload = json.loads(receipt.read_text(encoding="utf-8"))
-            payload["issue"]["verifier"] = "noop"
-            payload["argv"] = ["python", "-c", "pass"]
-            receipt.write_text(json.dumps(payload), encoding="utf-8")
-
-        result, output = self.run_gate(v3_issue_body(), mutate=swap_verifier)
-        self.assertEqual(1, result)
-        self.assertIn("is not mapped by AC", output)
-
-    def test_v3_receipt_top_level_cwd_must_match_profile(self):
-        def wrong_cwd(root):
-            receipt = root / ".scratch" / "search" / "receipts" / "01-search-targeted.json"
-            payload = json.loads(receipt.read_text(encoding="utf-8"))
-            payload["cwd"] = "tests"
-            receipt.write_text(json.dumps(payload), encoding="utf-8")
-
-        result, output = self.run_gate(v3_issue_body(), mutate=wrong_cwd)
-        self.assertEqual(1, result)
-        self.assertIn("receipt cwd does not match verifier profile", output)
-
-    def test_v3_boolean_profile_or_receipt_schema_is_rejected(self):
-        def boolean_profile(root):
-            profile = root / ".scratch" / "search" / "verifier.json"
-            payload = json.loads(profile.read_text(encoding="utf-8"))
-            payload["schema_version"] = True
-            profile.write_text(json.dumps(payload), encoding="utf-8")
-
-        result, output = self.run_gate(v3_issue_body(done=False), mutate=boolean_profile)
-        self.assertEqual(1, result)
-        self.assertIn("needs schema_version 1 or 2", output)
-
-        def boolean_receipt(root):
-            receipt = root / ".scratch" / "search" / "receipts" / "01-search-targeted.json"
-            payload = json.loads(receipt.read_text(encoding="utf-8"))
-            payload["schema_version"] = True
-            receipt.write_text(json.dumps(payload), encoding="utf-8")
-
-        result, output = self.run_gate(v3_issue_body(), mutate=boolean_receipt)
-        self.assertEqual(1, result)
-        self.assertIn("receipt needs schema_version 1", output)
-
-    def test_v3_malformed_completion_list_or_ac_binding_reports_violation(self):
-        def malformed_commands(root):
-            profile = root / ".scratch" / "search" / "verifier.json"
-            payload = json.loads(profile.read_text(encoding="utf-8"))
-            payload["completion_commands"] = [{}]
-            profile.write_text(json.dumps(payload), encoding="utf-8")
-
-        result, output = self.run_gate(v3_issue_body(done=False), mutate=malformed_commands)
-        self.assertEqual(1, result)
-        self.assertIn("needs unique completion_commands", output)
-
-        def malformed_ac(root):
-            receipt = root / ".scratch" / "search" / "receipts" / "01-search-targeted.json"
-            payload = json.loads(receipt.read_text(encoding="utf-8"))
-            payload["issue"]["ac"] = [{}]
-            receipt.write_text(json.dumps(payload), encoding="utf-8")
-
-        result, output = self.run_gate(v3_issue_body(), mutate=malformed_ac)
-        self.assertEqual(1, result)
-        self.assertIn("receipt binding ac is invalid", output)
-
-    def test_v3_completion_receipt_scope_is_whitelisted(self):
-        def invalid_scope(root):
-            receipt = root / ".scratch" / "search" / "receipts" / "01-search-targeted.json"
-            payload = json.loads(receipt.read_text(encoding="utf-8"))
-            payload["scope"] = "garbage"
-            receipt.write_text(json.dumps(payload), encoding="utf-8")
-
-        result, output = self.run_gate(v3_issue_body(), mutate=invalid_scope)
-        self.assertEqual(1, result)
-        self.assertIn("completion receipt has invalid scope", output)
-
-    def test_v3_profile_keeps_v2_readiness_contract(self):
-        def weak_readiness(root):
-            profile = root / ".scratch" / "search" / "verifier.json"
-            payload = json.loads(profile.read_text(encoding="utf-8"))
-            payload["prerequisites"] = "fixtures=ready"
-            payload["prepare"] = "later"
-            profile.write_text(json.dumps(payload), encoding="utf-8")
-
-        result, output = self.run_gate(v3_issue_body(done=False), mutate=weak_readiness)
-        self.assertEqual(1, result)
-        self.assertIn("prerequisites missing keys", output)
-
-    def test_feature_scope_rejects_path_segments(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            (root / ".scratch" / "demo").mkdir(parents=True)
-            output = io.StringIO()
-            with redirect_stdout(output):
-                result = verify_artifacts.main(
-                    ["verify-artifacts.py", str(root), "--feature", ".."]
-                )
-            self.assertEqual(1, result)
-            self.assertIn("must be one directory name", output.getvalue())
-
-    def test_v3_issue_binding_accepts_utf8_bom_consistently(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            issue = root / ".scratch" / "search" / "issues" / "01-search.md"
-            issue.parent.mkdir(parents=True)
-            issue.write_text(v3_issue_body(done=False), encoding="utf-8-sig")
-            plant_v3_profile(root)
-            binding = issue_binding(issue, "scoped")
-            self.assertEqual("01-search", binding["slug"])
-
-    def test_v3_receipt_is_invalidated_by_profile_drift(self):
-        def drift(root):
-            profile = root / ".scratch" / "search" / "verifier.json"
-            payload = json.loads(profile.read_text(encoding="utf-8"))
-            payload["commands"]["scoped"] += " -x"
-            profile.write_text(json.dumps(payload), encoding="utf-8")
-
-        result, output = self.run_gate(v3_issue_body(), mutate=drift)
-        self.assertEqual(1, result)
-        self.assertIn("receipt verifier profile changed", output)
-
-    def test_v3_card_rejects_duplicated_profile_boilerplate(self):
-        body = v3_issue_body(done=False).replace(
-            "- profile: verifier.json\n",
-            "- profile: verifier.json\n- 工作目录：`.`\n",
-        )
-        result, output = self.run_gate(body)
-        self.assertEqual(1, result)
-        self.assertIn("duplicates profile fields: 工作目录", output)
-
-    def test_v3_receipt_path_escape_is_rejected(self):
-        result, output = self.run_gate(
-            v3_issue_body(receipt_ref="../../outside/receipt.json")
-        )
-        self.assertEqual(1, result)
-        self.assertIn("must stay under .scratch/search/receipts/", output)
-
-    def test_feature_gate_ignores_unrelated_legacy_violations(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            search = root / ".scratch" / "search" / "issues"
-            search.mkdir(parents=True)
-            (search / "01-search.md").write_text(v3_issue_body(done=False), encoding="utf-8")
-            plant_v3_profile(root)
-            legacy = root / ".scratch" / "legacy" / "issues"
-            legacy.mkdir(parents=True)
-            (legacy / "bad.md").write_text("not frontmatter\n", encoding="utf-8")
-
-            scoped_out = io.StringIO()
-            with redirect_stdout(scoped_out):
-                scoped = verify_artifacts.main(
-                    ["verify-artifacts.py", str(root), "--feature", "search"]
-                )
-            whole_out = io.StringIO()
-            with redirect_stdout(whole_out):
-                whole = verify_artifacts.main(["verify-artifacts.py", str(root)])
-
-            self.assertEqual(0, scoped, scoped_out.getvalue())
-            self.assertEqual(1, whole)
-            self.assertIn("legacy", whole_out.getvalue())
-
-
-class OpenRefinesAdvisoryTests(unittest.TestCase):
-    def _card(self, name, category="enhancement", refines=""):
-        refines_line = "refines: %s\n" % refines if refines else ""
-        return (
-            "---\ntype: issue\nfeature: demo\nstatus: ready\ncategory: %s\n%screated: 2026-09-18\n---\n\n"
-            "## 做什么（What to build）\n\nDeliver %s.\n" % (category, refines_line, name),
-            name,
-        )
-
-    def run_cards(self, cards):
-        import importlib.util
-        import tempfile
-        import os
-        spec = importlib.util.spec_from_file_location(
-            "verify_artifacts_advisory", ROOT / "workflow" / "verify-artifacts.py"
-        )
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        with tempfile.TemporaryDirectory() as directory:
-            issues = Path(directory) / ".scratch" / "demo" / "issues"
-            issues.mkdir(parents=True)
-            for body, name in cards:
-                (issues / ("%s.md" % name)).write_text(body, encoding="utf-8")
-            import io
-            from contextlib import redirect_stdout
-            output = io.StringIO()
-            with redirect_stdout(output):
-                code = module.main(["verify-artifacts.py", directory])
-            return code, output.getvalue()
-
-    def test_two_open_cards_refining_one_target_warn_without_failing(self):
-        code, output = self.run_cards(
-            [
-                self._card("00-root"),
-                self._card("01-fix-a", category="fix", refines="00-root"),
-                self._card("02-fix-b", category="fix", refines="00-root"),
-            ]
-        )
-
+EXPERIENCE = {"id": "demo-ui", "surface": "graphical-ui", "viewport": {"width": 800, "height": 600},
+              "theme": "light", "states": ["empty", "filled"],
+              "runtime_gate": {key: 0 for key in ("unexpected_console_errors", "uncaught_page_errors",
+                                                  "unexpected_failed_requests", "csp_violations",
+                                                  "decoded_media_failures")}}
+RUBRIC = {"id": "r1", "dimensions": ["clarity", "polish"], "score_min": 0, "score_max": 5,
+          "min_total": 6, "min_dimension": 3}
+
+
+def run_gate(root, *args):
+    output = io.StringIO()
+    with redirect_stdout(output):
+        code = verify_artifacts.main(["verify-artifacts.py", str(root), *args])
+    return code, output.getvalue()
+
+
+class FeatureGateTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name).resolve()
+        self.feature = self.root / ".scratch" / "demo"
+        self.feature.mkdir(parents=True)
+        self.path = self.feature / "FEATURE.md"
+
+    def write(self, units=UNIT, *, review=False, verifier=None):
+        self.write_text(feature_text("demo", review=review, verifier=verifier, units=units))
+
+    def write_text(self, text):
+        self.path.write_text(text, encoding="utf-8")
+
+    def assert_violation(self, message):
+        code, output = run_gate(self.root)
+        self.assertEqual(1, code, output)
+        self.assertIn(message, output)
+        return output
+
+    def assert_unit_violation(self, units, message, verifier=None):
+        with self.subTest(message=message):
+            self.write(units, verifier=verifier)
+            self.assert_violation(message)
+
+    def test_minimal_feature_passes_whole_tree_and_feature_scope(self):
+        self.write()
+        code, output = run_gate(self.root)
         self.assertEqual(0, code, output)
-        self.assertIn("advisory warning", output)
-        self.assertIn("2 open cards refine '00-root'", output)
-
-    def test_deep_open_refines_chain_warns_without_failing(self):
-        code, output = self.run_cards(
-            [
-                self._card("00-root"),
-                self._card("01-fix-a", category="fix", refines="00-root"),
-                self._card("02-fix-b", category="fix", refines="01-fix-a"),
-                self._card("03-fix-c", category="fix", refines="02-fix-b"),
-            ]
-        )
-
+        self.assertIn("checked 1 feature(s), 1 unit(s)", output)
+        code, output = run_gate(self.root, "--feature", "demo")
         self.assertEqual(0, code, output)
-        self.assertIn("open redo/fix chain depth 3", output)
+        self.assertIn("OK feature=demo", output)
 
-    def test_single_open_refinement_stays_silent(self):
-        code, output = self.run_cards(
-            [
-                self._card("00-root"),
-                self._card("01-fix-a", category="fix", refines="00-root"),
-            ]
-        )
-
+    def test_missing_scratch_and_codebase_is_clean(self):
+        code, output = run_gate(self.root.parent / (self.root.name + "-absent"))
         self.assertEqual(0, code, output)
-        self.assertNotIn("advisory warning", output)
+        self.assertIn("nothing to check", output)
 
+    def test_frontmatter_identity_is_checked(self):
+        text = feature_text("demo", review=False, units=UNIT)
+        cases = {
+            "type must be feature": text.replace("type: feature", "type: issue"),
+            "feature 'other' != directory 'demo'": text.replace("feature: demo", "feature: other"),
+            "created must be ISO": text.replace("created: 2026-10-01", "created: soon"),
+            "review may only be 'required'": text.replace("created: 2026-10-01", "created: 2026-10-01\nreview: maybe"),
+            "needs YAML frontmatter": text.split("---\n", 2)[2],
+        }
+        for message, variant in cases.items():
+            with self.subTest(message=message):
+                self.write_text(variant)
+                self.assert_violation(message)
 
-ANCHOR_PRD = """---
-type: prd
-feature: demo
-version: 1
-created: 2026-09-19
----
-
-## 用户场景（User Stories）
-
-- R1 — 导入取消后必须进入 cancelled。
-- R2 — cancel 后迟到 success 不得覆盖 cancelled。
-
-## 实现决策（Implementation Decisions）
-
-### D1 — State ownership
-
-Refs: R1 R2
-
-终态由 ImportSession 持有。
-
-## 测试决策（Testing Decisions）
-
-| ID | 场景 / 不变量 | 公共接缝 | 可观察结果 | 证据形态 |
-|---|---|---|---|---|
-| R1 | 取消任务 | ImportSession | cancel → cancelled | behavior |
-| R2 | 迟到 success | ImportSession | 状态不变化 | regression |
-
-## 实施切片（Execution Slices）
-
-| Slice | Outcome | Covers | Depends | Review |
-|---|---|---|---|---|
-| S1 | state transition | R1 R2 D1 | - | key |
-| S2 | UI binding | R1 D1 | S1 | routine |
-"""
-
-LEGACY_CARD = """---
-type: issue
-feature: demo
-status: ready
-category: enhancement
-created: 2026-09-19
----
-
-## 做什么（What to build）
-
-Deliver the slice.
-"""
-
-
-def plant_reviewed_feature(root, prd_text=ANCHOR_PRD, *, issues=0):
-    feature = root / ".scratch" / "demo"
-    feature.mkdir(parents=True)
-    (feature / "PRD.md").write_text(prd_text, encoding="utf-8")
-    if issues:
-        (feature / "issues").mkdir()
-        for index in range(issues):
-            (feature / "issues" / ("0%d-slice.md" % (index + 1))).write_text(
-                LEGACY_CARD, encoding="utf-8"
-            )
-
-
-SPEC_REVIEW_MODULE = None
-
-
-def spec_review_tool():
-    global SPEC_REVIEW_MODULE
-    if SPEC_REVIEW_MODULE is None:
-        spec = importlib.util.spec_from_file_location(
-            "spec_review_gate", ROOT / "workflow" / "spec" / "scripts" / "spec-review.py"
-        )
-        SPEC_REVIEW_MODULE = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(SPEC_REVIEW_MODULE)
-    return SPEC_REVIEW_MODULE
-
-
-def write_review_state(root, *, accepted=False, **overrides):
-    tool = spec_review_tool()
-    prd = root / ".scratch" / "demo" / "PRD.md"
-    digest = tool.prd_digest(prd)
-    state = {
-        "schema_version": 1,
-        "spec": "PRD.md",
-        "last_rendered_digest": digest,
-        "last_rendered_items": tool.parse_model(tool.normalized_text(prd)).hashes(),
-        "accepted_digest": digest if accepted else None,
-    }
-    state.update(overrides)
-    (root / ".scratch" / "demo" / "spec-review.json").write_text(
-        json.dumps(state), encoding="utf-8"
-    )
-    return state
-
-
-class PrdAnchorTests(unittest.TestCase):
-    def run_gate(self, root):
-        output = io.StringIO()
-        with redirect_stdout(output):
-            result = verify_artifacts.main(["verify-artifacts.py", str(root)])
-        return result, output.getvalue()
-
-    def test_valid_anchors_pass(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            plant_reviewed_feature(root)
-            result, output = self.run_gate(root)
-            self.assertEqual(0, result, output)
-
-    def test_legacy_prd_without_anchors_stays_compatible(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            plant_reviewed_feature(
-                root,
-                "---\ntype: prd\nfeature: demo\nversion: 1\ncreated: 2026-09-19\n---\n\n"
-                "## 问题（Problem）\n\n旧式 PRD 正文。\n",
-            )
-            result, output = self.run_gate(root)
-            self.assertEqual(0, result, output)
-
-    def test_duplicate_anchor_is_rejected(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            plant_reviewed_feature(root, ANCHOR_PRD.replace("- R2 —", "- R1 —"))
-            result, output = self.run_gate(root)
-            self.assertEqual(1, result)
-            self.assertIn("duplicate id R1", output)
-
-    def test_unknown_anchor_ref_is_rejected(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            plant_reviewed_feature(root, ANCHOR_PRD.replace("Refs: R1 R2", "Refs: R1 R7"))
-            result, output = self.run_gate(root)
-            self.assertEqual(1, result)
-            self.assertIn("undeclared R7", output)
-
-    def test_slice_cycle_is_rejected(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            plant_reviewed_feature(
-                root,
-                ANCHOR_PRD.replace(
-                    "| S1 | state transition | R1 R2 D1 | - | key |",
-                    "| S1 | state transition | R1 R2 D1 | S2 | key |",
-                ),
-            )
-            result, output = self.run_gate(root)
-            self.assertEqual(1, result)
-            self.assertIn("Depends cycle", output)
-
-
-class SpecReviewAcceptanceGateTests(unittest.TestCase):
-    def run_gate(self, root, feature=None):
-        output = io.StringIO()
-        argv = ["verify-artifacts.py", str(root)]
-        if feature:
-            argv += ["--feature", feature]
-        with redirect_stdout(output):
-            result = verify_artifacts.main(argv)
-        return result, output.getvalue()
-
-    def test_rendered_state_without_issues_passes(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            plant_reviewed_feature(root)
-            write_review_state(root)
-            result, output = self.run_gate(root)
-            self.assertEqual(0, result, output)
-
-    def test_issues_without_review_state_stay_compatible(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            plant_reviewed_feature(root, issues=1)
-            result, output = self.run_gate(root)
-            self.assertEqual(0, result, output)
-
-    def test_issues_require_recorded_acceptance(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            plant_reviewed_feature(root, issues=1)
-            write_review_state(root)
-            result, output = self.run_gate(root, "demo")
-            self.assertEqual(1, result)
-            self.assertIn("before spec acceptance", output)
-
-    def test_accepted_state_with_intact_prd_passes(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            plant_reviewed_feature(root, issues=1)
-            write_review_state(root, accepted=True)
-            result, output = self.run_gate(root, "demo")
-            self.assertEqual(0, result, output)
-
-    def test_edited_accepted_prd_fails(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            plant_reviewed_feature(root, issues=1)
-            write_review_state(root, accepted=True)
-            (root / ".scratch" / "demo" / "PRD.md").write_text(
-                ANCHOR_PRD + "\n## 后记\n\n- 编辑过。\n", encoding="utf-8"
-            )
-            result, output = self.run_gate(root, "demo")
-            self.assertEqual(1, result)
-            self.assertIn("no longer matches accepted_digest", output)
-
-    def test_superseding_draft_keeps_accepted_snapshot_valid(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            plant_reviewed_feature(root, issues=1)
-            self.recorded_acceptance(root)
-            (root / ".scratch" / "demo" / "PRD-v2.md").write_text(
-                ANCHOR_PRD.replace("version: 1", "version: 2").replace(
-                    "created: 2026-09-19", "created: 2026-09-19\nsupersedes: PRD.md"
-                ),
-                encoding="utf-8",
-            )
-            result, output = self.run_gate(root, "demo")
-            self.assertEqual(0, result, output)
-
-    def test_archived_issues_also_require_acceptance(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            plant_reviewed_feature(root)
-            archive = root / ".scratch" / "demo" / "issues" / "archive"
-            archive.mkdir(parents=True)
-            (archive / "01-shipped.md").write_text(
-                LEGACY_CARD.replace("status: ready", "status: done")
-                + "\n### 完成 — 2026-09-19\n\n- 验证命令：`pytest -q` → exit 0\n",
-                encoding="utf-8",
-            )
-            write_review_state(root)
-            result, output = self.run_gate(root, "demo")
-            self.assertEqual(1, result)
-            self.assertIn("before spec acceptance", output)
-
-    def test_malformed_review_state_is_rejected(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            plant_reviewed_feature(root, issues=1)
-            (root / ".scratch" / "demo" / "spec-review.json").write_text(
-                json.dumps({"schema_version": 2, "spec": "PRD.md", "accepted_digest": "zz"}),
-                encoding="utf-8",
-            )
-            result, output = self.run_gate(root, "demo")
-            self.assertEqual(1, result)
-            self.assertIn("schema_version must be 1", output)
-            self.assertIn("accepted_digest", output)
-
-    def recorded_acceptance(self, root):
-        tool = spec_review_tool()
-        for card in (root / ".scratch/demo/issues").glob("*.md"):
-            card.write_text(card.read_text(encoding="utf-8") +
-                            "\n## 上级\n- `Parent: PRD.md · S1 · R1/R2 · D1`\n", encoding="utf-8")
-        prepared = tool.prepare_review(root, "demo")
-        state = tool.record_acceptance(
-            prepared["state"], prepared["feature_dir"],
-            prepared["feature_dir"] / prepared["prd_name"], prepared["digest"], prepared["model"],
-        )
-        tool.save_state(prepared["feature_dir"], state)
-        return prepared["feature_dir"]
-
-    def test_parent_source_and_declared_coverage_are_required(self):
-        for pointer in ("", "Parent: PRD.md · S9 · R1/R2 · D1",
-                        "Parent: PRD.md · S1 · R1", "Parent: PRD-v99.md · S1 · R1/R2 · D1"):
-            with self.subTest(pointer=pointer), tempfile.TemporaryDirectory() as directory:
-                root = Path(directory)
-                plant_reviewed_feature(root, issues=1)
-                feature = self.recorded_acceptance(root)
-                (feature / "issues/01-slice.md").write_text(
-                    LEGACY_CARD + "\n## 上级\n" + pointer + "\n", encoding="utf-8")
-                result, output = self.run_gate(root, "demo")
-                self.assertEqual(1, result, output)
-                self.assertIn("Parent", output)
-
-    def test_recorded_acceptance_with_snapshot_passes(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            plant_reviewed_feature(root, issues=1)
-            self.recorded_acceptance(root)
-            result, output = self.run_gate(root, "demo")
-            self.assertEqual(0, result, output)
-
-    def test_edited_snapshot_is_rejected(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            plant_reviewed_feature(root, issues=1)
-            feature = self.recorded_acceptance(root)
-            state = json.loads((feature / "spec-review.json").read_text(encoding="utf-8"))
-            snapshot = feature / "spec-acceptances" / (state["accepted_digest"] + ".md")
-            snapshot.write_text("被篡改的快照。\n", encoding="utf-8")
-            result, output = self.run_gate(root, "demo")
-            self.assertEqual(1, result)
-            self.assertIn("acceptance record is inconsistent", output)
-
-    def test_missing_snapshot_with_ledger_is_rejected(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            plant_reviewed_feature(root, issues=1)
-            feature = self.recorded_acceptance(root)
-            state = json.loads((feature / "spec-review.json").read_text(encoding="utf-8"))
-            (feature / "spec-acceptances" / (state["accepted_digest"] + ".md")).unlink()
-            result, output = self.run_gate(root, "demo")
-            self.assertEqual(1, result)
-            self.assertIn("the accepted snapshot is missing", output)
-
-    def test_edited_prd_after_recorded_acceptance_points_to_delta(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            plant_reviewed_feature(root, issues=1)
-            self.recorded_acceptance(root)
-            (root / ".scratch" / "demo" / "PRD.md").write_text(
-                ANCHOR_PRD + "\n## 后记\n\n- 编辑过。\n", encoding="utf-8"
-            )
-            result, output = self.run_gate(root, "demo")
-            self.assertEqual(1, result)
-            self.assertIn("no longer matches accepted_digest", output)
-            self.assertIn("--require-accepted", output)
-
-
-class CommandMappingAdmissionTests(unittest.TestCase):
-    def check_entries(self, version, change=None):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            issues = root / ".scratch" / "search" / "issues"
-            issues.mkdir(parents=True)
-            if version == "v2":
-                body = issue_body().replace(
-                    "\n## 前置依赖（Blocked by）\n\n- 无\n", "\n"
-                )
-                command = "pytest tests/test_search.py::test_match"
-            else:
-                body = v3_issue_body(done=False)
-                command = "profile:scoped"
-                plant_v3_profile(root)
-                if version == "v3-schema1":
-                    body = body.replace("verifier_schema: 2", "verifier_schema: 1")
-                    profile = root / ".scratch" / "search" / "verifier.json"
-                    payload = json.loads(profile.read_text(encoding="utf-8"))
-                    payload["schema_version"] = 1
-                    profile.write_text(json.dumps(payload), encoding="utf-8")
-            first_map = next(line for line in body.splitlines() if line.startswith("- #1 →"))
-            if change == "missing":
-                body = body.replace(first_map, "")
-            elif change == "unquoted":
-                body = body.replace(first_map, first_map.replace(f"`{command}`", command))
-            elif change == "empty":
-                body = body.replace(first_map, first_map.replace(f"`{command}`", "``"))
-            elif change == "duplicate":
-                body = body.replace(first_map, first_map + "\n" + first_map)
-            elif change == "unknown-ac":
-                body = body.replace(first_map, first_map + "\n" + first_map.replace("#1", "#3"))
-            elif change == "invalid-command":
-                if version == "v2":
-                    body = body.replace(f"`{command}`", '`pytest "unterminated`')
+    def test_legacy_planning_files_are_rejected(self):
+        for name in ("PRD.md", "issues", "verifier.json", "spec-review.json", "experience-contract.json"):
+            with self.subTest(name=name):
+                self.write()
+                legacy = self.feature / name
+                if name == "issues":
+                    legacy.mkdir()
                 else:
-                    profile = root / ".scratch" / "search" / "verifier.json"
-                    payload = json.loads(profile.read_text(encoding="utf-8"))
-                    payload["commands"]["scoped"] = 'pytest "unterminated'
-                    profile.write_text(json.dumps(payload), encoding="utf-8")
-            issue = issues / "01-search.md"
-            issue.write_text(body, encoding="utf-8")
-            tests = root / "tests"
-            tests.mkdir()
-            (tests / "test_search.py").write_text("# fixture\n", encoding="utf-8")
-            output = io.StringIO()
-            with redirect_stdout(output):
-                result = verify_artifacts.main(
-                    ["verify-artifacts.py", str(root), "--feature", "search"]
-                )
-            try:
-                workflow_state.start_issue(root, "search", "01-search")
-                admission_error = None
-            except ValueError as exc:
-                admission_error = str(exc)
-            self.assertEqual(body, issue.read_text(encoding="utf-8"))
-            return result, output.getvalue(), admission_error
+                    legacy.write_text("{}\n", encoding="utf-8")
+                self.assert_violation("legacy planning artifacts (%s)" % name)
+                legacy.rmdir() if name == "issues" else legacy.unlink()
 
-    def test_valid_ready_mapping_passes_both_gate_and_start(self):
-        for version in ("v2", "v3-schema1", "v3-schema2"):
-            with self.subTest(version=version):
-                result, output, admission_error = self.check_entries(version)
-                self.assertEqual(0, result, output)
-                self.assertIsNone(admission_error)
+    def test_legacy_only_directory_is_rejected_and_feature_scope_ignores_others(self):
+        self.write()
+        (self.root / ".scratch" / "old" / "issues").mkdir(parents=True)
+        self.assert_violation("legacy planning artifacts (issues)")
+        code, output = run_gate(self.root, "--feature", "demo")
+        self.assertEqual(0, code, output)
 
-    def test_invalid_ready_mapping_is_rejected_by_both_gate_and_start(self):
-        for version in ("v2", "v3-schema1", "v3-schema2"):
-            for change in ("missing", "unquoted", "empty", "duplicate", "unknown-ac", "invalid-command"):
-                with self.subTest(version=version, change=change):
-                    result, output, admission_error = self.check_entries(version, change)
-                    self.assertIsNotNone(admission_error)
-                    self.assertEqual(1, result, output)
-                    self.assertIn(admission_error, output)
+    def test_feature_argument_is_validated(self):
+        self.write()
+        for argv, code, message in ((["--feature", ".."], 1, "must be one directory name"),
+                                    (["--feature", "missing"], 1, "not found"),
+                                    (["--feature"], 2, ""), (["--bogus"], 2, "")):
+            with self.subTest(argv=argv):
+                result, output = run_gate(self.root, *argv)
+                self.assertEqual(code, result)
+                self.assertIn(message, output)
 
-    def test_historical_v2_done_mapping_keeps_compatibility(self):
-        body = issue_body(done=True)
-        body = body.replace("`pytest tests/test_search.py::test_match`", "pytest tests/test_search.py::test_match")
-        body = body.replace("`pytest tests/test_search.py::test_empty`", "pytest tests/test_search.py::test_empty")
-        result, output = VerifyArtifactsV2Tests().run_gate(body)
-        self.assertEqual(0, result, output)
+    def test_contract_anchor_errors(self):
+        text = feature_text("demo", units=UNIT)
+        cases = {
+            "duplicate id R1": text.replace("- R2 — second", "- R1 — second"),
+            "D1 references undeclared R9": text.replace("Refs: R1", "Refs: R9"),
+            "must reference R#": text.replace("Refs: R1", "Refs: C1"),
+        }
+        for message, variant in cases.items():
+            with self.subTest(message=message):
+                self.write_text(variant)
+                self.assert_violation(message)
 
-    def test_pending_card_does_not_require_an_executable_contract(self):
-        body = """---
-contract_version: 3
-type: issue
-feature: search
-status: pending
-pending_reason: acceptance decision is unresolved
----
+    def test_unit_field_errors(self):
+        cases = {
+            "status 'started' not in pending|ready|done": UNIT.replace("status: ready", "status: started"),
+            "pending needs a concrete reason": UNIT.replace("status: ready", "status: pending"),
+            "needs a 做什么 line": UNIT.replace("- 做什么：Deliver the first result.\n", ""),
+            "needs at least one checkbox AC": UNIT.replace("- [ ] first result → `unit`\n", ""),
+            "AC #1 needs exactly one → `command-name`": UNIT.replace(" → `unit`", ""),
+            "AC #1 names unknown command missing": UNIT.replace("`unit`", "`missing`"),
+            "command full has no 预检 line": UNIT.replace("`unit`", "`full`"),
+            "blocked_by names undeclared unit T9": UNIT.replace("- covers: R1", "- covers: R1\n- blocked_by: T9"),
+            "refines itself": UNIT.replace("- covers: R1", "- covers: R1\n- refines: T1"),
+            "covers undeclared R7": UNIT.replace("covers: R1", "covers: R7"),
+            "repeats field covers": UNIT.replace("- covers: R1", "- covers: R1\n- covers: R2"),
+            "duplicate unit id": UNIT + "\n" + UNIT,
+            "unit heading must be": UNIT.replace("### T1 — first unit", "### Task one"),
+            "done needs a 完成 record": UNIT.replace("status: ready", "status: done"),
+            "only done units carry a 完成 record": UNIT + "\n#### 完成 — 2026-10-02\n- contract: x\n",
+        }
+        for message, units in cases.items():
+            self.assert_unit_violation(units, message)
 
-## 做什么
+    def test_pending_unit_needs_no_executable_contract(self):
+        self.write(UNIT.replace("status: ready", "status: pending\n- reason: tool missing")
+                   .replace(" → `unit`", ""))
+        code, output = run_gate(self.root)
+        self.assertEqual(0, code, output)
 
-Deliver search after acceptance is settled.
-"""
-        result, output = VerifyArtifactsV2Tests().run_gate(body)
-        self.assertEqual(0, result, output)
+    def test_unit_local_command_needs_well_formed_preflight(self):
+        local = UNIT.replace("`unit`", "`local`") + "- 命令 local：`python -c pass`\n"
+        self.assert_unit_violation(local, "command local has no 预检 line")
+        self.assert_unit_violation(local + "- 预检 local：`python -c pass` → passed\n", "预检 local needs")
+        self.assert_unit_violation(
+            UNIT.replace("`unit`", "`local`") + "- 命令 local：`python 'unclosed`\n"
+            + "- 预检 local：`x` → passed；evidence=inline；checked=2026-10-01\n", "command local cannot be parsed")
+        self.write(local + "- 预检 local：`python -c pass` → passed；evidence=inline；checked=2026-10-01\n")
+        code, output = run_gate(self.root)
+        self.assertEqual(0, code, output)
+
+    def test_blocked_by_cycle_is_reported(self):
+        second = UNIT.replace("T1 — first", "T2 — second").replace("- covers: R1", "- covers: R1\n- blocked_by: T1")
+        self.write(UNIT.replace("- covers: R1", "- covers: R1\n- blocked_by: T2") + "\n" + second)
+        output = self.assert_violation("T1 is in (or depends on) a blocked_by cycle")
+        self.assertIn("T2 is in (or depends on) a blocked_by cycle", output)
+
+    def test_shared_verifier_errors(self):
+        cases = {
+            "has unknown keys: extra": dict(FIXTURE_VERIFIER, extra=1),
+            "cwd must be a repo-relative directory": dict(FIXTURE_VERIFIER, cwd="../outside"),
+            "cwd does not exist: missing": dict(FIXTURE_VERIFIER, cwd="missing"),
+            "environment must map identity names": dict(FIXTURE_VERIFIER, environment={}),
+            "prepare must record": dict(FIXTURE_VERIFIER, prepare=""),
+            "commands must map names": dict(FIXTURE_VERIFIER, commands={}),
+        }
+        for message, verifier in cases.items():
+            with self.subTest(message=message):
+                self.write(verifier=verifier)
+                self.assert_violation("共享验证 " + message)
+        text = feature_text("demo", units=UNIT)
+        for message, variant in {"needs one fenced JSON block": text.replace("```json", "").replace("```\n", ""),
+                                 "JSON is invalid": text.replace('{"cwd"', '{cwd')}.items():
+            with self.subTest(message=message):
+                self.write_text(variant)
+                self.assert_violation(message)
+
+    def test_malformed_review_record_is_reported(self):
+        self.write(review=True)
+        accept(self.feature, "good")
+        (self.feature / "reviews" / "broken.json").write_text('{"kind": "spec_decision"}', encoding="utf-8")
+        self.assert_violation("review record broken.json: record digest mismatch")
+
+    def test_review_required_feature_without_acceptance_is_structurally_valid(self):
+        self.write(review=True)
+        code, output = run_gate(self.root)
+        self.assertEqual(0, code, output)
+
+    def test_experience_field_validation(self):
+        runtime = UNIT.replace("- covers: R1", "- covers: R1\n- experience: runtime; states=empty; "
+                                               "evidence=.scratch/demo/evidence/t1.json")
+        with_ui = dict(FIXTURE_VERIFIER, experience=EXPERIENCE)
+        graded_ui = dict(FIXTURE_VERIFIER, experience=dict(EXPERIENCE, rubric=RUBRIC))
+        self.write(runtime, verifier=with_ui)
+        code, output = run_gate(self.root)
+        self.assertEqual(0, code, output)
+        graded = runtime.replace("runtime;", "graded;")
+        self.assert_unit_violation(runtime, "experience needs 共享验证 experience contract")
+        self.assert_unit_violation(graded, "graded experience needs a rubric", with_ui)
+        self.assert_unit_violation(runtime, "runtime experience must omit it", graded_ui)
+        self.assert_unit_violation(runtime.replace("runtime;", "visual;"), "mode must be runtime or graded", with_ui)
+        self.assert_unit_violation(runtime.replace("states=empty", "states=hover"), "declared contract states", with_ui)
+        self.assert_unit_violation(runtime.replace(".scratch/demo/evidence/", "out/"), "evidence must be JSON", with_ui)
+        bad_contracts = {
+            "needs id and surface": dict(EXPERIENCE, surface="cli"),
+            "viewport needs positive": dict(EXPERIENCE, viewport={"width": 0, "height": 1}),
+            "states must be unique": dict(EXPERIENCE, states=["a", "a"]),
+            "runtime_gate must set": dict(EXPERIENCE, runtime_gate={"csp_violations": False}),
+            "rubric needs id": dict(EXPERIENCE, rubric=dict(RUBRIC, min_total=11)),
+        }
+        for message, contract in bad_contracts.items():
+            self.assert_unit_violation(UNIT, "共享验证 experience " + message,
+                                       dict(FIXTURE_VERIFIER, experience=contract))
+
+    def test_invalid_utf8_feature_is_reported(self):
+        self.path.write_bytes(feature_text("demo", units=UNIT).encode("utf-8") + b"\xff\n")
+        self.assert_violation("codec can't decode byte 0xff")
+
+    def test_fenced_headings_and_anchors_do_not_change_structure(self):
+        fenced = "```text\n## 变更记录 example\n### T9 — fake\n```\n"
+        self.write(UNIT + fenced)
+        code, output = run_gate(self.root)
+        self.assertEqual(0, code, output)
+        doc = feature_doc.load(self.root, "demo")
+        self.assertEqual(["T1"], [unit.id for unit in doc.units])
+        text = self.path.read_text(encoding="utf-8").replace(
+            "Keep the fixture small.", "Keep the fixture small.\n```\n## 变更记录 x\n```\n### D2 — hidden\nDoor: one-way")
+        self.write_text(text)
+        doc = feature_doc.load(self.root, "demo")
+        self.assertEqual(["D1", "D2"], [item["id"] for item in doc.model.decisions])
+        self.assertIn("### D2 — hidden", feature_doc.contract_text(text))
+        self.assertTrue(doc.review_required())
+
+    def test_section_kind_is_the_leading_heading_word(self):
+        self.write()
+        text = self.path.read_text(encoding="utf-8")
+        self.write_text(text.replace("## 不变量", "## 不变量（跨任务）").replace("## 决策", "## 决策（影响任务）"))
+        doc = feature_doc.load(self.root, "demo")
+        self.assertEqual(["C1"], [item["id"] for item in doc.model.contracts])
+        self.assertEqual(["D1"], [item["id"] for item in doc.model.decisions])
+        self.assertEqual(0, run_gate(self.root)[0])
+        self.write_text(text + "\n## 决策\n### D2 — second\nDoor: one-way\n")
+        self.assert_violation("section 决策 appears more than once")
+
+    def test_review_flag_variants_are_recognized(self):
+        self.write()
+        text = self.path.read_text(encoding="utf-8")
+        for flag, gated in (("Review: human   # direction", False), ("* Review：human", False),
+                            ("- Door: one-way", True)):
+            with self.subTest(flag=flag):
+                self.write_text(text.replace("Door: two-way", flag))
+                doc = feature_doc.load(self.root, "demo")
+                self.assertEqual(1, len(doc.model.review_required_items()))
+                self.assertEqual(gated, doc.review_required())
+
+    def test_completion_record_accepts_only_its_own_lines(self):
+        self.write(UNIT.replace("status: ready", "status: done") + "\n#### 完成 — 2026-10-01\n- contract: x\n"
+                   "- [ ] extra promise → `unit`\n")
+        self.assert_violation("完成 record may hold only contract, candidate and evidence lines")
+
+    def test_shared_verification_holds_exactly_one_json_block(self):
+        self.write()
+        text = self.path.read_text(encoding="utf-8").replace(
+            "- 预检 unit", "```json\n{\"cwd\": \"nowhere\"}\n```\n- 预检 unit", 1)
+        self.write_text(text)
+        self.assert_violation("共享验证 must hold exactly one fenced JSON block")
+
+    def test_empty_frontmatter_is_validated_not_skipped(self):
+        self.write()
+        text = self.path.read_text(encoding="utf-8")
+        self.write_text("---\n---\n" + text.split("---\n", 2)[2])
+        self.assert_violation("type must be feature")
+
+
+class CompletionGateTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name).resolve()
+        self.repo = EvidenceRepository(self.root, feature="demo")
+        self.path = self.repo.spec
+
+    def close(self, units=UNIT, **definition):
+        self.repo.accept_spec(feature_text("demo", units=units))
+        receipt = self.repo.receipt(**definition).relative_to(self.root).as_posix()
+        workflow_state.close(self.root, "demo", "T1", [receipt + "; AC 1"])
+        return receipt
+
+    def test_closed_unit_passes_the_gate(self):
+        self.close()
+        code, output = run_gate(self.root)
+        self.assertEqual(0, code, output)
+
+    def test_done_unit_edited_after_close_is_invalid(self):
+        self.close()
+        text = self.path.read_text(encoding="utf-8")
+        self.path.write_text(text.replace("Deliver the first result.", "Deliver another result."), encoding="utf-8")
+        self.assertEqual(1, run_gate(self.root)[0])
+        self.assertIn("T1 completion proof is invalid: contract changed after completion", run_gate(self.root)[1])
+
+    def test_done_unit_with_missing_or_tampered_evidence_is_invalid(self):
+        receipt = self.close()
+        (self.root / receipt).write_text("{}", encoding="utf-8")
+        code, output = run_gate(self.root)
+        self.assertEqual(1, code)
+        self.assertIn("T1 completion proof is invalid", output)
+
+    def test_experience_unit_needs_retained_passing_evidence(self):
+        units = UNIT.replace("- covers: R1", "- covers: R1\n- experience: runtime; states=empty; "
+                                              "evidence=.scratch/demo/evidence/t1.json")
+        verifier = dict(FIXTURE_VERIFIER, experience=EXPERIENCE)
+        record = self.repo.feature / "evidence" / "t1.json"
+        record.parent.mkdir(parents=True)
+        shot = self.repo.write(".scratch/demo/evidence/empty.png", PNG_1X1)
+        value = {"contract_id": "demo-ui", "mode": "runtime", "verdict": "pass",
+                 "runtime": dict(EXPERIENCE["runtime_gate"]),
+                 "states": [{"name": "empty", "artifacts": [shot.relative_to(self.root).as_posix()]}]}
+        record.write_text(json.dumps(dict(value, verdict="fail")), encoding="utf-8")
+        self.repo.accept_spec(feature_text("demo", units=units, verifier=verifier))
+        receipt = self.repo.receipt().relative_to(self.root).as_posix()
+        with self.assertRaisesRegex(ValueError, "verdict pass"):
+            workflow_state.close(self.root, "demo", "T1", [receipt + "; AC 1"])
+        record.write_text(json.dumps(value), encoding="utf-8")
+        workflow_state.close(self.root, "demo", "T1", [receipt + "; AC 1"])
+        self.assertEqual(0, run_gate(self.root)[0])
+        shot.write_bytes(b"not an image")
+        code, output = run_gate(self.root)
+        self.assertEqual(1, code)
+        self.assertIn("experience state empty needs a retained screenshot", output)
+
+    def test_acceptance_never_lapses_when_review_flags_are_removed(self):
+        self.repo.accept_spec(feature_text("demo", units=UNIT))
+        text = self.path.read_text(encoding="utf-8").replace("review: required\n", "")
+        self.path.write_text(text.replace("first requirement", "rewritten requirement"), encoding="utf-8")
+        state = workflow_state.survey(self.root)[0]
+        self.assertEqual([], state["ready"])
+        self.assertIn("contract changed since acceptance", " ".join(state["blocked"][0]["reasons"]))
+
+    def test_close_preserves_file_mode(self):
+        self.repo.accept_spec(feature_text("demo", units=UNIT))
+        self.path.chmod(0o644)
+        receipt = self.repo.receipt().relative_to(self.root).as_posix()
+        workflow_state.close(self.root, "demo", "T1", [receipt + "; AC 1"])
+        self.assertEqual(0o644, self.path.stat().st_mode & 0o777)
 
 
 if __name__ == "__main__":

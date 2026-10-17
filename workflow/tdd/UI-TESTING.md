@@ -49,10 +49,13 @@ nor a fabricated CLI receipt substitutes for required assertions and retained ev
 
 ## Optional experience assessment
 
-Only an opted-in graphical UI (`experience_review: runtime|graded`) writes the canonical
-`.scratch/<feat>/experience-contract.json`; the completion record carries its mode and durable
-artifacts reference it. `runtime` uses deterministic assertions for behavior, capture, media
-decoding, and runtime
-failures. `graded` additionally loads [experience-v1](../code-review/EXPERIENCE-RUBRIC.md) for
-visual dimensions that assertions cannot express. Functional UI verification does not require
-opting into visual grading. Formal blind calibration belongs to explicit `/eval`.
+Only an opted-in graphical UI unit carries `- experience: runtime|graded; states=…; evidence=…`; the
+feature's 共享验证 `experience` object is the single contract (viewport, theme, states, zero
+`runtime_gate` counters, and a `rubric` only for `graded`). Evidence JSON under
+`.scratch/<feat>/evidence/` is written only after the operated states ran: verdict `pass`, the same
+zero counters, a retained real screenshot per declared state, and for `graded` a `judge` block whose
+floors `close` re-checks. `runtime` uses deterministic assertions for behavior, capture, media
+decoding and runtime failures. `graded` additionally loads
+[experience-v1](../code-review/EXPERIENCE-RUBRIC.md) for visual dimensions assertions cannot express.
+Functional UI verification does not require opting into grading. Formal blind calibration belongs to
+explicit `/eval`.

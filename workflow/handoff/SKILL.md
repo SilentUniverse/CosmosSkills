@@ -1,46 +1,45 @@
 ---
 name: handoff
 description: >-
-  Use when the user asks to hand off unfinished work or a session boundary would lose necessary engineering facts. Prefer native context and existing artifacts; write a compact continuation note only when needed, without managing session recovery.
+  Use when the context window is filling up or the user ends a session with work unfinished, so a fresh session can continue. Checkpoints progress into Git and existing artifacts first; writes a short continuation note only for facts that have no other owner.
 argument-hint: "[task or feature] [note path]"
 ---
 
 # Handoff
 
-Keep the remaining objective executable by its next owner. Same-task compaction and reopening use
-the host's native context and session recovery; neither alone requires a note or a skill transition.
+Long work spans many sessions because context is finite. A fresh session must be able to take the
+next correct action from durable state alone, without the old transcript. Hand off at a natural
+boundary (a unit closed, a decision made) before the window is nearly exhausted, not mid-edit.
 
-## Select the bridge
+## 1. Checkpoint into owners that already exist
 
-Use the source task/session reference and existing engineering artifacts when the destination can
-read them. When the destination host provides a native history reader, use it with a
-focused query; a session reference alone does not inject its history. Verify the reader is
-available in the destination.
+- **Feature route.** Close every finished unit and commit it locally. FEATURE.md (unit status,
+  completion records, 变更记录) plus `git log` is the progress record; nothing else is needed.
+- **Inline route.** Leave work in the working tree; commit only with existing authorization
+  (`/pr`). Never stash or rewrite it. Record in the note which changes are verified.
+- **Decisions.** A decision the user confirmed in this session belongs in its owner (FEATURE.md
+  anchor, ADR, `CONTEXT.md`) when a later step depends on it; otherwise it goes in the note.
 
-Write a note when explicitly requested, when crossing hosts without accessible history, or when
-necessary unfinished facts have no retrievable owner. Use the requested path; otherwise use
-`.scratch/<feature>/handoff.md`, or `.scratch/handoff.md` for work without a feature. Concurrent
-unrelated work uses distinct named paths. Inspect an existing note before updating it; preserve
-another task's unfinished obligations. Completed work needs no continuation note.
+Feature-unit commits are local checkpoints; push only when requested.
 
-## Preserve only what is needed
+## 2. Write the note only for the remainder
 
-Read the active contract and relevant Git status. Include only populated fields:
+Write `.scratch/<feat>/handoff.md`, or `.scratch/handoff.md` without a feature (a requested path
+wins; parallel unrelated work uses distinct names). Overwrite the previous note for the same work;
+it is a pointer card, not a journal. Include only populated lines:
 
-- Source task/session and repository/worktree identity; current HEAD when useful for later comparison.
-- Remaining objective, existing authorization and unresolved decisions not recorded elsewhere.
-- Exact pointers to governing contracts, necessary dirty files, retained evidence and next inputs.
-- Next action and its observable success condition.
-- Outstanding worker/process/review obligations with existing IDs, output references and fixed
-  review inputs. Record observed state as an observation, never a promise that work is still alive.
+```markdown
+# Handoff — <goal in one line>
+- 目标：<remaining outcome and constraints the user stated in this session>
+- 状态：<HEAD sha; feature + next ready unit, or the dirty files that matter>
+- 下一步：<the single next action and how to tell it succeeded>
+- 已定：<confirmed decisions not yet recorded elsewhere>
+- 待定：<open questions for the user>
+- 注意：<findings that would otherwise be rediscovered: dead ends, failing commands, traps>
+```
 
-Reference owned facts instead of copying Spec, Issue bodies, transcripts or approval summaries.
-For pending review, preserve candidate/spec/review identity and raw decision pointers; a note cannot
-approve an object. Exclude secrets. Do not launch, stop or recreate work merely to write the note.
+Point to files, units, commits and logs instead of copying them. Exclude secrets. Skip the note
+entirely when Git and FEATURE.md already say everything above. Report the note path (or "no note
+needed") and the first command the next session should run; do not end or restart the session.
 
-Update the selected note in place: no journal, snapshot, marker, lock or recovery helper. Report
-the exact source/note and the first continuation action, then leave session lifecycle to the host.
-A handoff-only request ends with this bridge; a caller needing a mid-work checkpoint gets no
-invented pause or second owner.
-
-Use [resume](../resume/SKILL.md) when the destination needs to reconstruct the next engineering action.
+The next session continues through [resume](../resume/SKILL.md).

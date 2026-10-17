@@ -9,6 +9,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "tests"))
+from test_ui_policy_routing import NON_UI_FEATURE
 
 
 class InstallerTests(unittest.TestCase):
@@ -17,7 +19,7 @@ class InstallerTests(unittest.TestCase):
             probe = Path(directory).resolve()
             target = probe / "skills"
             target.mkdir()
-            retired = ("workflow_runtime.py", "workflow_batch.py", "checkpoint_store.py", "workflow_managed.py",
+            retired = ("workflow_contract.py", "historical_proof.py", "workflow_runtime.py", "workflow_batch.py", "checkpoint_store.py", "workflow_managed.py",
                        "workflow_incremental.py", "workflow_jobs.py", "workflow_resources.py", "workflow_members.py", "process_tree.py")
             foreign_content = b"# User-maintained file; filename does not establish ownership.\n"
             for name in retired:
@@ -34,7 +36,7 @@ class InstallerTests(unittest.TestCase):
             self.assertEqual(0, installed.returncode, installed.stdout + installed.stderr)
             for relative in (
                 "verify/SKILL.md", "verify/BUILD.md", "verify/MAINTAIN.md",
-                "ARTIFACT-FORMAT.md", "evidence.py", "historical_proof.py",
+                "ARTIFACT-FORMAT.md", "evidence.py", "feature_doc.py",
                 "tdd/UI-TESTING.md", "TEST-POLICY.md",
             ):
                 with self.subTest(installed_reference=relative):
@@ -45,43 +47,19 @@ class InstallerTests(unittest.TestCase):
             self.assertEqual(0, json.loads(report.stdout)['runs'])
             project = probe / "project"
             project.mkdir()
-            issue = project / ".scratch/demo/issues/01-work.md"
+            issue = project / ".scratch/demo/FEATURE.md"
             issue.parent.mkdir(parents=True)
-            issue.write_text("""---
-contract_version: 2
-type: issue
-feature: demo
-status: ready
-category: enhancement
-touches: [src]
-test_paths: []
-blocked_by: []
-created: 2026-09-22
----
-## 做什么
-Return the interpreter version through the CLI.
-## 验收标准
-- [ ] Print the interpreter version successfully.
-## 验证设计
-- 接缝：CLI
-- 工作目录：`.`
-- 环境指纹：`git=no-vcs; lock=none; runtime=python; tools=stdlib; services=none`
-- 前置条件：`fixtures=none; services=none; permissions=local; network=off`
-- 准备动作：`无（已就绪）`
-- P1 预检：`python --version` → passed；observed=exit 0；evidence=inline fixture；checked=2026-09-22
-- #1 → `python --version`；预检：P1；预期证据：version text and exit 0
-## Comments
-""", encoding="utf-8")
+            issue.write_text(NON_UI_FEATURE, encoding="utf-8")
             original = issue.read_bytes()
             env = {key: value for key, value in os.environ.items() if key != "PYTHONPATH"}
             admitted = subprocess.run([sys.executable, "-I", "-B", str(target / "workflow-state.py"),
-                                       "start", str(project), "demo", "01-work"],
+                                       "start", str(project), "demo", "T1"],
                                       cwd=probe, env=env, capture_output=True, text=True, encoding="utf-8", timeout=15)
             self.assertEqual(0, admitted.returncode, admitted.stdout + admitted.stderr)
-            self.assertTrue(json.loads(admitted.stdout)["admitted"])
+            self.assertEqual("T1", json.loads(admitted.stdout)["unit"])
             self.assertEqual(original, issue.read_bytes())
             closed = subprocess.run([sys.executable, "-I", "-B", str(target / "workflow-state.py"),
-                                     "close", str(project), "demo", "01-work"],
+                                     "close", str(project), "demo", "T1", "--evidence", "missing.json; AC 1"],
                                     cwd=probe, env=env, capture_output=True, text=True, encoding="utf-8", timeout=15)
             self.assertNotEqual(0, closed.returncode)
             self.assertEqual(original, issue.read_bytes())
@@ -182,7 +160,7 @@ Return the interpreter version through the CLI.
             self.assertEqual(0, result.returncode, result.stderr)
             self.assertNotIn("(agents)", result.stdout)
             imported = subprocess.run(
-                [sys.executable, "-B", "-c", "import evidence, historical_proof, workflow_contract"],
+                [sys.executable, "-B", "-c", "import evidence, feature_doc"],
                 cwd=target,
                 env={key: value for key, value in os.environ.items() if key != "PYTHONPATH"},
                 text=True, capture_output=True, check=False,

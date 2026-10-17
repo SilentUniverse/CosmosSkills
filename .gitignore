@@ -7,3 +7,5 @@
 __pycache__/
 .eval-runs/
 .zcode/
+.scratch/*/*.lock
+.scratch/*/reviews/*.lock

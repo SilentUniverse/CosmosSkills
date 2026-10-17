@@ -45,14 +45,14 @@ combining it earlier; repeated questions and discoverable details do not justify
 
 Continue until the choices needed for the caller's plan are resolved, or name the missing evidence
 that prevents resolution. Honor an explicitly requested final plan review before implementation.
-Ordinary interviews stay in the conversation/native plan, with no interview ledger or PRD.
+Ordinary interviews stay in the conversation/native plan, with no interview ledger or file.
 
 ## Autonomous convergence within a round
 
 For the affected draft, use at most two autonomous passes. This bounds internal investigation,
 not the number of user dialogue rounds:
 
-1. **Derive** — read the goal, the related code, the latest accepted PRD/ADR/CODEBASE/CONTEXT and
+1. **Derive** — read the goal, the related code, the live feature document, ADR/CODEBASE/CONTEXT and
    existing verifiers/tests; build and classify the tree; resolve EVIDENCED nodes, take
    DEFAULTABLE choices, and investigate FOG toward the sharpest state it supports.
 2. **Attack** — run one adversarial pass over the draft: the most likely misread user scenario,
@@ -70,7 +70,7 @@ The convergence predicate determines whether the draft is ready to present:
 5. Blocking FOG names the missing evidence; dependent work remains unready.
 6. Public API / schema / measurement semantics are explicit.
 7. Out of Scope is explicit.
-8. Every implementation slice has a boundary and a verification entry.
+8. Every planned unit has a boundary and a verification entry.
 9. No structure exists for an imagined future.
 10. Material findings from the attack are resolved or explicitly attached to a blocking decision
     or missing evidence. Do not run another attack merely to prove there are no further findings.
@@ -91,43 +91,35 @@ Give only the context needed to choose, in four blocks:
 4. **问题**: ask the actual missing decision. An answer settles that decision; do not append a
    second request to reply "对齐".
 
-For a broad architectural choice, add the smallest useful requirement/evidence/slice table
-(Requirement | Observable outcome | Verification | Slice/dependency). Show only affected rows
+For a broad architectural choice, add the smallest useful requirement/evidence/unit table
+(Requirement | Observable outcome | Verification | Unit/dependency). Show only affected rows
 after feedback; reprint the complete design only when interactions changed so much that a delta
-would mislead. Keep settled choices in the conversation or native inline plan. On the giant-task
-queue route, persist them once in the owning PRD/issue contract. Card count, multiple files,
-and internal slice-DAG changes do not by themselves require approval; feedback prunes the affected
-subtree instead of restarting alignment.
+would mislead. Keep settled choices in the conversation or native inline plan; on the
+feature-document route persist them once in that document. Unit count, multiple files and internal
+dependency changes do not by themselves require approval; feedback prunes the affected subtree
+instead of restarting alignment.
 
 Ask consequential missing information as soon as evidence establishes the question; do not build
 an entire disputed plan or require all preflights to pass before asking, and complete independent
 already-authorized preparation while waiting. Prior user decisions remain valid unless new
 evidence changes their relevant assumptions; reopen only the affected choice. Silence, timeout,
-and confidence cannot supply a required decision. The receipt is conversation state, not issue
+and confidence cannot supply a required decision. The receipt is conversation state, not unit
 status; it never weakens the readiness gate in
 [VERIFICATION-DESIGN.md](VERIFICATION-DESIGN.md) or substitutes for agent-inaccessible checks,
 which stay explicit pending human verification.
 
-## Human review shape
-
-An anchored PRD follows [PRD-TEMPLATE.md](PRD-TEMPLATE.md). Load [REVIEW.md](REVIEW.md) when presenting
-a consequential PRD for human review; it owns the reading and feedback surfaces, rendering, and
-acceptance binding. Show unresolved blockers honestly and keep routine implementation details out
-of the human decision area.
-
 ## Feedback: prune and re-run locally
 
-Apply inline feedback directly to the conversation or native plan. For an anchored giant-task PRD,
-bind feedback to its item through REVIEW.md. Pure wording or presentation feedback uses necessary
-structure checks without another attack. For semantic feedback, prune the affected subtree,
-recompute its dependents and re-verify only that scope. Changed consequential decisions, contracts,
-dependencies, proof requirements or a concrete uncovered risk receive a targeted attack. Reuse
-matching prior review and keep fixed acceptance identity intact. The next review covers that delta.
-Reuse settled decisions and unchanged evidence; never re-ask an answered question.
+Apply feedback to the conversation, native plan or feature document. Pure wording or presentation
+changes preserve behavior, scope, public contracts, authority, dependencies and verification; apply
+them with necessary structure checks and no `/atk`. Semantic feedback prunes the affected subtree,
+recomputes its dependents and re-verifies only that scope; changed consequential decisions,
+contracts, dependencies, proof requirements or a concrete uncovered risk get a targeted attack.
+If the effect is unclear, inspect the affected contract before treating it as prose. Reuse settled
+decisions and unchanged evidence; never re-ask an answered question.
 
-The following budget applies to anchored PRD review pages, not conversational interview rounds.
-One full review plus at most one delta review is the target, not a hard guarantee. A
-third round requires a material reason: the user changed the goal, a new repository fact overturns
-the design, an external constraint changed, or a new consequential decision surfaced. Missed
-obvious code facts, repeated questions, or internal contradictions are Spec workflow defects:
-fix the skill or harness instead of asking the human again.
+For a feature document under human review ([REVIEW.md](REVIEW.md)), one full page plus at most one
+delta page is the target. A third page needs a material reason: the user changed the goal, a new
+repository fact overturns the design, an external constraint changed, or a new consequential
+decision surfaced. Missed obvious code facts, repeated questions or internal contradictions are
+Spec workflow defects: fix the skill or harness instead of asking the human again.
