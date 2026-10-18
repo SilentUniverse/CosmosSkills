@@ -3,6 +3,7 @@ import base64
 import importlib.util
 import io
 import json
+import os
 import sys
 import tempfile
 import unittest
@@ -367,6 +368,7 @@ class CompletionGateTests(unittest.TestCase):
         self.assertEqual([], state["ready"])
         self.assertIn("contract changed since acceptance", " ".join(state["blocked"][0]["reasons"]))
 
+    @unittest.skipIf(os.name == "nt", "POSIX file modes are not observable on Windows")
     def test_close_preserves_file_mode(self):
         self.repo.accept_spec(feature_text("demo", units=UNIT))
         self.path.chmod(0o644)

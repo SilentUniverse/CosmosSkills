@@ -54,6 +54,7 @@ def work_tree(root):
 
 def run(root, name, unit_id, command_name):
     """Run one unit command from 共享验证 cwd and retain a run log usable as completion evidence."""
+    import os
     import subprocess
     import time
     from evidence import local, reference, sha
@@ -66,7 +67,8 @@ def run(root, name, unit_id, command_name):
     directory = feature.directory / "runs"
     directory.mkdir(parents=True, exist_ok=True)
     log = directory / ("%s-%s-%d.log" % (unit_id, command_name, time.time_ns()))
-    result = subprocess.run(command, shell=True, cwd=str(local(feature.root, verifier["cwd"])),
+    style = "windows" if os.name == "nt" else "posix"
+    result = subprocess.run(feature_doc.command_argv(command, style), cwd=str(local(feature.root, verifier["cwd"])),
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     tree = work_tree(feature.root)
     log.write_bytes(b"$ " + command.encode("utf-8") + b"\n# tree=" + tree.encode() + b"\n" + result.stdout

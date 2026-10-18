@@ -27,7 +27,7 @@ class WorkflowContractTests(unittest.TestCase):
             self.assertFalse(list((ROOT / "workflow" / name).rglob("*.py")))
 
     def test_engineering_rules_keep_native_execution_ownership(self):
-        text = (ROOT / "workflow/tdd/FULL-SUITE.md").read_text()
+        text = (ROOT / "workflow/tdd/FULL-SUITE.md").read_text(encoding="utf-8")
         self.assertIn("evidence.py", text)
         for name in ("batch-run", "drain-wave.py", "test-supervisor.py"):
             self.assertNotIn(name, text)
