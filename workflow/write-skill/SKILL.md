@@ -1,16 +1,11 @@
 ---
 name: write-skill
 description: >-
-  Use when creating, renaming, restructuring, or auditing agent skills. Produces focused SKILL.md files with intent-based discovery, progressive disclosure, deterministic validation, and an explicit quality-first acceptance pass.
+  Use only when the user invokes /write-skill to create, rename, restructure, or audit agent skills. Produces focused SKILL.md files with intent-based discovery, progressive disclosure, deterministic validation, and an explicit quality-first acceptance pass.
 disable-model-invocation: true
 ---
 
 # Write Skills
-
-Optimize in the resident policy's lexicographic order (CLAUDE.md §5a).
-Never buy speed or smaller context by weakening required evidence, safety, or
-clarity. Among equally sound designs, choose the faster path; among equally fast paths, choose the
-smaller prompt surface.
 
 Creating a skill from scratch: load [NEW-SKILL.md](NEW-SKILL.md). Behavior evaluation is opt-in;
 load [EVALS.md](EVALS.md) only when the user explicitly requests model-run evaluation.

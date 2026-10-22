@@ -3,11 +3,8 @@
 When a change touches **existing** code, the risk isn't slicing. It's what this change reaches and
 might break. This is the per-language playbook for that.
 
-**Read this only for the third tier** — `/spec` step 2 gates impact work on a cheap reference
-probe and scales the response to the blast radius: a new change or a small-radius one (a few
-callers, one module, no known invariant) is handled inline and never reaches this file. Only a real
-coupled change — many references, multiple modules, or an invariant area — needs the playbook below.
-The slicing skill itself stays stack-agnostic.
+Load only when `/spec` §3 finds many references, several modules or an invariant area; a new or
+small-radius change stays inline.
 
 ## The one principle
 
@@ -41,15 +38,11 @@ Two kinds of impact, very different confidence:
 
 ## What gets reused on the second run
 
-- **Static reference points** — NOT stored. Re-grep each time; it is cheap and always current. The
-  `CODEBASE.md` two-axis rule (defined in `/map`).
+- **Static reference points** — NOT stored. Re-grep each time; it is cheap and always current.
 - **Semantic invariants (the expensive part)** — persist to the area's surviving map surface
   (root 不变量 line, or a legacy area block) so the next coupled change in this area skips
   re-deriving it; but only if the run writes its findings back. Write it; don't pause to offer.
 
-Per-language selection principle: the stronger the type system, the more static analysis covers
-through find-references and import graphs. Weaker type systems rely more on available runtime
-observations, coverage/test selectors and `rg` for dynamic calls; report the dynamic-dispatch gap.
 The concrete per-language commands live in the project's
 `CODEBASE.md` `## Verifier commands` zone (see "Where the commands live" below), never in a
 skill. For browser/Electron work, static reachability is not runtime integrity — the CSP and
@@ -94,9 +87,8 @@ checks separately. State that dynamic-dispatch paths may be missed; never imply 
 Use already installed project tools; the block lists options, not a tool-install checklist.
 A module suite is a valid fallback when no related-test selector exists.
 
-These commands are **stack-specific**, so they live as lines in the project's `CODEBASE.md`
-`## Verifier commands` zone — the single hand section; they never open a section of their own
-(its "stack adaptation" home), not in any skill. Drop a section in once:
+These stack-specific commands live as lines in the project's `CODEBASE.md` `## Verifier commands`
+zone, never in a skill. Example lines:
 
 ```markdown
 ## Verifier commands
@@ -106,9 +98,6 @@ These commands are **stack-specific**, so they live as lines in the project's `C
 - Py 受影响测试：`pytest --testmon`
 - import 图：TS `madge`，Py `grimp`
 ```
-
-Then a session reads this zone when choosing a verifier; no skill edit, and
-skills stay stack-agnostic.
 
 ## Other languages
 

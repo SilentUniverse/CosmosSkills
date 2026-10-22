@@ -1,7 +1,7 @@
 # Fixed-candidate verification
 
-Load for declared delivery/integration gates, explicit `/tdd -all`, or closing a unit of a gated feature;
-ordinary RED/GREEN stays scoped.
+Load for declared delivery/integration gates or explicit `/tdd -all`. A unit of a gated feature
+loads only [Evidence CLI](#evidence-cli) for its AC check; it never runs the full suite.
 Complete means all gates declared for that delivery scope. A local edit or changed prose does not
 load this procedure; reuse matching proof before executing any gate.
 
@@ -27,24 +27,18 @@ or supervise tests. Retain argv/logical cwd, check definition/version, input/can
 exit, outcome, timing and log digest. Use project redaction, never credentials in argv or evidence.
 Agent prose cannot manufacture a passing receipt.
 
-The ordinary path is a host session plus its native shell. A host orchestration or
-workflow entry needs its own concrete need; its run tool may not offer the same cwd, cancellation
-or output-retention contract as the shell. Use no unsupported options.
-
 ## Judge
 
 Apply [TEST-POLICY.md](../TEST-POLICY.md). Reuse only matching input/check/environment evidence.
-Keep all attempts; a later green cannot erase unexplained failure. The evidence gate rejects
-mixed results for an unchanged check. Resolve through a real input/environment repair or an
-applicable project-owned aggregation policy as described in TEST-POLICY; prose is not an override.
+Keep all attempts; a later green cannot erase unexplained failure.
 
 - Pass: retain native result, tally and proof mapping.
 - Fail: retain command/exit, failing cases and decisive excerpt; diagnose.
 - Timeout: preserve the active phase; retry only with diagnostic value at a bounded, narrower scope.
 - Unknown/cancelled/incomplete: cannot prove completion.
 
-Final delivery needs its declared complete gates. Unit completion, session recovery and human
-approval are not full-suite triggers. Tests reserved by the user remain explicitly unexecuted.
+Final delivery needs its declared complete gates. Tests reserved by the user remain explicitly
+unexecuted.
 
 ## Evidence CLI
 

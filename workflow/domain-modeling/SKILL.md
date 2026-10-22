@@ -10,8 +10,8 @@ Actively build and sharpen the project's domain model as you design. This is the
 
 ## File structure
 
-Layout: **[CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md)**. A resolved term alone does not create a
-file: keep definitions in the conversation/native plan or the current `FEATURE.md` unless the same ambiguity recurs or
+Layout: **[CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md)**. Sharing gate: a resolved term alone does
+not create a file: keep definitions in the conversation/native plan or the current `FEATURE.md` unless the same ambiguity recurs or
 multiple features must share one meaning. Only then create `CONTEXT.md` and record the shared
 term. If no `docs/adr/` exists, create it when the first qualifying ADR is needed. A delegated
 worker returns candidate terms to the main task instead of writing shared glossary or map

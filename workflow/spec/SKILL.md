@@ -1,17 +1,21 @@
 ---
 name: spec
 description: >-
-  Use when the user explicitly asks for a plan or specification, or when a durable work queue or consequential product-boundary decision needs planning. Plans requirements and execution readiness; resolves material choices through focused dialogue rounds and repository evidence; honors plan-only review and continues authorized implementation through tdd.
+  Use only when the user invokes /spec or explicitly asks for a plan or specification. Plans requirements and execution readiness; resolves material choices through focused dialogue rounds and repository evidence; always stops at the plan; only the user's /tdd starts execution.
 argument-hint: "The need — anything from one line to a full design"
 ---
 
 # Spec
 
-Owns requirements and execution readiness. Authorization, plan-only scope and the planning write
-limit follow the resident policy (`CLAUDE.md` §2); this skill adds only what planning needs.
-Planning never edits product source, product tests or verification tools. A missing run, drive or
-observation capability becomes an execution prerequisite; authorized TDD builds it through
-`/verify` before dependent behavior.
+Owns requirements and execution readiness. Authorization and the planning write limit follow the
+resident policy (`CLAUDE.md` §2); this skill adds only what planning needs.
+
+**Stop at the plan.** Every spec run ends at the plan. Discussion after the plan, answers to its questions and agreement with it
+("好", "可以", "开始吧") revise the plan; they never start implementation, and spec never loads
+tdd. Execution starts only when the user invokes `/tdd`.
+
+A missing run, drive or observation capability becomes an execution prerequisite; `/tdd` builds it through `/verify`
+before dependent behavior.
 
 ## 1. Classify intent
 
@@ -29,8 +33,7 @@ graphical UI loads [UI verification](../tdd/UI-TESTING.md).
 ## 2. Choose the output
 
 Default to an **inline plan** in the conversation or native plan: outcome, constraints, decisions,
-verification route. It creates no file and runs no artifact check; an implementation request
-continues through TDD in the same task.
+verification route. It creates no file and runs no artifact check.
 
 Use a **feature document** only for a giant task: independently deliverable stages that need a
 persistent queue across delivery rounds or sessions, with dependencies and readiness the native plan
@@ -62,7 +65,8 @@ Only on the feature-document route:
    irreversible ones `Door: one-way` (or set `review: required`); only these record a human
    acceptance before execution.
 2. Prepare the durable environment with repository-declared setup, then run one cheap
-   representative preflight per command and record it in 共享验证. Reuse an identical
+   representative preflight per command and record it in 共享验证. A preflight proves the harness
+   launches; it never runs existing suites as a baseline. Reuse an identical
    just-observed action when cwd, prerequisites and environment are unchanged. A unit whose
    capability or readiness is missing stays `pending` with a concrete `reason`.
 3. Write units in dependency order. Apply the deletion test to every unit, command and section:
@@ -79,8 +83,8 @@ on the written contract; reuse the alignment attack for unchanged decisions.
 ## 5. Hand off
 
 Return the inline plan or the document path, material assumptions, observed evidence and
-unresolved decisions. A plan-only request ends with the complete plan. Otherwise continue through
-TDD without another confirmation; `workflow-state.py start` packets are the worker input.
+unresolved decisions, and the command that executes it (`/tdd`, or `/tdd <feat>` for a feature
+document). Then stop.
 
 Promote a confirmed fact beyond the feature only when a future spec would design wrongly without
 it, the user declared it long-term, or multiple features consume it: ADR, `CODEBASE.md` or

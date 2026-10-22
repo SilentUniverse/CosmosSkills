@@ -53,4 +53,4 @@ facts but receive no publish/consume state. Keep them until the remaining facts 
 are no longer needed; session recovery alone does not make a note disposable.
 
 For test cost, read [TEST-POLICY.md](../TEST-POLICY.md) and existing measurements; report slow groups,
-repeated candidate runs and mixed results without rerunning/deleting tests. Continue authorized work.
+repeated candidate runs and mixed results without rerunning/deleting tests.

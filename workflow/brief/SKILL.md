@@ -38,4 +38,4 @@ Good: "auth 中间件有 bug。token 过期判断用了 `<`，应为 `<=`。修�
 ## Auto-clarity exception
 
 Expand safety information, necessary approval requests, and multi-step sequences when compression
-risks misreading. This output mode creates no new approval gate. Resume compression afterward.
+risks misreading. Resume compression afterward.

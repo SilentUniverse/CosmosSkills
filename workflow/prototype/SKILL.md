@@ -32,4 +32,4 @@ unresolved choice would materially change the result; prepare independent fixtur
 
 Report the question, observed answer, run command/URL, and checks. Record a consequential decision
 in the existing issue/ADR when useful; do not create an empty verdict note. If user judgment is
-still needed, keep it pending. Otherwise continue the broader authorized task without a phase approval.
+still needed, keep it pending. Otherwise continue the broader authorized task.

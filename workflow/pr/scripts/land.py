@@ -136,45 +136,47 @@ def _default_branch_native(repo: Path, remote: str) -> Optional[str]:
 
 _REMOTE_HEAD_RE = re.compile(r"HEAD branch:\s*(\S+)")
 
-_SUBJECT_RE = re.compile(r"^[a-z]+(\([^)\s]+\))?: \S")
+_SUBJECT_RE = re.compile(r"^[a-z]+(\([^)\s]+\))?: (?P<summary>\S.*)$")
 _CJK_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]")
 
 
 def _validate_message(message: str) -> str:
-    """Gate the subject: English imperative `type(scope): summary`, no CJK.
+    """Gate the subject: `type(scope): 中文摘要` with an English type and Chinese summary.
 
-    Body language is prose policy (a `Closes #123`-only body is valid), so only
-    the subject line is mechanically checked."""
+    The body may be empty or reference-only (`Closes #123`), so only the subject
+    line is mechanically checked."""
     subject = message.splitlines()[0].strip() if message else ""
-    if not _SUBJECT_RE.match(subject) or _CJK_RE.search(subject):
+    match = _SUBJECT_RE.match(subject)
+    if not match or not _CJK_RE.search(match.group("summary")):
         raise LandError(
             1,
-            "commit subject must be an English imperative 'type(scope): summary'"
-            " without CJK characters, got: %r" % subject,
+            "commit subject must be 'type(scope): 中文摘要' with a Chinese summary,"
+            " got: %r" % subject,
             {},
         )
     return subject
 
 
-_PR_BODY_SECTIONS = ("## Summary", "## Evidence", "## Merge Danger")
+_PR_BODY_SECTIONS = ("## 摘要", "## 证据", "## 合并风险")
 
 
 def _validate_pr_body(body: str) -> str:
-    """Gate the PR body file on the three fixed headings, in order.
+    """Gate the PR body file on the three fixed headings, in order, and a Chinese 摘要.
 
-    Section content is prose policy; only presence and order are checked."""
-    previous = -1
+    Other section content is prose policy; only presence and order are checked."""
+    starts = []
     for header in _PR_BODY_SECTIONS:
         match = re.compile(r"(?m)^%s\s*$" % re.escape(header)).search(body)
-        if match is None or match.start() < previous:
+        if match is None or (starts and match.start() < starts[-1][1]):
             raise LandError(
                 1,
-                "PR body must carry the fixed headings in order: '## Summary',"
-                " '## Evidence', '## Merge Danger'; missing or misplaced: %r"
-                % header,
+                "PR body must carry the fixed headings in order: '## 摘要',"
+                " '## 证据', '## 合并风险'; missing or misplaced: %r" % header,
                 {},
             )
-        previous = match.start()
+        starts.append((match.start(), match.end()))
+    if not _CJK_RE.search(body[starts[0][1]:starts[1][0]]):
+        raise LandError(1, "PR body '## 摘要' must be written in Chinese", {})
     return body
 
 
@@ -530,7 +532,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument(
         "--pr-body-file", type=Path,
         help="PR body file for the gh engine; must carry the three fixed"
-             " headings (Summary, Evidence, Merge Danger)",
+             " headings (摘要, 证据, 合并风险)",
     )
     args = parser.parse_args(argv)
 

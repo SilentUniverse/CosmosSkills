@@ -4,9 +4,7 @@ description: >-
   Use when researching a topic, gathering current documentation or API facts, or delegating substantial independent reading. Investigates high-trust primary sources and stores findings only where their expected lifespan justifies it.
 ---
 
-Research inline for a bounded question. Delegate only for substantial independent reading while
-the main task has useful work to continue; bound sources, output, and tool calls. If delegation
-is unavailable, continue inline without claiming independent corroboration.
+Delegation follows `CLAUDE.md` §8; without it, never claim independent corroboration.
 
 Its job:
 

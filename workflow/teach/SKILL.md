@@ -1,7 +1,7 @@
 ---
 name: teach
 description: >-
-  Use when the user wants to learn a topic, take a lesson, or build a multi-session study plan. Teaches through a stateful workspace containing the mission, lessons, and learning records.
+  Use only when the user invokes /teach to learn a topic, take a lesson, or build a multi-session study plan. Teaches through a stateful workspace containing the mission, lessons, and learning records.
 disable-model-invocation: true
 argument-hint: "What would you like to learn about?"
 ---

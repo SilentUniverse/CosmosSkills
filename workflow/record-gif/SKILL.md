@@ -1,7 +1,7 @@
 ---
 name: record-gif
 description: >-
-  Use when the user wants a verified browser or Web UI demonstration GIF, before-and-after evidence, or a regression baseline. Captures state-based frames, verifies completion predicates, and encodes deterministically.
+  Use only when the user invokes /record-gif for a verified browser or Web UI demonstration GIF, before-and-after evidence, or a regression baseline. Captures state-based frames, verifies completion predicates, and encodes deterministically.
 argument-hint: "The flow to record"
 disable-model-invocation: true
 ---
@@ -21,7 +21,7 @@ A short, truthful UI demonstration as a local GIF; nothing publishes anywhere.
 4. **Wait for a concrete UI condition** — a unique label, enabled control, changed title,
    completed response. Never a fixed delay as proof of state.
 5. **Completion predicates match exact text of one element**, never a substring
-   (`body.textContent.includes(...)`); the prompt echo satisfies one.
+   (`body.textContent.includes(...)`): a substring check is falsely satisfied by the prompt echo.
 6. **Frames land in a gitignored temp dir** (`$TEMP`, or the project's `.scratch/tmp/` where the
    convention exists). Browser tools may only write under their allowed roots. Create the frame
    directory before the first capture.

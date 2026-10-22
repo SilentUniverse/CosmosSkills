@@ -13,14 +13,12 @@ boundary (a unit closed, a decision made) before the window is nearly exhausted,
 
 ## 1. Checkpoint into owners that already exist
 
-- **Feature route.** Close every finished unit and commit it locally. FEATURE.md (unit status,
-  completion records, 变更记录) plus `git log` is the progress record; nothing else is needed.
+- **Feature route.** Units closed by `/tdd` are already committed; handoff runs no checks and
+  closes no units. FEATURE.md plus `git log` is the progress record; nothing else is needed.
 - **Inline route.** Leave work in the working tree; commit only with existing authorization
   (`/pr`). Never stash or rewrite it. Record in the note which changes are verified.
 - **Decisions.** A decision the user confirmed in this session belongs in its owner (FEATURE.md
   anchor, ADR, `CONTEXT.md`) when a later step depends on it; otherwise it goes in the note.
-
-Feature-unit commits are local checkpoints; push only when requested.
 
 ## 2. Write the note only for the remainder
 

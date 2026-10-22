@@ -1,7 +1,7 @@
 ---
 name: tdd
 description: >-
-  Use when implementing a named unit or feature test-first, completing ready units, or recording verification evidence. Defines engineering method and completion; the host owns execution, tasks, parallelism and recovery.
+  Use only when the user invokes /tdd. Implements an accepted plan or feature units test-first and records verification evidence. Never load from /spec, ordinary chat, writing, analysis or direct code requests.
 argument-hint: "Feature slug, feature unit (feat T3), -all, -log, or the current goal"
 ---
 
@@ -12,8 +12,8 @@ holds only dependent work. Explicit user implementation/testing instructions ove
 
 ## Invocation
 
-- Bare `/tdd` or an inline goal: implement the accepted inline plan. No file, artifact check or
-  admission step; temporary delegation and internal dependencies stay in the native plan.
+- Bare `/tdd`: implement the latest inline plan in the conversation; `/tdd <goal>`: implement the
+  goal. No further confirmation, file, artifact check or admission step.
 - `/tdd <feat>` or `/tdd <feat> T3`: work ready units of `.scratch/<feat>/FEATURE.md`
   (see [Feature units](#feature-units)). Missing arguments never authorize repository-wide work.
 - `-all` requests the whole applicable suite/build: [FULL-SUITE.md](FULL-SUITE.md).
@@ -22,8 +22,8 @@ holds only dependent work. Explicit user implementation/testing instructions ove
   identity, log digest and a decisive excerpt; bound long streams with an explicit stop condition
   and follow the host's device-stream rules.
 
-Requested plans and unresolved consequential requirements use `/spec`; unknown failures use
-`/diagnose`. Running status, retries, cancellation and resume come from the host; across a host
+A new consequential requirement holds only dependent work and is raised with the user; tdd does
+not load `/spec`. Unknown failures use `/diagnose`. Running status, retries, cancellation and resume come from the host; across a host
 boundary use [handoff](../handoff/SKILL.md)/[resume](../resume/SKILL.md).
 
 ## Implement
@@ -33,7 +33,8 @@ behavior, proof route and material assumption, then act with project commands. B
 run/drive/observation capability first through `/verify`; ordinary prerequisites stay inline.
 
 Tests are written before the implementation so they stay an independent oracle; they are **run**
-only at the two points that carry information:
+only at the two points that carry information. No baseline run of existing or full suites before
+editing; existing failures surface in GREEN and are reported, not pre-checked.
 
 1. **Write.** For the whole unit (or inline goal), extend existing coverage first, then add the
    cases its AC need. Do not run them yet.
@@ -43,14 +44,16 @@ only at the two points that carry information:
 3. **Implement** to completion. Do not run tests between edits unless diagnosing a specific failure.
 4. **GREEN, once.** Run the AC command once; that run is the completion evidence (feature units:
    `workflow-state.py run`, or for a gated feature the `evidence.py` prepare → host run → seal
-   sequence in [FULL-SUITE.md](FULL-SUITE.md) instead). Add checks only for a changed shared seam, fixture or concrete integration
-   risk; reuse passing results whose inputs and environment match. Refactor while green and rerun
-   only what the refactor touched.
+   sequence in [FULL-SUITE.md](FULL-SUITE.md) instead). Add checks only for a changed shared seam,
+   fixture or concrete integration risk; reuse passing results whose inputs and environment match.
+   After a GREEN failure, fix it and rerun only the failing cases; a feature unit then runs its AC
+   command once to produce the closing log. Refactor while green and rerun only what it touched.
 
-Skip RED and go straight to one GREEN run for pure prose, configuration, behavior-preserving
-refactors already pinned by existing tests, prototypes, and exploratory UI layout. Machine-consumed
-templates/schema use their targeted contract cases. The full suite runs once per delivery
-candidate ([FULL-SUITE.md](FULL-SUITE.md)), never per unit.
+Pure prose gets only structure/link checks. Skip RED and run one GREEN for configuration,
+behavior-preserving refactors already pinned by existing tests, prototypes, and exploratory UI layout. Machine-consumed
+templates/schema use their targeted contract cases. The full suite runs only for `-all` or a
+declared delivery gate ([FULL-SUITE.md](FULL-SUITE.md)); never per unit, before `/pr` or as
+reassurance when CI already runs it.
 
 Apply [test quality](tests.md). Load [mocking.md](mocking.md) only for mocks and
 [UI-TESTING.md](UI-TESTING.md) only for graphical behavior. Agent summaries, screenshots or launcher
