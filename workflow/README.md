@@ -15,7 +15,7 @@ Same-task context compaction and session recovery stay native. Neither skill man
 ## Application verification loop
 
 SPEC and TDD use the project's existing test and driver entrypoints. SPEC records a missing
-operation or observation capability as an execution prerequisite. The authorized execution phase
+operation or observation capability as an execution prerequisite. The `/tdd` execution phase
 uses [/verify](../tooling/verify/SKILL.md) to build that capability, exercise a representative
 scenario and retain evidence before dependent behavior. Ordinary prerequisites stay inline;
 queued behavior units remain pending until readiness is proven. DIAGNOSE uses the same capability
@@ -25,6 +25,4 @@ Missing tests and failing business assertions remain in TDD when the runner or d
 An application change also updates affected existing drivers and operating instructions. Use
 `/verify -maintain <area>` when their drift needs investigation, then replay the affected paths.
 Their replay belongs to the change's ordinary checks; a matching observed run can be reused.
-The next executor discovers these assets through the project's agent entry file and runs them
-directly. Ordinary tasks with adequate checks add no verification-building or maintenance phase.
-Model comparisons stay in the explicitly invoked `/eval` workflow.
+Ordinary tasks with adequate checks add no verification-building or maintenance phase.

@@ -39,7 +39,7 @@ for this interview.
 
 The interview writes no production code or submissions. Its only direct writes are glossary entries
 in an existing context file and qualifying ADRs in an existing ADR directory. A plan-only request
-ends with the plan; a broader authorized task resumes its planning or implementation workflow.
+ends with the plan; a broader task resumes its workflow, and a `/spec` task still stops at the plan.
 
 End with decisions reached, domain documents changed or none, route-changing assumptions, pending
 research or prototype candidates, deferred dependencies, and the next skill.

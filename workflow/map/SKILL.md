@@ -1,9 +1,8 @@
 ---
 name: map
 description: >-
-  Use when repository navigation is noisy, CODEBASE.md is missing or stale, or a change moved a seam or invariant. Generates or refreshes the structural map, routing table, and evidence-filtered invariant lines while preserving verifier commands.
+  Use only when the user invokes /map or another skill names it, when CODEBASE.md is missing or stale or a change moved a seam or invariant. Generates or refreshes the structural map, routing table, and evidence-filtered invariant lines while preserving verifier commands.
 argument-hint: "Area path to refresh (optional; no args or -all = whole repo)"
-disable-model-invocation: true
 ---
 
 # Map
@@ -86,8 +85,8 @@ preserved and re-verified, never newly created; new earned facts land in the roo
 
 The `## Verifier commands` zone is hand-maintained and `verify-artifacts.py` never inspects it;
 this skill is its only freshness check. Every map run — first pass or refresh — re-validates each
-command: run it in its cheapest form when one exists, otherwise check that the paths, binaries and
-suite enumerations it names still resolve in the repo. A dead command is never carried forward
+command: check that the paths, binaries and suite enumerations it names still resolve in the repo;
+run a command only when the user asks. A dead command is never carried forward
 silently: replace it with a verified equivalent in the same run when one was found (and report the
 change), otherwise report the dead entry with its failure evidence for the owner. A command that
 cannot be validated cheaply is reported as unverified, not assumed healthy.

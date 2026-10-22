@@ -110,7 +110,7 @@ A finding（定位到行、引用原句、断言可错）:
 
 改法：路径锁在 .scratch/<feat>/receipts/ 下。
 
-**讲解 rides inside impact findings** — see the 发现 spec above. Under `-r`, a 修复 disposition
+Under `-r`, a 修复 disposition
 proposes what to change but never performs the change.
 Audit-only runs return their scoped response to the caller; no lead line or chat output. Non-diff
 targets (design, plan, decision): findings only, both modes. Questions riding on the invocation
@@ -118,5 +118,5 @@ are answered after the findings; they are the caller's ask, not leakage.
 
 Round discipline: a later `/atk` covers only changes since the last `/atk`; an earlier item
 reappears only if it changed again. An explicitly named scope overrides the round default.
-No process narration. Outside `-r`, prose fixes can chain to `/lint`. Report layout follows
+No process narration. Outside `-r`, suggest `/lint` for prose fixes; do not load it. Report layout follows
 [REPORT-FORMAT.md](../REPORT-FORMAT.md); the finding block above is its 发现 form.

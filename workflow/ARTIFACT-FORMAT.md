@@ -12,7 +12,7 @@ traversing the physical link target. A tooling skill reads them from the sibling
 in the source checkout; installed roots merge both trees.
 
 Frontmatter is YAML between `---` fences at the very top of a file. The human-readable body is
-Chinese, per `~/.claude/CLAUDE.md`.
+Chinese, per CLAUDE.md §1.
 
 ## Naming & location conventions
 

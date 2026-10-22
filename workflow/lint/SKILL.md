@@ -1,9 +1,8 @@
 ---
 name: lint
 description: >-
-  Use when auditing or trimming agent-authored prose, documentation, or comments for session leakage. Removes dead design citations, change narration, review vantage, reviewer-addressed justification, control-flow transcripts, hedging, and decorative symbol clutter.
+  Use only when the user invokes /lint or another skill's acceptance step names it, to audit agent-authored prose, documentation, or comments for session leakage. Removes dead design citations, change narration, review vantage, reviewer-addressed justification, control-flow transcripts, hedging, and decorative symbol clutter.
 argument-hint: "Scope (dir/file/glob); empty = all modified files"
-disable-model-invocation: true
 ---
 
 # Trim Leakage

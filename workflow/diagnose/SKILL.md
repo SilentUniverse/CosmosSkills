@@ -26,9 +26,8 @@ Phase 1 is done when the loop is **tight** and **red-capable**. You can name **o
 - [ ] **Red-capable** — it drives the actual bug code path and asserts the **user's exact symptom**, so it can go red on this bug and green once fixed. Not "runs without erroring". It must be able to _catch this specific bug_.
 - [ ] **Deterministic** — same verdict every run (flaky bugs: a pinned, high reproduction rate).
 - [ ] **Fast** — seconds, not minutes. (Slow-but-justified: proceed, note the cost.)
-- [ ] **Agent-runnable** — run unattended when possible. Required human operations use the host's
-  available interaction channel with the actual result retained; terminal HITL templates apply
-  only to an explicitly needed, user-accessible replayable terminal loop.
+- [ ] **Agent-runnable** — run unattended when possible; human operation follows
+  [FEEDBACK-LOOPS.md](FEEDBACK-LOOPS.md).
 
 If the loop cannot run, record the missing capability and continue source/trace analysis and local
 repro preparation. Request only the access or artifact still needed; do not claim a verified cause.
@@ -84,11 +83,9 @@ Write the regression test **before the fix**, but only if there is a **correct s
 
 If a correct seam exists:
 
-1. Turn the minimised repro into a failing test at that seam.
-2. Watch it fail.
-3. Apply the fix.
-4. Watch it pass.
-5. Re-run the Phase 1 feedback loop against the original (un-minimised) scenario.
+1. Turn the minimised repro into a test at that seam; run it once to confirm it fails.
+2. Apply the fix.
+3. Run that test and the Phase 1 loop on the original scenario once, together.
 
 ## Phase 6 — Cleanup + post-mortem
 
@@ -96,11 +93,11 @@ Required before declaring done:
 
 - [ ] Original repro passes after the fix; reuse the Phase 5 run if code/environment are unchanged
 - [ ] Regression test passes (or absence of seam is documented)
-- [ ] Relevant module and integration checks pass; broaden for affected contracts or unresolved risk, not file count (`CODEBASE.md`'s `## Verifier commands` caches commands)
+- [ ] Reuse the Phase 5 run; add a module check only for a named uncovered risk
 - [ ] Affected existing drivers and scenario instructions are updated and replayed
 - [ ] All `[DEBUG-...]` instrumentation removed (`rg` the prefix)
 - [ ] Remove temporary artifacts created by this task once their regression evidence is retained
 - [ ] State the cause, fix, and verification in the result; include them in a commit/PR only if submission is requested
 
 Pursue prevention only within scope. Record an `rg`-invisible invariant in an existing `CODEBASE.md`
-block using `/map`'s two-axis test; otherwise mention it in the result. Continue authorized work.
+block using `/map`'s two-axis test; otherwise mention it in the result.

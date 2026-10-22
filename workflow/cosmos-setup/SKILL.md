@@ -1,7 +1,7 @@
 ---
 name: cosmos-setup
 description: >-
-  Use when a repository needs non-default tracker or path configuration, legacy workflow-state migration, domain.md migration, or an ARTIFACT-FORMAT schema upgrade. Configures deviations and migrations; default local Markdown repositories need no setup.
+  Use only when the user invokes /cosmos-setup for non-default tracker or path configuration, legacy planning-file folding, or domain.md migration. Configures deviations and migrations; default local Markdown repositories need no setup.
 disable-model-invocation: true
 ---
 
@@ -58,8 +58,6 @@ The bundled Python workflow tools use `.scratch/`; a path declaration alone does
 **Case 5 — Legacy planning files.** Fold them by hand into one `FEATURE.md` per feature, then
 delete them; dry-run first ([MIGRATION.md](MIGRATION.md)).
 
-**Case 6 — Schema upgrade.** A field is becoming required per an ARTIFACT-FORMAT revision;
-run the upgrade it names.
 
 ### 3. The decisions (deviation cases only)
 
@@ -92,8 +90,7 @@ Non-default only: one-line summary. See `docs/agents/issue-tracker.md`.
 CODEBASE.md (## Verifier commands + map). Optional: CONTEXT.md, docs/adr/.
 ```
 
-**Behavior authority.** Record repo configuration, not duplicate process policy. Existing user
-authorization persists across phases; required deterministic evidence still must be obtained.
+**Behavior authority.** Record repo configuration, not duplicate process policy.
 
 ### 5. Done
 

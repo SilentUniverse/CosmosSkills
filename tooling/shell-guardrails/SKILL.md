@@ -1,7 +1,7 @@
 ---
 name: shell-guardrails
 description: >-
-  Use when installing or tuning Claude Code or ZCode shell hooks that block destructive Git operations, unsafe cross-shell paths, or legacy CLI tools. Selects a combined default guard or a narrower push-blocking or modern-CLI policy, then verifies the exact hook behavior.
+  Use only when the user invokes /shell-guardrails to install or tune Claude Code or ZCode shell hooks that block destructive Git operations, unsafe cross-shell paths, or legacy CLI tools. Selects a combined default guard or a narrower push-blocking or modern-CLI policy, then verifies the exact hook behavior.
 disable-model-invocation: true
 ---
 

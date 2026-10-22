@@ -15,7 +15,7 @@ Review the diff between `HEAD` (or a named branch) and a pinned fixed point:
 - **Spec** — does the code faithfully implement the originating FEATURE.md unit and contract?
 - **Experience (opt-in graded UI only)** — does a graphical UI meet its aligned rubric after runtime integrity passed?
 
-Use the user's language and concise outcome/evidence reporting; keep Fowler smell names in English.
+Report in Chinese with concise outcome/evidence; keep Fowler smell names in English.
 
 > A change can pass one axis and fail another. Never merge or rerank findings across axes.
 
@@ -57,13 +57,11 @@ Look for the originating spec, in this order:
 Consult the relevant [artifact schema](../ARTIFACT-FORMAT.md) section only when interpreting
 unit, contract or completion-record fields requires it.
 
-> Tracker layout is configured. Default convention (`.scratch/<feat>/FEATURE.md`) needs no setup; run `/cosmos-setup` only if this repo deviates (non-default tracker/paths or legacy planning files).
-
 ### 3. Identify the standards sources
 
 Anything in the repo documenting how code should be written: `CODING_STANDARDS.md`, `CONTRIBUTING.md`, the domain language in `CONTEXT.md`, and the decisions in `docs/adr/`. A diff that violates an accepted ADR is a Standards finding.
 
-On top of whatever the repo documents, the Standards axis always carries a **smell baseline** — 12 Fowler code smells (_Refactoring_, ch.3), two binding rules (repo overrides; always a judgement call). Full list: **[SMELL-BASELINE.md](SMELL-BASELINE.md)**. The Standards sub-agent reads the file; never paste or duplicate.
+On top of whatever the repo documents, the Standards axis always carries a **smell baseline** of 12 Fowler code smells (_Refactoring_, ch.3). Full list: **[SMELL-BASELINE.md](SMELL-BASELINE.md)**. The Standards sub-agent reads the file; never paste or duplicate.
 
 When the diff changes tests or shared fixtures, Standards also applies the
 [test quality criteria](../tdd/tests.md); cost/trigger changes use [test policy](../TEST-POLICY.md).

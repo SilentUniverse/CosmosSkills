@@ -1,7 +1,7 @@
 ---
 name: pr
 description: >-
-  Use when the user asks to commit, submit, push, merge, or land the current change, including a local-only commit. Creates one scoped Git commit, preserves unrelated work, and either stops locally or lands through a pull request with a Summary/Evidence/Merge Danger body or a verified native merge.
+  Use when the user asks to commit, submit, push, merge, or land the current change, including a local-only commit. Creates one scoped Git commit, preserves unrelated work, and either stops locally or lands through a pull request with a Chinese title and 摘要/证据/合并风险 body, or a verified native merge.
 argument-hint: "[-local]"
 ---
 
@@ -74,16 +74,16 @@ published result before reporting landed, is idempotent on a re-run after a mid-
 failure, never stages or scopes (the validated commit is its only input), leaves the
 caller's checked-out branch untouched, and advances the local default branch to the published
 one by fast-forward only; `--mode/--remote/--base/--verify-command` override its
-resolutions. On the native engine, the applicable repository gates go in as `--verify-command`; the
-script runs them before publishing. The gh engine takes no verify command: `/pr` runs no check
+resolutions. On the native engine, pass `--verify-command` only for a delivery gate the repository
+explicitly declares; otherwise omit it. The gh engine takes no verify command: `/pr` runs no check
 before that merge and no CI watch after it. Where the base branch requires no checks, the delivery
 gates therefore first run in CI after the merge; exit 4 reports a merge that a blocked check
 stopped. The script's JSON report and exit code are authoritative; read them rather than deriving
 them from the repository's CI configuration.
 
 A moved head, a wrong PR target, pending required checks, an unavailable engine, or a failed
-verify command returns to this skill's recovery: resolve the target, revalidate only the head that
-changed since the upstream phase, or stop with the scoped commit intact. Enabling auto-merge or
+verify command returns to this skill's recovery: resolve the target, or stop with the scoped
+commit intact and report the moved head; `/pr` itself never reruns checks. Enabling auto-merge or
 entering a merge queue is pending work, not landing. An advanced target need not have the topic
 branch's identical tree.
 
@@ -104,40 +104,44 @@ reported at the exact stopping point.
 
 When the gh engine will create the pull request, write its body to a file under the OS temp
 directory and pass `--pr-body-file <path>` to the landing script; the commit message body is
-not reused as the PR body. The script gates the file on three fixed headings, in this order,
-before any mutation:
+not reused as the PR body. The PR title is the commit subject. The script gates the file on three
+fixed Chinese headings, in this order, and on a Chinese 摘要, before any mutation:
 
 ```markdown
-## Summary
+## 摘要
 
-<the smallest view that makes the point clear>
+<最小的、能说清这次改动的视图>
 
-## Evidence
+## 证据
 
-- **Before:** <failing test, error output, or pre-change behavior>
-  **After:** <the same check passing after the change>
+- **改前：** <失败的测试、错误输出或改动前的行为>
+  **改后：** <同一检查在改动后通过>
 
-## Merge Danger
+## 合并风险
 
-**Door:** two-way (cheap to roll back) or one-way (hard to reverse)
-**Blast Radius:** <what this merge can affect beyond its paths: consumers, layout, protocols>
+**回滚：** 双向门（回滚便宜）或单向门（难以撤回）
+**影响面：** <超出改动路径的影响：消费者、布局、协议>
 ```
 
-Use a visual in Summary only when it clarifies structure, logic or interaction; a concise prose
-summary is sufficient for a small change. Prose is Chinese with code-matching English terms;
-no preamble. Evidence cites the
+Use a visual in 摘要 only when it clarifies structure, logic or interaction; a concise prose
+summary is sufficient for a small change. All prose is Chinese; keep code identifiers, paths,
+commands and output verbatim. No preamble. 证据 cites the
 upstream phase's real checks — the exact failing→passing test or output — never a claim without a
 run, and never a run launched to produce one; when the upstream phase left no check, state that
-absence in one line. Merge Danger states the rollback class and the widest plausible impact of the
+absence in one line. 合并风险 states the rollback class and the widest plausible impact of the
 merge; a cheap two-way door with no outside consumers is a valid, complete answer. A re-run that
 finds the PR already open or merged leaves the existing body untouched. Delete the file once
 landing reports landed; keep it when a landing stopped short of success, so the retry reuses it.
 
 ## Message and report
 
-Title: an English imperative `type(scope): summary`. Repository history informs only the type
-and scope vocabulary, never the language; a Chinese or prefix-less subject is invalid. Body:
-Chinese, one bullet per meaningful mechanism and file group. An empty body is acceptable only
+Language is fixed, whatever the conversation, the diff or repository history uses:
+
+- Subject: `type(scope): 中文摘要`. `type` and `scope` are English Conventional Commits tokens
+  (`feat`, `fix`, `docs`, `refactor`, `test`, `chore`, …); the summary after `: ` is a Chinese
+  phrase. Example: `fix(pr): 统一提交标题和描述为中文`. History informs only the type and scope
+  vocabulary; an English summary or a missing prefix is invalid.
+- Body: Chinese, one bullet per meaningful mechanism and file group. An empty body is acceptable only
 when the title fully reconstructs the change. Write the message to a file under the OS temp
 directory, gate it, then commit with that file:
 

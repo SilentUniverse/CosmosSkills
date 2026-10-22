@@ -1,7 +1,7 @@
 ---
 name: setup-pre-commit
 description: >-
-  Use when adding or repairing Husky pre-commit hooks, lint-staged formatting, commit-time type checking, or tests in a repository. Configures and verifies the repository-local commit gate.
+  Use only when the user invokes /setup-pre-commit to add or repair Husky pre-commit hooks, lint-staged formatting, or commit-time type-check and test runs. Configures and verifies the repository-local commit gate.
 disable-model-invocation: true
 ---
 
@@ -97,8 +97,7 @@ Only create if no Prettier config exists. Use these defaults:
 
 ### 8. Hand off to submit workflow
 
-Report the setup and verification. If submission was already requested, continue through `/pr`;
-otherwise finish with validated changes. Hook setup alone does not authorize a submission.
+Report the setup and verification. Hook setup alone does not authorize a submission.
 
 ## Notes
 

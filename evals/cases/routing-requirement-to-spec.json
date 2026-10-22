@@ -26,7 +26,7 @@
   "requirements": [
     {
       "id": "R1",
-      "criterion": "Inspect the existing contract and route consequential planning through /spec. Ask the unresolved additive-vs-superseding decision before any writes; once answered, continue through TDD with no separate plan-approval round.",
+      "criterion": "Inspect the existing contract and route consequential planning through /spec. Ask the unresolved additive-vs-superseding decision before any writes, end at the plan and never load tdd.",
       "grader_ids": [
         "route-trace",
         "plan-review"

@@ -1,7 +1,7 @@
 ---
 name: migrate-to-shoehorn
 description: >-
-  Use when migrating test fixtures from TypeScript `as` assertions to @total-typescript/shoehorn or when partial test data is needed. Performs the focused test-data migration and validates affected tests and types.
+  Use only when the user invokes /migrate-to-shoehorn to migrate test fixtures from TypeScript `as` assertions to @total-typescript/shoehorn. Performs the focused test-data migration and validates affected tests and types.
 disable-model-invocation: true
 ---
 

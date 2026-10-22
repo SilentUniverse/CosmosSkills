@@ -9,7 +9,8 @@ argument-hint: "Scenario or area; -maintain [area] to maintain existing verifica
 
 Build and maintain the project's reusable operation and verification tools. The deliverable is an
 executed capability that another agent can use from the repository alone. Ordinary product changes
-stay in TDD when existing runners, CLI/API calls or drivers can reach and observe the required seam.
+stay in their current workflow when existing runners, CLI/API calls or drivers can reach and
+observe the required seam.
 A missing test or failing business assertion is ordinary RED. An explicit request to build reusable
 verification tools continues here, reusing those existing capabilities.
 
@@ -72,7 +73,7 @@ SPEC records missing capabilities as execution prerequisites. The authorized exe
 completes the bounded tooling work before dependent behavior and returns observed capability
 evidence to refresh readiness. A queued behavior card remains pending until that evidence exists;
 ordinary work keeps the prerequisite inline. Preflight exercises an existing smoke path or
-representative harness action; the future behavior remains TDD's RED/GREEN obligation.
+representative harness action; the future behavior remains the executing workflow's check.
 
 Use native execution or project/CI runners. The tool exposes an operation and raw observations;
 it owns no Cosmos queue, process supervisor or completion state. Shared devices use their real
@@ -82,9 +83,9 @@ Verify that the selected result adapter consumes the actual runner output and re
 assertion. A tool's success flag or exploratory transcript cannot replace that check. Source-preview
 results remain diagnostic; final proof must exercise the actual fixed candidate or produced artifact.
 
-Load `../TEST-POLICY.md` when choosing maintenance checks or recurring cost.
+Load [test policy](../../workflow/TEST-POLICY.md) when choosing maintenance checks or recurring cost.
 New recurring runs require the user's request. Model-run evaluation remains explicit through `/eval`;
 tool availability changes are whole-system comparisons, with no skill-only performance attribution.
 
 Return the usable entry, assets changed, scenarios actually exercised, evidence and unresolved gaps.
-Resume the caller's authorized task. Submission follows `/pr` only when already requested.
+Resume the caller's authorized task.

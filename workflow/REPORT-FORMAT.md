@@ -9,7 +9,7 @@ their existing version, feedback and acceptance contracts.
 ## Lead line
 
 Lead with the outcome, scope and material limits. For measured runs, use
-`范围（计量）· 判定 · 关键计数`, e.g. `范围 tdd drain（3 issue）· 完成 2 · 阻塞 1`.
+`范围（计量）· 判定 · 关键计数`, e.g. `范围 tdd（3 个单元）· 完成 2 · 阻塞 1`.
 Otherwise use a sentence with the same relevant facts; do not invent counts to fill the template.
 A clean run can stop at the lead only when no required evidence, limitation or next action is omitted.
 Machine renderings for people report engineering obligations and proof separately from native runtime
@@ -32,8 +32,7 @@ Use relevant, non-empty sections in this order. Names are Chinese; established a
 These are content requirements, not an all-list layout. Use prose for explanations, lists for
 independent items, tables for comparisons and diagrams for relationships when they help the reader.
 Keep the finding fields above; do not turn a report into another review or state store.
-Omit empty sections, not consequential unknowns or missing evidence. An empty projection uses its
-existing marker (`（无 feature state）`) without padded sections; known obligations are not empty state.
+Omit empty sections, not consequential unknowns or missing evidence.
 
 ## Typography
 

@@ -29,14 +29,14 @@ Priority: host/system > user objective and prior authorization > these defaults 
   argument; explain an invariant only when needed to understand the result or trade-off.
 - Resolve observable facts yourself; infer routine details from the request, prior decisions and
   repository conventions. Choose reversible defaults and suitable checks.
-- Ask only about unresolved choices that materially change the outcome, public contract, scope,
+- Ask only about unresolved choices that materially change outcome, public contract, scope,
   irreversible effects, cost or authority. Batch independent questions; ask only the delta.
-- Authorization survives turns and skills within its scope. Return complete plans for plan-only
-  requests; honor explicit pending review. Implementation authorizes routine planning and execution.
-  Planning writes no product code, tests or verification tools; tool gaps are execution prerequisites.
-  File count never forces planning. Follow repository practice:
-  test-first only when requested or established. A fix still drives a check from failing to passing
-  through the existing runner.
+- Authorization survives turns and skills within its scope. A direct implementation request
+  authorizes routine planning and execution. `/spec` or a plan request always ends at the plan;
+  later discussion revises it, never starts work. Planning writes no product code, tests or
+  verification tools. File count never forces planning.
+- TDD runs only when the user invokes `/tdd`; `/spec` never enters it. Chat, writing and analysis
+  run no tests; a code change outside `/tdd` runs one relevant check after the edit batch.
 - Hold only work dependent on unresolved material decisions; finish independent authorized work.
   Prepare reviewable results before unapproved consequential actions. Silence is not permission.
   Cite the blocking file/clause and missing decision; never invent an approval gate.
@@ -51,9 +51,8 @@ new code. Minimize concepts, states, and exceptions, not line count. Validate re
 subprocess boundaries; skip only checks that types or prior validation already enforce. Security,
 validation, and accessibility stay intact. At completion, run the deletion test on this task's
 additions: deleting an abstraction, layer, or artifact must break a real delivery, authorization,
-verification, handoff, or recovery scenario. Only this workflow's own format validation failing
-is not such a scenario. A caller, test, or recorded decision names that scenario; it is not a
-justification by itself.
+verification, handoff, or recovery scenario named by a caller, test or recorded decision; this
+workflow's own format check is not one.
 
 ## 4. Change only the requested surface
 
@@ -65,23 +64,24 @@ justification by itself.
 - Wide verification around a small change may signal excess coupling; check whether a shared
   contract requires it before proposing a refactor.
 - When submission is requested, continue through `/pr` after validation in the same task.
-  Otherwise stop at validated changes (a closed feature unit gets an unpushed commit);
-  preserve plan-only or review-only scope.
+  Otherwise stop at validated changes (a closed feature unit gets an unpushed commit).
 
 ## 5. Execute against evidence
 
 - Optimize lexicographically: product quality and correctness first, elapsed delivery time second,
   and token use third. Never trade required evidence, safety, or accessibility for the latter two.
 - For substantial work, state the next action and check, then execute. Updates carry new progress,
-  evidence or blockers. Intermediate artifacts and tool budgets do not complete the user's objective.
-- Observation beats reasoning. Performance claims require measurements.
-- Pure prose uses structure checks; templates/schema use targeted contract checks. Logic changes
-  run relevant cases; widen only for a named uncovered risk. Batch edits, reuse passing results
-  while check inputs/environment match, and preserve declared delivery gates.
-- After two failed fixes on one cause, compare 2–3 evidence-backed approaches or use `/diagnose`.
+  evidence or blockers.
+- Observation beats reasoning; performance claims need measurements.
+- Prose gets structure checks; templates/schema get targeted contract checks. Logic changes run
+  relevant cases once after the edit batch, never as a baseline or between edits; after a failure
+  rerun only failing cases. Widen only for a named uncovered risk; full suites only on request or
+  declared CI gates. Reuse passes while inputs/environment match.
+- After two failed fixes on one cause, stop patching: ask a fresh read-only subagent (facts, your
+  judgment, the answer you hope to hear) or use `/diagnose`.
 - Update the existing governing contract when a correction changes it; do not create one to log a turn.
 - Default no explanatory comments. Keep only contracts, reasons or external constraints that code,
-  types and tests cannot recover; place them at the interface or declaration for human readers.
+  types and tests cannot recover, at the interface or declaration.
 - Finish when the requested outcome and required checks are satisfied. Report blocked parts with
   exact evidence and next actions; complete unaffected work, never label partial work complete.
 

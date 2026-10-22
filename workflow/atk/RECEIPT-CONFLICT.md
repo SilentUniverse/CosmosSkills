@@ -41,6 +41,6 @@ Emit no lead, chat, disposition, or change explanation. The classification value
 At most two reviewer cycles. A host that cannot guarantee fresh-context isolation, reviewer
 unavailability, or an unresolved classification takes the
 safe exit: record the exact observed evidence against the unit, keep it `ready`, stop production-code
-writes, and return to `/spec` within the current task. The caller resolves evidence gaps or
-contract-preserving repairs autonomously and resumes; only a new consequential user decision
-requires realignment. Reviewer unavailability alone does not create a permission requirement. The reviewer never edits the contract.
+writes, and report the conflict to the user. The caller resolves evidence gaps or
+contract-preserving repairs autonomously and resumes; a new consequential decision goes to the
+user through `/spec`, which stops at the plan until the user invokes `/tdd` again. Reviewer unavailability alone does not create a permission requirement. The reviewer never edits the contract.

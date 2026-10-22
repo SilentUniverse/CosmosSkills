@@ -44,7 +44,7 @@ round names the remaining material choice and why its prerequisites or new evide
 combining it earlier; repeated questions and discoverable details do not justify another round.
 
 Continue until the choices needed for the caller's plan are resolved, or name the missing evidence
-that prevents resolution. Honor an explicitly requested final plan review before implementation.
+that prevents resolution. Honor an explicitly requested final plan review.
 Ordinary interviews stay in the conversation/native plan, with no interview ledger or file.
 
 ## Autonomous convergence within a round
@@ -77,8 +77,8 @@ The convergence predicate determines whether the draft is ready to present:
 
 Present the ready frontier as one focused receipt per round, reusing any already-pending question.
 A failed predicate names the missing evidence and holds its dependent work; two passes do not make
-it complete. With no unresolved decision, follow the original planning or implementation scope and
-any explicitly pending review; convergence itself creates no approval requirement.
+it complete. With no unresolved decision, finish the plan and stop; convergence creates no
+approval round.
 
 ## Batched receipt shape
 
@@ -122,4 +122,4 @@ For a feature document under human review ([REVIEW.md](REVIEW.md)), one full pag
 delta page is the target. A third page needs a material reason: the user changed the goal, a new
 repository fact overturns the design, an external constraint changed, or a new consequential
 decision surfaced. Missed obvious code facts, repeated questions or internal contradictions are
-Spec workflow defects: fix the skill or harness instead of asking the human again.
+planner defects: fix the plan from evidence instead of asking the human again.

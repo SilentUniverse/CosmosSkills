@@ -22,10 +22,7 @@ fix, drop, or re-stamp the affected lines in place; do not re-derive the map for
 A host may inject per-area `CLAUDE.md` blocks automatically; where it does not, read the relevant
 referenced blocks explicitly when needed. Do not assume one host's automatic loading applies to
 every host.
-Context is finite, so long work spans sessions. At a unit boundary use the Cosmos `handoff` skill
-(checkpoint into Git and FEATURE.md, then a short pointer note only for facts without an owner);
-a fresh session uses `resume` (note, `git log`, `survey`, one re-check, continue). Contracts live in
-`workflow/handoff/SKILL.md` and `workflow/resume/SKILL.md`, or beside installed skills; a host's
+At a unit boundary use the Cosmos `handoff` skill; a fresh session uses `resume`. A host's
 same-name native command is not these skills.
 
 Unit state is queried on demand via `workflow-state.py survey`; it creates no summary file.

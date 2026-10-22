@@ -1,7 +1,7 @@
 ---
 name: show
 description: >-
-  Use when the user is unfamiliar with a module or asks how an area of code works. Gives a one-screen purpose, module map, traced flow, and reading order; optional HTML creates a self-contained explainer while durable mapping belongs to map.
+  Use only when the user invokes /show to explain a module or how an area of code works. Gives a one-screen purpose, module map, traced flow, and reading order; optional HTML creates a self-contained explainer while durable mapping belongs to map.
 argument-hint: "Path/module/question to explain (optional: -html = page for humans)"
 disable-model-invocation: true
 ---

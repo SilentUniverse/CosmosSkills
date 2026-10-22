@@ -1,7 +1,7 @@
 ---
 name: improve-arch
 description: >-
-  Use when reviewing or improving architecture, reducing coupling, deepening a shallow module, or investigating poor testability. Finds evidence-backed seam and interface improvements grounded in code, domain language, and ADRs.
+  Use only when the user invokes /improve-arch to audit an area for architecture friction: coupling, shallow modules or poor testability. Finds evidence-backed seam and interface improvements grounded in code, domain language, and ADRs.
 disable-model-invocation: true
 ---
 

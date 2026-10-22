@@ -114,7 +114,7 @@ class LandFixture(unittest.TestCase):
     def topic_commit(self, work: Path, content: str, name="file.txt") -> str:
         (work / name).write_text(content, encoding="utf-8")
         git(work, "add", "--", name)
-        git(work, "commit", "-qm", "feat: topic change")
+        git(work, "commit", "-qm", "feat: 主题改动")
         return git_out(work, "rev-parse", "HEAD")
 
     def publish_remote_default(self, work: Path) -> str:
@@ -149,15 +149,18 @@ class MessageGateTests(unittest.TestCase):
                     [directory, "--check-message", "--message-file", str(path)]
                 )
 
-    def test_english_conventional_subject_passes(self):
+    def test_chinese_conventional_subject_passes(self):
         self.assertEqual(
-            0, self.check("fix(commit): hold English subjects\n\n- 中文正文要点\n")
+            0, self.check("fix(commit): 统一提交标题语言\n\n- 中文正文要点\n")
         )
 
     def test_scope_may_be_omitted(self):
-        self.assertEqual(0, self.check("docs: tighten message rules\n"))
+        self.assertEqual(0, self.check("docs: 收紧提交信息规则\n"))
 
-    def test_chinese_subject_is_rejected(self):
+    def test_english_summary_is_rejected(self):
+        self.assertEqual(1, self.check("fix(commit): hold English subjects\n"))
+
+    def test_chinese_type_prefix_is_rejected(self):
         self.assertEqual(1, self.check("修复：提交标题语言\n\n- 中文正文\n"))
 
     def test_prefixless_subject_is_rejected(self):
@@ -165,9 +168,9 @@ class MessageGateTests(unittest.TestCase):
 
 
 PR_BODY = (
-    "## Summary\n\n- 变更要点\n\n"
-    "## Evidence\n\n- **Before:** 失败输出\n  **After:** 通过输出\n\n"
-    "## Merge Danger\n\n**Door:** two-way\n**Blast Radius:** 无外部消费者\n"
+    "## 摘要\n\n- 变更要点\n\n"
+    "## 证据\n\n- **改前：** 失败输出\n  **改后：** 通过输出\n\n"
+    "## 合并风险\n\n**回滚：** 双向门\n**影响面：** 无外部消费者\n"
 )
 
 
@@ -183,14 +186,20 @@ class PrBodyGateTests(unittest.TestCase):
         self.assertEqual(0, self.gate(PR_BODY))
 
     def test_missing_heading_is_rejected(self):
-        self.assertEqual(1, self.gate("## Summary\n\n- 要点\n"))
+        self.assertEqual(1, self.gate("## 摘要\n\n- 要点\n"))
+
+    def test_english_summary_section_is_rejected(self):
+        self.assertEqual(
+            1,
+            self.gate(PR_BODY.replace("- 变更要点", "- unify subject language")),
+        )
 
     def test_reordered_headings_are_rejected(self):
         self.assertEqual(
             1,
             self.gate(
-                "## Evidence\n\n- 证据\n\n## Summary\n\n- 要点\n\n"
-                "## Merge Danger\n\n**Door:** two-way\n"
+                "## 证据\n\n- 证据\n\n## 摘要\n\n- 要点\n\n"
+                "## 合并风险\n\n**回滚：** 双向门\n"
             ),
         )
 
@@ -310,13 +319,13 @@ class NativeLandingTests(LandFixture):
             git(work, "switch", "-q", "-c", "topic2")
             (work / "file.txt").write_text("more", encoding="utf-8")
             git(work, "add", "--", "file.txt")
-            git(work, "commit", "-qm", "fix: second change")
+            git(work, "commit", "-qm", "fix: 第二处改动")
             code, report = run_main(work, "--mode", "native")
             self.assertEqual(6, code)
             self.assertFalse(report["landed"])
-            self.assertIn("second change", git_out(work, "log", "--oneline", "-1"))
+            self.assertIn("第二处改动", git_out(work, "log", "--oneline", "-1"))
 
-    def test_native_landing_refuses_a_chinese_subject(self):
+    def test_native_landing_refuses_a_prefixless_subject(self):
         with tempfile.TemporaryDirectory() as directory:
             work = self.make_repo(Path(directory))
             (work / "file.txt").write_text("change", encoding="utf-8")
@@ -552,7 +561,7 @@ class GhLandingTests(LandFixture):
             self.assertEqual(3, code)
             self.assertIn("closed without merging", report["error"])
 
-    def test_gh_refuses_to_publish_a_chinese_subject(self):
+    def test_gh_refuses_to_publish_a_prefixless_subject(self):
         with tempfile.TemporaryDirectory() as directory:
             work = self.make_github_repo(Path(directory))
             (work / "file.txt").write_text("change", encoding="utf-8")
@@ -583,14 +592,14 @@ class GhLandingTests(LandFixture):
     def test_invalid_pr_body_file_blocks_before_any_mutation(self):
         with tempfile.TemporaryDirectory() as directory:
             body_file = Path(directory) / "pr-body.md"
-            body_file.write_text("## Summary\n\n- 要点\n", encoding="utf-8")
+            body_file.write_text("## 摘要\n\n- 要点\n", encoding="utf-8")
             work = self.make_github_repo(Path(directory))
             sha = self.topic_commit(work, "change")
             (self._state / "head").write_text(sha, encoding="utf-8")
             with contextlib.redirect_stderr(io.StringIO()) as stderr:
                 code = land.main([str(work), "--pr-body-file", str(body_file)])
             self.assertEqual(1, code)
-            self.assertIn("## Merge Danger", stderr.getvalue())
+            self.assertIn("## 合并风险", stderr.getvalue())
             # The gate fires before any gh call, so the stub log never appears.
             self.assertFalse((self._state / "calls").exists())
             self.assertEqual(
