@@ -11,15 +11,17 @@ registry; do not create a parallel per-case ledger.
 
 ## Acceptance criteria for tests
 
-| Dimension | Required judgment |
+Before adding a test, resolve these three questions. A missing answer calls for inspecting the
+contract or existing coverage first; report only concrete gaps or trade-offs.
+
+| Question | Required judgment |
 |---|---|
-| Detection | The actual defect or missing behavior makes the test fail; preserve RED or a relevant negative control |
-| Contract | Assertions follow observable behavior or a stable interface, and survive irrelevant refactors |
-| Oracle | Expected results come from the requirement, a worked example or another independent source |
-| Isolation | Fixtures own mutable state; order, shared files, wall clocks, sleeps and network access are deliberate and controlled |
-| Contribution | Each new case or layer protects a distinct failure mode, boundary or compatibility obligation |
-| Cost | Use the least expensive seam that detects that failure; real IO/process integration remains where that boundary matters |
-| Diagnosis | A failure identifies the violated behavior and useful inputs without dumping unrelated state |
+| Which observable contract does it protect? | Assert behavior or a stable interface that survives irrelevant refactors. Expected results come from the requirement, a worked example or another independent source. |
+| Which credible regression makes it fail? | The actual defect or missing behavior causes failure; preserve RED or a relevant negative control. |
+| Why does existing coverage not catch that regression? | Extend an existing case first. Add a case or layer only for a distinct failure mode, boundary or compatibility obligation, at the least expensive seam that detects it. |
+
+Fixtures own mutable state; order, shared files, clocks, sleeps and network access are deliberate
+and controlled. Failures identify the violated behavior and useful inputs without unrelated state.
 
 Choose representative cases for contract boundaries and meaningful input partitions. Do not force
 one assertion per test when several observations establish one invariant. Source/string/snapshot
@@ -27,9 +29,11 @@ assertions are appropriate when those bytes are the published contract, such as 
 artifact; they cannot substitute for behavior reached through that source.
 
 Use direct module calls for domain behavior when that interface is the contract. Retain real CLI,
-service, filesystem, process and packaging tests for their distinct boundary failures. A local
-predicate does not require a new subprocess per example. Broad integration wrappers around every
-unit case make fixture/startup cost grow without necessarily improving detection.
+service, filesystem, process and packaging tests for their distinct boundary failures. For example,
+a parser change needs cases for its changed contract and affected consumers; a CLI test earns its
+place when it catches argument or encoding loss the parser cases cannot. A local predicate does not
+require a new subprocess per example. Broad integration wrappers around every unit case make
+fixture/startup cost grow without necessarily improving detection.
 
 Mocks may isolate external dependencies at an explicit seam. Do not mock the behavior being proved
 or assert internal call order unless that order is itself the accepted contract. A storage invariant

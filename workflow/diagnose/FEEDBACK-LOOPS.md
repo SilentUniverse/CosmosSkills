@@ -34,6 +34,17 @@ Treat the loop as a product. Once you have _a_ loop, **tighten** it:
 
 Keep a slow loop when it is the cheapest reliable evidence; optimize setup only if repeated runs justify it.
 
+## Waiting, reload and target failures
+
+Use these symptoms to choose a distinguishing probe. Confirm the cause before changing the wait,
+runner or product; keep project-specific commands and runtime facts in their existing project owner.
+
+| Symptom | Distinguishing probe and repair | Verification signal |
+|---|---|---|
+| A frame wait expires or input selects the default item | Inspect renderer mode, producer completion and focus immediately before input. Wait for the responsible state or event, then render or interact; a longer timeout cannot restore a dropped key. | Hold and release the relevant producer or focus transition; the original interaction succeeds, and an impossible predicate still fails within its bound. |
+| Browser execution context disappears during component loading | Inspect server reload logs, failed module requests and module identities. If dependency discovery caused a reload, repair the scan/cache inputs; if the page navigated, inspect that trigger. | Replay the affected cold-load path with no unexpected reload or lost fixture state. |
+| A pass may come from another checkout's service | Compare the served build/source identity and service working directory with the candidate. Use the service owner's isolation mechanism; separate ports alone may still share a mutable cache. | The observed service serves the intended candidate and owns isolated mutable state. |
+
 ## Non-deterministic bugs
 
 Increase the reproduction rate with bounded repetition, stress, or controlled timing. Pin seeds

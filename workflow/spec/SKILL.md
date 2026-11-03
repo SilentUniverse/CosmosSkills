@@ -10,9 +10,9 @@ argument-hint: "The need — anything from one line to a full design"
 Owns requirements and execution readiness. Authorization and the planning write limit follow the
 resident policy (`CLAUDE.md` §2); this skill adds only what planning needs.
 
-**Stop at the plan.** Every spec run ends at the plan. Discussion after the plan, answers to its questions and agreement with it
-("好", "可以", "开始吧") revise the plan; they never start implementation, and spec never loads
-tdd. Execution starts only when the user invokes `/tdd`.
+**Stop at the plan.** Answers and agreement revise the plan; spec never loads tdd or starts
+implementation. For example, `/spec ...` followed by “好，可以开始” still ends at the plan;
+the user invokes `/tdd` to start execution.
 
 A missing run, drive or observation capability becomes an execution prerequisite; `/tdd` builds it through `/verify`
 before dependent behavior.
@@ -27,8 +27,9 @@ before dependent behavior.
   (API/ABI/schema/protocol), measurement semantics, irreversible effects, significant cost or
   authority. Load [ALIGNMENT-LOOP.md](ALIGNMENT-LOOP.md) and resolve only the decisions the plan needs.
 
-File count, module reach or expected unit count never turns settled work into a decision. Only
-graphical UI loads [UI verification](../tdd/UI-TESTING.md).
+A direct request to fix a known cancel behavior across three files stays an implementation task;
+file count, module reach or unit count does not trigger `/spec`. Only graphical UI loads
+[UI verification](../tdd/UI-TESTING.md).
 
 ## 2. Choose the output
 
