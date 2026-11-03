@@ -79,6 +79,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | §8 | 独立工作或判断才委派；预算约束尝试而非完成条件 | 过程·经济 | 自审 | 65f1318（tool-call cap）、51a7d4a（默认 inline） |
 | §9 | 宿主特有假设先对运行中的宿主核实再复述 | 过程 | 自审 | 单宿主观察被当跨宿主要求；未溯源 |
 | §10 | ADB 前加载设备规则参考 | 过程 | 流程 | 7f56614（android-adb reference） |
+| §3·提取 | 简单单次逻辑内联；提取须命名真实概念、隐藏复杂边界或消除已有重复，复用次数不单独裁决 | 过程·经济 | 自审 | 无意义 helper 与为追求复用而拒绝有效边界；[OpenCode General Principles / Complex Logic](https://github.com/anomalyco/opencode/blob/7405f93721d1929d9716f91a17c277a022b690e5/AGENTS.md#L45)；行为收益未实测 |
 | §3·末 | 完成时删除测试：删掉该工件须能指出会破坏的真实交付/授权/验证/交接/恢复场景，仅本工作流自身格式校验失败不算；设计侧 spec §3；深审 /atk Re-derive | 过程·经济 | 流程 | 死抽象累积税；未溯源 |
 
 ## B. spec — workflow/spec/SKILL.md（每次规划付费）
@@ -117,6 +118,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | Module suites at every unit completion | Narrow | Changed behavior cases first; wider checks only for changed shared contracts or uncovered integration risk |
 | CI path selection | Keep | Producer/consumer mappings retain gate/start contracts and the CODEBASE native harness; test fixture consumers follow actual imports |
 | Environment restoration outside behavior wave | Replace | Pause only dependent work; native execution has no Cosmos wave |
+| New-test value judgment | Clarify | tdd/tests.md：先确定可观察合同、可信回归和已有覆盖缺口；同一行为的不同真实边界可各自保留检测；[OpenCode Tests](https://github.com/anomalyco/opencode/blob/7405f93721d1929d9716f91a17c277a022b690e5/packages/app/AGENTS.md#L100)；未实测行为收益 |
 | Refactor only while green | Keep | TDD/refactoring; recheck affected behavior |
 | Repeated patching as design signal | Keep | Re-derive the affected contract/seam before another patch |
 | Full suite at batch end through supervisor | Replace | Fixed candidate's declared gates through native/project/CI runner |

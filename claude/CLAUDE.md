@@ -47,12 +47,12 @@ Priority: host/system > user objective and prior authorization > these defaults 
 ## 3. Keep the solution small
 
 Use the first rung that works: nothing → stdlib → native platform → installed dependency → minimum
-new code. Minimize concepts, states, and exceptions, not line count. Validate real IO/protocol/file/
-subprocess boundaries; skip only checks that types or prior validation already enforce. Security,
-validation, and accessibility stay intact. At completion, run the deletion test on this task's
-additions: deleting an abstraction, layer, or artifact must break a real delivery, authorization,
-verification, handoff, or recovery scenario named by a caller, test or recorded decision; this
-workflow's own format check is not one.
+new code. Minimize concepts, states and exceptions, not lines. Inline simple single-use logic; extract
+to name a real concept, hide boundary complexity or remove duplication. Validate real IO/protocol/file/
+subprocess boundaries once; skip only checks types or prior validation guarantee. Preserve security,
+validation and accessibility. At completion, delete new abstractions, layers or artifacts unless a
+caller, test or recorded decision names a delivery, authorization, verification, handoff or recovery
+scenario that needs them; this workflow's format check alone does not count.
 
 ## 4. Change only the requested surface
 

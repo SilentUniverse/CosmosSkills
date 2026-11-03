@@ -7,8 +7,9 @@
 
 行为 eval 是一条**旁路实验线**，不是每次开发的必经管道。没有显式 `/eval` 或
 `start-session`，就不启动额外 agent、不跑 previous/no-skill 对照、不调用 AI judge，也不采集
-全量轨迹。正常 `/spec → /tdd` 只保留两种便宜保护：artifact 静态门，以及当前任务验证器的
-SPEC preflight；它们证明“这个单元现在能执行”，不评价“整套 workflow 是否优于上一版”。
+全量轨迹。普通内联计划只声明验证路线，不建文件、不跑 artifact check 或预检；feature 文档路线
+按现行 SPEC 合同执行 artifact 静态门和代表性预检。实施前校验匹配的保留证据，仅在动作、相关输入
+或环境变化时重放预检。它们证明执行就绪，不评价“整套 workflow 是否优于上一版”。
 
 需要检查工作流时再打开：
 
@@ -31,14 +32,15 @@ smoke 超过两个 case 会被 CLI 拒绝，避免“快速检查”意外变成
 `--require-improvement`。会话都在 gitignored 的 `.eval-runs/`；离开 `/eval` 即关闭，不存在影响
 后续开发的全局 flag 或 hook。完整的 agent 执行协议由显式 `/eval` 技能负责。
 
-这里有两种“验证器”，不要混在一起：
+任务验证与 workflow eval 的触发不同：
 
 | | 什么时候跑 | 回答什么问题 |
 |---|---|---|
-| 任务验证器 + P# preflight | 每次 SPEC/TDD，范围只限当前单元 | 这条 AC 的证明现在能不能执行？结果对不对？ |
+| 任务验证器 | 实施后按变更合同选择相关检查；有效证据可复用 | 这条 AC 的结果对不对？ |
+| SPEC 代表性预检 | 仅 feature 文档路线；实施前校验保留证据，动作、相关输入或环境变化才重放 | 这条验证路线现在能不能执行？ |
 | workflow eval | 仅手动 `/eval` | 新版 SPEC/TDD policy 是否比旧版更稳、更快、更省？ |
 
-前者是安全带，成本应是秒级或少量分钟；后者是碰撞试验，可以昂贵，所以默认关闭。
+前两项保护当前任务，范围按验证合同选择；workflow eval 比较策略效果，可以昂贵，所以默认关闭。
 
 ## 真值与四层
 
@@ -189,7 +191,9 @@ candidate 与 no-skill 的保护差距。削弱仍有作用的保护需要行为
 
 ## Failure → regression
 
-真实失败发生后，先把当时 prompt、repo fixture、可观察错误和 budget 固化成 `origin.kind =
-regression` 的 case；再改 skill。顺序是 RED（旧 policy 至少能复现一次）→ GREEN（同控制变量）
-→ 全 regression corpus。第一批保持小而真：约 20 个历史 regression + 10 capability + 10
-routing 已足够；不要用大量合成题稀释真实故障。
+真实失败发生后，先把当时 prompt、repo fixture、可观察错误和 budget 固化成
+`origin.kind = regression` 的 case。只有显式授权行为评估后，才运行 RED（旧 policy 至少能复现一次）
+→ GREEN（同控制变量）→ 相关回归；共享路由或规划规则变化加跑路由 smoke 集，只按已同意的评估范围
+或跨技能影响扩大到全 corpus。具体执行遵循 [行为评估合同](../workflow/write-skill/EVALS.md)。
+第一批保持小而真：约 20 个历史 regression + 10 capability + 10 routing 已足够；不要用大量合成题
+稀释真实故障。

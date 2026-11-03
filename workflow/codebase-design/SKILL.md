@@ -40,6 +40,9 @@ Diagrams, testability patterns, and rejected framings live in
 - **The deletion test.** Imagine deleting the module. If complexity vanishes, it was a pass-through. If complexity reappears across N callers, it was earning its keep.
 - **The interface is the test surface.** Callers and tests cross the same seam. If you want to test *past* the interface, the module is probably the wrong shape.
 - **The interface leads in the file.** Types and exported signatures on top, implementation below; the contract loads first, the body on demand.
+- **Extraction names or hides real work.** Inline a simple path expression used once. A `requireConfig`
+  helper may earn its place with one caller when it owns parsing and validation, leaving the caller
+  readable as the normal path. Keep such helpers near their caller; reuse count alone decides neither case.
 - **A seam earns its keep by what it isolates, not by adapter count.** Judge a seam by whether
   it isolates real knowledge, a dependency, or a variation that actually exists. A single-adapter
   seam can be right; a two-adapter seam can still be premature.

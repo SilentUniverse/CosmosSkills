@@ -2,6 +2,10 @@ import copy
 import importlib.util
 import io
 import json
+import os
+import shlex
+import subprocess
+import sys
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -124,6 +128,97 @@ class EvalTests(unittest.TestCase):
     def test_committed_cases_validate(self):
         cases = cosmos_eval.load_cases(ROOT / "evals" / "cases")
         self.assertEqual(EXPECTED_CASE_IDS, set(cases))
+
+    def test_preflight_executor_trace_accepts_retained_or_replayed_evidence(self):
+        case = cosmos_eval.load_cases(ROOT / "evals" / "cases")["spec-verifier-preflight"]
+        grader = next(item for item in case["graders"] if item["id"] == "executor-trace")
+        argv = shlex.split(grader["command"])
+        preflight = "pytest --collect-only test_feature.py"
+
+        def shell(command=preflight, failed=False):
+            blocks = [{
+                "type": "assistant",
+                "message": {"content": [{
+                    "type": "tool_use", "id": "command", "name": "Bash",
+                    "input": {"command": command},
+                }]},
+            }]
+            if failed is not None:
+                blocks.append({
+                    "type": "user",
+                    "message": {"content": [{
+                        "type": "tool_result", "tool_use_id": "command",
+                        "is_error": failed,
+                    }]},
+                })
+            return blocks
+
+        edit = {
+            "type": "assistant",
+            "message": {"content": [{
+                "type": "tool_use", "id": "edit", "name": "Edit",
+                "input": {"file_path": "src.py"},
+            }]},
+        }
+        passed = shell()
+        scenarios = (
+            ("retained", passed, [edit], 0),
+            ("replayed", [], [*passed, edit], 0),
+            ("surrounding-whitespace", [], [*shell("  " + preflight + "  "), edit], 0),
+            ("missing", [], [edit], 1),
+            ("failed-retained", shell(failed=True), [edit], 1),
+            ("missing-result", shell(failed=None), [edit], 1),
+            ("late-replay", [], [edit, *passed], 1),
+            ("late-result", [], [passed[0], edit, passed[1]], 1),
+            ("result-before-call", [], [passed[1], passed[0], edit], 1),
+            ("install", passed, [*shell("npm install"), edit], 1),
+            ("substitute", passed, [*shell("pytest other.py"), edit], 1),
+            ("quoted-preflight", [], [*shell("printf '%s\\n' " + shlex.quote(preflight)), edit], 1),
+            ("masked-failure", [], [*shell(preflight + " || true"), edit], 1),
+            ("appended-substitute", passed, [*shell(preflight + " && pytest other.py"), edit], 1),
+            ("phase-scoped-result", shell(failed=True), [*shell("pytest test_feature.py"), edit], 1),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            feature = root / ".scratch" / "demo" / "FEATURE.md"
+            feature.parent.mkdir(parents=True)
+            feature.write_text(
+                '## 共享验证\n```json\n{"commands": {"unit": "pytest test_feature.py"}}\n```\n'
+                '- 预检 unit：`pytest --collect-only test_feature.py` → passed；'
+                'evidence=inline；checked=2026-10-01\n',
+                encoding="utf-8",
+            )
+            trace_path = root / "trace.jsonl"
+            environment = dict(os.environ, EVAL_TRACE=str(trace_path), EVAL_WORKTREE=str(root))
+            for name, retained, executor, expected in scenarios:
+                with self.subTest(name=name):
+                    trace = [
+                        {"type": "system", "subtype": "init"}, *retained,
+                        {"type": "system", "subtype": "init"}, *executor,
+                    ]
+                    trace_path.write_text("\n".join(json.dumps(row) for row in trace), encoding="utf-8")
+                    result = subprocess.run(
+                        [sys.executable, "-I", *argv[1:]], cwd=root, env=environment,
+                        capture_output=True, text=True, timeout=10,
+                    )
+                    self.assertEqual(expected, result.returncode, result.stdout + result.stderr)
+
+    def test_preflight_reuse_requires_readiness_review(self):
+        case = cosmos_eval.load_cases(ROOT / "evals" / "cases")["spec-verifier-preflight"]
+        requirement = next(item for item in case["requirements"] if item["id"] == "R3")
+        run = make_run()
+        run["case_id"] = case["id"]
+        run["grader_results"] = [
+            {"id": grader["id"], "kind": grader["kind"], "passed": True,
+             "evidence_ids": ["proof"], **({"exit_code": 0} if grader["kind"] == "deterministic" else {})}
+            for grader in case["graders"]
+        ]
+        run["evidence"][0]["requirement_ids"] = [item["id"] for item in case["requirements"]]
+        cosmos_eval.validate_run(run, {case["id"]: case})
+        self.assertIn("readiness-review", requirement["grader_ids"])
+        run["grader_results"] = [item for item in run["grader_results"] if item["id"] != "readiness-review"]
+        with self.assertRaises(cosmos_eval.EvalError):
+            cosmos_eval.validate_run(run, {case["id"]: case})
 
     def test_case_user_script_requires_after_and_content(self):
         invalid_events = (

@@ -61,8 +61,10 @@ its observed evidence exists.
    copies shared fields.
 
 Before implementation, validate matching retained preflight evidence or replay it when the action,
-relevant inputs or environment changed; session or unit identity alone does not invalidate it. A
-failure pauses only dependent work while declared setup or stale readiness is repaired; never weaken
+relevant inputs or environment changed. A cold executor with the same command, logical cwd, inputs,
+prerequisites and environment reuses the retained passing observation; a new session or unit alone
+does not invalidate it. A changed relevant lockfile or service requires replay of the affected preflight.
+A failure pauses only dependent work while declared setup or stale readiness is repaired; never weaken
 proof to obtain green. A declared command without matching execution evidence, a version probe
 without a representative harness action, or unreplayable evidence is not readiness.
 
