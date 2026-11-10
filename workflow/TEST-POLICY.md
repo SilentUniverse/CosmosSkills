@@ -77,6 +77,12 @@ Summed test wall time is not CPU time or parallel critical path. Compare p50/p95
 samples and matching hardware/runtime/dependency/cache/concurrency context. A timeout is not a
 performance baseline; increasing it cannot cure regression. Missing context means unmeasured.
 
+Before a performance experiment, name the result that would change the decision. Confirm that the
+timed region actually performs the work; validate outputs and exclude errors, skipped work and
+unequal tuning/cache conditions. Use repeated comparable samples, interleaving baseline and candidate
+when practical. Explain the observed limit from a profile or counters and check the effect on the
+path the user waits for. A small or noisy effect, or an unknown limiter, limits the conclusion.
+
 Use native per-case timings when needed. This repository supports
 `scripts/run-tests.py --durations-file NEW_FILE`. Sampling needs an explicit measurement purpose;
 ordinary work does not repeat suites to populate reports.

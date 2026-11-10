@@ -59,7 +59,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | §1·解释 | 按读者任务补齐上下文与因果，不发明术语；内部术语按对任务的影响解释 | 过程 | 自审 | ISO 24495-1:2023 原则用于中文表达（运行时文件不引用标准名）；用户要求；行为收益未实测 |
 | §1·结论 | 实质性结论覆盖结果、关键原因、交付物、验证与未解决问题及处理状态；决策附权衡与建议 | 过程 | 自审 | 结论缺验证或未决项导致误判可交付；用户修订（工作区改动）；行为收益未实测 |
 | §1 / §6·事实与投影 | 不编造事实、不扩大明确封闭清单或授权；允许解释与必要摘要，投影保留来源和约束 | 过程·经济 | 自审 | 原封闭清单/逐项一次与必要解释及摘要冲突；静态修正，不主张行为收益 |
-| §6·按需加载 | 技能仅当描述匹配任务且会改变做法时才加载 | 过程·经济 | 自审 | 目录提供或任务显大就加载的常驻税；未溯源 |
+| §6·按需加载 / workflow-routing | 技能仅当匹配任务且改变做法时加载；下一步不清时按缺失结果路由，辅助能力返回原任务；保留显式调用与规划边界 | 过程·经济 | 自审 | 目录提供或任务显大就加载的常驻税；路由借鉴 [pstack poteto-mode guide](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/docs/guide/02-poteto-mode.md)，不引入必跑 playbook；行为收益未实测 |
 | §2·查证 | 可查事实不问人 | 过程 | 自审 | 未溯源（近邻探针：research-marks-unverified-and-ignores-injection） |
 | §2·摄入 | 结果与约束已定即可推进；实现和验证细节由 agent 补足；文件数不触发规划 | 过程·经济 | 流程 | 仪式性确认税；7be5338 压缩摄入、51a7d4a fast path / spec-alignment-before-write |
 | §2·授权 | 既有授权在接受范围内继承；保留用户明确要求的 review | 权威 | 流程 | 结果分叉未问人；ALIGNMENT-LOOP 回执 / spec-holds-alignment-under-pressure |
@@ -76,7 +76,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | §7·a | 优先可用工具，遵守实际 hook，不为偏好安装 | 过程 | 机器+流程 | 5ef04aa（modern-cli hook）+ 77baaf7/35adb23（corpus 加固） |
 | §7·b | 破坏性目录操作前枚举隐藏/忽略项 | 权威 | 流程 | 未溯源（安全守则） |
 | §7·c | PS 设 UTF-8；PS/cmd 不写文本文件 | 过程 | 流程 | 38b2c6a（UTF-8 note）、94aea23（PS5.1/cmd 规则） |
-| §8 | 独立工作或判断才委派；预算约束尝试而非完成条件 | 过程·经济 | 自审 | 65f1318（tool-call cap）、51a7d4a（默认 inline） |
+| §8 / delegation | 独立工作或判断才委派；覆盖分工、方案比较、独立找错各有输入与验收；预算约束尝试而非完成条件，整合检查实际候选 | 过程·经济 | 自审 | 65f1318、51a7d4a；借鉴 pstack [swarm](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/skills/swarm/SKILL.md) / [arena](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/skills/arena/SKILL.md) 的证据契约，不迁入调度、worker 数量或模型分配；行为收益未实测 |
 | §9 | 宿主特有假设先对运行中的宿主核实再复述 | 过程 | 自审 | 单宿主观察被当跨宿主要求；未溯源 |
 | §10 | ADB 前加载设备规则参考 | 过程 | 流程 | 7f56614（android-adb reference） |
 | §3·提取 | 简单单次逻辑内联；提取须命名真实概念、隐藏复杂边界或消除已有重复，复用次数不单独裁决 | 过程·经济 | 自审 | 无意义 helper 与为追求复用而拒绝有效边界；[OpenCode General Principles / Complex Logic](https://github.com/anomalyco/opencode/blob/7405f93721d1929d9716f91a17c277a022b690e5/AGENTS.md#L45)；行为收益未实测 |
@@ -105,6 +105,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | §2 | 可运行实验能降低真实不确定性时才 prototype | 过程 | 流程 | prototype skill 立法 |
 | §2 | NFR 门槛走 VERIFICATION-DESIGN 非功能三则（原 NON-FUNCTIONAL-BARS 并入） | 过程 | 流程 | 未溯源 |
 | FEATURE-TEMPLATE | Spec 只固定跨单元共同约定（承诺、公共接口、共享决策、组合验证、资源安全），单元内部实现结构不提前设计；边界检验句与拆单元判据 | 过程·经济 | 流程 | 规划过深与同步返工税；未溯源 |
+| §3 / codebase-design | 公共接口或状态归属改变时，用真实调用和相关失败路径检查输入、结果、所有权与不变量；比较前定标准，组合后复核 | 过程 | 流程 | 借鉴 [pstack design guide](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/docs/guide/04-design.md) 的调用侧设计；不要求每次设计竞赛，规划不写可执行模型；行为收益未实测 |
 
 ## C. TDD and engineering selection
 
@@ -138,6 +139,8 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | Separate preflight cache/writer | Delete | 预检 observed evidence or unified check receipts; no second identity/reuse mechanism |
 | Managed diagnostic/repair queue | Delete | TEST-POLICY failure classification; independent lasting gaps only |
 | Fixed candidate | Keep | Git/project fixed source; explicit external inputs; before/after integrity |
+| Formal evidence and drift | Add | spec/VERIFICATION-DESIGN selects costly properties with test gaps; verify/FORMAL owns source mapping, bounds, negative controls and maintenance; tdd and diagnose consume affected checks and real-code replay, never equate model green with implementation correctness |
+| Performance attribution | Clarify | TEST-POLICY Measure checks work/output, comparable runs, observed limiter and end-to-end relevance; inspired by [pstack Explain the Number](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/skills/principle-explain-the-number/SKILL.md); no unsolicited benchmark or model trial |
 | Human approval | Keep | Spec/candidate/review digest and raw event; no workspace-following approval |
 | Tidy registry and recovery journal | Split | Retention policy stays; storage owner guarantees atomic safe deletion |
 
@@ -150,6 +153,14 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | PR body | 提交标题 `type(scope): 中文摘要`；gh 落地附三段式中文 PR 正文（摘要/证据/合并风险）；缺标题或摘要非中文即红灯，裸 commit 正文不作 PR 正文 | 产物 | 机器+流程 | PR 退化为裸 commit 正文、评审失据；show-me pr 模板对标借入；land.py `--pr-body-file` 三标题门 + test_land |
 | Land | 固定 PR head；确认 MERGED 才算落地，排队不算完成；禁 force-push 与 bypass | 权威 | 流程 | gh merge 的排队语义、--match-head-commit；pr-holds-scope-under-pressure |
 | Verify | `/pr` 不自建验证：消费上游证据；gh 引擎不预跑检查、不等 CI，只有 exit 4 代表被 required checks 阻塞 | 过程·经济 | 流程 | 落地前重复验证 + 落地后等 CI 的纯等待（PR #121 实测：落地 59s、CI 等待 6m30s）；未溯源 |
+
+## E. verify — formal checking
+
+| 定位 | 要旨 | 性质 | 层级 | 防什么失败 · 出处 / 探针 |
+|---|---|---|---|---|
+| FORMAL / Select and coverage | 先按用户损害与测试缺口选性质；按问题选状态模型、代码验证或生成输入测试，声明假设、范围与源映射 | 过程·产物 | 流程 | 借鉴 [pstack create-formal-verification-skill](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/skills/create-formal-verification-skill/SKILL.md)；只建立授权范围内的项目能力；无行为评估 |
+| FORMAL / Negative control | 区分代码突变与手写模型突变；破坏版本必须因目标性质失败，模型反例需真实代码回放才算产品失败 | 过程·产物 | 流程 | 防止把模型绿灯当实现证明、把模型突变当自动代码漂移检测；结构校验不验证证明的充分性 |
+| FORMAL / Maintain | 从上次对应源版本检查新写入者、移动与假设变化；区分模型漂移、产品缺陷与承诺变化，禁止为绿灯削弱性质 | 过程·产物 | 流程 | 借鉴 [pstack maintain-formal-verification-skill](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/skills/maintain-formal-verification-skill/SKILL.md)；复用规则仍由 TEST-POLICY 唯一负责 |
 
 ## 已知攻法与兜底
 

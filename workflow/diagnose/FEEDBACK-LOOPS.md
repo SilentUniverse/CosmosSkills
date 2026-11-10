@@ -51,6 +51,12 @@ Increase the reproduction rate with bounded repetition, stress, or controlled ti
 where possible and record attempts/failures before and after; one passing run does not prove a fix.
 Stop tuning when the signal can distinguish hypotheses, or a declared cost bound is reached.
 
+For a costly ordering or recovery invariant, an existing model checker can find a short event
+sequence to try. Replay that sequence against the actual code with controlled barriers or faults;
+classify model error and unreproduced risk separately from a demonstrated product failure. A missing
+reusable checker follows `/verify`'s [formal branch](../../tooling/verify/FORMAL.md) within the
+caller's execution authority. The model supplements the symptom loop rather than replacing it.
+
 ## When you genuinely cannot build a loop
 
 List the attempted repros and exact missing evidence. Enumerate the states that could produce the

@@ -8,6 +8,18 @@ description: >-
 
 Design **deep modules**: a lot of behaviour behind a small interface, placed at a clean seam, testable through that interface. Use this language and these principles wherever code is being designed or restructured.
 
+## Start from a real caller
+
+For a changed interface, sketch one actual caller and one relevant failure or lifecycle case before
+choosing its internals. Show the input, result and error, who owns mutable state, and who may change
+it. For asynchronous work, include cancellation, late completion or retry only when it affects the
+contract. Name what the interface must prevent and what the caller must guarantee.
+
+Try the sketch against known callers: coordination repeated across them is knowledge the module may
+need to own. Prefer types or a clear state transition that makes invalid combinations impossible.
+Compare alternative interfaces only for a consequential unresolved trade-off. A planning caller
+keeps sketches in its plan; runnable experiments require the caller's execution authority.
+
 ## Glossary
 
 Follow the project's and the user's existing architecture terms: Android Service, public API,

@@ -53,6 +53,10 @@ invariant area, load [impact-detection.md](impact-detection.md). Persist a newly
 `CODEBASE.md` 不变量. Use `/prototype` only when a runnable experiment answers a concrete design
 question more cheaply. Wide refactors use expand → migrate → contract with each batch green.
 
+When a shared interface or state owner changes, use `/codebase-design` to check a concrete caller
+and a relevant failure/transition case. Keep the sketch in the plan: settle inputs, results,
+ownership and invariants before splitting dependent work, without designing each unit's internals.
+
 Choose checks with [test policy](../TEST-POLICY.md) and evidence with
 [VERIFICATION-DESIGN.md](VERIFICATION-DESIGN.md). A plan declares future checks; it does not run
 future behavior suites to manufacture readiness.

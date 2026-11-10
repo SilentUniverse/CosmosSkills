@@ -32,6 +32,10 @@ Read the public seam, existing coverage, governing ADRs and domain terms. Briefl
 behavior, proof route and material assumption, then act with project commands. Build a missing
 run/drive/observation capability first through `/verify`; ordinary prerequisites stay inline.
 
+When the changed behavior is covered by a formal check, inspect its source mapping and assumptions.
+Use `/verify` to maintain a drifted check; run affected existing checks at their declared boundary
+and reuse matching evidence. A passing stale model cannot verify the changed implementation.
+
 Tests are written before the implementation so they stay an independent oracle; they are **run**
 only at the two points that carry information. No baseline run of existing or full suites before
 editing; existing failures surface in GREEN and are reported, not pre-checked.
