@@ -30,12 +30,27 @@ Choose the highest runnable product seam and the cheapest evidence that can fals
 AI can summarize deterministic evidence; it cannot replace it. A screenshot proves pixels existed,
 not that the interaction or business invariant worked, unless the rubric is explicitly visual.
 
+## State and concurrency properties
+
+Consider formal checking when a costly invariant depends on event order, retries, cancellation,
+recovery or concurrent writers that example tests cover poorly. Select one property, its source
+owner, the test gap and the method; do not require a model for every stateful feature. Prefer making
+invalid states impossible through types/ownership when that suffices.
+
+Use an existing project checker when suitable. Otherwise name an execution prerequisite through
+`/verify`; [formal checks](../../tooling/verify/FORMAL.md) defines method selection, source mapping,
+negative controls and maintenance. Planning does not author executable models or tool tests.
+State assumptions and bounds in the planned evidence: a checked model is not proof that the
+implementation refines it, and generated-input testing is not a formal proof. A counterexample
+needs translation and replay against the real behavior before it establishes a product defect.
+
 ## Falsification contract
 
 Evidence is useful only if the target defect makes it fail. An ordinary deterministic code test
 proves this with its actual TDD RED; snapshots and other deterministic assertions use that same RED,
 with no duplicate falsifier prose. Only an opted-in graphical UI names one concrete counterfactual
-in its AC text. Human-judged or measurement-proxy claims belong to explicit `/eval`, whose case
+in its AC text; formal checks retain their property and negative control with their verification
+assets. Human-judged or measurement-proxy claims belong to explicit `/eval`, whose case
 contract owns its negative controls; they do not add prose fields to ordinary non-UI units.
 DOM presence, a non-empty `src`, source snapshots, and an agent's own success report are not
 sufficient when the claim is about what the user receives.

@@ -14,6 +14,8 @@ Before designing, briefly state the problem space for the chosen candidate:
 - The constraints any new interface would need to satisfy
 - The dependencies it would rely on, and which category they fall into (see [DEEPENING.md](DEEPENING.md))
 - A rough illustrative code sketch to ground the constraints; not a proposal
+- The caller cases and decision criteria used for every alternative: correctness/invariants first,
+  then depth, locality and the concrete cost or compatibility constraint that matters here
 
 Show this to the user, then immediately proceed to Step 2.
 
@@ -46,7 +48,9 @@ Each design includes:
 
 Present designs sequentially so the user can absorb each one, then compare them in prose. Contrast by **depth** (leverage at the interface), **locality** (where change concentrates), and **seam placement**.
 
-After comparing, give your own recommendation: which design you think is strongest and why. If elements from different designs would combine well, propose a hybrid. Be opinionated: recommend, don't present a menu.
+After comparing, recommend the strongest coherent design and name the deciding evidence. If a
+hybrid resolves a real remaining trade-off, recheck its caller cases, ownership and invariants as a
+new combination; the original designs' checks do not automatically cover it. Do not choose by votes.
 
 For authorized implementation, proceed with the best reversible design within the settled contract.
 Ask only about an unresolved consequential trade-off; design-only requests end with the comparison.

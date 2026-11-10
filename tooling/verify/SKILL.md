@@ -1,7 +1,7 @@
 ---
 name: verify
 description: >-
-  Use when reusable run, drive or observation tools are missing or have drifted with their scenario instructions. Builds or maintains project-local capabilities; ordinary checks stay in the normal test workflow.
+  Use when reusable run, drive, observation or formal-checking capabilities are missing or have drifted. Builds or maintains project-local tools and their instructions; ordinary checks stay in the normal test workflow.
 argument-hint: "Scenario or area; -maintain [area] to maintain existing verification assets"
 ---
 
@@ -20,8 +20,9 @@ tool tests. Build or repair only in an authorized execution phase.
 ## Scope and discovery
 
 Use the current task's project and scenario, or the named area. Inspect its run commands, tests,
-drivers, fixtures, observation surfaces and local instructions. Identify the missing capability
-with one concrete operation or assertion. An ordinary code change does not require this skill.
+drivers, fixtures, observation surfaces, existing formal checks and local instructions. Identify the
+missing capability with one concrete operation or assertion. An ordinary code change does not
+require this skill.
 
 Reuse the project's runtime and working tools. For a capability-gap request, when the existing path
 suffices, return its invocation and resume the caller. An explicit maintenance request still runs
@@ -30,13 +31,16 @@ can be enough. General-purpose frameworks and a whole-application inventory need
 
 Choose one branch:
 
+- A model checker, code verifier or proof needs creating or synchronizing with source:
+  [FORMAL.md](FORMAL.md) owns its construction, negative controls and maintenance. Follow that
+  evidence procedure instead of the operation-capability proof below, then integrate with the caller.
 - Missing or incomplete capability: [BUILD.md](BUILD.md) defines the project assets to create or
   extend. Start with one representative scenario.
 - Existing capability has drifted, or the user requests `-maintain`: [MAINTAIN.md](MAINTAIN.md)
   defines a scoped source and runtime pass. Explicit maintenance without an existing target reports
   that absence; it does not silently create a new package.
 
-## Prove the capability
+## Prove the operation capability
 
 Read the project's resulting instructions as the next executor would, without relying on this
 conversation. Execute their setup, target check, scenario, observation, evidence capture and cleanup.

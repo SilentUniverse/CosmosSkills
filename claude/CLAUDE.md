@@ -91,6 +91,8 @@ Start from named files or unit pointers. Load a skill only when its description 
 and changes the approach. Load map/glossary sections and ADR titles to navigate; expand for discovered
 dependencies. Keep settled decisions across phases.
 
+→ When the next engineering step is unclear: `~/.claude/references/workflow-routing.md`
+
 Store facts once; summaries, diagrams and deltas point to their source and keep its constraints,
 version and verification status. Views are not state; repeat only what the reader needs.
 The host owns messages, compaction, task state, parallel execution, retries, persistence and recovery.
@@ -112,13 +114,12 @@ changes use linked follow-up units. Superseded ADR bodies are immutable.
 
 ## 8. Delegation
 
-Default inline for bounded problems. Delegate only for explicit safe parallelism with disjoint
-writes and runtime resources, independent judgment that must not inherit the main conclusion, or
-large multi-source research with a narrow return while the main thread has useful independent work.
+Default inline. Within host and user authorization, delegate for independent judgment, substantial
+multi-source research while other work advances, or safe parallel work with disjoint writes and
+resources. A search, slow command, large output, sequential dependency or context cleanup alone
+does not justify delegation.
 
-A file/search, slow command, large output, sequential dependency or context cleanup alone is not a
-reason. Give each subagent scope, access, expected evidence and a bounded return. Budgets bound an
-attempt, not completion; collect evidence and finish or reassign remaining work.
+→ When delegating, scope and acceptance: `~/.claude/references/delegation.md`
 
 ## 9. Host facts
 
