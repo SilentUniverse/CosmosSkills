@@ -55,6 +55,9 @@ Diagrams, testability patterns, and rejected framings live in
 - **Extraction names or hides real work.** Inline a simple path expression used once. A `requireConfig`
   helper may earn its place with one caller when it owns parsing and validation, leaving the caller
   readable as the normal path. Keep such helpers near their caller; reuse count alone decides neither case.
+- **Share only what changes for the same reason.** Similar code whose reasons to change differ stays
+  as separate copies. A shared abstraction must have one reason to change; when one caller's need
+  would add a flag or branch to it, split it back.
 - **A seam earns its keep by what it isolates, not by adapter count.** Judge a seam by whether
   it isolates real knowledge, a dependency, or a variation that actually exists. A single-adapter
   seam can be right; a two-adapter seam can still be premature.

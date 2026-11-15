@@ -29,6 +29,8 @@ work proceeds directly; neither this map nor the full skill chain is a required 
 | Performance | A baseline and a post-change measurement on the same input, host and conditions. |
 | New behavior | Acceptance checks that fail before the implementation and pass after it. |
 | Skill or documentation | The repository's deterministic checks; behavior claims need explicit eval. |
+| UI change, in any task, not only `/tdd` | The change exercised through its real entry point, assertions on the resulting state, and screenshots of the key states. |
+| UI demonstration | Add `/record-gif` only when a demonstration is wanted; a recording is never the pass criterion. |
 
 A pre-change run counts only for these claims; it is never a reassurance baseline.
 
