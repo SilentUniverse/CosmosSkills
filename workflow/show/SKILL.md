@@ -1,8 +1,8 @@
 ---
 name: show
 description: >-
-  Use only when the user invokes /show to explain a module or how an area of code works. Gives a one-screen purpose, module map, traced flow, and reading order; optional HTML creates a self-contained explainer.
-argument-hint: "Path/module/question to explain (optional: -html = page for humans)"
+  Use only when the user invokes /show to explain a module, how an area of code works, or why it is shaped that way. Gives a one-screen purpose, module map, traced flow, and reading order; optional HTML creates a self-contained explainer.
+argument-hint: "Path/module/question to explain (optional: -html = page for humans; -why = rationale from the record)"
 disable-model-invocation: true
 ---
 
@@ -38,3 +38,12 @@ No caller enumerations, no export lists; rg answers those. CONTEXT.md vocabulary
 Only a routing hint or invariant that passes the two-axis test (project knowledge in
 `../ARTIFACT-FORMAT.md`) is worth keeping → `/correct` moves it up the ladder; the explanation
 itself is never persisted.
+
+## `-why` — design rationale from the record
+
+Answer why the area is shaped this way from what its authors wrote, not from the code. Search in
+this order: ADRs, then the PR bodies and review discussion that introduced or later changed it,
+then commit messages, then `git blame` or `git log -L` on the lines in question. Each conclusion
+cites its source (ADR path, PR link, commit hash or blamed line). When no source answers, write
+无记录 and do not guess. Label your own inferences 推断, apart from cited reasons. Nothing is
+written.
