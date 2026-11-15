@@ -686,6 +686,31 @@ class GhLandingTests(LandFixture):
             self.assertIn("scope", report["error"])
             self.assertNotIn("pr merge", "\n".join(self.calls()))
 
+    def test_head_without_ci_configuration_does_not_wait_for_checks(self):
+        with tempfile.TemporaryDirectory() as directory:
+            work = self.gh_topic(directory)
+            land.CHECK_REGISTER_GRACE = 3600.0
+            (self._state / "no-required").write_text("", encoding="utf-8")
+            self.checks("none")
+            code, report = run_main(work, "--checks-timeout", "2")
+            self.assertEqual(0, code)
+            self.assertEqual({"scope": "none", "passed": []}, report["checks"])
+            self.assertEqual(2, self.calls().count("pr checks"))
+            self.assertIn("no CI configuration", "\n".join(report["steps"]))
+
+    def test_declared_ci_waits_for_its_checks_to_register(self):
+        with tempfile.TemporaryDirectory() as directory:
+            work = self.make_github_repo(Path(directory))
+            (work / ".github" / "workflows").mkdir(parents=True)
+            sha = self.topic_commit(work, "on: push\n", name=".github/workflows/ci.yml")
+            (self._state / "head").write_text(sha, encoding="utf-8")
+            land.CHECK_REGISTER_GRACE = 3600.0
+            (self._state / "no-required").write_text("", encoding="utf-8")
+            self.checks("none", [{"name": "tests", "bucket": "pass", "state": "SUCCESS"}])
+            code, report = run_main(work)
+            self.assertEqual(0, code)
+            self.assertEqual({"scope": "all", "passed": ["tests"]}, report["checks"])
+
     def test_head_without_any_checks_lands_and_reports_it(self):
         with tempfile.TemporaryDirectory() as directory:
             work = self.gh_topic(directory)

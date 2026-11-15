@@ -251,8 +251,23 @@ def _head_checks(number: Any, required: bool) -> List[Dict[str, Any]]:
     raise LandError(6, "gh pr checks failed: %s" % text.strip(), {})
 
 
-def _await_head_checks(number: Any, timeout: float, report: Dict[str, Any]) -> None:
+_CI_CONFIG_PATHS = (
+    ".github/workflows", ".circleci", ".buildkite", ".travis.yml",
+    "azure-pipelines.yml", "Jenkinsfile",
+)
+
+
+def _declares_ci(repo: Path, sha: str) -> bool:
+    listed = _git(repo, ["ls-tree", "-r", "--name-only", sha, "--", *_CI_CONFIG_PATHS], check=False)
+    return listed.returncode == 0 and bool(listed.stdout.strip())
+
+
+def _await_head_checks(
+    number: Any, timeout: float, report: Dict[str, Any], grace: Optional[float] = None
+) -> None:
     """Merge only after the PR head's required checks (every check when none is required) pass."""
+    if grace is None:
+        grace = CHECK_REGISTER_GRACE
     start = time.monotonic()
     while True:
         scope, checks = "required", _head_checks(number, True)
@@ -272,9 +287,12 @@ def _await_head_checks(number: Any, timeout: float, report: Dict[str, Any]) -> N
             }
             report.setdefault("steps", []).append("%s checks passed on the verified head" % scope)
             return
-        if not checks and elapsed >= min(CHECK_REGISTER_GRACE, timeout):
+        if not checks and elapsed >= min(grace, timeout):
             report["checks"] = {"scope": "none", "passed": []}
-            report.setdefault("steps", []).append("no checks reported for the verified head")
+            report.setdefault("steps", []).append(
+                "no checks reported for the verified head"
+                + ("" if grace else " (no CI configuration; local evidence is the merge basis)")
+            )
             return
         if elapsed >= timeout:
             raise LandError(
@@ -339,7 +357,8 @@ def land_gh(
         report.setdefault("steps", []).append("created PR %s" % pr.get("url"))
 
     try:
-        _await_head_checks(pr["number"], checks_timeout, report)
+        grace = CHECK_REGISTER_GRACE if _declares_ci(repo, sha) else 0.0
+        _await_head_checks(pr["number"], checks_timeout, report, grace)
     except LandError as exc:
         exc.report.setdefault("pr", pr.get("url"))
         raise

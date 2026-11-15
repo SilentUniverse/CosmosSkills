@@ -80,7 +80,11 @@ explicitly declares; otherwise omit it. The gh engine takes no verify command; b
 waits (`--checks-timeout`, default 1800 s) for the PR head's required checks, or every reported
 check when the base requires none. A failed or cancelled check stops with exit 5, checks still
 pending at the deadline with exit 4, and `checks` in the report names the scope that passed
-(`none` when the head reported no checks). CI after the merge is not awaited. The script's JSON
+(`none` when the head reported no checks). A verified head without CI configuration
+(`.github/workflows`, `.circleci`, `.buildkite`, `.travis.yml`, `azure-pipelines.yml`, `Jenkinsfile`)
+is not held for checks to register. CI is never a prerequisite: a repository without CI, without
+GitHub or without a remote lands (or commits locally) on the upstream local evidence the PR body
+cites; where CI exists it is an additional gate. CI after the merge is not awaited. The script's JSON
 report and exit code are authoritative; read them rather than deriving them from the repository's
 CI configuration.
 
@@ -159,7 +163,7 @@ Delete the message file once the commit exists; a failed commit keeps it for the
 Both landing engines enforce the same subject gate on the verified head before publishing.
 
 Report the commit hash and included paths. For a landed change, also report the pushed ref, pull
-request URL when applicable, the head checks that gated the merge (`checks`; say so when the scope
-was `none`), default-branch result, and any cleanup still pending. CI after the merge is not
+request URL when applicable, the head checks that gated the merge (`checks`; when the scope was
+`none`, say whether the repository has no CI and name the local checks the merge relied on), default-branch result, and any cleanup still pending. CI after the merge is not
 awaited; say so rather than leaving a green run implied. Layout follows
 [REPORT-FORMAT.md](../REPORT-FORMAT.md).
