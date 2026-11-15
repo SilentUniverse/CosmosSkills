@@ -9,6 +9,7 @@ Cosmos selects and judges checks; host/CI owns execution, scheduling, cancellati
 | Pure prose, comments or links with no executable consumer | Necessary structure/link checks; no unit suite |
 | Machine-consumed template, schema or runner configuration | Targeted producer/parser/consumer contract cases |
 | RED/GREEN | The case driving the behavior change |
+| Bug fix outside `/tdd` | Regression test per `CLAUDE.md` §2 |
 | Changed shared seam, fixture or integration behavior | Cases covering that changed contract and affected consumers |
 | Fixed human-review candidate | Declared scenario integration and artifact checks |
 | Fixed delivery candidate | Complete declared delivery gates |
