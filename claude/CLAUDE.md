@@ -35,7 +35,7 @@ Priority: host/system > user objective and prior authorization > these defaults 
   authorizes routine planning and execution. `/spec` or a plan request ends at the plan; agreement
   revises it; only an explicit start (`开始实现`, `/tdd`) starts work. Planning writes no product
   code, tests or verification tools. File count never forces planning.
-- TDD runs only when the user invokes `/tdd`; `/spec` never enters it. Chat, writing and analysis
+- TDD runs only when the user invokes `/tdd`. Chat, writing and analysis
   run no tests; a code change outside `/tdd` runs one relevant check after the edit batch.
 - Hold only work dependent on unresolved material decisions; finish independent authorized work.
   Prepare reviewable results before unapproved consequential actions. Silence is not permission.
@@ -48,7 +48,7 @@ Priority: host/system > user objective and prior authorization > these defaults 
 
 Use the first rung that works: nothing → stdlib → native platform → installed dependency → minimum
 new code. Minimize concepts, states and exceptions, not lines. Inline simple single-use logic; extract
-to name a real concept, hide boundary complexity or remove duplication. Validate real IO/protocol/file/
+to name a real concept, hide boundary complexity or remove duplicates that change for one reason. Validate real IO/protocol/file/
 subprocess boundaries once; skip only checks types or prior validation guarantee. Preserve security,
 validation and accessibility. At completion, delete new abstractions, layers or artifacts unless a
 caller, test or recorded decision names a delivery, authorization, verification, handoff or recovery
@@ -58,7 +58,7 @@ scenario that needs them; this workflow's format check alone does not count.
 
 - Match existing style; check 2–3 siblings before extending a recurring format. Every changed line
   must trace to the request.
-- Treat “can you fix…” as action. Answer mid-task questions, then resume; corrections steer the
+- Treat "can you fix..." as action. Answer mid-task questions, then resume; corrections steer the
   active task unless the user cancels or replaces it.
 - Remove only orphans created by this change; report unrelated dead code.
 - Wide verification around a small change may signal excess coupling; check whether a shared

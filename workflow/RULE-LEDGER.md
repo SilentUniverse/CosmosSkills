@@ -80,7 +80,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | §8 / delegation | 独立工作或判断才委派；覆盖分工、方案比较、独立找错各有输入与验收；预算约束尝试而非完成条件，整合检查实际候选 | 过程·经济 | 自审 | 65f1318、51a7d4a；借鉴 pstack [swarm](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/skills/swarm/SKILL.md) / [arena](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/skills/arena/SKILL.md) 的证据契约，不迁入调度、worker 数量或模型分配；行为收益未实测 |
 | §9 | 宿主特有假设先对运行中的宿主核实再复述 | 过程 | 自审 | 单宿主观察被当跨宿主要求；未溯源 |
 | §10 | ADB 前加载设备规则参考 | 过程 | 流程 | 7f56614（android-adb reference） |
-| §3·提取 | 简单单次逻辑内联；提取须命名真实概念、隐藏复杂边界或消除已有重复，复用次数不单独裁决 | 过程·经济 | 自审 | 无意义 helper 与为追求复用而拒绝有效边界；[OpenCode General Principles / Complex Logic](https://github.com/anomalyco/opencode/blob/7405f93721d1929d9716f91a17c277a022b690e5/AGENTS.md#L45)；行为收益未实测 |
+| §3·提取 | 简单单次逻辑内联；提取须命名真实概念、隐藏复杂边界或消除变化理由相同的重复；变化理由不同的相似代码各写一份，复用次数不单独裁决 | 过程·经济 | 自审 | 无意义 helper、为追求复用而拒绝有效边界，以及过度 DRY 把不同变化理由绑进一个抽象（用户要求，2026-11-15；codebase-design 同步）；[OpenCode General Principles / Complex Logic](https://github.com/anomalyco/opencode/blob/7405f93721d1929d9716f91a17c277a022b690e5/AGENTS.md#L45)；行为收益未实测 |
 | §3·末 | 完成时删除测试：删掉该工件须能指出会破坏的真实交付/授权/验证/交接/恢复场景，仅本工作流自身格式校验失败不算；设计侧 spec §3；深审 /atk Re-derive | 过程·经济 | 流程 | 死抽象累积税；未溯源 |
 
 ## B. spec — workflow/spec/SKILL.md（每次规划付费）
@@ -151,7 +151,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 |---|---|---|---|---|
 | Context | 暂存前必读四样 + 点名未跟踪 | 产物 | 流程 | 未溯源（审慎）/ pr-holds-scope-under-pressure |
 | Commit modes | 仅提交已验证的任务归属路径；禁 add 全量；`-local` 不推送 | 权威 | 流程 | 8472cfc、b46a888、pr-holds-scope-under-pressure |
-| PR body | 提交标题 `type(scope): 中文摘要`；gh 落地附三段式中文 PR 正文（摘要/证据/合并风险）；缺标题或摘要非中文即红灯，裸 commit 正文不作 PR 正文 | 产物 | 机器+流程 | PR 退化为裸 commit 正文、评审失据；show-me pr 模板对标借入；land.py `--pr-body-file` 三标题门 + test_land |
+| PR body | 提交标题 `type(scope): 中文摘要`；gh 落地附三段式中文 PR 正文（摘要/证据/合并风险），涉及 UI 时证据附关键状态截图路径或无截图原因；缺标题或摘要非中文即红灯，裸 commit 正文不作 PR 正文 | 产物 | 机器+流程 | PR 退化为裸 commit 正文、评审失据；show-me pr 模板对标借入；land.py `--pr-body-file` 三标题门 + test_land |
 | Land | 固定 PR head；确认 MERGED 才算落地，排队不算完成；禁 force-push 与 bypass | 权威 | 流程 | gh merge 的排队语义、--match-head-commit；pr-holds-scope-under-pressure |
 | Verify | `/pr` 不自建验证：消费上游证据；gh 引擎不预跑检查、不等 CI，只有 exit 4 代表被 required checks 阻塞 | 过程·经济 | 流程 | 落地前重复验证 + 落地后等 CI 的纯等待（PR #121 实测：落地 59s、CI 等待 6m30s）；未溯源 |
 

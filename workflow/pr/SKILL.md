@@ -131,7 +131,8 @@ summary is sufficient for a small change. All prose is Chinese; keep code identi
 commands and output verbatim. No preamble. 证据 cites the
 upstream phase's real checks — the exact failing→passing test or output — never a claim without a
 run, and never a run launched to produce one; when the upstream phase left no check, state that
-absence in one line. 合并风险 states the rollback class and the widest plausible impact of the
+absence in one line. A change that touches UI lists the screenshot paths of its key states, or
+states why none exist. 合并风险 states the rollback class and the widest plausible impact of the
 merge; a cheap two-way door with no outside consumers is a valid, complete answer. A re-run that
 finds the PR already open or merged leaves the existing body untouched. Delete the file once
 landing reports landed; keep it when a landing stopped short of success, so the retry reuses it.
