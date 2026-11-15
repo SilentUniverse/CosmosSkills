@@ -41,11 +41,13 @@ Append-only `.scratch/<task>/DECISIONS.md`, one line per decision:
 
 ## Acceptance report
 
-Write `.scratch/<task>/ACCEPTANCE.md` and send its summary as the final reply, in this order:
+Write `.scratch/<task>/ACCEPTANCE.md` and send its summary as the final reply. It opens with
+`开始时间` and `结束时间` lines, optionally `等待检查的总时长`; they are records, not a metric or
+a speed claim. Then, in this order:
 
 1. **需要你看的地方**: every `待确认` choice, failed or undeterminable requirement, 未证实 safety
-   fact, stop reason, deviation from the contract and disagreement with the independent review. Empty only when
-   none exist.
+   fact, principle-check defect, stop reason, deviation from the contract and disagreement with the
+   independent review. Empty only when none exist.
 2. **逐条验收**: one row per requirement in the user's words, with evidence (command and output
    path, screenshot, recording) and a verdict: 已验证, 未通过 or 无法判定. A requirement without
    observed evidence is 无法判定, never 已验证.
@@ -53,12 +55,19 @@ Write `.scratch/<task>/ACCEPTANCE.md` and send its summary as the final reply, i
    per-state evidence chosen by the feature-map fields in verify's `FEATURE-MAP.md`), each with its
    screenshot, plus a state diagram of the flow when it has branches. Add a recording when the
    contract asks for one; it never replaces the assertions.
-4. **怎么复核**: the commands or steps that reproduce the evidence, and the branch and commits.
+4. **原则检查**: one line each, with an evidence pointer: the five-element restatement written at
+   the start; the decision log kept; each measurement's selection rule fixed before it ran; each
+   new invariant taken through the `/correct` ladder; each bug fix given a regression test that
+   fails before and passes after where a cheap local test path existed, or the reason why not. An
+   item without evidence is a defect: list it in 需要你看的地方 and record its class in the
+   acceptance record for `/correct`.
+5. **怎么复核**: the commands or steps that reproduce the evidence, and the branch and commits.
 
 Independent review is on by default: a fresh read-only subagent receives only the original
 request, the contract, the diff and the raw evidence, without this report's verdicts, and returns
 its own verdict per requirement ([delegation](delegation.md), independent defects). For the user
-view it checks state coverage against the same feature-map fields. Without
+view it checks state coverage against the same feature-map fields, and it answers each 原则检查
+item from the raw evidence. Without
 subagents, disclose that the review was done inline.
 
 ## Acceptance record
