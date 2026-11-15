@@ -22,6 +22,12 @@ same author performs it inline; disclose that fallback.
   candidate: an isolated checkout at a commit SHA, or the current worktree left unwritten until
   the result returns. Only completion, commits and steps that depend on the result wait. Without
   subagents, use the host's background execution. Waiting on tests is never the critical path.
+  Exception: run in the current worktree when all three hold: nothing else can advance in
+  parallel; the same command's last measured run took ≤60 s (no measurement counts as slow); and
+  nothing writes the worktree while it runs. The exception saves only the subagent: the result
+  still names the SHA (`HEAD <SHA> + uncommitted changes` when dirty) and method, and pre-`/pr`
+  delivery checks, measurement comparisons and independent review still run in a background
+  subagent on a fixed SHA.
 - **Speed comparisons fix the selection rule first.** Before any candidate runs, state the metric,
   inputs, environment, sample count and the decision rule, including what difference counts as a
   tie. A rule chosen after seeing results is not a comparison.
@@ -31,6 +37,7 @@ same author performs it inline; disclose that fallback.
 - **Cross-vendor judge, optional, for high-risk review.** A model from another vendor may judge
   the same fixed candidate under the independent-defects contract. Ask the user before sending
   code or repository content to an outside provider; without approval, review stays in-host.
+
 ## Before and after the split
 
 Agree the shared interface and state ownership before independent implementation depends on them.
