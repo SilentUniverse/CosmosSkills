@@ -11,6 +11,11 @@ A tiny interactive terminal app that lets the user drive a state model by hand. 
 
 If the question is "what should this look like", that's the wrong branch. Use [UI.md](UI.md).
 
+When the question is whether every ordering of events (retry, cancel, timeout) keeps a rule, a small
+model checked by `/verify`'s [statechart](../../tooling/verify/STATECHART.md) runner explores all
+paths and returns the shortest bad one plus a chart. Driving a TUI by hand shows how the flow feels;
+it cannot show that no bad path exists.
+
 ## Process
 
 ### 1. State the question

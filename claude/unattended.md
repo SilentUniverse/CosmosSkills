@@ -53,7 +53,8 @@ a speed claim. Then, in this order:
    observed evidence is 无法判定, never 已验证.
 3. **用户视角**: for UI or multi-step flows, the key states as the user sees them (states and
    per-state evidence chosen by the feature-map fields in verify's `FEATURE-MAP.md`), each with its
-   screenshot, plus a state diagram of the flow when it has branches. Add a recording when the
+   screenshot, plus a state diagram of the flow when it has branches (a chart from verify's
+`STATECHART.md` when the flow was model-checked). Add a recording when the
    contract asks for one; it never replaces the assertions.
 4. **原则检查**: one line each, with an evidence pointer: the five-element restatement written at
    the start; the decision log kept; each measurement's selection rule fixed before it ran; each

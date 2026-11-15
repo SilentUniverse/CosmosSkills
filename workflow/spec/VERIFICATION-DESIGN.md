@@ -36,7 +36,9 @@ recovery or concurrent writers that example tests cover poorly. Select one prope
 owner, the test gap and the method; do not require a model for every stateful feature. Prefer making
 invalid states impossible through types/ownership when that suffices.
 
-Use an existing project checker when suitable. Otherwise name an execution prerequisite through
+Use an existing project checker when suitable. For a state flow, `/verify`'s bundled
+[statechart](../../tooling/verify/STATECHART.md) TLC runner is the default method; it also returns
+a chart for the user to judge. Otherwise name an execution prerequisite through
 `/verify`; [formal checks](../../tooling/verify/FORMAL.md) defines method selection, source mapping,
 negative controls and maintenance. Planning does not author executable models or tool tests.
 State assumptions and bounds in the planned evidence: a checked model is not proof that the

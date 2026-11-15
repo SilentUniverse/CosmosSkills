@@ -51,8 +51,9 @@ Increase the reproduction rate with bounded repetition, stress, or controlled ti
 where possible and record attempts/failures before and after; one passing run does not prove a fix.
 Stop tuning when the signal can distinguish hypotheses, or a declared cost bound is reached.
 
-For a costly ordering or recovery invariant, an existing model checker can find a short event
-sequence to try. Replay that sequence against the actual code with controlled barriers or faults;
+For a costly ordering or recovery invariant, a model checker can find a short event sequence to
+try; `/verify`'s [statechart](../../tooling/verify/STATECHART.md) runner checks a small TLA+ model
+and reports the shortest path to each broken rule. Replay that sequence against the actual code with controlled barriers or faults;
 classify model error and unreproduced risk separately from a demonstrated product failure. A missing
 reusable checker follows `/verify`'s [formal branch](../../tooling/verify/FORMAL.md) within the
 caller's execution authority. The model supplements the symptom loop rather than replacing it.
