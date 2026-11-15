@@ -160,13 +160,14 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | Land | 固定 PR head；确认 MERGED 才算落地，排队不算完成；禁 force-push 与 bypass | 权威 | 流程 | gh merge 的排队语义、--match-head-commit；pr-holds-scope-under-pressure |
 | Verify | `/pr` 不自建验证：消费上游证据；gh 引擎不预跑检查、不等合并后 CI，只有 exit 4 代表被 required checks 阻塞；CI 不是前提，无 CI 配置的 head 不等检查注册，依据是上游本地证据 | 过程·经济 | 流程 | 落地前重复验证 + 落地后等 CI 的纯等待（PR #121 实测：落地 59s、CI 等待 6m30s）；无 CI 项目空等 60s 注册宽限、措辞暗示 CI 必需（用户反馈 2026-11-15）；test_land 无 CI 配置不等待 / 声明 CI 等待注册 |
 
-## E. verify — formal checking
+## E. verify — formal checking and feature map
 
 | 定位 | 要旨 | 性质 | 层级 | 防什么失败 · 出处 / 探针 |
 |---|---|---|---|---|
 | FORMAL / Select and coverage | 先按用户损害与测试缺口选性质；按问题选状态模型、代码验证或生成输入测试，声明假设、范围与源映射 | 过程·产物 | 流程 | 借鉴 [pstack create-formal-verification-skill](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/skills/create-formal-verification-skill/SKILL.md)；只建立授权范围内的项目能力；无行为评估 |
 | FORMAL / Negative control | 区分代码突变与手写模型突变；破坏版本必须因目标性质失败，模型反例需真实代码回放才算产品失败 | 过程·产物 | 流程 | 防止把模型绿灯当实现证明、把模型突变当自动代码漂移检测；结构校验不验证证明的充分性 |
 | FORMAL / Maintain | 从上次对应源版本检查新写入者、移动与假设变化；区分模型漂移、产品缺陷与承诺变化，禁止为绿灯削弱性质 | 过程·产物 | 流程 | 借鉴 [pstack maintain-formal-verification-skill](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/skills/maintain-formal-verification-skill/SKILL.md)；复用规则仍由 TEST-POLICY 唯一负责 |
+| FEATURE-MAP / UI-TESTING / unattended | 用户视角功能地图逐功能写到达路径、适配器操作与复位、稳定选择器、要覆盖的状态、前置数据、截图与交叉核对、易错处；不写内部代码路径，运行时现场发现；UI 场景、验收报告「用户视角」与独立复核按同一字段 | 过程·产物 | 自审 | 验收报告只截几张图、漏 loading/empty/error 等状态，复核无据可依；借鉴 [pstack benny feature-map](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/automations/benny/skills/reproduce-and-fix-issues/references/feature-map.example.md)；无验收记录数据 |
 
 ## 已知攻法与兜底
 
