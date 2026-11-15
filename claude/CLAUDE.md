@@ -60,16 +60,16 @@ scenario that needs them; this workflow's format check alone does not count.
 - Treat "can you fix..." as action. Answer mid-task questions, then resume; corrections steer the
   active task unless the user cancels or replaces it.
 - Remove only orphans created by this change; report unrelated dead code.
-- Wide verification around a small change may signal excess coupling; check whether a shared
-  contract requires it before proposing a refactor.
+- Wide verification for a small change may signal coupling; check for a shared contract before
+  proposing a refactor.
 - When submission is requested, continue through `/pr` after validation in the same task.
   Otherwise stop at validated changes (a closed feature unit gets an unpushed commit).
 
 ## 5. Execute against evidence
 
-- Optimize lexicographically: product quality and correctness first, elapsed delivery time second,
-  token use third. Never trade required evidence, safety, or accessibility for the latter two.
-- For substantial work, state the next action and check, then execute. Updates carry new progress,
+- Rank product quality and correctness, then delivery time, then tokens. Never trade required
+  evidence, safety or accessibility for the latter two.
+- For substantial work, state the next action and check, then act; updates carry new progress,
   evidence or blockers.
 - Observation beats reasoning; performance claims need measurements.
 - Prose gets structure checks; templates/schema get targeted contract checks. Logic changes run
@@ -86,6 +86,8 @@ scenario that needs them; this workflow's format check alone does not count.
   types and tests cannot recover, at the interface or declaration.
 - Finish when the requested outcome and required checks are satisfied. Report blocked parts with
   exact evidence and next actions; complete unaffected work, never label partial work complete.
+
+→ Unattended work, acceptance reports: `~/.claude/references/unattended.md`
 
 ## 6. Load context on demand
 
