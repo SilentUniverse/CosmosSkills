@@ -67,6 +67,10 @@ When the diff changes tests or shared fixtures, Standards also applies the
 [test quality criteria](../tdd/tests.md); cost/trigger changes use [test policy](../TEST-POLICY.md).
 Review actual failure detection, isolation and distinct coverage before accepting deletion or cheaper checks.
 
+Standards always flags a comment that justifies a workaround (a timer, sleep, retry, broad catch or
+ordering hack) instead of fixing its cause, and a lint, type or test suppression without a reason
+and owner. The finding names the root cause to fix or the check that would encode the constraint.
+
 ### 4. Review each applicable axis
 
 Use independent read-only subagents when available and justified by scope or the caller's contract.
