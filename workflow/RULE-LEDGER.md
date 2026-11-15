@@ -150,6 +150,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | Performance attribution | Clarify | TEST-POLICY Measure checks work/output, comparable runs, observed limiter and end-to-end relevance; inspired by [pstack Explain the Number](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/skills/principle-explain-the-number/SKILL.md); no unsolicited benchmark or model trial |
 | Human approval | Keep | Spec/candidate/review digest and raw event; no workspace-following approval |
 | Tidy registry and recovery journal | Split | Retention policy stays; storage owner guarantees atomic safe deletion |
+| Tidy since catch-up | Add | tidy/SKILL Since：只读汇总某提交或日期以来的 Git 记录、未更正的「待确认」与未决人审，输出改了什么 / 等我决定的 / 风险与缺口，不建文件或状态；借鉴 [pstack ketchup](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/skills/ketchup/SKILL.md)；无验收记录数据 |
 
 ## D. pr — workflow/pr/SKILL.md（每次提交付费）
 
