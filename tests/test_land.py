@@ -85,13 +85,16 @@ exit 0
 
 def git(repo: Path, *args: str) -> None:
     subprocess.run(
-        ["git", "-C", str(repo), *args], check=True, capture_output=True, text=True
+        ["git", "-C", str(repo), *args], check=True, capture_output=True, text=True,
+        encoding="utf-8", errors="replace",
     )
 
 
 def git_out(repo: Path, *args: str) -> str:
+    # Git emits UTF-8 commit text; the Windows locale code page would garble the Chinese subjects.
     return subprocess.run(
-        ["git", "-C", str(repo), *args], check=True, capture_output=True, text=True
+        ["git", "-C", str(repo), *args], check=True, capture_output=True, text=True,
+        encoding="utf-8", errors="replace",
     ).stdout.strip()
 
 
