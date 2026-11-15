@@ -16,6 +16,21 @@ Independent research uses the coverage contract: distinct questions, primary sou
 and a bounded return. A requested independent judgment cannot be relabeled independent when the
 same author performs it inline; disclose that fallback.
 
+## Tests, measurements and judges
+
+- **Tests run in the background.** A subagent runs checks while development continues, on a fixed
+  candidate: an isolated checkout at a commit SHA, or the current worktree left unwritten until
+  the result returns. Only completion, commits and steps that depend on the result wait. Without
+  subagents, use the host's background execution. Waiting on tests is never the critical path.
+- **Speed comparisons fix the selection rule first.** Before any candidate runs, state the metric,
+  inputs, environment, sample count and the decision rule, including what difference counts as a
+  tie. A rule chosen after seeing results is not a comparison.
+- **Measurement and verification returns name the commit SHA and the exact method** (command,
+  inputs, environment, sample count). A return missing either is void: re-dispatch once with the
+  gap named; if it is still missing, record a verification gap, never a pass.
+- **Cross-vendor judge, optional, for high-risk review.** A model from another vendor may judge
+  the same fixed candidate under the independent-defects contract. Ask the user before sending
+  code or repository content to an outside provider; without approval, review stays in-host.
 ## Before and after the split
 
 Agree the shared interface and state ownership before independent implementation depends on them.

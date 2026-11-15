@@ -46,7 +46,8 @@ measuring a performance baseline.
    cases its AC need. Do not run them yet.
 2. **RED, once.** Run only those cases and confirm each fails for the missing behavior, not for an
    import/collection error; keep the command and its failing line for the change summary. The
-   tests are now frozen: change one only when it is wrong, and say why.
+   tests are now frozen: change one only when it is wrong, and say why. A background subagent runs
+   RED on a commit of the tests (`CLAUDE.md` §8) while implementation starts.
 3. **Implement** to completion. Do not run tests between edits unless diagnosing a specific failure.
 4. **GREEN, once.** Run the AC command once; that run is the completion evidence (feature units:
    `workflow-state.py run`, or for a gated feature the `evidence.py` prepare → host run → seal
