@@ -1,8 +1,8 @@
 ---
 name: tidy
 description: >-
-  Use when the user wants engineering status, temporary-file cleanup, or legacy-artifact normalization. Derives outstanding obligations from contracts and evidence, and removes only proven disposable outputs through their storage owner.
-argument-hint: "[inspect|-old] [feature]; default to the current goal"
+  Use when the user wants engineering status, a catch-up since a commit or date, temporary-file cleanup, or legacy-artifact normalization. Derives outstanding obligations from contracts and evidence, and removes only proven disposable outputs through their storage owner.
+argument-hint: "[inspect|-old|since <commit|date>] [feature]; default to the current goal"
 ---
 
 # Tidy
@@ -15,6 +15,7 @@ status; the storage owner owns deletion. Tidy creates no summary state or task l
 - `/tidy [feature]`: inspect and clean proven disposable outputs in scope.
 - `/tidy inspect [feature]`: report/preview only.
 - `/tidy -old <feature|repo>`: normalize historical artifacts in explicit scope.
+- `/tidy since <commit|date>`: catch-up summary only; see Since.
 - No identifiable goal: survey only. Whole-repository cleanup needs that scope.
 
 Use `workflow-state.py survey ROOT [--feature FEATURE] --format human`.
@@ -25,6 +26,20 @@ human-decision JSON records, validate their references, and match decisions by r
 Report readiness gaps, invalid/missing proof, pending fixed-object reviews, unresolved feedback
 and human-only checks separately. Query native task state for active use; do not copy it into units.
 Engineering `done` is not delivery acceptance.
+
+## Since
+
+`/tidy since <commit|date>` is read-only: no deletion, file or state. It gathers three sources from
+that point on: `git log` (each change merged, local-only or still open), `待确认` lines in
+`.scratch/*/DECISIONS.md` not corrected by a later line, and pending human reviews (the survey above
+plus each `ACCEPTANCE.md` 需要你看的地方). It reports three blocks:
+
+- **改了什么**: one plain sentence per change on what it changes for the user, with its state.
+  Hashes, paths and counts appear only when the user needs them to act.
+- **等我决定的**: each item with the decision, a recommendation, its evidence and risk. Write 没有
+  when none exist; never invent one.
+- **风险与缺口**: unverified results, 未证实 safety facts, missing evidence and sources that could
+  not be read.
 
 ## Retain or delete
 
