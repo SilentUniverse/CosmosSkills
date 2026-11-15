@@ -1,0 +1,5 @@
+{
+  "name": "@cosmos-skill/statechart",
+  "private": true,
+  "type": "module"
+}

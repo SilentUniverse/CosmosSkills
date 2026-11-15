@@ -14,7 +14,7 @@ A routine local change with adequate checks needs no formal model.
 
 | Question | Suitable evidence |
 |---|---|
-| Can cancellation, retry, recovery or concurrent events reach an invalid state? | A small transition model and model checker, such as TLA+/TLC, with explicit state bounds. |
+| Can cancellation, retry, recovery or concurrent events reach an invalid state? | A small transition model and model checker, such as TLA+/TLC with the bundled [statechart](STATECHART.md) runner, with explicit state bounds. |
 | Can the actual code violate an input, arithmetic or memory property? | A code-level verifier supported by the language/toolchain; record assumptions and bounds. |
 | Must the property hold beyond any finite explored bound? | A suitable proof with stated assumptions, if feasible. Finite exploration alone cannot establish this claim. |
 | No suitable verifier is available, or generated inputs are sufficient for the risk | Property-based, fuzz or differential tests of the real code. Label them testing, not formal proof. |

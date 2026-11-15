@@ -1,7 +1,7 @@
 ---
 name: verify
 description: >-
-  Use when reusable run, drive, observation or formal-checking capabilities are missing or have drifted. Builds or maintains project-local tools and their instructions; ordinary checks stay in the normal test workflow.
+  Use when reusable run, drive, observation or formal-checking capabilities are missing or have drifted, or to model-check a state flow and draw it as a statechart. Builds or maintains project-local tools and their instructions; ordinary checks stay in the normal test workflow.
 argument-hint: "Scenario or area; -maintain [area] to maintain existing verification assets"
 ---
 
@@ -31,6 +31,9 @@ can be enough. General-purpose frameworks and a whole-application inventory need
 
 Choose one branch:
 
+- A state flow, protocol, retry or cancellation path needs checking for bad states or drawing as a
+  statechart: [STATECHART.md](STATECHART.md) runs the bundled TLC checker on a small model. A design
+  question keeps the model in scratch and returns the chart and bug paths to the caller.
 - A model checker, code verifier or proof needs creating or synchronizing with source:
   [FORMAL.md](FORMAL.md) owns its construction, negative controls and maintenance. Follow that
   evidence procedure instead of the operation-capability proof below, then integrate with the caller.
