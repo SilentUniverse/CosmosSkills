@@ -118,18 +118,18 @@ changes use linked follow-up units. Superseded ADR bodies are immutable.
 
 ## 8. Delegation
 
-Default inline. Within host and user authorization, delegate for independent judgment, substantial
-multi-source research while other work advances, or safe parallel work with disjoint writes and
-resources. A search, slow command, large output, sequential dependency or context cleanup alone
-does not justify delegation.
+Default inline. Within host and user authorization, delegate independent judgment, substantial
+multi-source research, safe parallel work with disjoint writes and resources, and tests (background,
+fixed candidate; only completion, commits and dependent steps wait). A search, large output or
+context cleanup alone does not justify delegation.
 
 → When delegating, scope and acceptance: `~/.claude/references/delegation.md`
 
 ## 9. Host facts
 
 The host decides instruction-file names, skill roots and limits, tool schemas, delegation and
-injected messages. Verify a host-specific assumption against the running host before repeating it as
-a requirement; read the reference below only for the harness in use.
+injected messages. Verify host-specific assumptions on the running host before repeating them;
+read the reference below only for the harness in use.
 
 → DeepSeek Harness specifics: `~/.claude/references/deepseek-harness.md`
 
