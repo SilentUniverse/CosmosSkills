@@ -66,6 +66,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | §2·摄入 | 结果与约束已定即可推进；实现和验证细节由 agent 补足；文件数不触发规划 | 过程·经济 | 流程 | 仪式性确认税；7be5338 压缩摄入、51a7d4a fast path / spec-alignment-before-write |
 | §2·授权 | 既有授权在接受范围内继承；保留用户明确要求的 review | 权威 | 流程 | 结果分叉未问人；ALIGNMENT-LOOP 回执 / spec-holds-alignment-under-pressure |
 | §2·开工 | /spec 或计划请求止于计划；「好」「可以」等同意只修订或确认计划；明确开工语（开始实现、按计划做）或 /tdd 才实施 | 权威 | 流程 | 含糊同意被当开工，或明确开工仍被挡在计划；用户决定（2026-11-15）；spec-explicit-start-semantics、spec-plans-without-product-writes |
+| §2·修 bug 回归测试 / diagnose / TEST-POLICY | TDD 仍只由 /tdd 触发；修 bug 有便宜本地测试路径（已有框架、无需新工具或外部服务）时补改前失败、改后通过的回归测试，不建单元、不写运行日志、不改 FEATURE.md；否则跑一次相关检查并写明原因；规划不写测试、计划门不变 | 过程 | 流程 | 修 bug 只跑一次检查、同类缺陷复发无测试兜底；借鉴 pstack [tdd](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/skills/tdd/SKILL.md)；用户要求（2026-11-15）；无验收记录数据；降级条件：验收记录中修 bug 返工不再出现 |
 | §4·a | 扩展列表/表格/固定格式前先查 2–3 个同类条目并对齐结构 | 过程 | 自审 | 条目格式漂移；agent-skills AGENTS.md 对标借入；未溯源 |
 | §4·b | 回答插问后继续；纠正与行动请求更新当前目标 | 过程 | 流程 | 顺手扩权修改；dev-skills 对标借入（just-ask）；未溯源 |
 | §4·e | 按原始范围完成；已授权提交同任务进入 /pr | 产物 | 流程 | 未经检查的提交；9263475 / pr-holds-scope-under-pressure |

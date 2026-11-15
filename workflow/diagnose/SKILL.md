@@ -77,9 +77,9 @@ Tool preference:
 
 ## Phase 5 — Fix + regression test
 
-Write the regression test **before the fix**, but only if there is a **correct seam** for it: one where the test exercises the **real bug pattern** as it occurs at the call site. A too-shallow seam (single-caller test when the bug needs multiple callers, a unit test that can't replicate the triggering chain) gives false confidence.
+Whether to add a regression test follows `CLAUDE.md` §2. Write it **before the fix** at a **correct seam**: one where the test exercises the **real bug pattern** as it occurs at the call site. A too-shallow seam (single-caller test when the bug needs multiple callers, a unit test that can't replicate the triggering chain) gives false confidence.
 
-**If no correct test seam exists**, keep the executable repro as evidence, apply the confirmed fix, and report the regression-test gap. Do not stop the repair merely to redesign the architecture.
+**If no correct test seam exists**, there is no cheap test path: keep the executable repro as evidence, apply the confirmed fix, and report why no regression test was added. Do not stop the repair merely to redesign the architecture.
 
 If a correct seam exists:
 
@@ -92,7 +92,7 @@ If a correct seam exists:
 Required before declaring done:
 
 - [ ] Original repro passes after the fix; reuse the Phase 5 run if code/environment are unchanged
-- [ ] Regression test passes (or absence of seam is documented)
+- [ ] Regression test passes (or the reason none was added is reported)
 - [ ] Reuse the Phase 5 run; add a module check only for a named uncovered risk
 - [ ] Affected existing drivers and scenario instructions are updated and replayed
 - [ ] All `[DEBUG-...]` instrumentation removed (`rg` the prefix)

@@ -22,10 +22,10 @@ Priority: host/system > user objective and prior authorization > these defaults 
 
 - Before acting on a new request or material intent change, read every input it names in full
   (files, links, logs, threads). Restate in your own words its goal, pass/fail done check,
-  evidence to show, known facts and constraints, marking inferred items as assumptions. Not a
-  confirmation gate; never repeat unchanged intent; it grants no approval or scope.
+  evidence to show, known facts and constraints, marking inferred items as assumptions. Never
+  repeat unchanged intent; it grants no approval or scope.
 - Identify and preserve invariants. Prefer the equivalent design with the shorter correctness
-  argument; explain one only when the result or trade-off needs it.
+  argument.
 - Resolve observable facts yourself; infer routine details from the request, prior decisions and
   repository conventions. Choose reversible defaults and suitable checks.
 - Ask only about unresolved choices that materially change outcome, done check, public contract, scope,
@@ -34,8 +34,10 @@ Priority: host/system > user objective and prior authorization > these defaults 
   authorizes routine planning and execution. `/spec` or a plan request ends at the plan; agreement
   revises it; only an explicit start (`开始实现`, `/tdd`) starts work. Planning writes no product
   code, tests or verification tools. File count never forces planning.
-- TDD runs only when the user invokes `/tdd`. Chat, writing and analysis
-  run no tests; a code change outside `/tdd` runs one relevant check after the edit batch.
+- TDD runs only when the user invokes `/tdd`. Chat, writing and analysis run no tests. A bug fix
+  with a cheap local test path (existing framework, no new tool or service) adds a regression test
+  failing before, passing after, without units, run logs or FEATURE.md; otherwise run one relevant
+  check and say why not.
 - Hold only work dependent on unresolved material decisions; finish independent authorized work.
   Prepare reviewable results before unapproved consequential actions. Silence is not permission.
   Cite the blocking file/clause and missing decision; never invent an approval gate.
@@ -69,8 +71,7 @@ scenario that needs them; this workflow's format check alone does not count.
 
 - Rank product quality and correctness, then delivery time, then tokens. Never trade required
   evidence, safety or accessibility for the latter two.
-- For substantial work, state the next action and check, then act; updates carry new progress,
-  evidence or blockers.
+- For substantial work, state the next action and check, then act.
 - Observation beats reasoning; performance claims need measurements.
 - Prose gets structure checks; templates/schema get targeted contract checks. Logic changes run
   relevant cases once after the edit batch, not between edits; pre-change runs only reproduce a
@@ -85,7 +86,7 @@ scenario that needs them; this workflow's format check alone does not count.
 - Default no explanatory comments. Keep only contracts, reasons or external constraints that code,
   types and tests cannot recover, at the interface or declaration.
 - Finish when the requested outcome and required checks are satisfied. Report blocked parts with
-  exact evidence and next actions; complete unaffected work, never label partial work complete.
+  exact evidence and next actions; never label partial work complete.
 
 → Unattended work, acceptance reports: `~/.claude/references/unattended.md`
 
