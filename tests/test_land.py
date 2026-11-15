@@ -48,7 +48,27 @@ if [ "$1" = pr ]; then
       printf '{"number":7,"url":"http://example/pr/7","state":"OPEN","headRefName":"%s","baseRefName":"main","headRefOid":"%s"}\n' \
         "$head" "$sha" > "$STATE/pr.json"
       echo "http://example/pr/7"; exit 0;;
+    checks)
+      case "$*" in
+        *--required*)
+          if [ -f "$STATE/no-required" ]; then
+            echo "no required checks reported on the 'topic' branch" >&2; exit 1
+          fi;;
+      esac
+      if [ -f "$STATE/checks" ]; then
+        line=$(head -n 1 "$STATE/checks")
+        rest=$(tail -n +2 "$STATE/checks")
+        if [ -n "$rest" ]; then printf '%s\n' "$rest" > "$STATE/checks"; fi
+        if [ "$line" = none ]; then echo "no checks reported on the 'topic' branch" >&2; exit 1; fi
+        echo "$line"; exit 0
+      fi
+      echo '[{"name":"required","bucket":"pass","state":"SUCCESS"}]'; exit 0;;
     merge)
+      if [ -f "$STATE/old-gh" ]; then
+        case "$*" in
+          *match-head-commit*) echo "unknown flag: --match-head-commit" >&2; echo "Usage: gh pr merge" >&2; exit 1;;
+        esac
+      fi
       "$FAKE_GH_PYTHON" -c "
 import json, os
 path = os.path.join(os.environ['FAKE_GH_STATE'], 'pr.json')
@@ -65,13 +85,16 @@ exit 0
 
 def git(repo: Path, *args: str) -> None:
     subprocess.run(
-        ["git", "-C", str(repo), *args], check=True, capture_output=True, text=True
+        ["git", "-C", str(repo), *args], check=True, capture_output=True, text=True,
+        encoding="utf-8", errors="replace",
     )
 
 
 def git_out(repo: Path, *args: str) -> str:
+    # Git emits UTF-8 commit text; the Windows locale code page would garble the Chinese subjects.
     return subprocess.run(
-        ["git", "-C", str(repo), *args], check=True, capture_output=True, text=True
+        ["git", "-C", str(repo), *args], check=True, capture_output=True, text=True,
+        encoding="utf-8", errors="replace",
     ).stdout.strip()
 
 
@@ -385,6 +408,8 @@ class GhLandingTests(LandFixture):
         os.environ["PATH"] = str(self._bindir) + os.pathsep + self._old_path
         os.environ["FAKE_GH_STATE"] = str(self._state)
         self._patched_gh = None
+        self._check_timing = (land.CHECK_INTERVAL, land.CHECK_REGISTER_GRACE)
+        land.CHECK_INTERVAL, land.CHECK_REGISTER_GRACE = 0.0, 0.0
         if os.name == "nt":
             # CreateProcess resolves only .exe on PATH, so interception through
             # PATH is impossible; route every _gh call through bash explicitly.
@@ -400,6 +425,7 @@ class GhLandingTests(LandFixture):
             self._patched_gh = real_gh
 
     def tearDown(self):
+        land.CHECK_INTERVAL, land.CHECK_REGISTER_GRACE = self._check_timing
         if self._patched_gh is not None:
             land._gh = self._patched_gh
         os.environ["PATH"] = self._old_path
@@ -605,6 +631,79 @@ class GhLandingTests(LandFixture):
             self.assertEqual(
                 "", git_out(work, "ls-remote", "origin", "refs/heads/topic")
             )
+
+    def gh_topic(self, directory: str) -> Path:
+        work = self.make_github_repo(Path(directory))
+        sha = self.topic_commit(work, "change")
+        (self._state / "head").write_text(sha, encoding="utf-8")
+        return work
+
+    def checks(self, *responses: object) -> None:
+        (self._state / "checks").write_text(
+            "".join((r if isinstance(r, str) else json.dumps(r)) + "\n" for r in responses),
+            encoding="utf-8",
+        )
+
+    def test_failed_required_check_on_the_head_blocks_the_merge(self):
+        with tempfile.TemporaryDirectory() as directory:
+            work = self.gh_topic(directory)
+            self.checks([{"name": "required", "bucket": "fail", "state": "FAILURE"}])
+            code, report = run_main(work)
+            self.assertEqual(5, code)
+            self.assertFalse(report["landed"])
+            self.assertIn("required", report["error"])
+            self.assertNotIn("pr merge", "\n".join(self.calls()))
+
+    def test_pending_required_check_is_awaited_until_it_passes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            work = self.gh_topic(directory)
+            self.checks([{"name": "required", "bucket": "pending", "state": "IN_PROGRESS"}],
+                        [{"name": "required", "bucket": "pass", "state": "SUCCESS"}])
+            code, report = run_main(work)
+            self.assertEqual(0, code)
+            self.assertEqual({"scope": "required", "passed": ["required"]}, report["checks"])
+            calls = self.calls()
+            self.assertEqual(2, calls.count("pr checks"))
+            self.assertLess(calls.index("pr checks"), calls.index("pr merge"))
+
+    def test_checks_still_pending_at_the_deadline_stop_before_merge(self):
+        with tempfile.TemporaryDirectory() as directory:
+            work = self.gh_topic(directory)
+            self.checks([{"name": "required", "bucket": "pending", "state": "QUEUED"}])
+            code, report = run_main(work, "--checks-timeout", "0")
+            self.assertEqual(4, code)
+            self.assertIn("pending", report["error"])
+            self.assertNotIn("pr merge", "\n".join(self.calls()))
+
+    def test_without_required_checks_every_head_check_must_pass(self):
+        with tempfile.TemporaryDirectory() as directory:
+            work = self.gh_topic(directory)
+            (self._state / "no-required").write_text("", encoding="utf-8")
+            self.checks([{"name": "tests", "bucket": "pass", "state": "SUCCESS"},
+                         {"name": "scope", "bucket": "fail", "state": "FAILURE"}])
+            code, report = run_main(work)
+            self.assertEqual(5, code)
+            self.assertIn("scope", report["error"])
+            self.assertNotIn("pr merge", "\n".join(self.calls()))
+
+    def test_head_without_any_checks_lands_and_reports_it(self):
+        with tempfile.TemporaryDirectory() as directory:
+            work = self.gh_topic(directory)
+            (self._state / "no-required").write_text("", encoding="utf-8")
+            self.checks("none")
+            code, report = run_main(work)
+            self.assertEqual(0, code)
+            self.assertEqual({"scope": "none", "passed": []}, report["checks"])
+
+    def test_gh_without_match_head_commit_refuses_an_unpinned_merge(self):
+        with tempfile.TemporaryDirectory() as directory:
+            work = self.gh_topic(directory)
+            (self._state / "old-gh").write_text("", encoding="utf-8")
+            code, report = run_main(work)
+            self.assertEqual(2, code)
+            self.assertFalse(report["landed"])
+            self.assertIn("match-head-commit", report["error"])
+            self.assertEqual(1, self.calls().count("pr merge"))
 
 
 if __name__ == "__main__":

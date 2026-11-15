@@ -99,8 +99,10 @@ changed comment blocks, and challenge the most plausible failure against the evi
     python ../workflow-state.py close <root> <feat> T<n> --evidence "<log>; AC 1,2"
 
 `run` executes the named command from 共享验证 `cwd` and keeps `.scratch/<feat>/runs/<unit>-<command>-<id>.log`
-(command header, full output, `exit=` trailer). `close` never runs tests: it pins the log's SHA-256,
-checks the command and `exit=0`, appends the `完成` record with the unit's contract digest, and flips
+(command header, working tree before the run, full output, `exit=` trailer). `run` exits non-zero when
+the working files changed while the command ran. `close` never runs tests: it pins the log's SHA-256,
+checks the command, `exit=0`, the current tree and that no failed log of the same command shares that
+tree, appends the `完成` record with the unit's contract digest, and flips
 `status: done` in one locked write. A failure writes nothing. A feature with a recorded review gate
 (`Door: one-way` or `review: required`) instead needs fixed receipts from `evidence.py` bound to the
 accepted contract ([FULL-SUITE.md](FULL-SUITE.md)); pass them as `--evidence "<receipt>.json; AC 1"`.
