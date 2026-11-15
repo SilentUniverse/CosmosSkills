@@ -6,5 +6,5 @@ on-demand references from `claude/` in this checkout.
 
 Edit skill sources under `workflow/` and `tooling/`. Installed skill paths may
 be links to these sources. Keep shared policy in the linked file; skill-specific contracts belong
-in their skills. Validate instruction changes with the existing deterministic checks. Model-run
-behavior evaluations are opt-in; structural checks alone do not establish speed or quality gains.
+in their skills. Validate instruction changes with the existing deterministic checks. Structural checks alone do
+not establish speed or quality gains; behavior claims need acceptance-record data.

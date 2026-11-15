@@ -148,6 +148,9 @@ class InstallerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             probe = Path(tmp)
             target = probe / "skills"
+            target.mkdir()
+            for retired in ("eval.py", "eval_metrics.py"):
+                (target / retired).write_text("old installer copy\n", encoding="utf-8")
             result = subprocess.run(
                 [
                     "bash", str(ROOT / "scripts" / "install.sh"),
@@ -160,6 +163,8 @@ class InstallerTests(unittest.TestCase):
             )
             self.assertEqual(0, result.returncode, result.stderr)
             self.assertNotIn("(agents)", result.stdout)
+            for retired in ("eval.py", "eval_metrics.py"):
+                self.assertFalse((target / retired).exists(), retired)
             imported = subprocess.run(
                 [sys.executable, "-B", "-c", "import evidence, feature_doc"],
                 cwd=target,
@@ -167,7 +172,7 @@ class InstallerTests(unittest.TestCase):
                 text=True, capture_output=True, check=False,
             )
             self.assertEqual(0, imported.returncode, imported.stderr)
-            for script in ("eval.py", "workflow-state.py", "evidence.py"):
+            for script in ("workflow-state.py", "evidence.py"):
                 with self.subTest(script=script):
                     command = subprocess.run(
                         [sys.executable, "-B", str(target / script), "--help"],
@@ -350,7 +355,7 @@ class InstallerTests(unittest.TestCase):
                 "bash=%s\n--- stdout ---\n%s\n--- stderr ---\n%s"
                 % (self.bash_executable(), result.stdout, result.stderr),
             )
-            self.assertIn("Found 31 skills", result.stdout)
+            self.assertIn("Found 30 skills", result.stdout)
             self.assertIn("Link brief", result.stdout)
             self.assertIn("Link conflicts", result.stdout)
             self.assertIn("Recreate link atk", result.stdout)
@@ -358,7 +363,7 @@ class InstallerTests(unittest.TestCase):
             self.assertNotIn("Remove orphan link: " + str(target / "foreign-skill"), result.stdout)
             self.assertTrue(stale.is_file())
             self.assertFalse((probe / "claude").exists())
-            self.assertIn("eval_metrics.py", result.stdout)
+            self.assertNotIn("eval_metrics.py", result.stdout)
             self.assertNotIn("(agents)", result.stdout)
             self.assertNotIn("(DSH)", result.stdout)
 
@@ -396,7 +401,7 @@ class InstallerTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(0, result.returncode, result.stderr)
-            self.assertIn("Found 31 skills", result.stdout)
+            self.assertIn("Found 30 skills", result.stdout)
             self.assertIn("Link brief", result.stdout)
             self.assertIn("Link conflicts", result.stdout)
             self.assertIn("Recreate link atk", result.stdout)
@@ -404,7 +409,7 @@ class InstallerTests(unittest.TestCase):
             self.assertNotIn("Remove orphan link: " + str(target / "foreign-skill"), result.stdout)
             self.assertTrue(stale.is_file())
             self.assertFalse((probe / "claude").exists())
-            self.assertIn("eval_metrics.py", result.stdout)
+            self.assertNotIn("eval_metrics.py", result.stdout)
             self.assertNotIn(str(Path.home() / ".agents" / "skills"), result.stdout)
 
     @unittest.skipUnless(shutil.which("pwsh"), "PowerShell parser is unavailable")

@@ -59,5 +59,4 @@ zero counters, a retained real screenshot per declared state, and for `graded` a
 floors `close` re-checks. `runtime` uses deterministic assertions for behavior, capture, media
 decoding and runtime failures. `graded` additionally loads
 [experience-v1](../code-review/EXPERIENCE-RUBRIC.md) for visual dimensions assertions cannot express.
-Functional UI verification does not require opting into grading. Formal blind calibration belongs to
-explicit `/eval`.
+Functional UI verification does not require opting into grading.

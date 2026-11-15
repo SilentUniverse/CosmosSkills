@@ -34,7 +34,7 @@ The essential difference from conventional standards (SOLID, Clean Code, Design 
 
 **A machine gate.** `verify-artifacts.py` intercepts dependency cycles, missing FEATURE.md anchors or unit fields, broken AC-to-command-to-preflight mappings, and leftover legacy planning files. Native tools or CI run checks; Cosmos imports raw results and validates fixed inputs, exit results and log identity. Prose cannot self-report success.
 
-**Opt-in behavior evals.** The normal development path does not run them. Explicit `/eval smoke|full` sessions retain same-project previous/candidate/no-skill comparisons; `/eval export` creates a standalone public exam for native or arbitrary external harnesses, then grades returned evidence blindly in an N-way report. Reports keep Verified Success, speed, same-scope cost, alignment rounds, and handoff friction separate; raw cross-provider token and tool-call counters are diagnostic only. Without a real full run, the project makes no “faster” or “better” claim.
+**Behavior judged from acceptance records.** No model-run comparison trials. When the user reviews a result, the record keeps accepted, reworked or reverted plus the mistake class; `/correct` moves repeated classes up into architecture, types or checks and proposes demoting rules whose class stopped recurring. Without acceptance-record data, the project makes no “faster” or “better” claim.
 
 **Incremental collaboration.** Spec maintains requirements, units and reviewable scenes in one FEATURE.md. TDD
 continues authorized implementation and verification in the same task. Humans review a fixed,

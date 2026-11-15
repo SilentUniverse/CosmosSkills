@@ -7,8 +7,7 @@ disable-model-invocation: true
 
 # Write Skills
 
-Creating a skill from scratch: load [NEW-SKILL.md](NEW-SKILL.md). Behavior evaluation is opt-in;
-load [EVALS.md](EVALS.md) only when the user explicitly requests model-run evaluation.
+Creating a skill from scratch: load [NEW-SKILL.md](NEW-SKILL.md).
 
 ## Define the unit
 
@@ -66,7 +65,7 @@ preserve `only` when the false condition must forbid the action.
 A skill whose result reaches the user ends with its report contract: the fields, order and language
 of the final reply (`End with ...`). When the user corrects a skill's behavior, fix it at the highest
 level that works: a script, validator or schema check first, the governing rule only for judgment;
-add a regression eval case when the failure is reproducible.
+add a regression test or check when the failure is reproducible.
 
 Unstable facts route to live lookup. Repository facts route to repository inspection. Never freeze a
 fact in a skill merely to avoid one relevant tool call.
@@ -86,8 +85,8 @@ After the final edit:
 3. Run `/lint <scope>` and inspect `wc -l`; line count alone never fails acceptance.
 4. Confirm every renamed skill has no stale command, path, catalog, installer, test, or generated-doc
    consumer.
-5. Report deterministic evidence exactly. Without an authorized behavior evaluation, do not claim a
-   measured quality, speed, or token improvement.
+5. Report deterministic evidence exactly. Without acceptance-record data, do not claim a measured
+   quality, speed, or token improvement.
 
 ## Corpus audit
 

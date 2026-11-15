@@ -89,7 +89,7 @@ Observed on DSH 0.2.0-rc.2, macOS, 2026-09-30.
   files that name their `parentSession`.
 - `scripts/dsh_telemetry.py` (`list`/`summarize`) turns those logs into the same
   `wall_time_ms`/`input_tokens`/`output_tokens`/`tool_calls`/`retry_count` observation fields the
-  ZCode adapter fills; `evals/adapters/dsh.md` owns the reading rules. The harness persists no
+  ZCode adapter fills. The harness persists no
   provider-retry counter, so that field stays `null` (unmeasured), never `0`.
 
 ## Delegation and execution

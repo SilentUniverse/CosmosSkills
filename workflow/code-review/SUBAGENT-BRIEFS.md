@@ -31,4 +31,4 @@ runtime failures. Then score only the named dimensions and emit structured per-s
 scores, total, threshold result, evidence paths, and concrete visual defects. Do not infer business
 correctness from pixels; deterministic and Spec axes own that. A threshold miss is under-build of
 the experience contract. Missing evidence or an ambiguous judge result is `inconclusive`, never a
-pass. Formal eval calibration is outside this normal-development review. Under 400 words."
+pass. Under 400 words."

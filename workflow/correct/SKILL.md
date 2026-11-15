@@ -45,7 +45,8 @@ owner.
 - Run the check through the same command locally and, where the project has CI, in CI.
 - Keep a rule table in the project's agent instruction file (`AGENTS.md` or its equivalent): each
   rule and what enforces it. A repeat of a rule that is listed but unenforced moves up a level in
-  the same change. Drop a rule once its mistake can no longer happen.
+  the same change. Drop a rule once its mistake can no longer happen; when the acceptance
+  record shows its class stopped recurring, propose demoting it and let the user decide.
 
 An audit-only request returns the classes and proposed levels without edits. Otherwise each class
 is its own reviewable change; submission follows `/pr` when requested.

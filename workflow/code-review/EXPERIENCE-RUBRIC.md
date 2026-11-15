@@ -27,8 +27,7 @@ That state fails regardless of visual score.
 Default pass threshold: total ≥15/20 and no dimension below 2. SPEC may tighten or replace this only
 in the aligned experience contract. Report per-state dimension scores, total, pass/fail, evidence
 paths, and concrete defects. This normal-development review is an independent engineering check,
-not a scientific comparison claim. Explicit `/eval` campaigns that use AI grading still require a
-task-relevant labeled calibration set and declared accuracy threshold.
+not a scientific comparison claim.
 
 ## Canonical contract example
 
@@ -82,5 +81,4 @@ screenshot; `verify-artifacts.py` checks file signatures and non-zero dimensions
 exposes them cheaply. `graded` evidence additionally carries
 `judge: {"rubric_id":"experience-v1","total":17,"dimensions":{"information_hierarchy":3,
 "consistency":3,"readability":4,"state_clarity":3,"affordance":4}}`; the gate checks the
-contract's floors, and a threshold no run can ever reach is rejected at contract time. Scientific
-blind calibration belongs to explicit `/eval`, not this normal-development artifact.
+contract's floors, and a threshold no run can ever reach is rejected at contract time.
