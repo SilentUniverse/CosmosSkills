@@ -21,7 +21,8 @@ One screen, this shape:
 1. **Purpose** — the problem this area solves, one line.
 2. **Module map** — one line per module with a file:line entry point.
 3. **One traced flow** — walk one representative call path end-to-end; a static map gives
-   names, a trace gives behavior.
+   names, a trace gives behavior. Cite file:line for each step and label the flow `静态阅读`
+   or `已运行：<command>`.
 4. **Read first** — 2-3 files in reading order.
 
 ## `-html` — same shape, human page

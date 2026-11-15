@@ -59,6 +59,13 @@ Diagrams, testability patterns, and rejected framings live in
   it isolates real knowledge, a dependency, or a variation that actually exists. A single-adapter
   seam can be right; a two-adapter seam can still be premature.
 
+## Red flags
+
+- Callers must call methods in a fixed order or pair them by hand; the module should own that sequence.
+- A flag or mode parameter mirrors an implementation branch; callers now know the internals.
+- Tests reach past the interface to private state or internal seams to verify behavior.
+- A new seam names no knowledge, dependency or existing variation it isolates.
+
 ## Going deeper
 
 - **Deepening a cluster given its dependencies** — see [DEEPENING.md](DEEPENING.md): dependency categories, seam discipline, and replace-don't-layer testing.

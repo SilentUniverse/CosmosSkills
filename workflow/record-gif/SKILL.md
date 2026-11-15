@@ -60,3 +60,5 @@ first, then `--colors` or `--fps`.
 3. `git status --short`: frames and artifact only under ignored paths.
 4. Return the absolute path + provenance: which commit served the flow, and whether it was a
    real API run or a fixture.
+5. A GIF demonstrates; it does not prove. Name the assertion or scripted check that proves the
+   flow, or state that none ran.

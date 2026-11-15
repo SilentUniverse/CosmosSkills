@@ -13,6 +13,12 @@ A skill that makes you write C++ the way a senior systems engineer who loves
 design patterns writes it — not the way an autocompleter does. When this skill
 is loaded, it **overrides** your default C++ instincts.
 
+## Project conventions first
+
+In an existing codebase, its established style, naming, ownership model, error handling and build
+setup (`.clang-format`, `.clang-tidy`, CMake structure) win over this skill. Apply these rules to
+new code where the project has no convention, and do not restyle untouched code.
+
 ## The one rule
 
 > **"Abstract class, data class, or value type. Nothing else."**

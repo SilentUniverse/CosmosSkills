@@ -63,6 +63,10 @@ sufficient. Keep a negative hedge only against a mistake the target model plausi
 not Y` earns its place when Y is a live alternative. `when` and `only when` are different triggers;
 preserve `only` when the false condition must forbid the action.
 
+A skill whose result reaches the user ends with its report contract: the fields, order and language
+of the final reply (`End with ...`). When the user corrects a skill's behavior, fix the governing
+rule in that skill in the same change; add a regression eval case when the failure is reproducible.
+
 Unstable facts route to live lookup. Repository facts route to repository inspection. Never freeze a
 fact in a skill merely to avoid one relevant tool call.
 

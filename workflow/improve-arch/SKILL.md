@@ -49,7 +49,8 @@ reading call sites:
 A small idea belongs in the report; an audit alone does not authorize adding TODOs to code.
 Survey enough to compare credible candidates, then stop. Weigh net deletion: implementation plus dedicated
 tests plus docs, minus the glue that remains. A wrapper that relocates the same complexity is not
-a win.
+a win. Each candidate names what it removes (branches, duplicated checks, coordination callers
+repeat) or which lifecycle or state risk it makes impossible; a candidate that names neither is dropped.
 
 ### 2. Present candidates
 
