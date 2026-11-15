@@ -20,6 +20,18 @@ work proceeds directly; neither this map nor the full skill chain is a required 
 | Improve instructions | Explicit write-skill owns skill structure; lint owns its requested prose audit; brief adjusts presentation. Repeated deterministic errors belong in architecture/types/checks before more instructions. Model trials require explicit eval. |
 | Configure a project or produce a specialist artifact | Apply cpp-oop-style to C++ work. Cosmos-setup, setup-pre-commit, shell-guardrails, migrate-to-shoehorn, record-gif and teach keep their explicit triggers; they are not automatic setup or delivery stages. |
 
+## Minimum evidence by task type
+
+| Task | Minimum evidence |
+|---|---|
+| Fix a bug | The reported failure reproduced before the change; the same reproduction passes after it. |
+| Refactor | The same tests or captured output before and after the change, with identical results. |
+| Performance | A baseline and a post-change measurement on the same input, host and conditions. |
+| New behavior | Acceptance checks that fail before the implementation and pass after it. |
+| Skill or documentation | The repository's deterministic checks; behavior claims need explicit eval. |
+
+A pre-change run counts only for these claims; it is never a reassurance baseline.
+
 ## Handoff only what changes the next action
 
 Carry the accepted outcome and scope, relevant source/artifact identity, observed evidence, and

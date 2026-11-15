@@ -47,6 +47,7 @@ EXPECTED_CASE_IDS = {
     "small-settled-task-direct-tdd",
     "spec-afk-grill-compresses-human-decisions",
     "spec-alignment-before-write",
+    "spec-explicit-start-semantics",
     "spec-holds-alignment-under-pressure",
     "spec-plans-without-product-writes",
     "spec-verifier-preflight",

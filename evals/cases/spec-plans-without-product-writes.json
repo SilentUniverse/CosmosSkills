@@ -9,7 +9,7 @@
   ],
   "origin": {
     "kind": "routing",
-    "reference": "spec/SKILL.md Stop at the plan: every spec run ends at the plan; only the user's /tdd starts execution; missing capabilities are plan prerequisites"
+    "reference": "spec/SKILL.md Stop at the plan: every spec run ends at the plan; only an explicit start instruction or the user's /tdd starts execution; missing capabilities are plan prerequisites"
   },
   "task": {
     "prompt": "实现一套 Android ANR 自动分析能力，接入现有的崩溃上报管道，输出归因报告。做完。",

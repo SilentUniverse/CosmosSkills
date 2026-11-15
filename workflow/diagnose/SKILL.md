@@ -1,7 +1,7 @@
 ---
 name: diagnose
 description: >-
-  Use when the user reports a bug, exception, failing behavior, or performance regression and asks to diagnose or debug it. Builds a feedback loop through reproduction, minimization, hypotheses, instrumentation, repair, and regression testing.
+  Use when the user reports a bug, exception, failing behavior, or performance regression and asks to diagnose, debug or fix it. Builds a feedback loop through reproduction, minimization, hypotheses, instrumentation, repair, and regression testing.
 ---
 
 # Diagnose

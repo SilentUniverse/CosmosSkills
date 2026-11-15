@@ -68,7 +68,9 @@ Lead with scope, actionable findings, and checks actually run. A clean review is
 may integrate this result into its own report instead of repeating a full skill report.
 
 **发现** — manual and spec audit modes. Findings include location, exact quote, consequence, and disposition. 处置 is
-three-valued: 修复—改成什么 / 否决—为什么不改 / 保留—何时再动. No quote, no finding. All findings
+three-valued: 修复—改成什么 / 否决—为什么不改 / 保留—何时再动. No quote, no finding. 问题 states the
+[evidence strength](../REPORT-FORMAT.md#evidence-strength) reached; an impact-level finding names the
+fact its safety depends on and runs a counterexample against it when runnable. All findings
 live in one section, compact first and impact-level last; no separate 讲解 or 其他改动 sections
 follow.
 

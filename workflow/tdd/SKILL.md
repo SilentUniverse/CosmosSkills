@@ -37,8 +37,10 @@ Use `/verify` to maintain a drifted check; run affected existing checks at their
 and reuse matching evidence. A passing stale model cannot verify the changed implementation.
 
 Tests are written before the implementation so they stay an independent oracle; they are **run**
-only at the two points that carry information. No baseline run of existing or full suites before
-editing; existing failures surface in GREEN and are reported, not pre-checked.
+only at the two points that carry information. No reassurance baseline of existing or full suites
+before editing; existing failures surface in GREEN and are reported, not pre-checked. A pre-change
+run is evidence only when the claim needs it: reproducing a bug, pinning refactor equivalence or
+measuring a performance baseline.
 
 1. **Write.** For the whole unit (or inline goal), extend existing coverage first, then add the
    cases its AC need. Do not run them yet.

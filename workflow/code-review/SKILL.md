@@ -95,7 +95,9 @@ Then attack each finding before it ships: reproduce it against the quoted hunk, 
 refutations (the guard exists upstream, the case is unreachable, the convention was superseded,
 the requirement is met elsewhere), and label the verdict `confirmed` / `cannot-reproduce` /
 `refuted`. Only `confirmed` findings reach the report; a `cannot-reproduce` on something serious
-earns one line saying so. A Standards finding must cite the file that establishes the convention
+earns one line saying so. Each finding states its
+[evidence strength](../REPORT-FORMAT.md#evidence-strength); a high-risk finding names the fact its
+safety depends on and runs a counterexample against it when runnable. A Standards finding must cite the file that establishes the convention
 it enforces; a convention it cannot cite is a preference, not a finding.
 
 Present reports under `## Standards`, `## Spec`, and when activated `## Experience`; keep the axes
