@@ -64,5 +64,6 @@ subagents, disclose that the review was done inline.
 ## Acceptance record
 
 After the user reviews, append one line to `.scratch/acceptance-log.md` when the user wants a
-record: `<date> | <task> | 接受|返工|回滚 | <mistake class or -> | <pointer>`. `/correct` reads it
-for repeated classes. Widening the default authority is the user's decision; cite the record.
+record: `<date> | <task> | 接受|返工|回滚 | <mistake class or -> | <pointer>`. `/correct` also
+appends first-time correction classes here and reads it for repeated classes. Widening the
+default authority is the user's decision; cite the record.

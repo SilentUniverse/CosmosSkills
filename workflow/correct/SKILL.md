@@ -15,10 +15,17 @@ that compiles. A change that looks right from one file must be right for the who
 ## 1. Find mistake classes
 
 With a named mistake, start from it. Otherwise read recent commits and reverts, review comments,
-the project's agent instruction files, `.scratch/acceptance-log.md` when present, user corrections
-in this session, and comments that justify
-a workaround (timers, sleeps, retries, suppressions). Group mistakes into classes. A class counts
-once it has happened twice; a single incident gets an in-place fix and no new rule.
+the project's agent instruction files, user corrections in this session, and comments that justify
+a workaround (timers, sleeps, retries, suppressions). For a review of delegated or unattended work,
+also read `.scratch/acceptance-log.md`, each `.scratch/*/DECISIONS.md` (reverts, stops, overturned
+`待确认`) and `ACCEPTANCE.md` (未通过 rows, disagreements with the independent review), and classify
+every 返工 or 回滚 cause.
+
+Group mistakes into classes. A first occurrence gets an in-place fix and one line in
+`.scratch/acceptance-log.md`: `<date> | <task> | 返工 | <class> | <pointer>`. It creates no rule.
+The line records a mistake class, not a conversation turn, so it does not conflict with `CLAUDE.md`
+§5 "never log a turn". When the log shows a class a second time, move it up: architecture → types →
+check → test → a rule line in the project's `AGENTS.md`.
 
 ## 2. Fix each class at the highest level that works
 
@@ -31,7 +38,8 @@ once it has happened twice; a single incident gets an in-place fix and no new ru
    occurrences, then migrate the old ones.
 4. **A behavior test.** Fix or delete tests that pass when the behavior breaks or fail when only
    internals change ([test quality](../tdd/tests.md)).
-5. **Prose last**, only for judgment calls nothing can check. Nothing fails when an agent skips it.
+5. **Prose last** (a rule line in `AGENTS.md`), only for judgment calls nothing can check. Nothing
+   fails when an agent skips it.
 
 Use the project's existing linters, type checker and test runner; add a tool only when none covers
 the class (`CLAUDE.md` §3 ladder). An exception lives on the offending line with a reason and an
