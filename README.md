@@ -97,20 +97,30 @@ Agent 动手前会读完你点名的所有材料，再用自己的话转述这�
 
 | 场景 | 怎么说 | 应该看到的证据 |
 |---|---|---|
-| 修 bug | 「修一下 X」+ 复现步骤或报错 | 修复前失败、修复后通过的同一条复现命令 |
+| 修 bug | 「修一下 X」+ 复现步骤或报错 | 修复前失败、修复后通过的同一条复现命令；有现成测试框架时补一条回归测试，没补会写明原因 |
 | 小改动 | 直接说目标，按上面五行写 | 相关测试或检查的实际输出 |
 | 大功能 | `/spec <需求>`，确认后说「开始实现」 | 每个单元的运行日志与 `close` 记录 |
-| 审查 | `/atk <目标>` 或「审一下这个分支」 | 每条结论附文件位置与验证方式 |
+| 审查 | `/atk <目标>` 或「审一下这个分支」 | 每条结论附文件位置与验证方式；高风险结论点名它依赖的事实，没跑通的标「未证实」 |
+| 问为什么这样设计 | `/show -why <区域>` | 每条理由附 ADR、PR、提交或 blame 出处；查不到写「无记录」 |
 | 交付 | `/pr`；只本地提交用 `/pr -local` | PR 链接、检查结果、合并提交 |
-| 交给它做、明天验收 | 按五行写清需求，再说「我明早看」 | 开头的「需要你看的地方」、逐条验收表（已验证 / 未通过 / 无法判定）和独立复核结论 |
+| 交给它做、明天验收 | 按五行写清需求，再说「我明早看」 | 起止时间、开头的「需要你看的地方」、逐条验收表（已验证 / 未通过 / 无法判定）、原则检查和独立复核结论 |
+| 回来补课 | `/tidy since <提交或日期>` | 改了什么、等你决定的、风险与缺口三块；不写文件 |
+| 复盘返工 | `/correct` | 返工与回滚按错误类别归类；第一次只记类别，同类第二次才落到架构、类型、检查或测试 |
 
 交出去做时，默认只在独立分支上本地提交，不推送、不合并；需要更多权限，交代时明说。
 
 较大任务结束时，Agent 报告结果、交付物、跑了哪些检查及结果、没验证的部分和未解决的问题。
+
+验收报告的「原则检查」逐项核对：开头是否转述五项、决策日志是否写、测量是否事先定好选法、
+新不变量是否走 `/correct` 阶梯、修 bug 是否补了回归测试。查不到算一条缺陷，记进验收记录。
+
 ## 日常流程
 
 入口仍是当前任务。需要判断下一步时，按[工作流路由](claude/workflow-routing.md)选择缺失的能力，
 得到结果后回到原任务；不要求依次调用所有 skill。规划先检查真实调用方式、状态归属和验收证据。
+改动现有代码时，[影响分析](workflow/spec/impact-detection.md)要点名「这样改是安全的」依赖的一两个事实；
+规划阶段证明不了的记为假设，执行阶段再用真实运行证明。UI 与多步流程按
+[功能地图字段](tooling/verify/FEATURE-MAP.md)选要覆盖的状态和每个状态的证据。
 高风险时序问题可选用[形式化检查](tooling/verify/FORMAL.md)：规划确定性质与范围，授权执行时再
 通过 verify 建立或维护检查器，保留反例、代码对应关系和证明边界。
 
@@ -124,7 +134,7 @@ Cosmos 只定义输入、写入边界和所需证据；实际并发、隔离和�
 
 按任务规模选路线，只有第三种落文件：
 
-1. **直接做**：实现后跑一次相关测试；要提交时用 `/pr`。
+1. **直接做**：实现后跑一次相关测试；修 bug 时有便宜的本地测试路径就补回归测试；要提交时用 `/pr`。
 2. **先想清楚**：在对话或原生 plan mode 里给出内联计划，确认后直接实施；不建文件，不跑工件检查。
 3. **跨多个会话的大功能**：`/spec` 写唯一的 `.scratch/<feat>/FEATURE.md`（合同段 + 任务单元）。
    每个单元：一次写好测试 → RED 跑一次 → 实现（中途不跑）→ `workflow-state.py run` 跑一次 GREEN →
@@ -149,6 +159,9 @@ Cosmos 只定义输入、写入边界和所需证据；实际并发、隔离和�
 | 设备/日志谓词验证 | `/tdd -log` |
 | 上下文快满 / 换会话 | `/handoff` → 新会话 `/resume` |
 | 清理 / 只检查 | `/tidy <feature>` / `/tidy inspect <feature>` |
+| 某个时间点以来的汇总 | `/tidy since <提交或日期>` |
+| 设计依据 | `/show -why <区域>` |
+| 方案拿不准、要比几个原型 | `prototype` 多候选：先定选法 → 2–3 个独立工作树 → 选底子嫁接 → 重验 |
 | 交付审计用的固定证据 | `python <skills-root>/evidence.py --help` |
 | 对抗审查 / 只读审查 | `/atk <目标>` / `/atk -r <目标>` |
 | 提交当前已验证范围 | `/pr`；只本地提交用 `-local` |
@@ -175,7 +188,7 @@ HTML bridge 在原生 UI 能保留版本、字段、原始事件及落盘确认�
 | 设计与分析 | [grill](workflow/grill/SKILL.md)、[prototype](workflow/prototype/SKILL.md)、[improve-arch](workflow/improve-arch/SKILL.md)、[codebase-design](workflow/codebase-design/SKILL.md)、[domain-modeling](workflow/domain-modeling/SKILL.md) |
 | 审查与修复 | [code-review](workflow/code-review/SKILL.md)、[atk](workflow/atk/SKILL.md)、[diagnose](workflow/diagnose/SKILL.md)、[conflicts](workflow/conflicts/SKILL.md)、[pr](workflow/pr/SKILL.md) |
 | 阅读与知识 | [show](workflow/show/SKILL.md)、[research](workflow/research/SKILL.md) |
-| 指令维护 | [correct](workflow/correct/SKILL.md)（反复出现的错误落到架构、类型、检查或测试）、[write-skill](workflow/write-skill/SKILL.md)、[lint](workflow/lint/SKILL.md)、[brief](workflow/brief/SKILL.md) |
+| 指令维护 | [correct](workflow/correct/SKILL.md)（复盘验收产物；错误第一次只记类别，第二次落到架构、类型、检查或测试）、[write-skill](workflow/write-skill/SKILL.md)、[lint](workflow/lint/SKILL.md)、[brief](workflow/brief/SKILL.md) |
 | 专项工具 | [verify](tooling/verify/SKILL.md)、[record-gif](workflow/record-gif/SKILL.md)、[cpp-oop-style](workflow/cpp-oop-style/SKILL.md)、[cosmos-setup](workflow/cosmos-setup/SKILL.md) |
 | 项目配置 | [shell-guardrails](tooling/shell-guardrails/SKILL.md)、[setup-pre-commit](tooling/setup-pre-commit/SKILL.md)、[migrate-to-shoehorn](tooling/migrate-to-shoehorn/SKILL.md) |
 | 工程之外 | [teach](workflow/teach/SKILL.md)（多会话学习工作区，只显式调用） |
