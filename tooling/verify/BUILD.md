@@ -35,6 +35,9 @@ Write only observed commands and supported behavior into the local instructions:
 | Recover | How to inspect an interrupted operation and restore owned state. Never repeat a write whose outcome is unknown without resolving that outcome. |
 | Clean up | Resource handles acquired by the run, precise stop and cleanup commands, and evidence retained outside disposable state. Check before acting on a stale handle. |
 
+A capability that drives a running UI, device or desktop instance adds the capability report,
+screenshot and recording operations of the [control adapter contract](ADAPTER.md).
+
 Keep target checks read-only; a reset or relaunch is a separate explicit operation. Prefer stable
 handles over coordinates. Report the target, completed operation, observed state, failure stage and
 evidence location compactly using the existing runner's format. Reuse caller-provided run identity;
@@ -55,6 +58,16 @@ Record knowledge needed to reach and operate the selected feature: entry points,
 the relevant driver commands, observation pitfalls and links to existing scenario tests. Start with
 the selected feature; add an index when multiple entries need routing. Include source or test pointers
 for maintenance. Selectors and action sequences belong in the driver when it already encodes them.
+
+List each feature by state (for example empty, loading, loaded, error, offline, permission denied).
+Per state, name how to reach it, the user operation, the expected observation with its source
+(requirement or test), the evidence that proves it (assertion, screenshot, recording) and the
+scenario command that writes that evidence:
+
+| State | Reach | Operate | Expect (source) | Evidence | Scenario |
+|---|---|---|---|---|---|
+
+A state without a runnable scenario is an explicit gap.
 
 Requirements and tests own expected behavior; the map links to them. Code shows the current
 implementation and cannot authorize a changed expectation. Run coverage and results belong in

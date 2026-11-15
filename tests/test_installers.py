@@ -36,6 +36,7 @@ class InstallerTests(unittest.TestCase):
             self.assertEqual(0, installed.returncode, installed.stdout + installed.stderr)
             for relative in (
                 "verify/SKILL.md", "verify/BUILD.md", "verify/MAINTAIN.md",
+                "verify/ADAPTER.md", "verify/DRIVERS.md",
                 "ARTIFACT-FORMAT.md", "evidence.py", "feature_doc.py",
                 "tdd/UI-TESTING.md", "TEST-POLICY.md",
             ):
