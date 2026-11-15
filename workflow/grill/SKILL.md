@@ -7,7 +7,9 @@ description: >-
 # Grill
 
 Start from first principles. Reuse settled requirements and authorization from the whole task,
-including `/spec` artifacts. Investigate repository-answerable facts before questioning the user.
+including `/spec` artifacts. Investigate repository-answerable facts before questioning the user;
+when a read-only command or a quick test within authority settles a question, run it and report
+the observed result instead of asking.
 
 ## Decision tree
 

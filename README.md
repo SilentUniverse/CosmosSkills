@@ -71,6 +71,34 @@ tracker/路径、遗留规划文件折叠进 FEATURE.md、旧 `docs/agents/domai
 
 ---
 
+## 怎么下指令
+
+日常只需要三个入口：
+
+1. **直接说目标**：小改动、修 bug、解释代码。Agent 按[工作流路由](claude/workflow-routing.md)自己选能力。
+2. **`/spec`**：需要先定方案、跨多个会话或涉及公共接口时。计划给出后，回复「好」「可以」只表示认可计划；
+   说「开始实现」「按计划做」或 `/tdd` 才动手。
+3. **`/pr`**：提交、推送或合并已验证的改动。
+
+把话说成三行，Agent 就不用猜：
+
+```text
+目标：<要达成的结果>
+怎么算做好：<能运行的检查或可观察的现象，例如某条命令通过、某个页面显示什么>
+不要动：<不能改的文件、接口或行为>
+```
+
+常见场景：
+
+| 场景 | 怎么说 | 应该看到的证据 |
+|---|---|---|
+| 修 bug | 「修一下 X」+ 复现步骤或报错 | 修复前失败、修复后通过的同一条复现命令 |
+| 小改动 | 直接说目标，按上面三行写 | 相关测试或检查的实际输出 |
+| 大功能 | `/spec <需求>`，确认后说「开始实现」 | 每个单元的运行日志与 `close` 记录 |
+| 审查 | `/atk <目标>` 或「审一下这个分支」 | 每条结论附文件位置与验证方式 |
+| 交付 | `/pr`；只本地提交用 `/pr -local` | PR 链接、检查结果、合并提交 |
+
+较大任务结束时，Agent 报告结果、交付物、跑了哪些检查及结果、没验证的部分和未解决的问题。
 ## 日常流程
 
 入口仍是当前任务。需要判断下一步时，按[工作流路由](claude/workflow-routing.md)选择缺失的能力，
@@ -133,10 +161,11 @@ HTML bridge 在原生 UI 能保留版本、字段、原始事件及落盘确认�
 | 规划、方法与整理 | [spec](workflow/spec/SKILL.md)、[tdd](workflow/tdd/SKILL.md)、[tidy](workflow/tidy/SKILL.md) |
 | 设计与分析 | [grill](workflow/grill/SKILL.md)、[prototype](workflow/prototype/SKILL.md)、[improve-arch](workflow/improve-arch/SKILL.md)、[codebase-design](workflow/codebase-design/SKILL.md)、[domain-modeling](workflow/domain-modeling/SKILL.md) |
 | 审查与修复 | [code-review](workflow/code-review/SKILL.md)、[atk](workflow/atk/SKILL.md)、[diagnose](workflow/diagnose/SKILL.md)、[conflicts](workflow/conflicts/SKILL.md)、[pr](workflow/pr/SKILL.md) |
-| 阅读与知识 | [map](workflow/map/SKILL.md)、[show](workflow/show/SKILL.md)、[research](workflow/research/SKILL.md)、[teach](workflow/teach/SKILL.md) |
+| 阅读与知识 | [map](workflow/map/SKILL.md)、[show](workflow/show/SKILL.md)、[research](workflow/research/SKILL.md) |
 | 指令维护 | [write-skill](workflow/write-skill/SKILL.md)、[lint](workflow/lint/SKILL.md)、[brief](workflow/brief/SKILL.md)、[eval](workflow/eval/SKILL.md) |
 | 专项工具 | [verify](tooling/verify/SKILL.md)、[record-gif](workflow/record-gif/SKILL.md)、[cpp-oop-style](workflow/cpp-oop-style/SKILL.md)、[cosmos-setup](workflow/cosmos-setup/SKILL.md) |
 | 项目配置 | [shell-guardrails](tooling/shell-guardrails/SKILL.md)、[setup-pre-commit](tooling/setup-pre-commit/SKILL.md)、[migrate-to-shoehorn](tooling/migrate-to-shoehorn/SKILL.md) |
+| 工程之外 | [teach](workflow/teach/SKILL.md)（多会话学习工作区，只显式调用） |
 
 ## 维护
 

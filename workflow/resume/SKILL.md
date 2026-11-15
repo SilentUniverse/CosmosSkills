@@ -20,7 +20,9 @@ The note and history are leads; the repository is the truth.
    check only when the working tree differs from the note or last checkpoint commit, or the note
    names a check as unverified. A failure is the first thing to fix.
 4. **Continue** with the note's next action, or the next ready unit. Prior approvals are valid only
-   through their original record or the user's words, never a summary.
+   through their original record or the user's words, never a summary. An inherited conclusion
+   the next action depends on (`推断：` lines, root causes, "already fixed") is a hypothesis until
+   one cheap check reconfirms it in the current tree.
 
 Delete the note once its remaining facts have owners or are done; another boundary writes a fresh
 one through [handoff](../handoff/SKILL.md).

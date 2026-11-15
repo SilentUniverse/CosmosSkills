@@ -48,6 +48,12 @@ When the user uses vague or overloaded terms, propose a precise canonical term. 
 
 When domain relationships are being discussed, stress-test them with specific scenarios. Invent scenarios that probe edge cases and force the user to be precise about the boundaries between concepts.
 
+### A new concept must pay for itself
+
+A new domain type or state in code earns its place when it removes branches callers repeat or
+makes an invalid lifecycle state unrepresentable. Name which; otherwise keep the existing model and
+record the term only.
+
 ### Cross-reference with code
 
 Check claimed current behavior against code. An explicit requested change may intentionally differ;

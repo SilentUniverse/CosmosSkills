@@ -47,7 +47,8 @@ A fact is recorded only if **both** hold:
 2. **Bites if missing** — a normal task in this area goes wrong or takes a wrong turn without it.
    Curiosities and harmless trivia fail this axis.
 
-Decisions → ADR. Vocabulary → CONTEXT.md.
+Decisions → ADR. Vocabulary → CONTEXT.md. Task progress → FEATURE.md. One-time explanation →
+`/show`. `CODEBASE.md` holds structure, routing and invariants only.
 
 Facts promoted from an accepted spec enter through this same test and carry their recorded scope,
 source and reason; when the code, schema or decision a promoted fact cites changes, revalidate or

@@ -31,10 +31,14 @@ it is a pointer card, not a journal. Include only populated lines:
 - 目标：<remaining outcome and constraints the user stated in this session>
 - 状态：<HEAD sha; feature + next ready unit, or the dirty files that matter>
 - 下一步：<the single next action and how to tell it succeeded>
+- 已验证：<facts a check proved, each with its command and log or commit>
 - 已定：<confirmed decisions not yet recorded elsewhere>
 - 待定：<open questions for the user>
 - 注意：<findings that would otherwise be rediscovered: dead ends, failing commands, traps>
 ```
+
+A conclusion no check proved (a suspected root cause, "X is unused", "Y works") goes under 注意 as
+`推断：<claim>; 确认方式：<check>`; never list it under 已验证.
 
 Point to files, units, commits and logs instead of copying them. Exclude secrets. Skip the note
 entirely when Git and FEATURE.md already say everything above. Report the note path (or "no note
