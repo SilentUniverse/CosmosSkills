@@ -1,7 +1,7 @@
 ---
 name: cosmos-setup
 description: >-
-  Use only when the user invokes /cosmos-setup for non-default tracker or path configuration, legacy planning-file folding, or domain.md migration. Configures deviations and migrations; default local Markdown repositories need no setup.
+  Use only when the user invokes /cosmos-setup for non-default tracker or path configuration, legacy planning-file folding, domain.md migration, or a read-only inventory of installed MCP servers and verification drivers. Configures deviations and migrations; default local Markdown repositories need no setup.
 disable-model-invocation: true
 ---
 
@@ -58,6 +58,23 @@ The bundled Python workflow tools use `.scratch/`; a path declaration alone does
 **Case 5 — Legacy planning files.** Fold them by hand into one `FEATURE.md` per feature, then
 delete them; dry-run first ([MIGRATION.md](MIGRATION.md)).
 
+**Case 6 — Verification capability inventory.** The user asks which MCP servers or drivers are
+available for UI, device or desktop verification. Detect only: never install, upgrade, enable or
+configure anything, never grant or prompt for an OS permission, and write nothing.
+
+- MCP servers: read the MCP configuration files the host uses (`.mcp.json` and the host's project and
+  user configuration). Report server names and transport only, never environment values, headers or
+  tokens. A configured server is not proof that it connects. A host listing that health-checks
+  servers (for example `claude mcp list`) starts them, so run it only when the user accepts that.
+- Drivers: check presence and version of the drivers [verify's recipes](../../tooling/verify/DRIVERS.md)
+  name, for example `xcrun simctl help`, `xcodebuild -version`, `idb --help`, `appium --version`,
+  `ffmpeg -version`, and the project's own `playwright` or `electron` dependency. Use only probes that
+  start no browser, device or application. A permission that cannot be read without a prompt is
+  `unknown`.
+- Report one table: capability, mechanism, status (`available`, `missing` or `unknown`) and the
+  probe command with its output line. Installing a missing driver is the user's decision, outside
+  this skill. `/verify` adapters still print their own capability report at run time.
+
 
 ### 3. The decisions (deviation cases only)
 
@@ -94,5 +111,5 @@ CODEBASE.md (## Verifier commands + map). Optional: CONTEXT.md, docs/adr/.
 
 ### 5. Done
 
-Verify: exactly one block (Case 1: no writes), and any Case 2 fold left no `domain.md` or a backup.
+Verify: exactly one block (Case 1 and Case 6: no writes), and any Case 2 fold left no `domain.md` or a backup.
 Name consumers and unresolved deviations; resume the authorized task that setup unblocked.

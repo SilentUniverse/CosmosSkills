@@ -12,7 +12,9 @@ operate the target and retain the required observations. Prepare a project brows
 capabilities the available route lacks: repeatable CI execution, controlled scheduling, required
 assertions or reporting, or the actual browser/extension/desktop host. Do not install Node or
 Playwright merely to duplicate native browser actions. Native system UI needs its matching driver;
-a browser viewport does not stand in for a native device or desktop application.
+a browser viewport does not stand in for a native device or desktop application. Browser-use,
+computer-use and MCP sessions explore and diagnose; final proof is a repository script that follows
+the [control adapter contract](../../tooling/verify/ADAPTER.md).
 
 Probe capabilities only after choosing a UI verifier. Do not infer DOM/CDP, network interception,
 traces, console access, extensions, or process control from a tool's name. Missing capabilities

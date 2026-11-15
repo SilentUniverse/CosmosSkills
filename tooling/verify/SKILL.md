@@ -40,6 +40,12 @@ Choose one branch:
   defines a scoped source and runtime pass. Explicit maintenance without an existing target reports
   that absence; it does not silently create a new package.
 
+A capability that drives a running UI, device or desktop instance also satisfies the
+[control adapter contract](ADAPTER.md): report capabilities before starting and fail when a needed
+one is missing, then launch and confirm the target, operate through real user input, inspect
+read-only, capture screenshots and recordings, and clean up owned resources.
+[DRIVERS.md](DRIVERS.md) covers Electron (CDP), iOS Simulator and desktop native applications.
+
 ## Prove the operation capability
 
 Read the project's resulting instructions as the next executor would, without relying on this
@@ -84,7 +90,9 @@ it owns no Cosmos queue, process supervisor or completion state. Shared devices 
 fixture/resource owner, including during diagnosis. A new runner is not a fallback for a missing
 host capability; restrict the dependent operation and report that concrete gap.
 Verify that the selected result adapter consumes the actual runner output and rejects a failing
-assertion. A tool's success flag or exploratory transcript cannot replace that check. Source-preview
+assertion. A tool's success flag or exploratory transcript cannot replace that check. MCP servers
+and interactive sessions explore and diagnose; final proof is a repository script the next executor
+reruns ([ADAPTER.md](ADAPTER.md#mcp-and-interactive-sessions)). Source-preview
 results remain diagnostic; final proof must exercise the actual fixed candidate or produced artifact.
 
 Load [test policy](../../workflow/TEST-POLICY.md) when choosing maintenance checks or recurring cost.
