@@ -41,5 +41,5 @@ python workflow/test-governance.py baseline --report REPORT --group KEY --statis
 python workflow/test-governance.py compare --report CANDIDATE_REPORT --baseline BASELINE
 ```
 
-事先固定样本口径与容差，保留基线报告。普通实施不为填报表反复跑全量；模型行为对照仅显式
-`/eval` 后开展。历史测量保留于 [benchmarks](benchmarks/test-governance-cost.md)，只代表原基线。
+事先固定样本口径与容差，保留基线报告。普通实施不为填报表反复跑全量；行为改进以验收记录
+为依据。历史测量保留于 [benchmarks](benchmarks/test-governance-cost.md)，只代表原基线。

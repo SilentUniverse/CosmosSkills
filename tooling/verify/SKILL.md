@@ -96,8 +96,7 @@ reruns ([ADAPTER.md](ADAPTER.md#mcp-and-interactive-sessions)). Source-preview
 results remain diagnostic; final proof must exercise the actual fixed candidate or produced artifact.
 
 Load [test policy](../../workflow/TEST-POLICY.md) when choosing maintenance checks or recurring cost.
-New recurring runs require the user's request. Model-run evaluation remains explicit through `/eval`;
-tool availability changes are whole-system comparisons, with no skill-only performance attribution.
+New recurring runs require the user's request. Tool availability changes are whole-system comparisons, with no skill-only performance attribution.
 
 Return the usable entry, assets changed, scenarios actually exercised, evidence and unresolved gaps.
 Resume the caller's authorized task.

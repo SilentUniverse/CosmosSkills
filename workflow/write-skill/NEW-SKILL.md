@@ -50,7 +50,7 @@ Add references only at real branch points. For example, tell the agent to load
 
 ## Failure-backed rules
 
-Add a rationalization table only after a real incident or authorized evaluation reproduces a
+Add a rationalization table only after a real incident or an acceptance record reproduces a
 specific bypass. Record the observed phrase and the failing mechanism. Prefer strengthening the
 governing rule; skills without a reproduced escape carry no table.
 

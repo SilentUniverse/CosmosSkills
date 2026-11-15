@@ -98,8 +98,8 @@ class TestGovernanceTests(unittest.TestCase):
         result = governance.select(policy, ['scripts/check-native-packaging.py'])
         self.assertEqual(['catalog', 'packaging'], result['selected'])
         self.assertEqual([], result['test_paths'])
-        result = governance.select(policy, ['evals/experiments/verify_loop.py'])
-        self.assertEqual(['tests/test_verify_loop_fixture.py'], result['test_paths'])
+        result = governance.select(policy, ['scripts/dsh_telemetry.py'])
+        self.assertEqual(['tests/test_dsh_telemetry.py'], result['test_paths'])
         self.assertIn('tests/test_workflow_state.py', governance.select(policy, ['workflow/feature_doc.py'])['test_paths'])
         evidence_tests = governance.select(policy, ['workflow/evidence.py'])['test_paths']
         self.assertIn('tests/test_spec_review.py', evidence_tests)

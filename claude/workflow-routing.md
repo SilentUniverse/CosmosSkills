@@ -18,7 +18,7 @@ work proceeds directly; neither this map nor the full skill chain is a required 
 | Hand off work to review later | The user leaves and reviews next day (「我明早看」): [unattended](unattended.md) fixes the contract, authority and stop conditions, keeps a decision log and ends with a per-requirement acceptance report checked by an independent reviewer. |
 | Deliver an authorized change | Pr owns submission and landing evidence; conflicts resolves an encountered merge/rebase conflict within that operation. Passing review does not itself request submission. |
 | Continue, retain knowledge or clean up | Handoff/resume preserve the next action through Git and existing artifacts; tidy derives obligations and disposable outputs. Map, domain-modeling and ADRs retain only facts with future consumers. These do not own runtime recovery. |
-| Improve instructions | Explicit write-skill owns skill structure; lint owns its requested prose audit; brief adjusts presentation. Repeated agent mistakes in a project go through explicit correct into architecture, types, checks or tests before more instructions. Model trials require explicit eval. |
+| Improve instructions | Explicit write-skill owns skill structure; lint owns its requested prose audit; brief adjusts presentation. Repeated agent mistakes in a project go through explicit correct into architecture, types, checks or tests before more instructions. |
 | Configure a project or produce a specialist artifact | Apply cpp-oop-style to C++ work. Cosmos-setup, setup-pre-commit, shell-guardrails, migrate-to-shoehorn, record-gif and teach keep their explicit triggers; they are not automatic setup or delivery stages. |
 
 ## Minimum evidence by task type
@@ -29,7 +29,7 @@ work proceeds directly; neither this map nor the full skill chain is a required 
 | Refactor | The same tests or captured output before and after the change, with identical results. |
 | Performance | A baseline and a post-change measurement on the same input, host and conditions. |
 | New behavior | Acceptance checks that fail before the implementation and pass after it. |
-| Skill or documentation | The repository's deterministic checks; behavior claims need explicit eval. |
+| Skill or documentation | The repository's deterministic checks; behavior claims need acceptance-record data. |
 | UI change, in any task, not only `/tdd` | The change exercised through its real entry point, assertions on the resulting state, and screenshots of the key states. |
 | UI demonstration | Add `/record-gif` only when a demonstration is wanted; a recording is never the pass criterion. |
 

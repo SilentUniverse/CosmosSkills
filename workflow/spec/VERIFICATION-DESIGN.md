@@ -14,8 +14,7 @@ Choose the highest runnable product seam and the cheapest evidence that can fals
    Record baseline, candidate, environment, repetitions, and acceptance threshold. "Faster" without
    those numbers is not verified. A coverage, size, or timing bar follows three rules:
    - **Place it by cost.** Seconds-class checks live in RED/GREEN; suite-class at the declared
-     fixed-candidate boundary; campaign-class in explicitly requested `/eval` or project/CI
-     campaigns. A disabled slow gate is no gate.
+     fixed-candidate boundary; campaign-class in explicitly requested project/CI campaigns. A disabled slow gate is no gate.
    - **Ratchet without an invented target.** Deterministic counts compare exactly. Timing uses
      repeated samples in the same recorded environment, a named statistic, and an explicit
      tolerance or confidence rule; the AC records the post-change candidate and compares like
@@ -50,8 +49,8 @@ Evidence is useful only if the target defect makes it fail. An ordinary determin
 proves this with its actual TDD RED; snapshots and other deterministic assertions use that same RED,
 with no duplicate falsifier prose. Only an opted-in graphical UI names one concrete counterfactual
 in its AC text; formal checks retain their property and negative control with their verification
-assets. Human-judged or measurement-proxy claims belong to explicit `/eval`, whose case
-contract owns its negative controls; they do not add prose fields to ordinary non-UI units.
+assets. Human-judged or measurement-proxy claims are not ordinary unit evidence and add no prose fields
+to non-UI units.
 DOM presence, a non-empty `src`, source snapshots, and an agent's own success report are not
 sufficient when the claim is about what the user receives.
 
