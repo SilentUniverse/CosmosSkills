@@ -1,5 +1,6 @@
 """Run the vendored statechart checker against a real TLC on a known bug and its fix."""
 
+import hashlib
 import os
 import re
 import shutil
@@ -11,6 +12,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 STATECHART = ROOT / "tooling/verify/statechart/scripts/statechart"
 FIXTURE = ROOT / "tests/statechart_fixture"
+BUNDLED_JAR = ROOT / "tooling/verify/statechart/tla2tools.jar"
+TLC_SHA256 = "936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88"
 
 
 def _node_supported():
@@ -35,17 +38,26 @@ def _java_runs():
         return False
 
 
+class BundledTlcTest(unittest.TestCase):
+    def test_bundled_jar_matches_pinned_release(self):
+        self.assertEqual(hashlib.sha256(BUNDLED_JAR.read_bytes()).hexdigest(), TLC_SHA256)
+
+
 @unittest.skipUnless(os.name != "nt", "the statechart launcher is a POSIX shell script")
 @unittest.skipUnless(_node_supported(), "statechart needs Node 22.18+ or 23.6+")
 @unittest.skipUnless(_java_runs(), "TLC needs a working Java; set JAVA to a java binary")
 class StatechartTest(unittest.TestCase):
     def run_chart(self, module):
-        out = Path(tempfile.mkdtemp()) / "out"
-        self.addCleanup(shutil.rmtree, out.parent, ignore_errors=True)
+        scratch = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, scratch, ignore_errors=True)
+        out, cache = scratch / "out", scratch / "cache"
+        env = {k: v for k, v in os.environ.items() if k != "TLA2TOOLS"}
+        env["XDG_CACHE_HOME"] = str(cache)
         process = subprocess.run(
             [str(STATECHART), str(FIXTURE / f"{module}.tla"), "--view", str(FIXTURE / "view.mjs"), "--out", str(out)],
-            capture_output=True, text=True, timeout=600,
+            capture_output=True, text=True, timeout=600, env=env,
         )
+        self.assertFalse(cache.exists(), "the bundled TLC jar must be used without downloading")
         return process, out
 
     def test_reports_shortest_path_to_double_charge(self):

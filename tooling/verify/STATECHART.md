@@ -18,8 +18,11 @@ TLA+ spec and its config, then run:
 - Needs Node 22.18+ (22.x) or 23.6+, Bun 1.1.5+ or Deno 2+, and Java 11+. Set `JAVA` when `java` on
   `PATH` is not a working runtime (for example macOS's `/usr/bin/java` stub with Homebrew's keg-only
   `openjdk`). A missing Java is reported with an install hint; nothing installs Java automatically.
-- The first run downloads `tla2tools.jar` 1.7.4 into `$XDG_CACHE_HOME/cosmos/tla2tools/1.7.4/`
-  (default `~/.cache/...`) and verifies its pinned sha256; set `TLA2TOOLS` to use a local jar.
+- TLC needs no network: the checker uses the bundled `statechart/tla2tools.jar` 1.7.4 after
+  verifying its pinned sha256. `TLA2TOOLS` selects another jar. Only when the bundled jar is absent
+  does the first run download it into `$XDG_CACHE_HOME/cosmos/tla2tools/1.7.4/` (default
+  `~/.cache/...`). Java and Node still come from the machine: offline hosts install them from an
+  internal mirror or a copied JDK.
 - Exit 0: every rule holds; 1: a rule breaks; 2: TLC or the command could not finish. Only 0 and 1
   write `report.md`, `chart.mmd` and `tlc.out` into `--out`, which must be new or empty.
 
@@ -84,6 +87,8 @@ implementation.
 
 `statechart/scripts/` is vendored from pstack
 [`skills/statechart`](https://github.com/cursor/plugins/tree/bf0c7cd80abdbf7fe47b634978a7d1b4071f71a7/pstack/skills/statechart)
-(MIT, [LICENSE](statechart/LICENSE)) without its test suite. Local changes: `run.ts` locates Java and
-downloads the pinned TLC jar instead of installing both with mise; `package.json` drops the test-only
+(MIT, [LICENSE](statechart/LICENSE)) without its test suite. `statechart/tla2tools.jar` is the unmodified TLA+ tools
+release v1.7.4 (MIT, with bundled EPL-2.0 components; license texts inside the jar). Local changes:
+`run.ts` locates Java and uses the bundled or downloaded pinned TLC jar instead of installing both
+with mise; `package.json` drops the test-only
 dependency. The checks in `tests/test_statechart.py` run real TLC on a known bug and its fix.

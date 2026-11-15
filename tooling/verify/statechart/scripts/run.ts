@@ -4,6 +4,7 @@ import { createHash, randomBytes } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { inspect } from "node:util";
 import { boundRun, chartRun, configText } from "./backends/cfg.ts";
 import { plainText } from "./backends/plain-text.ts";
@@ -191,6 +192,16 @@ const runToFiles = (
 
 const sha256 = (file: string) => createHash("sha256").update(fs.readFileSync(file)).digest("hex");
 
+const BUNDLED_JAR = fileURLToPath(new URL("../tla2tools.jar", import.meta.url));
+
+function bundledJar() {
+  if (!fs.existsSync(BUNDLED_JAR)) return undefined;
+  const got = sha256(BUNDLED_JAR);
+  if (got !== TLC_SHA256)
+    throw new Error(`${BUNDLED_JAR} has sha256 ${got}, expected ${TLC_SHA256}. Restore it from Git.`);
+  return BUNDLED_JAR;
+}
+
 async function cachedJar() {
   const root = process.env.XDG_CACHE_HOME || path.join(os.homedir(), ".cache");
   const dir = path.join(root, "cosmos", "tla2tools", "1.7.4");
@@ -207,7 +218,7 @@ async function cachedJar() {
     fs.renameSync(part, jar);
   } catch (error) {
     throw new Error(
-      `Cannot download TLC from ${TLC_URL}: ${messageOf(error)}\nOr set TLA2TOOLS to the path of tla2tools.jar 1.7.4.`,
+      `Cannot download TLC from ${TLC_URL}: ${messageOf(error)}\nOr set TLA2TOOLS to the path of tla2tools.jar 1.7.4, or restore the bundled statechart/tla2tools.jar.`,
     );
   } finally {
     fs.rmSync(part, { force: true });
@@ -223,7 +234,7 @@ async function findTlc(cwd: string) {
     throw new Error(
       `Cannot run Java (${java}): ${probe.error?.message ?? probe.stderr.trim()}\nInstall Java 11 or later, such as \`brew install openjdk\` or your package manager's OpenJDK, or set JAVA to a java binary.`,
     );
-  return { jar: TLA2TOOLS || (await cachedJar()), java };
+  return { jar: TLA2TOOLS || bundledJar() || (await cachedJar()), java };
 }
 const exitClass = (status: number | null) =>
   status === 0 ? 0 : status === 11 || status === 12 || status === 13 ? 1 : 2;

@@ -30,7 +30,7 @@
     {"paths": ["scripts/dsh_telemetry.py"], "groups": ["regression"], "test_paths": ["tests/test_dsh_telemetry.py"]},
     {"paths": ["scripts/zcode_telemetry.py"], "groups": ["regression"], "test_paths": ["tests/test_zcode_telemetry.py"]},
     {"paths": ["tests/evidence_fixtures.py"], "groups": ["regression"], "test_paths": ["tests/test_evidence.py", "tests/test_verify_artifacts.py", "tests/test_workflow_state.py"]},
-    {"paths": ["tooling/verify/statechart/scripts/*", "tests/statechart_fixture/*"], "groups": ["regression"], "test_paths": ["tests/test_statechart.py"]},
+    {"paths": ["tooling/verify/statechart/scripts/*", "tooling/verify/statechart/tla2tools.jar", "tests/statechart_fixture/*"], "groups": ["regression"], "test_paths": ["tests/test_statechart.py"]},
     {"paths": ["tests/test_statechart.py"], "groups": ["regression"], "test_paths": ["tests/test_statechart.py"]},
     {"paths": ["tests/test_dsh_telemetry.py"], "groups": ["regression"], "test_paths": ["tests/test_dsh_telemetry.py"]},
     {"paths": ["tests/test_evidence.py"], "groups": ["regression"], "test_paths": ["tests/test_evidence.py"]},
