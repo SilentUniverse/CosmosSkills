@@ -107,6 +107,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | 回执·决策点 | 问实际决定并给建议；回答即对齐，不追问口令 | 权威 | 流程 | 应答成本税与越权代答；dev-skills 对标借入（lowband）；未溯源 |
 | §1 | 定位：点名即 rg 单特性；否则 3–5 关键词 | 过程·经济 | 流程 | 未溯源（token 经济） |
 | §2 / impact-detection | 影响探测非审批门；规划只读查询；必要突变仅授权执行阶段的同一隔离副本，不改真实共享源码 | 过程·经济 | 流程 | 10dd737（blast-radius impact）、5f7b1ac（pyright 误报修复）；python-dynamic-verification；规划不写源与临时签名写冲突 |
+| impact-detection / REPORT-FORMAT / unattended | 影响分析点名安全依赖的一两个事实、证据等级与反例检查；不到「脚本」级写「未证实」作假设，进验证计划与验收报告「需要你看的地方」；查 grep 够不到的库源码、时序与无符号通道；确认与已排除风险分列 | 过程·产物 | 自审 | 只列调用方、听起来对的影响分析被当成安全证明；借鉴 [pstack blast-radius](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/skills/blast-radius/SKILL.md)；无验收记录数据 |
 | §2 / ARTIFACT-FORMAT 项目知识 | 过两轴测试的不变量当场按 /correct 阶梯上移，不停顿征询；规则行点名路径，读到时这些路径在该行最后提交后有改动先复验 | 过程 | 流程 | 6b411d8（从失败捕获 invariant）；/map 退役后由阶梯与漂移复验承接 |
 | §2 | 可运行实验能降低真实不确定性时才 prototype | 过程 | 流程 | prototype skill 立法 |
 | §2 | NFR 门槛走 VERIFICATION-DESIGN 非功能三则（原 NON-FUNCTIONAL-BARS 并入） | 过程 | 流程 | 未溯源 |

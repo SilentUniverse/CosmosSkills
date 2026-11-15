@@ -43,8 +43,8 @@ Append-only `.scratch/<task>/DECISIONS.md`, one line per decision:
 
 Write `.scratch/<task>/ACCEPTANCE.md` and send its summary as the final reply, in this order:
 
-1. **需要你看的地方**: every `待确认` choice, failed or undeterminable requirement, stop reason,
-   deviation from the contract and disagreement with the independent review. Empty only when
+1. **需要你看的地方**: every `待确认` choice, failed or undeterminable requirement, 未证实 safety
+   fact, stop reason, deviation from the contract and disagreement with the independent review. Empty only when
    none exist.
 2. **逐条验收**: one row per requirement in the user's words, with evidence (command and output
    path, screenshot, recording) and a verdict: 已验证, 未通过 or 无法判定. A requirement without

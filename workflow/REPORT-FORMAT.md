@@ -48,7 +48,7 @@ Results and findings state the strongest evidence they reached, from weakest to 
 
 Never word a lower level as a higher one; 已验证 needs 脚本 or 真实复现. A high-risk change or
 finding names the one fact its safety depends on and, when it is runnable, runs a counterexample
-against that fact.
+against that fact. A safety fact below 脚本 is written 未证实 and marked as an assumption, never as safe.
 
 ## Typography
 
