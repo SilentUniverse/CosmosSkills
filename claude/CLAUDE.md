@@ -79,8 +79,8 @@ scenario that needs them; this workflow's format check alone does not count.
   inputs/environment match.
 - After two failed fixes on one cause, stop patching: ask a fresh read-only subagent (facts, your
   judgment, the answer you hope to hear) or use `/diagnose`.
-- Fix a first mistake in place. A repeated mistake class moves to the highest level that works:
-  architecture, types, a check whose error names the fix, a test; prose only for judgment (`/correct`).
+- Fix a first mistake in place; log its class (`/correct`). Repeats move to the highest level that
+  works: architecture, types, a check whose error names the fix, a test; prose only for judgment.
   A new check must fail on a real past instance. Update a contract a correction changes; never log a turn.
 - Default no explanatory comments. Keep only contracts, reasons or external constraints that code,
   types and tests cannot recover, at the interface or declaration.
