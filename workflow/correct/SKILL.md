@@ -15,7 +15,8 @@ that compiles. A change that looks right from one file must be right for the who
 ## 1. Find mistake classes
 
 With a named mistake, start from it. Otherwise read recent commits and reverts, review comments,
-the project's agent instruction files, user corrections in this session, and comments that justify
+the project's agent instruction files, `.scratch/acceptance-log.md` when present, user corrections
+in this session, and comments that justify
 a workaround (timers, sleeps, retries, suppressions). Group mistakes into classes. A class counts
 once it has happened twice; a single incident gets an in-place fix and no new rule.
 
