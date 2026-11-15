@@ -116,6 +116,61 @@ Agent 动手前会读完你点名的所有材料，再用自己的话转述这�
 
 ## 日常流程
 
+主线一图（模型与重跑方法见 [docs/taskflow](docs/taskflow/README.md)；它说明规则怎么写，不证明实际行为）：
+
+```mermaid
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: 规划
+    lg1: 实现
+    lg2: 验证
+    lg3: 提交
+  }
+  class lg0 blue
+  class lg1 orange
+  class lg2 purple
+  class lg3 teal
+  s0: 收到请求
+  s1: 实现中
+  s2: 已给计划#65292;等你说开始
+  s3: 等你做实质决定
+  s4: 候选已提交#65288;固定 SHA#65289;
+  s5: 后台子代理验证中
+  s6: 已验证
+  s7: PR 等必过检查
+  s8: 停在本地#65292;已报告
+  s9: 已合并并收尾
+  s10: 两次修复失败#65292;停下换思路
+  [*] --> s0
+  s0 --> s1: 你直接要实现
+  s0 --> s2: 你要计划或 /spec
+  s1 --> s3: 遇到实质选择
+  s1 --> s4: 改完并本地检查#65292;提交候选
+  s2 --> s1: 你说#12300;开始实现#12301;或 /tdd
+  s3 --> s1: 你选定
+  s4 --> s5: 派后台验证
+  s5 --> s1: 验证失败#65292;修复
+  s5 --> s6: validate 与全量测试通过
+  s6 --> s8: 没要求提交
+  s6 --> s7: 你要求提交#65292;/pr 推送
+  s7 --> s1: 必过检查失败#65292;修复
+  s7 --> s9: 必过检查通过并合并
+  s5 --> s10: 修复后又失败
+  s10 --> s1: /diagnose 或新子代理复查后再改
+  s7 --> s10: 修复后又失败
+  class s0 blue
+  class s1 orange
+  class s2 blue
+  class s3 blue
+  class s4 orange
+  class s5 purple
+  class s6 purple
+  class s7 teal
+  class s8 teal
+  class s9 teal
+  class s10 orange
+```
+
 入口仍是当前任务。需要判断下一步时，按[工作流路由](claude/workflow-routing.md)选择缺失的能力，
 得到结果后回到原任务；不要求依次调用所有 skill。规划先检查真实调用方式、状态归属和验收证据。
 改动现有代码时，[影响分析](workflow/spec/impact-detection.md)要点名「这样改是安全的」依赖的一两个事实；
