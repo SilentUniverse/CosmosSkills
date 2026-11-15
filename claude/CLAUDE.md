@@ -119,9 +119,9 @@ changes use linked follow-up units. Superseded ADR bodies are immutable.
 ## 8. Delegation
 
 Default inline. Within host and user authorization, delegate independent judgment, substantial
-multi-source research, safe parallel work with disjoint writes and resources, and tests (background,
-fixed candidate; only completion, commits and dependent steps wait). A search, large output or
-context cleanup alone does not justify delegation.
+multi-source research, safe parallel work with disjoint writes and resources, and tests (fixed
+candidate; where they run: delegation.md). A search, large output or context cleanup alone does not
+justify delegation.
 
 → When delegating, scope and acceptance: `~/.claude/references/delegation.md`
 

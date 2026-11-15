@@ -65,9 +65,8 @@ environment repair, rerun only the failing cases; no new evidence means no repea
 existing root cause. Within a feature document, add a unit only for an independent persistent
 gap; ordinary work remains inline.
 
-Checks run in a background subagent (native background execution without one) on a fixed
-candidate while development continues; only completion, commits and dependent steps wait for the
-result. Stable inputs require actual isolated checkouts or equivalent input control. Devices/databases/ports use their fixture/resource-service/CI owner for
+Where checks run follows the delegation rule (`CLAUDE.md` §8, "Tests run in the background"),
+including its inline exception. Stable inputs require actual isolated checkouts or equivalent input control. Devices/databases/ports use their fixture/resource-service/CI owner for
 exclusion and recovery. Missing guarantees restrict dependent operations, without a Cosmos queue,
 global verifier lock or resource registry.
 
