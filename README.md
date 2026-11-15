@@ -162,7 +162,7 @@ HTML bridge 在原生 UI 能保留版本、字段、原始事件及落盘确认�
 | 设计与分析 | [grill](workflow/grill/SKILL.md)、[prototype](workflow/prototype/SKILL.md)、[improve-arch](workflow/improve-arch/SKILL.md)、[codebase-design](workflow/codebase-design/SKILL.md)、[domain-modeling](workflow/domain-modeling/SKILL.md) |
 | 审查与修复 | [code-review](workflow/code-review/SKILL.md)、[atk](workflow/atk/SKILL.md)、[diagnose](workflow/diagnose/SKILL.md)、[conflicts](workflow/conflicts/SKILL.md)、[pr](workflow/pr/SKILL.md) |
 | 阅读与知识 | [map](workflow/map/SKILL.md)、[show](workflow/show/SKILL.md)、[research](workflow/research/SKILL.md) |
-| 指令维护 | [write-skill](workflow/write-skill/SKILL.md)、[lint](workflow/lint/SKILL.md)、[brief](workflow/brief/SKILL.md)、[eval](workflow/eval/SKILL.md) |
+| 指令维护 | [correct](workflow/correct/SKILL.md)（反复出现的错误落到架构、类型、检查或测试）、[write-skill](workflow/write-skill/SKILL.md)、[lint](workflow/lint/SKILL.md)、[brief](workflow/brief/SKILL.md)、[eval](workflow/eval/SKILL.md) |
 | 专项工具 | [verify](tooling/verify/SKILL.md)、[record-gif](workflow/record-gif/SKILL.md)、[cpp-oop-style](workflow/cpp-oop-style/SKILL.md)、[cosmos-setup](workflow/cosmos-setup/SKILL.md) |
 | 项目配置 | [shell-guardrails](tooling/shell-guardrails/SKILL.md)、[setup-pre-commit](tooling/setup-pre-commit/SKILL.md)、[migrate-to-shoehorn](tooling/migrate-to-shoehorn/SKILL.md) |
 | 工程之外 | [teach](workflow/teach/SKILL.md)（多会话学习工作区，只显式调用） |

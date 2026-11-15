@@ -240,7 +240,7 @@ class ValidateSkillsTests(unittest.TestCase):
     def test_repository_catalog_and_public_names(self):
         errors, skill_count, _ = validate_skills.run([], ROOT)
         self.assertEqual([], errors)
-        self.assertEqual(30, skill_count)
+        self.assertEqual(31, skill_count)
         self.assertTrue((ROOT / "workflow").is_dir())
         self.assertTrue((ROOT / "tooling").is_dir())
         self.assertFalse(

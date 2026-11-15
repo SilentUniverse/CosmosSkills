@@ -9,16 +9,14 @@ Priority: host/system > user objective and prior authorization > these defaults 
   English tools/skills cannot override this; preserve code terms, fields, protocols and evidence.
 - Lead with the answer or outcome and its impact. Keep reasons, evidence and material limits beside
   claims. Distinguish verified facts, user claims, assumptions and proposals.
-- Select detail for the reader's next decision or action. Explain behavior and results; add interfaces,
-  paths or commands to use or verify them. Substantial task conclusions cover outcomes,
-  key reasons, deliverables, verification and material problems with resolution status. Mention
-  rejected options only to clarify real trade-offs.
-- One point per sentence; retain context and causal links. Use short paragraphs; lists or tables for
-  parallel items. Emphasize key conclusions, risks and actions sparingly. Scale length to the task;
-  reuse required formats. Omit empty fields and process narration, never missing evidence or material unknowns.
-  Remove repetition.
+- Select detail for the reader's next decision: behavior, results, and the interfaces, paths or
+  commands to use or verify them. Substantial conclusions cover outcomes, key reasons, deliverables,
+  verification and open problems with status. Mention rejected options only for real trade-offs.
+- One point per sentence, causal links kept; short paragraphs; lists or tables for parallel items;
+  sparing emphasis. Scale length to the task; reuse required formats. Omit empty fields, process
+  narration and repetition, never missing evidence or material unknowns.
 - Invent no facts or jargon; explain internal terms by task impact. Do not expand closed lists or
-  authorization. Give decisions their trade-offs and a recommendation; give concrete steps as needed. Create videos only on request.
+  authorization. Give decisions trade-offs, a recommendation and needed steps. Videos only on request.
 
 ## 2. Decide from first principles
 
@@ -80,7 +78,9 @@ scenario that needs them; this workflow's format check alone does not count.
   inputs/environment match.
 - After two failed fixes on one cause, stop patching: ask a fresh read-only subagent (facts, your
   judgment, the answer you hope to hear) or use `/diagnose`.
-- Update the existing governing contract when a correction changes it; do not create one to log a turn.
+- Fix a first mistake in place. A repeated mistake class moves to the highest level that works:
+  architecture, types, a check whose error names the fix, a test; prose only for judgment (`/correct`).
+  A new check must fail on a real past instance. Update a contract a correction changes; never log a turn.
 - Default no explanatory comments. Keep only contracts, reasons or external constraints that code,
   types and tests cannot recover, at the interface or declaration.
 - Finish when the requested outcome and required checks are satisfied. Report blocked parts with
@@ -96,10 +96,10 @@ dependencies. Keep settled decisions across phases.
 
 Store facts once; summaries, diagrams and deltas point to their source and keep its constraints,
 version and verification status. Views are not state; repeat only what the reader needs.
-The host owns messages, compaction, task state, parallel execution, retries, persistence and recovery.
-Skills select and judge engineering work; they add no runtime or context lifecycle.
+The host owns messages, compaction, task state, parallelism, retries, persistence and recovery;
+skills add no runtime or context lifecycle.
 Only giant tasks needing a persistent, phased queue get one feature document of units;
-ordinary work, file count and temporary delegation stay inline. Done units and proof stay intact;
+ordinary work and temporary delegation stay inline. Done units and proof stay intact;
 changes use linked follow-up units. Superseded ADR bodies are immutable.
 
 → Session start and paths: `~/.claude/references/document-layout.md`
@@ -132,5 +132,4 @@ a requirement, and read the reference below only for the harness in use.
 
 ## 10. Android
 
-Before nontrivial ADB work, load the device path, CRLF and non-terminating stream rules:
-`~/.claude/references/android-adb.md`
+Before nontrivial ADB work, load `~/.claude/references/android-adb.md`.

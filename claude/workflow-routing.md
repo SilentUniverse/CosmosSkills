@@ -17,7 +17,7 @@ work proceeds directly; neither this map nor the full skill chain is a required 
 | Assess correctness before accepting work | Code-review checks a fixed diff against standards and requirements; atk challenges a load-bearing decision or failure mode. Use independent review when justified, with the same evidence and without the author's verdict. Return confirmed findings and gaps. |
 | Deliver an authorized change | Pr owns submission and landing evidence; conflicts resolves an encountered merge/rebase conflict within that operation. Passing review does not itself request submission. |
 | Continue, retain knowledge or clean up | Handoff/resume preserve the next action through Git and existing artifacts; tidy derives obligations and disposable outputs. Map, domain-modeling and ADRs retain only facts with future consumers. These do not own runtime recovery. |
-| Improve instructions | Explicit write-skill owns skill structure; lint owns its requested prose audit; brief adjusts presentation. Repeated deterministic errors belong in architecture/types/checks before more instructions. Model trials require explicit eval. |
+| Improve instructions | Explicit write-skill owns skill structure; lint owns its requested prose audit; brief adjusts presentation. Repeated agent mistakes in a project go through explicit correct into architecture, types, checks or tests before more instructions. Model trials require explicit eval. |
 | Configure a project or produce a specialist artifact | Apply cpp-oop-style to C++ work. Cosmos-setup, setup-pre-commit, shell-guardrails, migrate-to-shoehorn, record-gif and teach keep their explicit triggers; they are not automatic setup or delivery stages. |
 
 ## Minimum evidence by task type
