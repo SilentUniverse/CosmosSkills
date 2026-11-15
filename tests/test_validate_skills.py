@@ -240,7 +240,7 @@ class ValidateSkillsTests(unittest.TestCase):
     def test_repository_catalog_and_public_names(self):
         errors, skill_count, _ = validate_skills.run([], ROOT)
         self.assertEqual([], errors)
-        self.assertEqual(30, skill_count)
+        self.assertEqual(29, skill_count)
         self.assertTrue((ROOT / "workflow").is_dir())
         self.assertTrue((ROOT / "tooling").is_dir())
         self.assertFalse(
@@ -255,7 +255,6 @@ class ValidateSkillsTests(unittest.TestCase):
         self.assertTrue(
             {
                 "atk",
-                "map",
                 "pr",
                 "show",
                 "lint",
@@ -268,7 +267,7 @@ class ValidateSkillsTests(unittest.TestCase):
                 "verify",
             }.issubset(names)
         )
-        self.assertTrue({"merge-conflicts", "caveman", "grilling", "eval"}.isdisjoint(names))
+        self.assertTrue({"merge-conflicts", "caveman", "grilling", "eval", "map"}.isdisjoint(names))
 
     def test_directory_scope_includes_shared_markdown_but_not_other_roots(self):
         with tempfile.TemporaryDirectory() as tmp:

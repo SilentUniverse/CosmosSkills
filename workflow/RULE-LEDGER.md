@@ -38,7 +38,7 @@
 
 - **mechanical** → deterministic check（测试 / lint / hook / 脚本）
 - **judgement** → reviewer rule / reference
-- **navigation** → CODEBASE
+- **navigation** → 现场读（`/show` / 只读子代理），不落文件；命令进原生入口与 `AGENTS.md` `## Commands`
 - **missing information** → tool / access
 - **one-off** → nowhere（不持久化）
 
@@ -107,7 +107,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | 回执·决策点 | 问实际决定并给建议；回答即对齐，不追问口令 | 权威 | 流程 | 应答成本税与越权代答；dev-skills 对标借入（lowband）；未溯源 |
 | §1 | 定位：点名即 rg 单特性；否则 3–5 关键词 | 过程·经济 | 流程 | 未溯源（token 经济） |
 | §2 / impact-detection | 影响探测非审批门；规划只读查询；必要突变仅授权执行阶段的同一隔离副本，不改真实共享源码 | 过程·经济 | 流程 | 10dd737（blast-radius impact）、5f7b1ac（pyright 误报修复）；python-dynamic-verification；规划不写源与临时签名写冲突 |
-| §2 / map | 新不变量当场落入实际归属块，不停顿征询；地图复用核对相关已提交与工作区输入，不仅比较 HEAD | 过程 | 流程 | 未提交 seam 改动与 git_base 同 HEAD 时旧块误复用；6b411d8（从失败捕获 invariant） |
+| §2 / ARTIFACT-FORMAT 项目知识 | 过两轴测试的不变量当场按 /correct 阶梯上移，不停顿征询；规则行点名路径，读到时这些路径在该行最后提交后有改动先复验 | 过程 | 流程 | 6b411d8（从失败捕获 invariant）；/map 退役后由阶梯与漂移复验承接 |
 | §2 | 可运行实验能降低真实不确定性时才 prototype | 过程 | 流程 | prototype skill 立法 |
 | §2 | NFR 门槛走 VERIFICATION-DESIGN 非功能三则（原 NON-FUNCTIONAL-BARS 并入） | 过程 | 流程 | 未溯源 |
 | FEATURE-TEMPLATE | Spec 只固定跨单元共同约定（承诺、公共接口、共享决策、组合验证、资源安全），单元内部实现结构不提前设计；边界检验句与拆单元判据 | 过程·经济 | 流程 | 规划过深与同步返工税；未溯源 |
@@ -123,7 +123,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | Comment deletion test | Keep | Existing diff review and lint reference |
 | P# replay on every execution | Narrow | Reuse matching evidence; replay only invalidated relevant inputs/environment |
 | Module suites at every unit completion | Narrow | Changed behavior cases first; wider checks only for changed shared contracts or uncovered integration risk |
-| CI path selection | Keep | Producer/consumer mappings retain gate/start contracts and the CODEBASE native harness; test fixture consumers follow actual imports |
+| CI path selection | Keep | Producer/consumer mappings retain gate/start contracts and the verify-artifacts native harness; test fixture consumers follow actual imports |
 | Environment restoration outside behavior wave | Replace | Pause only dependent work; native execution has no Cosmos wave |
 | New-test value judgment | Clarify | tdd/tests.md：先确定可观察合同、可信回归和已有覆盖缺口；同一行为的不同真实边界可各自保留检测；[OpenCode Tests](https://github.com/anomalyco/opencode/blob/7405f93721d1929d9716f91a17c277a022b690e5/packages/app/AGENTS.md#L100)；未实测行为收益 |
 | Refactor only while green | Keep | TDD/refactoring; recheck affected behavior |
@@ -199,3 +199,14 @@ audit documents retain their dated baseline and are not current execution instru
 | 原定位 | 原要旨 | 退役理由 |
 |---|---|---|
 | ISSUE-TEMPLATE | 上级 = Parent 设计指针与必要控制约束；refines 保留 Issue 谱系；共享验证环境只活在 verifier.json；AC 完整保留 | 单功能单文档取代：Parent 指针与独立卡文件不复存在；`covers:` 锚点、`refines:` 与 共享验证 由 FEATURE-TEMPLATE 和 C 节对应行承接 |
+
+## Retirement record: 2026-11-15
+
+`map` 技能与 `CODEBASE.md` 退役，技能数 30→29。结构（分层、数据流、区域如何工作）现场读：
+`/show` 处理一个区域，大区域派只读子代理，不落文件。过两轴测试（`rg`/读配置不可恢复且
+缺失会咬人）的不变量按 /correct 阶梯上移，规则行落项目 `AGENTS.md`；规则行点名路径，读到
+时这些路径在该行最后提交后有改动先复验。项目命令进原生入口（`package.json`/`Makefile`/
+`justfile`/`pyproject.toml`），入口看不出的前置写 `AGENTS.md` `## Commands`（≤10 行）；
+无原生入口的能力由 /verify 建最小入口。`verify-artifacts.py` 不再检查 `CODEBASE.md`，
+对遗留文件与嵌套生成块只输出一条迁移提示（退出 0）。安装器照常清理指向本仓的孤儿技能链接。
+依据：无验收记录数据。

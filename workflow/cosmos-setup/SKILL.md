@@ -10,8 +10,8 @@ disable-model-invocation: true
 Configure what the engineering skills **cannot assume**: deviations from the default
 conventions. Defaults need no setup — the tracker is local markdown at
 `.scratch/<feat>/FEATURE.md` and the unit status vocabulary `pending|ready|done`, both defined in
-[ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md); verifier commands live lazily in
-`CODEBASE.md`'s `## Verifier commands` zone.
+[ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md); project commands live in the native entry and
+`AGENTS.md` `## Commands` (project commands in `../ARTIFACT-FORMAT.md`).
 
 Inspect the repo and existing authorization, then apply the requested setup or mechanical migration.
 Preview affected paths; ask only about unresolved tracker choices, semantic mappings, or data loss.
@@ -38,8 +38,7 @@ non-default paths. Nothing to configure: say so in one line ("defaults apply; no
 up — skills proceed on convention"), write nothing, and resume the calling task.
 
 **Case 2 — Legacy domain.md cache.** `docs/agents/domain.md` exists. Offer the fold: move its
-real command lines into `CODEBASE.md`'s `## Verifier commands` zone (lazy-birth per the
-ARTIFACT-FORMAT stub), then remove `domain.md` only when nothing non-template remains —
+real command lines into the native entry or `AGENTS.md` `## Commands`, then remove `domain.md` only when nothing non-template remains —
 otherwise rename it `domain.md.bak`. Detail: [MIGRATION.md](MIGRATION.md).
 
 **Case 3 — Tracker change.** The user requests a tracker switch. An existing `gh` / `glab` tracker alone
@@ -80,8 +79,8 @@ configure anything, never grant or prompt for an OS permission, and write nothin
 
 Case 3 uses only the unresolved decisions in [DECISIONS.md](DECISIONS.md)
 (tracker; state vocabulary). Case 4's path choice is decided inline in step 2. The doc
-layout is standardized — `CODEBASE.md` (legacy repos may carry per-area blocks), optional
-`CONTEXT.md`, optional `docs/adr/` — and is not a per-repo decision.
+layout is standardized — optional `CONTEXT.md`, optional `docs/adr/`, optional `AGENTS.md`
+`## Commands` — and is not a per-repo decision.
 
 ### 4. Edit
 
@@ -104,7 +103,7 @@ byte-identical. Keep the block ≤10 lines:
 Non-default only: one-line summary. See `docs/agents/issue-tracker.md`.
 
 ### Orientation
-CODEBASE.md (## Verifier commands + map). Optional: CONTEXT.md, docs/adr/.
+Native entry + AGENTS.md `## Commands`. Optional: CONTEXT.md, docs/adr/.
 ```
 
 **Behavior authority.** Record repo configuration, not duplicate process policy.

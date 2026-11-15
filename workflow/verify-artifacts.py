@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-# Mechanical gate for ARTIFACT-FORMAT.md: .scratch/<feat>/FEATURE.md documents and the CODEBASE.md map.
+# Mechanical gate for ARTIFACT-FORMAT.md: .scratch/<feat>/FEATURE.md documents.
+# A retired CODEBASE.md map or nested generated block gets a migration hint, never a violation.
 # Stdlib only. Exit: 0 clean, 1 violations, 2 usage.
 # Invoke: python verify-artifacts.py [<repo-root>] [--feature <feat>]
 # If the `python` interpreter is missing, python3 verify-artifacts.py [<repo-root>]
@@ -28,14 +29,15 @@ SKIP_DIRS = {
     ".next",
     "__pycache__",
 }
-ROSTER_ILLEGAL = re.compile(r'[<>:"|?*{}]')
-ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-FM_KEY = re.compile(r"^([A-Za-z][A-Za-z0-9_-]*):\s*(.*)$")
 BEGIN_GEN = re.compile(r"^<!--.*BEGIN GENERATED codebase")
-END_GEN = re.compile(r"^<!--.*END GENERATED codebase")
-GIT_BASE = re.compile(r"^git_base:\s*\S+")
-FEN_QU = "\u5206\u533a"  # roster heading word 分区
 LEGACY = re.compile(r"^(PRD(-v\d+)?\.md|issues|verifier\.json|spec-review\.json|spec-acceptances|spec-accepted\.md|experience-contract.*\.json|SUMMARY\.md)$")
+MIGRATION = (
+    "retired CODEBASE.md map artifacts (%s); migrate when next touched: "
+    "1) move commands into the native entry (package.json, Makefile, justfile, pyproject) and "
+    "AGENTS.md `## Commands`; 2) move invariants, including nested CLAUDE.md generated blocks, up the "
+    "/correct ladder (architecture -> types -> check -> test -> AGENTS.md rule line); "
+    "3) delete the retired files and blocks"
+)
 
 BAD_UTF8 = set()
 
@@ -51,23 +53,6 @@ def read_text(path):
 
 def read_lines(path):
     return read_text(path).splitlines()
-
-
-def get_frontmatter(path, lines=None):
-    """Scalar frontmatter keys; None if absent or unterminated."""
-    if lines is None:
-        lines = read_lines(path)
-    if len(lines) < 2 or lines[0].strip() != "---":
-        return None
-    fm = {}
-    for line in lines[1:]:
-        if line.strip() == "---":
-            return fm
-        m = FM_KEY.match(line)
-        if m:
-            fm[m.group(1)] = m.group(2).strip().strip('"').strip("'")
-    return None
-
 
 def nested_claude_files(root):
     out = []
@@ -127,72 +112,13 @@ def main(argv):
     root = os.path.abspath(args[0] if args else os.getcwd())
     scratch = os.path.join(root, ".scratch")
     has_scratch = os.path.isdir(scratch)
-    cb_path = os.path.join(root, "CODEBASE.md")
-    has_cb = feature is None and os.path.isfile(cb_path)
+    has_cb = feature is None and os.path.isfile(os.path.join(root, "CODEBASE.md"))
 
     errors = []
-    n_features = n_units = n_cb_blocks = 0
+    n_features = n_units = 0
 
     def err(msg):
         errors.append(msg)
-
-    budget = 40
-    roster_paths = {}
-    if has_cb:
-        fm = get_frontmatter(cb_path)
-        if fm is None:
-            err("%s: no YAML frontmatter" % cb_path)
-        else:
-            if fm.get("type") != "codebase":
-                err("%s: type '%s' != codebase" % (cb_path, fm.get("type", "")))
-            if not ISO_DATE.match(str(fm.get("generated", ""))):
-                err("%s: generated not ISO YYYY-MM-DD" % cb_path)
-            b = str(fm.get("budget", ""))
-            if re.match(r"^\d+$", b):
-                budget = int(b)
-        cb_lines = read_lines(cb_path)
-        fm_end = -1
-        if len(cb_lines) >= 2 and cb_lines[0].strip() == "---":
-            for i in range(1, len(cb_lines)):
-                if cb_lines[i].strip() == "---":
-                    fm_end = i
-                    break
-        in_roster = False
-        body_count = 0
-        for i in range(fm_end + 1, len(cb_lines)):
-            line = cb_lines[i]
-            if line.startswith("## "):
-                in_roster = ("roster" in line) or (FEN_QU in line)
-                body_count += 1
-                continue
-            if line.strip() == "":
-                continue
-            if in_roster and re.match(r"^\s*-", line):
-                m = re.match(r"^\s*-\s+`([^`]+)", line)
-                if m:
-                    roster_paths[m.group(1).rstrip("/")] = True
-                continue
-            body_count += 1
-        if body_count > budget:
-            err(
-                "%s: root body %d lines (excl. roster) > budget %d - relocate -> condense -> raise "
-                "(raise carries justification in the change; set 'budget:' in frontmatter to adopt current size)"
-                % (cb_path, body_count, budget)
-            )
-        for p in list(roster_paths.keys()):
-            if ROSTER_ILLEGAL.search(p):
-                err(
-                    "%s: roster path '%s' uses placeholder/glob syntax - write a real existing directory "
-                    "(one representative path per pattern)" % (cb_path, p)
-                )
-                continue
-            dir_path = os.path.join(root, p.replace("/", os.sep))
-            try:
-                ok = os.path.isdir(dir_path)
-            except (OSError, ValueError):
-                ok = False
-            if not ok:
-                err("%s: roster path '%s' is not an existing directory" % (cb_path, p))
 
     if feature is not None:
         if (
@@ -211,51 +137,19 @@ def main(argv):
         ):
             print("verify-artifacts: feature '%s' not found under %s" % (feature, scratch))
             return 1
-    if not has_scratch and not has_cb:
-        print("verify-artifacts: no .scratch/ and no CODEBASE.md under %s - nothing to check, clean." % root)
+
+    retired = ["CODEBASE.md"] if has_cb else []
+    if feature is None and (has_scratch or has_cb):
+        for nf_path, rel in nested_claude_files(root):
+            with open(nf_path, "rb") as f:
+                lines = f.read().decode("utf-8-sig", errors="replace").splitlines()
+            if any(BEGIN_GEN.match(line) for line in lines):
+                retired.append(rel + " generated block")
+    if retired:
+        print("verify-artifacts: hint: %s" % (MIGRATION % ", ".join(retired)))
+    if not has_scratch:
+        print("verify-artifacts: no .scratch/ under %s - nothing to check, clean." % root)
         return 0
-
-    for nf_path, rel in (nested_claude_files(root) if feature is None else []):
-        nf_lines = read_lines(nf_path)
-        begins = sum(1 for x in nf_lines if BEGIN_GEN.match(x))
-        ends = sum(1 for x in nf_lines if END_GEN.match(x))
-        if begins == 0:
-            continue
-        if begins != ends:
-            err("%s: BEGIN/END GENERATED marker count mismatch (%d/%d)" % (nf_path, begins, ends))
-            continue
-        in_block = False
-        has_base = False
-        content = 0
-        bi = 0
-        for s in nf_lines:
-            if BEGIN_GEN.match(s):
-                in_block = True
-                bi += 1
-                has_base = False
-                content = 0
-                n_cb_blocks += 1
-                continue
-            if END_GEN.match(s):
-                if not has_base:
-                    err("%s: block %d missing git_base:" % (nf_path, bi))
-                if content > 8:
-                    err(
-                        "%s: block %d has %d content lines > 8 - relocate -> condense -> raise"
-                        % (nf_path, bi, content)
-                    )
-                in_block = False
-                continue
-            if not in_block:
-                continue
-            if GIT_BASE.match(s):
-                has_base = True
-                continue
-            if s.strip() != "":
-                content += 1
-        if not has_cb:
-            err("%s: generated block exists but root CODEBASE.md is missing" % nf_path)
-
     names = feature_doc.feature_names(root) if feature is None else [feature]
     if has_scratch:
         for entry in sorted(os.listdir(scratch)):
@@ -293,8 +187,8 @@ def main(argv):
             print("  %s" % e)
         return 1
     print(
-        "verify-artifacts: OK%s - checked %d feature(s), %d unit(s), %d codebase block(s)."
-        % (" feature=%s" % feature if feature is not None else "", n_features, n_units, n_cb_blocks)
+        "verify-artifacts: OK%s - checked %d feature(s), %d unit(s)."
+        % (" feature=%s" % feature if feature is not None else "", n_features, n_units)
     )
     return 0
 

@@ -22,7 +22,7 @@
     {"paths": ["workflow/test_governance.py", "workflow/test-governance.py", "scripts/run-tests.py", "tests/test-policy.json", "scripts/ci-scope.py"], "groups": ["regression"], "test_paths": ["tests/test_test_governance.py"]},
     {"paths": ["scripts/validate-skills.py"], "groups": ["regression"], "test_paths": ["tests/test_validate_skills.py"]},
     {"paths": ["scripts/install.sh", "scripts/install.ps1", "install.cmd", "tooling/shell-guardrails/scripts/*.py", "tooling/shell-guardrails/scripts/*.sh", "tooling/shell-guardrails/scripts/*.ps1", "tooling/shell-guardrails/run_corpus.py", "tooling/shell-guardrails/cases.jsonl"], "groups": ["regression", "windows"], "test_paths": ["tests/test_installers.py"]},
-    {"paths": ["workflow/test-verify-codebase.ps1"], "groups": ["windows"]},
+    {"paths": ["workflow/test-verify-artifacts.ps1"], "groups": ["windows"]},
     {"paths": ["workflow/spec/scripts/spec-review.py"], "groups": ["regression"], "test_paths": ["tests/test_spec_review.py", "tests/test_spec_review_encoding.py", "tests/test_verify_artifacts.py", "tests/test_workflow_state.py"]},
     {"paths": ["workflow/spec/scripts/pyright-impact.py"], "groups": ["regression"], "test_paths": ["tests/test_pyright_impact.py"]},
     {"paths": ["workflow/code-review/scripts/review-input.py"], "groups": ["regression"], "test_paths": ["tests/test_review_input.py"]},

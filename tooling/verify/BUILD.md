@@ -79,8 +79,8 @@ exploration becomes replayable, rather than copying its assertions into another 
 ## Wire and exercise
 
 Add a discovery pointer through the project's existing agent entry file or supported local skill
-mechanism, using one instruction source. Add a reusable command to `CODEBASE.md`'s verifier zone only
-under its existing lazy-creation rule. Check local links and frontmatter with the project's available
+mechanism, using one instruction source. Add a reusable command to the native entry or `AGENTS.md`
+`## Commands` only when the configuration does not already show it. Check local links and frontmatter with the project's available
 validator; inspect the resulting entry through its actual discovery path.
 
 Return to the parent skill's capability proof. Generated files with unexecuted commands remain

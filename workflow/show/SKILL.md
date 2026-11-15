@@ -1,7 +1,7 @@
 ---
 name: show
 description: >-
-  Use only when the user invokes /show to explain a module or how an area of code works. Gives a one-screen purpose, module map, traced flow, and reading order; optional HTML creates a self-contained explainer while durable mapping belongs to map.
+  Use only when the user invokes /show to explain a module or how an area of code works. Gives a one-screen purpose, module map, traced flow, and reading order; optional HTML creates a self-contained explainer.
 argument-hint: "Path/module/question to explain (optional: -html = page for humans)"
 disable-model-invocation: true
 ---
@@ -14,7 +14,8 @@ I don't know this area. Explain it so I can work in it. My question is the calib
 what connects to it, cut what doesn't. Infer the entry point from the named path or active task;
 ask only when no useful scope is identifiable after lookup. Read `CONTEXT.md` when present.
 
-Scope: the named area only; whole-repo orientation is `/map`'s job.
+Scope: the named area only. For a broad area, hand the question to one read-only subagent that
+explores and drafts this shape, then present its result with light edits.
 
 One screen, this shape:
 
@@ -34,4 +35,6 @@ browser when available; otherwise return the file path and state the preview gap
 written. Verify cited paths and the traced flow; distinguish static tracing from executed behavior.
 
 No caller enumerations, no export lists; rg answers those. CONTEXT.md vocabulary.
-Worth keeping for future sessions → say so and point to `/map <path>`.
+Only a routing hint or invariant that passes the two-axis test (project knowledge in
+`../ARTIFACT-FORMAT.md`) is worth keeping → `/correct` moves it up the ladder; the explanation
+itself is never persisted.

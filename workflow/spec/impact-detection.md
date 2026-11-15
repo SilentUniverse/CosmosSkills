@@ -33,19 +33,18 @@ Two kinds of impact, very different confidence:
 - **Static reachability** — who imports/calls this, what breaks if the signature changes.
   Machine-determinable. Query it, don't let the agent guess.
 - **Semantic / behavioural coupling** — "refund makes the amount negative, but reconciliation
-  *assumes* amount ≥ 0." No import edge, ungreppable. Only reading + reasoning finds it. This is
-  exactly what `CODEBASE.md`'s **invariants** are for. Persist them so the next run reuses them.
+  *assumes* amount ≥ 0." No import edge, ungreppable. Only reading + reasoning finds it. Persist
+  these so the next run reuses them: up the `/correct` ladder when they pass the two-axis test.
 
 ## What gets reused on the second run
 
 - **Static reference points** — NOT stored. Re-grep each time; it is cheap and always current.
-- **Semantic invariants (the expensive part)** — persist to the area's surviving map surface
-  (root 不变量 line, or a legacy area block) so the next coupled change in this area skips
-  re-deriving it; but only if the run writes its findings back. Write it; don't pause to offer.
+- **Semantic invariants (the expensive part)** — when one passes the two-axis test, move it up
+  the `/correct` ladder in the same change, so the next coupled change in this area skips
+  re-deriving it. Write it; don't pause to offer.
 
-The concrete per-language commands live in the project's
-`CODEBASE.md` `## Verifier commands` zone (see "Where the commands live" below), never in a
-skill. For browser/Electron work, static reachability is not runtime integrity — the CSP and
+The concrete per-language commands live in the project's native entry and `AGENTS.md`
+`## Commands` (see "Where the commands live" below), never in a skill. For browser/Electron work, static reachability is not runtime integrity — the CSP and
 resource-ownership checks live in [tdd's UI verification](../tdd/UI-TESTING.md).
 
 ---
@@ -87,11 +86,12 @@ checks separately. State that dynamic-dispatch paths may be missed; never imply 
 Use already installed project tools; the block lists options, not a tool-install checklist.
 A module suite is a valid fallback when no related-test selector exists.
 
-These stack-specific commands live as lines in the project's `CODEBASE.md` `## Verifier commands`
-zone, never in a skill. Example lines:
+These stack-specific commands live in the project's native entry (`package.json`/`Makefile`/
+`justfile`/`pyproject.toml`), with one line each in `AGENTS.md` `## Commands` when the entry does
+not already show them; never in a skill. Example lines:
 
 ```markdown
-## Verifier commands
+## Commands
 - TS 受影响代码：ts-morph findReferences；必要执行探针仅在同一隔离副本做 `tsc --noEmit` 差分
 - TS 受影响测试：`vitest related <file>`
 - Py 受影响代码：`rg '\bSYM\b'`；必要执行探针在同一隔离副本用 `pyright-impact.py capture/diff`，只看 new diagnostics

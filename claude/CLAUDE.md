@@ -92,7 +92,7 @@ scenario that needs them; this workflow's format check alone does not count.
 ## 6. Load context on demand
 
 Start from named files or unit pointers. Load a skill only when its description matches the task
-and changes the approach. Load map/glossary sections and ADR titles to navigate; expand for discovered
+and changes the approach. Load glossary sections and ADR titles to navigate; expand for discovered
 dependencies. Keep settled decisions across phases.
 
 → When the next engineering step is unclear: `~/.claude/references/workflow-routing.md`

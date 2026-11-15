@@ -1,4 +1,4 @@
-"""Mechanical gate for FEATURE.md documents (CODEBASE.md leaves: workflow/test-verify-codebase.ps1)."""
+"""Mechanical gate for FEATURE.md documents (Windows harness: workflow/test-verify-artifacts.ps1)."""
 import base64
 import importlib.util
 import io
@@ -132,7 +132,7 @@ class FeatureGateTests(unittest.TestCase):
                 self.assertIn(message, output)
 
     def test_contract_anchor_errors(self):
-        text = feature_text("demo", units=UNIT)
+        text = feature_text("demo", review=False, units=UNIT)
         cases = {
             "duplicate id R1": text.replace("- R2 — second", "- R1 — second"),
             "D1 references undeclared R9": text.replace("Refs: R1", "Refs: R9"),
@@ -200,7 +200,7 @@ class FeatureGateTests(unittest.TestCase):
             with self.subTest(message=message):
                 self.write(verifier=verifier)
                 self.assert_violation("共享验证 " + message)
-        text = feature_text("demo", units=UNIT)
+        text = feature_text("demo", review=False, units=UNIT)
         for message, variant in {"needs one fenced JSON block": text.replace("```json", "").replace("```\n", ""),
                                  "JSON is invalid": text.replace('{"cwd"', '{cwd')}.items():
             with self.subTest(message=message):
@@ -245,7 +245,7 @@ class FeatureGateTests(unittest.TestCase):
                                        dict(FIXTURE_VERIFIER, experience=contract))
 
     def test_invalid_utf8_feature_is_reported(self):
-        self.path.write_bytes(feature_text("demo", units=UNIT).encode("utf-8") + b"\xff\n")
+        self.path.write_bytes(feature_text("demo", review=False, units=UNIT).encode("utf-8") + b"\xff\n")
         self.assert_violation("codec can't decode byte 0xff")
 
     def test_fenced_headings_and_anchors_do_not_change_structure(self):
@@ -361,7 +361,7 @@ class CompletionGateTests(unittest.TestCase):
         self.assertIn("experience state empty needs a retained screenshot", output)
 
     def test_acceptance_never_lapses_when_review_flags_are_removed(self):
-        self.repo.accept_spec(feature_text("demo", units=UNIT))
+        self.repo.accept_spec(feature_text("demo", review=False, units=UNIT))
         text = self.path.read_text(encoding="utf-8").replace("review: required\n", "")
         self.path.write_text(text.replace("first requirement", "rewritten requirement"), encoding="utf-8")
         state = workflow_state.survey(self.root)[0]
@@ -370,11 +370,81 @@ class CompletionGateTests(unittest.TestCase):
 
     @unittest.skipIf(os.name == "nt", "POSIX file modes are not observable on Windows")
     def test_close_preserves_file_mode(self):
-        self.repo.accept_spec(feature_text("demo", units=UNIT))
+        self.repo.accept_spec(feature_text("demo", review=False, units=UNIT))
         self.path.chmod(0o644)
         receipt = self.repo.receipt().relative_to(self.root).as_posix()
         workflow_state.close(self.root, "demo", "T1", [receipt + "; AC 1"])
         self.assertEqual(0o644, self.path.stat().st_mode & 0o777)
+
+
+LEGACY_ROOT = """---
+type: codebase
+generated: 2026-08-18
+---
+
+# demo map
+
+Synthesis line one.
+
+## roster
+
+- `src/alpha/` - alpha responsibility
+"""
+
+LEGACY_BLOCK = """hand-written area notes
+
+<!-- BEGIN GENERATED codebase (/map) - do not edit between markers -->
+git_base: abc1234
+- invariant one
+<!-- END GENERATED codebase -->
+"""
+
+
+class RetiredCodebaseTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name).resolve()
+        (self.root / "src" / "alpha").mkdir(parents=True)
+
+    def write(self, relative, text):
+        path = self.root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+
+    def assert_migration_hint(self, output):
+        hints = [line for line in output.splitlines() if "hint:" in line]
+        self.assertEqual(1, len(hints), output)
+        for step in ("CODEBASE.md", "## Commands", "/correct", "delete"):
+            self.assertIn(step, hints[0])
+
+    def test_roster_pointing_at_deleted_directory_only_hints(self):
+        self.write("CODEBASE.md", LEGACY_ROOT.replace("src/alpha/", "src/gone/"))
+        code, output = run_gate(self.root)
+        self.assertEqual(0, code, output)
+        self.assert_migration_hint(output)
+
+    def test_compliant_legacy_map_now_hints(self):
+        self.write("CODEBASE.md", LEGACY_ROOT)
+        self.write("src/alpha/CLAUDE.md", LEGACY_BLOCK)
+        self.write(".scratch/demo/FEATURE.md", feature_text("demo", review=False, units=UNIT))
+        code, output = run_gate(self.root)
+        self.assertEqual(0, code, output)
+        self.assert_migration_hint(output)
+
+    def test_generated_block_without_root_map_only_hints(self):
+        self.write("src/alpha/CLAUDE.md", LEGACY_BLOCK)
+        self.write(".scratch/demo/FEATURE.md", feature_text("demo", review=False, units=UNIT))
+        code, output = run_gate(self.root)
+        self.assertEqual(0, code, output)
+        self.assert_migration_hint(output)
+
+    def test_repository_without_legacy_map_has_no_hint(self):
+        self.write("src/alpha/CLAUDE.md", "hand-written notes only\n")
+        self.write(".scratch/demo/FEATURE.md", feature_text("demo", review=False, units=UNIT))
+        code, output = run_gate(self.root)
+        self.assertEqual(0, code, output)
+        self.assertNotIn("hint:", output)
 
 
 if __name__ == "__main__":

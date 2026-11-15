@@ -99,5 +99,5 @@ Required before declaring done:
 - [ ] Remove temporary artifacts created by this task once their regression evidence is retained
 - [ ] State the cause, fix, and verification in the result; include them in a commit/PR only if submission is requested
 
-Pursue prevention only within scope. Record an `rg`-invisible invariant in an existing `CODEBASE.md`
-block using `/map`'s two-axis test; otherwise mention it in the result.
+Pursue prevention only within scope. An `rg`-invisible invariant that passes the two-axis test
+moves up the `/correct` ladder; otherwise mention it in the result.

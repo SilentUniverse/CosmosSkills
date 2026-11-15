@@ -114,5 +114,5 @@ A chronically failing unit with a concrete gap is parked:
 `workflow-state.py park <root> <feat> T<n> --reason TEXT`. Changed behavior after `done` is a new
 unit with `refines:`; the gate rejects edits to a done unit's contract or its pinned log.
 
-Retain hard-to-recover invariants at their existing owner under `/map`'s two-axis rule. Use `/tidy`
+Move hard-to-recover invariants that pass the two-axis test up the `/correct` ladder. Use `/tidy`
 for obligations and cleanup; `/pr` only when requested.

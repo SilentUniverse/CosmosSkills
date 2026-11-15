@@ -22,7 +22,7 @@ not a prerequisite to start teaching. Preserve existing workspace content.
 - `NOTES.md`: A scratchpad for you to jot down user preferences, or working notes.
 
 Keep the workspace out of engineering repo roots: if the current directory carries engineering
-surfaces (`CODEBASE.md`, `.scratch/`, `CONTEXT.md`), create the teaching files under `teaching/`
+surfaces (`.scratch/`, `CONTEXT.md`), create the teaching files under `teaching/`
 unless the user names a workspace.
 
 ## Philosophy

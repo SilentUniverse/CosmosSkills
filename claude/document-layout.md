@@ -10,18 +10,12 @@ Don't restate what the environment answers (package.json scripts, config values,
 
 ## Session start protocol
 
-Start with named inputs. For unfamiliar nontrivial work, use `CODEBASE.md` routing and relevant
-`CONTEXT.md` terms; read ADR titles and open only decisions governing the affected area. Feature-unit or
-explicit task pointers are the initial read set, not a ban on investigating a discovered dependency.
-Skip missing orientation files. Create/refresh a map only when navigation or a changed invariant
-needs it; no bootstrap offer or full-map drift scan on every session. A generated block with
-relevant committed, staged, working-tree or untracked drift from `git_base` is a lead, not fact:
-re-verify its named facts before relying on it and
-fix, drop, or re-stamp the affected lines in place; do not re-derive the map for it.
-
-A host may inject per-area `CLAUDE.md` blocks automatically; where it does not, read the relevant
-referenced blocks explicitly when needed. Do not assume one host's automatic loading applies to
-every host.
+Start with named inputs. For unfamiliar nontrivial work, use relevant `CONTEXT.md` terms; read ADR
+titles and open only decisions governing the affected area. Feature-unit or explicit task pointers
+are the initial read set, not a ban on investigating a discovered dependency. Skip missing
+orientation files. Structure the named inputs do not carry (layering, data flow, how an area works)
+is read from the code when the task needs it: `/show` for one area, a read-only subagent for a
+broad one. It is not persisted.
 At a unit boundary use the Cosmos `handoff` skill; a fresh session uses `resume`. A host's
 same-name native command is not these skills.
 
@@ -32,8 +26,8 @@ Unit state is queried on demand via `workflow-state.py survey`; it creates no su
 Facts confirmed by an accepted plan live at their narrowest useful scope: task-local in the
 conversation/native plan or the owning unit (not auto-loaded later), feature-local in
 the feature's FEATURE.md decisions and invariants,
-area/project invariants in ADR/CODEBASE/CONTEXT only when they pass `/map`'s two-axis test and
-record scope, source and reason. When the code, schema or decision a promoted fact cites changes,
+area/project invariants in ADR/CONTEXT/`AGENTS.md` only when they pass the two-axis test in
+`workflow/ARTIFACT-FORMAT.md` (project knowledge) and record scope, source and reason. When the code, schema or decision a promoted fact cites changes,
 revalidate or supersede it; past acceptance does not keep a stale fact true.
 
 `AGENTS.md`/`CLAUDE.md` is the always-loaded doorplate: what this repo is, the pointer block, deviation declarations, repo-specific constraints. Content the workflow adds there is additive-only and never restates process behavior the skills define.

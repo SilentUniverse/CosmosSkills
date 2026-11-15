@@ -8,7 +8,7 @@ Delegation follows `CLAUDE.md` §8; without it, never claim independent corrobor
 
 Its job:
 
-1. **Ground in the repo's durable layer first**: the `CODEBASE.md` / `CONTEXT.md` entries
+1. **Ground in the repo's durable layer first**: the `CONTEXT.md` entries and `AGENTS.md` rules
    relevant to the question, ADR titles (a body only for the area it governs), and prior research
     files on this topic. Sort the question into already answered (reuse it unless version or freshness
     changed), assumed but unverified (verify cheaply), genuinely open (the actual research delta).
@@ -20,7 +20,7 @@ Its job:
 6. Return findings with claim-level citations (URL + section or file:line), plus version/date when relevant. State material gaps. Write one Markdown file only when requested or when later work needs the artifact.
 7. Save it where it fits the research's lifespan:
    - **Feature-scoped** (answers a question for a specific feature) → `.scratch/<feat>/research-<topic>.md`.
-    - **Project-wide reference** (repeatedly needed facts) → update its existing owner when in scope; use `CODEBASE.md` only for facts that pass `/map`'s two-axis test. No automatic map bootstrap.
+    - **Project-wide reference** (repeatedly needed facts) → update its existing owner when in scope; facts that pass the two-axis test move up the `/correct` ladder.
    - **Pre-feature / exploratory** (before any feature exists; "should we do this, how might it work") → don't park it as a standalone file. Carry the findings into `/grill` (decisions) or an ADR (hard calls) and let the file go. A durable doc nobody navigates to is noise.
    - **Genuinely throwaway** (just needed to unblock the next step) → `.scratch/tmp/` (gitignored).
    - No clear fit? Put it somewhere sensible, say where, let the user move it.
