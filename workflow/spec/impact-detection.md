@@ -33,9 +33,21 @@ Two kinds of impact, very different confidence:
 - **Static reachability** — who imports/calls this, what breaks if the signature changes.
   Machine-determinable. Query it, don't let the agent guess.
 - **Semantic / behavioural coupling** — "refund makes the amount negative, but reconciliation
-  *assumes* amount ≥ 0." No import edge, ungreppable. Only reading + reasoning finds it. Persist
+  *assumes* amount ≥ 0." No import edge, ungreppable. Only reading + reasoning finds it. Look where
+  symbol search stops: the called library's source at its pinned version and local patches;
+  execution timing (teardown, async ordering); channels without a symbol edge (API JSON, DB
+  columns, wire formats, another language reading the same bytes, feature flags). Persist
   these so the next run reuses them: up the `/correct` ladder when they pass the two-axis test.
 
+## The fact safety rests on
+
+A list of callers is not the result. Most risky-looking changes are safe because of one or two
+facts, such as "this call only drops cache entries that are already dead". Name them, state the
+[evidence strength](../REPORT-FORMAT.md#evidence-strength) each reached, and give the check that
+would show a counterexample. Planning stays read-only, so a fact below 脚本 is an assumption: write
+it as 未证实 and put its check in the verification plan for execution. Report confirmed risks and
+checked-and-cleared risks separately, each with a real location; a search that finds nothing is an
+answer, an invented caller is not.
 ## What gets reused on the second run
 
 - **Static reference points** — NOT stored. Re-grep each time; it is cheap and always current.
