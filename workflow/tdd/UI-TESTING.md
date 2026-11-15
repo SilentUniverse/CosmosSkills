@@ -26,7 +26,9 @@ accepted claim. Keep project dependencies pinned through its existing setup cont
 Record one scenario in the existing verification design: requirement, target build/source,
 fixture and initial state, actions, independently expected observations, actual result, and evidence
 locations. Reuse that scenario and its stable ID across native operation and a retained regression;
-do not copy it into a second contract. A passed exploratory run does not supply a missing CI test.
+do not copy it into a second contract. Each feature the scenario drives is described with the
+fields of the [feature map](../../tooling/verify/FEATURE-MAP.md). A passed exploratory run does not
+supply a missing CI test.
 A native replay can satisfy a replay requirement only if the next executor can actually rerun its
 actions and assertions; a transcript that only says “looks good” is not replayable proof.
 

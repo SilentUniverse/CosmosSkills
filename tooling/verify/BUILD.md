@@ -54,6 +54,10 @@ that the next executor can reproduce through the repository's declared environme
 
 ## Feature map
 
+Per-feature user-view fields (user path, adapter actions and reset, selector rules, states,
+preconditions, evidence, gotchas) follow [FEATURE-MAP.md](FEATURE-MAP.md); this section adds the
+scenario side.
+
 Record knowledge needed to reach and operate the selected feature: entry points, prerequisite state,
 the relevant driver commands, observation pitfalls and links to existing scenario tests. Start with
 the selected feature; add an index when multiple entries need routing. Include source or test pointers
