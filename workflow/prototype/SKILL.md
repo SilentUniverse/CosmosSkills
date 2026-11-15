@@ -28,6 +28,27 @@ unresolved choice would materially change the result; prepare independent fixtur
 5. **Surface the state.** After every action (logic) or on every variant switch (UI), print or render the full relevant state so the user can see what changed.
 6. **Retain until the question is answered.** Keep a runnable prototype for requested user exploration. Delete task-owned scaffolding or absorb the validated decision when authorized; a prototype-only request does not authorize production changes.
 
+## Several candidates
+
+Only when the design is genuinely uncertain and one attempt would lock in the wrong shape; an
+ordinary prototype stays single. This applies the compare-designs contract of the delegation rule
+(`CLAUDE.md` §8).
+
+1. **Fix the selection first.** Before any candidate exists, write the criteria or metric, the
+   inputs, how each candidate is judged and the tie rule. Candidates see only the task.
+2. **Fan out.** Two or three subagents, each in its own worktree with the same task text, each
+   returning its prototype and a short note on the alternatives it rejected. A candidate that
+   produces nothing drops out and is noted.
+3. **Pick a base and graft.** Judge every candidate criterion by criterion. Take as the base the one
+   easiest to extend without breaking invariants, then port by hand the one or two strengths of the
+   others worth keeping. Converging candidates need no graft; wildly diverging ones mean step 1 was
+   underspecified, so reframe and rerun instead of averaging.
+4. **Verify again.** Run the grafted result through the same question and hard cases; the
+   candidates' own runs do not count for it.
+
+Report the base and why, each graft and its source, what was rejected, dropouts and the
+re-verification.
+
 ## When done
 
 Report the question, observed answer, run command/URL, and checks. Record a consequential decision
