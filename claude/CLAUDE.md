@@ -32,9 +32,9 @@ Priority: host/system > user objective and prior authorization > these defaults 
 - Ask only about unresolved choices that materially change outcome, public contract, scope,
   irreversible effects, cost or authority. Batch independent questions; ask only the delta.
 - Authorization survives turns and skills within its scope. A direct implementation request
-  authorizes routine planning and execution. `/spec` or a plan request always ends at the plan;
-  later discussion revises it, never starts work. Planning writes no product code, tests or
-  verification tools. File count never forces planning.
+  authorizes routine planning and execution. `/spec` or a plan request ends at the plan; agreement
+  revises it; only an explicit start (`开始实现`, `/tdd`) starts work. Planning writes no product
+  code, tests or verification tools. File count never forces planning.
 - TDD runs only when the user invokes `/tdd`; `/spec` never enters it. Chat, writing and analysis
   run no tests; a code change outside `/tdd` runs one relevant check after the edit batch.
 - Hold only work dependent on unresolved material decisions; finish independent authorized work.
@@ -74,9 +74,10 @@ scenario that needs them; this workflow's format check alone does not count.
   evidence or blockers.
 - Observation beats reasoning; performance claims need measurements.
 - Prose gets structure checks; templates/schema get targeted contract checks. Logic changes run
-  relevant cases once after the edit batch, never as a baseline or between edits; after a failure
-  rerun only failing cases. Widen only for a named uncovered risk; full suites only on request or
-  declared CI gates. Reuse passes while inputs/environment match.
+  relevant cases once after the edit batch, not between edits; pre-change runs only reproduce a
+  bug, pin refactor equivalence or baseline performance. Rerun only failing cases. Widen only
+  for a named uncovered risk; full suites only on request or declared CI gates. Reuse passes while
+  inputs/environment match.
 - After two failed fixes on one cause, stop patching: ask a fresh read-only subagent (facts, your
   judgment, the answer you hope to hear) or use `/diagnose`.
 - Update the existing governing contract when a correction changes it; do not create one to log a turn.

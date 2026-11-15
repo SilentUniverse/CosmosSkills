@@ -63,12 +63,13 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | §2·查证 | 可查事实不问人 | 过程 | 自审 | 未溯源（近邻探针：research-marks-unverified-and-ignores-injection） |
 | §2·摄入 | 结果与约束已定即可推进；实现和验证细节由 agent 补足；文件数不触发规划 | 过程·经济 | 流程 | 仪式性确认税；7be5338 压缩摄入、51a7d4a fast path / spec-alignment-before-write |
 | §2·授权 | 既有授权在接受范围内继承；保留用户明确要求的 review | 权威 | 流程 | 结果分叉未问人；ALIGNMENT-LOOP 回执 / spec-holds-alignment-under-pressure |
+| §2·开工 | /spec 或计划请求止于计划；「好」「可以」等同意只修订或确认计划；明确开工语（开始实现、按计划做）或 /tdd 才实施 | 权威 | 流程 | 含糊同意被当开工，或明确开工仍被挡在计划；用户决定（2026-11-15）；spec-explicit-start-semantics、spec-plans-without-product-writes |
 | §4·a | 扩展列表/表格/固定格式前先查 2–3 个同类条目并对齐结构 | 过程 | 自审 | 条目格式漂移；agent-skills AGENTS.md 对标借入；未溯源 |
 | §4·b | 回答插问后继续；纠正与行动请求更新当前目标 | 过程 | 流程 | 顺手扩权修改；dev-skills 对标借入（just-ask）；未溯源 |
 | §4·e | 按原始范围完成；已授权提交同任务进入 /pr | 产物 | 流程 | 未经检查的提交；9263475 / pr-holds-scope-under-pressure |
 | §5·a | 字典序优化：质量与正确性 > 交付速度 > token；后两者不得削弱证据、安全、可访问性 | 权威 | 流程 | 用户明确优先级；防止以省时省 token 为由降级产品门 |
 | §5·b | 简述行动与验证，阶段边界不截断整体任务 | 过程 | 自审 | 38a1fa2（why + shakiest-steps） |
-| §5·d / TEST-POLICY | 纯文案仅结构；模板/schema 定向合同；逻辑按用例；具体未覆盖风险才扩围；输入与环境未变复用，保留交付门 | 过程·经济 | 流程 | 文案触发整个 regression 与收尾追加消费者整组；test-policy 的路径选组、test_test_governance 的定向选择回归 |
+| §5·d / TEST-POLICY | 纯文案仅结构；模板/schema 定向合同；逻辑按用例；改前运行只用于复现 Bug、钉住重构等价或性能基线，不做安心基线；具体未覆盖风险才扩围；输入与环境未变复用，保留交付门 | 过程·经济 | 流程 | 文案触发整个 regression 与收尾追加消费者整组；原「never as a baseline」挡住修 Bug 复现与性能对比（2026-11-15 审计）；test-policy 的路径选组、test_test_governance 的定向选择回归；workflow-routing 最小证据表 |
 | §5·e | 同因两次修复失败 → 换路或 /diagnose | 过程 | 流程 | 97a7998（anti-thrash）/ diagnose-holds-repro-under-pressure（近邻） |
 | §5·f | 纠正改变现有契约才更新，不为一轮对话建工件 | 过程 | 流程 | 未溯源 |
 | §2·开场 / §5·完成 | 新请求或意图实质变化时简短复述；不反复复述既定意图，不新增确认门；如实报完成/受阻 | 过程·经济 | 自审 | 用户要求 Restate my intent before continuing；51a7d4a 的防重复意图保留；行为收益未实测 |

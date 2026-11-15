@@ -34,6 +34,22 @@ independent items, tables for comparisons and diagrams for relationships when th
 Keep the finding fields above; do not turn a report into another review or state store.
 Omit empty sections, not consequential unknowns or missing evidence.
 
+## Evidence strength
+
+Results and findings state the strongest evidence they reached, from weakest to strongest:
+
+| 级 | 含义 |
+|---|---|
+| 口说 | 只有断言，没有可核对的位置 |
+| 行 | 引用到具体代码、文档或日志行 |
+| 推演 | 沿调用或数据路径推出结论，没有运行 |
+| 脚本 | 运行了检查或脚本，输出可复核 |
+| 真实复现 | 在真实目标或固定候选上观察到行为本身 |
+
+Never word a lower level as a higher one; 已验证 needs 脚本 or 真实复现. A high-risk change or
+finding names the one fact its safety depends on and, when it is runnable, runs a counterexample
+against that fact.
+
 ## Typography
 
 Apply CLAUDE.md §1 rather than another writing policy. Use monospace for commands, paths, fields and

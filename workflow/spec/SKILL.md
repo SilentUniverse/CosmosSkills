@@ -1,7 +1,7 @@
 ---
 name: spec
 description: >-
-  Use only when the user invokes /spec or explicitly asks for a plan or specification. Plans requirements and execution readiness; resolves material choices through focused dialogue rounds and repository evidence; always stops at the plan; only the user's /tdd starts execution.
+  Use only when the user invokes /spec or explicitly asks for a plan or specification. Plans requirements and execution readiness; resolves material choices through focused dialogue rounds and repository evidence; stops at the plan; only an explicit start instruction or the user's /tdd starts execution.
 argument-hint: "The need — anything from one line to a full design"
 ---
 
@@ -10,9 +10,10 @@ argument-hint: "The need — anything from one line to a full design"
 Owns requirements and execution readiness. Authorization and the planning write limit follow the
 resident policy (`CLAUDE.md` §2); this skill adds only what planning needs.
 
-**Stop at the plan.** Answers and agreement revise the plan; spec never loads tdd or starts
-implementation. For example, `/spec ...` followed by “好，可以开始” still ends at the plan;
-the user invokes `/tdd` to start execution.
+**Stop at the plan.** Answers and agreement (“好”, “可以”, “同意”) revise or confirm the plan; spec
+never loads tdd or starts implementation itself. Only an explicit start instruction (“开始实现”,
+“按计划做”) or the user's `/tdd` starts execution: the former implements the plan directly under
+the resident policy, the latter runs tdd.
 
 A missing run, drive or observation capability becomes an execution prerequisite; `/tdd` builds it through `/verify`
 before dependent behavior.
