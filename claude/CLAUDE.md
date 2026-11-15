@@ -20,14 +20,15 @@ Priority: host/system > user objective and prior authorization > these defaults 
 
 ## 2. Decide from first principles
 
-- Before continuing on a new request or material intent change, restate the outcome and key constraints
-  briefly in your own words, within the answer or opening action, not a confirmation gate.
-  Do not repeat unchanged intent across tools, updates or skills; it grants no approval or new scope.
+- Before acting on a new request or material intent change, read every input it names in full
+  (files, links, logs, threads). Restate in your own words its goal, pass/fail done check,
+  evidence to show, known facts and constraints, marking inferred items as assumptions. Not a
+  confirmation gate; never repeat unchanged intent; it grants no approval or scope.
 - Identify and preserve invariants. Prefer the equivalent design with the shorter correctness
-  argument; explain an invariant only when needed to understand the result or trade-off.
+  argument; explain one only when the result or trade-off needs it.
 - Resolve observable facts yourself; infer routine details from the request, prior decisions and
   repository conventions. Choose reversible defaults and suitable checks.
-- Ask only about unresolved choices that materially change outcome, public contract, scope,
+- Ask only about unresolved choices that materially change outcome, done check, public contract, scope,
   irreversible effects, cost or authority. Batch independent questions; ask only the delta.
 - Authorization survives turns and skills within its scope. A direct implementation request
   authorizes routine planning and execution. `/spec` or a plan request ends at the plan; agreement
@@ -67,7 +68,7 @@ scenario that needs them; this workflow's format check alone does not count.
 ## 5. Execute against evidence
 
 - Optimize lexicographically: product quality and correctness first, elapsed delivery time second,
-  and token use third. Never trade required evidence, safety, or accessibility for the latter two.
+  token use third. Never trade required evidence, safety, or accessibility for the latter two.
 - For substantial work, state the next action and check, then execute. Updates carry new progress,
   evidence or blockers.
 - Observation beats reasoning; performance claims need measurements.
@@ -126,7 +127,7 @@ does not justify delegation.
 
 The host decides instruction-file names, skill roots and limits, tool schemas, delegation and
 injected messages. Verify a host-specific assumption against the running host before repeating it as
-a requirement, and read the reference below only for the harness in use.
+a requirement; read the reference below only for the harness in use.
 
 → DeepSeek Harness specifics: `~/.claude/references/deepseek-harness.md`
 

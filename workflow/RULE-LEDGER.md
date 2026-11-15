@@ -72,7 +72,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | §5·d / TEST-POLICY | 纯文案仅结构；模板/schema 定向合同；逻辑按用例；改前运行只用于复现 Bug、钉住重构等价或性能基线，不做安心基线；具体未覆盖风险才扩围；输入与环境未变复用，保留交付门 | 过程·经济 | 流程 | 文案触发整个 regression 与收尾追加消费者整组；原「never as a baseline」挡住修 Bug 复现与性能对比（2026-11-15 审计）；test-policy 的路径选组、test_test_governance 的定向选择回归；workflow-routing 最小证据表 |
 | §5·e | 同因两次修复失败 → 换路或 /diagnose | 过程 | 流程 | 97a7998（anti-thrash）/ diagnose-holds-repro-under-pressure（近邻） |
 | §5·f | 首次错误就地修复；同类错误复发按架构 → 类型 → 报错指明修法的检查 → 测试 → 文字的顺序取最高可行层，新检查须在真实历史错误上失败；纠正改变现有契约才更新，不为一轮对话建工件 | 过程 | 流程 | 纠正只写成文字、无人强制而复发；poteto「slop to gold」演讲与 pstack [correct](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/skills/correct/SKILL.md)；用户要求（2026-11-15）；行为收益未实测 |
-| §2·开场 / §5·完成 | 新请求或意图实质变化时简短复述；不反复复述既定意图，不新增确认门；如实报完成/受阻 | 过程·经济 | 自审 | 用户要求 Restate my intent before continuing；51a7d4a 的防重复意图保留；行为收益未实测 |
+| §2·开场 / §5·完成 | 新请求或意图实质变化时先完整读完点名输入，再简短转述目标、可判定的完成检查、要展示的证据、已知信息与约束，推断项标为假设；不反复复述既定意图，不新增确认门；完成检查无法确定属于须问的实质选择；如实报完成/受阻 | 过程·经济 | 自审 | 用户要求 Restate my intent before continuing；51a7d4a 的防重复意图保留；pstack [prompt 五要素](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/docs/guide/02-poteto-mode.md)，用户要求全部吸收并读完再做（2026-11-15）；行为收益未实测 |
 | §6 | 点名输入起步，发现依赖再展开，保留已决定上下文 | 过程·经济 | 流程 | 工程阅读纪律保留；宿主拥有 replay/cache/compaction，不保留第二套上下文生命周期 |
 | §7·a | 优先可用工具，遵守实际 hook，不为偏好安装 | 过程 | 机器+流程 | 5ef04aa（modern-cli hook）+ 77baaf7/35adb23（corpus 加固） |
 | §7·b | 破坏性目录操作前枚举隐藏/忽略项 | 权威 | 流程 | 未溯源（安全守则） |
