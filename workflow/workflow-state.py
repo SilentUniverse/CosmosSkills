@@ -52,6 +52,27 @@ def work_tree(root):
                               check=True, text=True).stdout.strip()
 
 
+TREE_AFTER = "# tree-after="
+
+
+def log_lines(path):
+    return path.read_bytes().decode("utf-8", "replace").replace("\r\n", "\n").split("\n")
+
+
+def known_failed_run(feature, log, lines):
+    """A failing log of the same command on the same working files contradicts a pass; `no-vcs` cannot tell."""
+    from evidence import reference
+    if lines[1:2] == ["# tree=no-vcs"]:
+        return None
+    for path in sorted((feature.directory / "runs").glob("*.log")):
+        if reference(feature.root, path) == log:
+            continue
+        other = log_lines(path)
+        if other[:2] == lines[:2] and [line for line in other if line.strip()][-1:] != ["exit=0"]:
+            return reference(feature.root, path)
+    return None
+
+
 def run(root, name, unit_id, command_name):
     """Run one unit command from 共享验证 cwd and retain a run log usable as completion evidence."""
     import os
@@ -68,13 +89,16 @@ def run(root, name, unit_id, command_name):
     directory.mkdir(parents=True, exist_ok=True)
     log = directory / ("%s-%s-%d.log" % (unit_id, command_name, time.time_ns()))
     style = "windows" if os.name == "nt" else "posix"
+    tree = work_tree(feature.root)
     result = subprocess.run(feature_doc.command_argv(command, style), cwd=str(local(feature.root, verifier["cwd"])),
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    tree = work_tree(feature.root)
-    log.write_bytes(b"$ " + command.encode("utf-8") + b"\n# tree=" + tree.encode() + b"\n" + result.stdout
-                    + b"\nexit=%d\n" % result.returncode)
+    after = work_tree(feature.root)
+    header = b"$ " + command.encode("utf-8") + b"\n# tree=" + tree.encode() + b"\n"
+    if after != tree:
+        header += TREE_AFTER.encode() + after.encode() + b"\n"
+    log.write_bytes(header + result.stdout + b"\nexit=%d\n" % result.returncode)
     path = reference(feature.root, log)
-    return {"unit": unit_id, "command": command_name, "exit": result.returncode, "log": path,
+    return {"unit": unit_id, "command": command_name, "exit": result.returncode, "log": path, "stable": after == tree,
             "evidence": "%s; AC %s" % (path, ",".join(str(n) for n, (_, c) in enumerate(unit.acceptance(), 1)
                                                 if c == command_name))}
 
@@ -110,9 +134,15 @@ def close(root, name, unit_id, evidence, candidate=None):
                 continue
             tree = tree or work_tree(feature.root)
             from evidence import local
-            header = local(feature.root, log).read_text(encoding="utf-8", errors="replace").split("\n")[1:2]
-            if header != ["# tree=" + tree]:
+            lines = log_lines(local(feature.root, log))
+            if lines[2:3] and lines[2].startswith(TREE_AFTER):
+                raise ValueError("working files changed while the check ran for %s; rerun it on stable files" % log)
+            if lines[1:2] != ["# tree=" + tree]:
                 raise ValueError("run log %s was not produced from the current working files; rerun it" % log)
+            failed = known_failed_run(feature, log, lines)
+            if failed:
+                raise ValueError("known failed attempt %s of the same command on these working files conflicts "
+                                 "with %s; diagnose it, then change the code or environment and rerun" % (failed, log))
         closed = feature_doc.Feature(feature.root, name, path, text)
         problem = feature_doc.completion_problem(closed, closed.unit(unit_id), closing=True)
         if problem:
@@ -180,7 +210,10 @@ def main(argv=None):
         elif args.command == "run":
             result = run(args.root, args.feature, args.unit, args.command_name)
             print(json.dumps(result, ensure_ascii=False, indent=2))
-            return 0 if result["exit"] == 0 else 1
+            if not result["stable"]:
+                print("workflow-state: working files changed while the check ran; the log cannot close the unit",
+                      file=sys.stderr)
+            return 0 if result["exit"] == 0 and result["stable"] else 1
         elif args.command == "close":
             result = close(args.root, args.feature, args.unit, args.evidence, args.candidate)
         else:

@@ -64,8 +64,9 @@ upstream, or stop if the intended remote cannot be resolved without changing rep
 
 Landing mechanics run through `python <pr-skill-dir>/scripts/land.py <repo-root>` once the
 scoped commit exists on the topic branch. The script selects its engine: authenticated `gh` on a
-GitHub remote lands through a pull request (`--squash --match-head-commit <verified-head>` when
-the installed gh supports it), created with the body from `--pr-body-file` when provided;
+GitHub remote lands through a pull request (`--squash --match-head-commit <verified-head>`; a gh
+without that flag stops with exit 2 instead of merging an unpinned head), created with the body
+from `--pr-body-file` when provided;
 any other remote lands natively in an isolated clean worktree —
 `git merge --ff-only <branch>`, squash fallback with the same message — then publishes the
 default branch after an optional `--verify-command`. It pins the verified head on both engines
@@ -75,11 +76,13 @@ failure, never stages or scopes (the validated commit is its only input), leaves
 caller's checked-out branch untouched, and advances the local default branch to the published
 one by fast-forward only; `--mode/--remote/--base/--verify-command` override its
 resolutions. On the native engine, pass `--verify-command` only for a delivery gate the repository
-explicitly declares; otherwise omit it. The gh engine takes no verify command: `/pr` runs no check
-before that merge and no CI watch after it. Where the base branch requires no checks, the delivery
-gates therefore first run in CI after the merge; exit 4 reports a merge that a blocked check
-stopped. The script's JSON report and exit code are authoritative; read them rather than deriving
-them from the repository's CI configuration.
+explicitly declares; otherwise omit it. The gh engine takes no verify command; before merging it
+waits (`--checks-timeout`, default 1800 s) for the PR head's required checks, or every reported
+check when the base requires none. A failed or cancelled check stops with exit 5, checks still
+pending at the deadline with exit 4, and `checks` in the report names the scope that passed
+(`none` when the head reported no checks). CI after the merge is not awaited. The script's JSON
+report and exit code are authoritative; read them rather than deriving them from the repository's
+CI configuration.
 
 A moved head, a wrong PR target, pending required checks, an unavailable engine, or a failed
 verify command returns to this skill's recovery: resolve the target, or stop with the scoped
@@ -155,6 +158,7 @@ Delete the message file once the commit exists; a failed commit keeps it for the
 Both landing engines enforce the same subject gate on the verified head before publishing.
 
 Report the commit hash and included paths. For a landed change, also report the pushed ref, pull
-request URL when applicable, default-branch result, and any cleanup still pending; when CI was not
-awaited, say so rather than leaving a green run implied. Layout follows
+request URL when applicable, the head checks that gated the merge (`checks`; say so when the scope
+was `none`), default-branch result, and any cleanup still pending. CI after the merge is not
+awaited; say so rather than leaving a green run implied. Layout follows
 [REPORT-FORMAT.md](../REPORT-FORMAT.md).

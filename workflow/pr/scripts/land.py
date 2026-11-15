@@ -12,8 +12,8 @@ branch and reports it instead of repeating a step.
 Engine `auto` uses gh when authenticated and the remote resolves as GitHub,
 otherwise native. Exit codes: 0 landed (including already landed); 1 bad
 input; 2 environment (no remote, detached HEAD, no usable engine); 3 head or
-target mismatch needing resolution; 4 pending required checks; 5 verification
-failed; 6 a git/gh step failed. One JSON object on stdout describes the run.
+target mismatch needing resolution; 4 checks still pending; 5 verification or a
+PR head check failed; 6 a git/gh step failed. One JSON object on stdout describes the run.
 """
 
 from __future__ import annotations
@@ -27,6 +27,10 @@ import tempfile
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence
+
+
+CHECK_INTERVAL = 10.0
+CHECK_REGISTER_GRACE = 60.0
 
 
 class LandError(Exception):
@@ -227,6 +231,59 @@ def _merge_commit_of(branch: str) -> Optional[str]:
         return None
 
 
+_NO_CHECKS_RE = re.compile(r"no (required )?checks reported", re.IGNORECASE)
+
+
+def _head_checks(number: Any, required: bool) -> List[Dict[str, Any]]:
+    args = ["pr", "checks", str(number), "--json", "name,bucket,state"]
+    if required:
+        args.append("--required")
+    process = _gh(args)
+    try:
+        data = json.loads(process.stdout)
+        if isinstance(data, list):
+            return [item for item in data if isinstance(item, dict)]
+    except json.JSONDecodeError:
+        pass
+    text = (process.stderr or "") + (process.stdout or "")
+    if _NO_CHECKS_RE.search(text):
+        return []
+    raise LandError(6, "gh pr checks failed: %s" % text.strip(), {})
+
+
+def _await_head_checks(number: Any, timeout: float, report: Dict[str, Any]) -> None:
+    """Merge only after the PR head's required checks (every check when none is required) pass."""
+    start = time.monotonic()
+    while True:
+        scope, checks = "required", _head_checks(number, True)
+        if not checks:
+            scope, checks = "all", _head_checks(number, False)
+        failed = sorted(str(c.get("name")) for c in checks if c.get("bucket") in ("fail", "cancel"))
+        if failed:
+            raise LandError(
+                5, "%s check failed on the verified head: %s" % (scope, ", ".join(failed)), {}
+            )
+        pending = sorted(str(c.get("name")) for c in checks if c.get("bucket") not in ("pass", "skipping"))
+        elapsed = time.monotonic() - start
+        if checks and not pending:
+            report["checks"] = {
+                "scope": scope,
+                "passed": sorted(str(c.get("name")) for c in checks if c.get("bucket") == "pass"),
+            }
+            report.setdefault("steps", []).append("%s checks passed on the verified head" % scope)
+            return
+        if not checks and elapsed >= min(CHECK_REGISTER_GRACE, timeout):
+            report["checks"] = {"scope": "none", "passed": []}
+            report.setdefault("steps", []).append("no checks reported for the verified head")
+            return
+        if elapsed >= timeout:
+            raise LandError(
+                4, "checks still pending on the verified head after %ss: %s"
+                % (timeout, ", ".join(pending)), {},
+            )
+        time.sleep(CHECK_INTERVAL)
+
+
 def land_gh(
     repo: Path,
     remote: str,
@@ -235,6 +292,7 @@ def land_gh(
     base: str,
     pr_body: Optional[str],
     report: Dict[str, Any],
+    checks_timeout: float = 1800.0,
 ) -> None:
     _ensure_topic_pushed(repo, remote, branch, sha)
     pr = _pr_view(repo, branch)
@@ -280,23 +338,30 @@ def land_gh(
         _verify_pr_identity(pr, sha, base)
         report.setdefault("steps", []).append("created PR %s" % pr.get("url"))
 
+    try:
+        _await_head_checks(pr["number"], checks_timeout, report)
+    except LandError as exc:
+        exc.report.setdefault("pr", pr.get("url"))
+        raise
     merge_args = ["pr", "merge", str(pr["number"]), "--squash",
                   "--match-head-commit", sha]
     merge = _gh(merge_args)
     if merge.returncode != 0:
         text = (merge.stderr or "") + (merge.stdout or "")
-        if "match-head-commit" in text and ("unknown" in text.lower() or "usage" in text.lower()):
-            merge = _gh(["pr", "merge", str(pr["number"]), "--squash"])
-        if merge.returncode != 0:
-            text = (merge.stderr or "") + (merge.stdout or "")
-            lowered = text.lower()
-            if "check" in lowered or "pending" in lowered or "required" in lowered:
-                raise LandError(
-                    4, "required checks pending: %s" % text.strip(), {"pr": pr.get("url")}
-                )
+        lowered = text.lower()
+        if "match-head-commit" in text and ("unknown" in lowered or "usage" in lowered):
             raise LandError(
-                6, "gh pr merge failed: %s" % text.strip(), {"pr": pr.get("url")}
+                2, "installed gh lacks --match-head-commit; upgrade gh instead of merging an unpinned head",
+                {"pr": pr.get("url")},
             )
+        if "check" in lowered or "pending" in lowered or "required" in lowered:
+            raise LandError(
+                4, "required checks pending: %s" % text.strip(), {"pr": pr.get("url")}
+            )
+        raise LandError(
+            6, "gh pr merge failed: %s" % text.strip(), {"pr": pr.get("url")}
+        )
+
     deadline = time.monotonic() + 90
     final: Optional[Dict[str, Any]] = None
     while time.monotonic() < deadline:
@@ -522,6 +587,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("--verify-command")
     parser.add_argument("--verify-timeout", type=float, default=600.0)
     parser.add_argument(
+        "--checks-timeout", type=float, default=1800.0,
+        help="gh engine: seconds to wait for the PR head's checks before exit 4",
+    )
+    parser.add_argument(
         "--check-message", action="store_true",
         help="validate a commit message instead of landing",
     )
@@ -601,7 +670,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         report.update(branch=branch, head=sha, base=base)
         if use_gh:
             report["engine"] = "gh"
-            land_gh(repo, args.remote, branch, sha, base, pr_body, report)
+            land_gh(repo, args.remote, branch, sha, base, pr_body, report, args.checks_timeout)
         else:
             report["engine"] = "native"
             land_native(

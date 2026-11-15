@@ -198,9 +198,12 @@ dependency, missing acceptance, or covered anchors changed since acceptance) and
 
 **Completion proof.** Evidence lines together cover every AC. A run log keeps its pinned SHA-256,
 starts with `$ <the mapped command>`, records `# tree=<git tree of the working files outside
-.scratch/>` (or `no-vcs`), and ends with `exit=0`; one log proves AC of one command, and `close`
-accepts it only while the working files still have that tree. Without Git the tree cannot be
-checked; use receipts when that matters. A
+.scratch/>` taken before the command (or `no-vcs`), and ends with `exit=0`; one log proves AC of one
+command. `run` adds `# tree-after=<tree>` when the working files changed while the command ran, and
+such a log never closes. `close` accepts a log only while the working files still have its tree and
+no other `runs/` log of the same command on the same tree failed; a contradicting failure is
+diagnosed, then the code or environment changes and the check reruns. Without Git neither tree
+check is possible; use receipts when that matters. A
 receipt validates through `evidence.py`, passes, is not a preflight, applies to the named candidate
 (or all receipts share one candidate), matches the mapped command argv (POSIX or Windows parsing),
 共享验证 `cwd` and `environment`. A feature with a recorded gate accepts only receipts, whose

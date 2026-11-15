@@ -282,3 +282,53 @@ class LightweightEvidenceTests(unittest.TestCase):
             workflow_state.close(self.root, "demo", "T1", [result["evidence"]])
         fresh = self.run_unit()
         workflow_state.close(self.root, "demo", "T1", [fresh["evidence"]])
+
+    def git_feature(self, check_source):
+        import subprocess
+        subprocess.run(["git", "init", "-q", str(self.root)], check=True)
+        (self.root / "src.py").write_text("VALUE = 1\n", encoding="utf-8")
+        (self.root / "check.py").write_text(check_source, encoding="utf-8")
+        verifier = dict(FIXTURE_VERIFIER, commands=dict(FIXTURE_VERIFIER["commands"],
+                                                         unit=shlex.join([sys.executable, "check.py"])))
+        self.path.write_text(feature_text("demo", review=False, units=UNITS, verifier=verifier), encoding="utf-8")
+
+    def test_log_whose_inputs_changed_during_the_run_cannot_close(self):
+        self.git_feature("from pathlib import Path\n"
+                         "assert Path('src.py').read_text() == 'VALUE = 1\\n'\n"
+                         "Path('src.py').write_text('VALUE = 0\\n')\n")
+        result = self.run_unit()
+        self.assertEqual(0, result["exit"])
+        self.assertFalse(result["stable"])
+        original = self.path.read_bytes()
+        with self.assertRaisesRegex(ValueError, "changed while the check ran"):
+            workflow_state.close(self.root, "demo", "T1", [result["evidence"]])
+        (self.root / "src.py").write_text("VALUE = 1\n", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "changed while the check ran"):
+            workflow_state.close(self.root, "demo", "T1", [result["evidence"]])
+        self.assertEqual(original, self.path.read_bytes())
+
+    def test_cli_run_exits_nonzero_when_inputs_changed_during_the_run(self):
+        self.git_feature("from pathlib import Path\nPath('src.py').write_text('VALUE = 0\\n')\n")
+        errors = io.StringIO()
+        with redirect_stdout(io.StringIO()), unittest.mock.patch("sys.stderr", errors):
+            code = workflow_state.main(["run", str(self.root), "demo", "T1", "unit"])
+        self.assertEqual(1, code)
+        self.assertIn("changed while the check ran", errors.getvalue())
+
+    def test_failed_attempt_on_the_same_working_files_blocks_a_later_pass(self):
+        self.git_feature("from pathlib import Path\n"
+                         "marker = Path('.scratch/seen')\n"
+                         "first = not marker.exists()\n"
+                         "marker.write_text('seen')\n"
+                         "raise SystemExit(1 if first else 0)\n")
+        failed = self.run_unit()
+        passed = self.run_unit()
+        self.assertEqual((1, 0), (failed["exit"], passed["exit"]))
+        original = self.path.read_bytes()
+        with self.assertRaisesRegex(ValueError, "known failed attempt %s" % failed["log"]):
+            workflow_state.close(self.root, "demo", "T1", [passed["evidence"]])
+        self.assertEqual(original, self.path.read_bytes())
+        (self.root / "src.py").write_text("VALUE = 2\n", encoding="utf-8")
+        fixed = self.run_unit()
+        self.assertEqual(0, fixed["exit"])
+        workflow_state.close(self.root, "demo", "T1", [fixed["evidence"]])
