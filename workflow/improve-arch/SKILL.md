@@ -90,8 +90,8 @@ Side effects happen inline as decisions crystallize. Run the `/domain-modeling` 
 - **A settled rejection meets the ADR criteria?** Record it when domain-document updates are in scope. Skip ephemeral or self-evident reasons; no separate permission to document a settled decision.
 - **Alternative interfaces would resolve a trade-off?** Use `/codebase-design`'s design-it-twice comparison, inline when delegation is unavailable or unnecessary.
 
-### 4. Refresh the structural map
+### 4. Refresh affected rule lines
 
-If an authorized refactor changed structure, refresh affected existing `CODEBASE.md` blocks in the
-same change via `/map`; no extra approval. Do not bootstrap a whole map for a small unmapped repo.
-Resume authorized implementation and validation after this design phase; review-only stops at the report.
+If an authorized refactor changed structure, re-verify the `AGENTS.md` rule lines naming the
+affected paths in the same change (drift re-verification in `../ARTIFACT-FORMAT.md`); no extra
+approval. Resume authorized implementation and validation after this design phase; review-only stops at the report.

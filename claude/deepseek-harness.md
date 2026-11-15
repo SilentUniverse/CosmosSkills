@@ -9,7 +9,7 @@ Observed on DSH 0.2.0-rc.2, macOS, 2026-09-30.
 - DSH reads `<DSH_HOME>/AGENTS.md` (here `~/.dsh/AGENTS.md`) plus
   `AGENTS.md`/`CLAUDE.md` and their `.local.md` overlays along the project root → cwd chain, under a
   64 KiB budget that truncates rather than fails. There is no per-subdirectory auto-injection beyond
-  that chain; area blocks are read explicitly. The installer writes that file as a copy of the shared
+  that chain. The installer writes that file as a copy of the shared
   policy, or refreshes it through a kept link (only links into this repo or the refreshed
   `~/.zcode/AGENTS.md` copy count as managed). `scripts/install.sh` owns that; `scripts/install.ps1`
   has no DSH branch, so a Windows host needs the file created by hand.

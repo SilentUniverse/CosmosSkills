@@ -479,7 +479,7 @@ ADR
 CONTEXT.md
 ```
 
-按现有 `/map` 两轴原则：
+按现有两轴原则：
 
 ```text
 Can't rg it?

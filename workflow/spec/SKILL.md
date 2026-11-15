@@ -50,8 +50,8 @@ when ownership and the requested outcome say so.
 ## 3. Impact and verification design
 
 Not an approval gate. Use cheap `rg`/`ast-grep` first; for many references, several modules or an
-invariant area, load [impact-detection.md](impact-detection.md). Persist a newly found invariant to
-`CODEBASE.md` 不变量. Use `/prototype` only when a runnable experiment answers a concrete design
+invariant area, load [impact-detection.md](impact-detection.md). A newly found invariant that passes the two-axis
+test moves up the `/correct` ladder. Use `/prototype` only when a runnable experiment answers a concrete design
 question more cheaply. Wide refactors use expand → migrate → contract with each batch green.
 
 When a shared interface or state owner changes, use `/codebase-design` to check a concrete caller
@@ -93,6 +93,7 @@ unresolved decisions, and the command that executes it (`/tdd`, or `/tdd <feat>`
 document). Then stop.
 
 Promote a confirmed fact beyond the feature only when a future spec would design wrongly without
-it, the user declared it long-term, or multiple features consume it: ADR, `CODEBASE.md` or
-`CONTEXT.md` under `/map`'s two-axis rule, with scope, source and reason. A promoted fact is
+it, the user declared it long-term, or multiple features consume it: ADR, `CONTEXT.md`, or the
+`/correct` ladder under the two-axis rule (project knowledge in `../ARTIFACT-FORMAT.md`), with
+scope, source and reason. A promoted fact is
 revalidated when the code, schema or decision it cites changes.

@@ -1,4 +1,4 @@
-"""Mechanical gate for FEATURE.md documents (CODEBASE.md leaves: workflow/test-verify-codebase.ps1)."""
+"""Mechanical gate for FEATURE.md documents (Windows harness: workflow/test-verify-artifacts.ps1)."""
 import base64
 import importlib.util
 import io

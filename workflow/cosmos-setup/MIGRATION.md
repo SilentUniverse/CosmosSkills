@@ -39,15 +39,14 @@ human acceptance is re-reviewed through `/spec`; old acceptance files do not car
 
 ## Case 2 — Legacy `docs/agents/domain.md` fold
 
-Trigger: `docs/agents/domain.md` exists. Consumer skills read `CODEBASE.md`'s
-`## Verifier commands` zone, so a repo still carrying the old file has an orphaned cache until
-folded.
+Trigger: `docs/agents/domain.md` exists. Consumer skills look in the native entry and `AGENTS.md`
+`## Commands`, so a repo still carrying the old file has an orphaned cache until folded.
 
 1. Read the file; classify every line as **real** (an exact command or adapter a run actually
    used — e.g. `pytest -q`, `vitest run <path>`) or **template** (boilerplate headings, empty
    placeholders, consumer-rule prose).
-2. For an authorized fold, append the real lines under `## Verifier commands` in the
-   root `CODEBASE.md`, lazy-birth per the ARTIFACT-FORMAT stub when absent.
+2. For an authorized fold, append the real lines to the native entry or under `## Commands` in
+   `AGENTS.md`.
 3. Delete `domain.md` only when zero non-template lines remain unaccounted for; otherwise
    `git mv docs/agents/domain.md docs/agents/domain.md.bak` and say why.
 4. Remove `docs/agents/` entirely when it is now empty and the tracker is default; a

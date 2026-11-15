@@ -23,7 +23,7 @@ SOLID、Clean Code 是下游经验——告诉 AI 该写成什么样，规则一
 | 1 | First Principles | 为什么？ | `/grill` 从根本推导，不接受类比 |
 | 2 | Invariant | 什么必须永远为真？ | FEATURE.md 先写不变量；AC 从不变量推导 |
 | 3 | Parsimony | 还能删掉什么？ | 选型阶梯逐级下行；对抗自审问「想象未来的抽象」；spec §3 计划时对每个抽象点名消费者；完成时删除无消费者的新增，深审 `/atk` |
-| 4 | Locality | 影响能否限制在这里？ | 切单元算推理半径；两轴测试进 `CODEBASE.md` |
+| 4 | Locality | 影响能否限制在这里？ | 切单元算推理半径；过两轴测试的事实走 `/correct` 阶梯 |
 | 5 | Provability | 为什么确信它对？ | 等价设计选正确性论证更短者 |
 | 6 | Adversarial Review | 怎么把它打爆？ | 高风险 spec 收尾 `/atk`；完成前挑战最可能的失败并对照证据 |
 | 7 | Empiricism | 现实数据怎么说？ | 观测压倒推理；性能主张必须带测量 |
@@ -65,8 +65,8 @@ Codex 在本仓库通过根 [AGENTS.md](AGENTS.md) 读取共享策略 [CLAUDE.md
 显式指定安装目标或 ClaudeRoot 时，不镜像到用户级 ZCode / agents 目录；隔离安装需同时指定这两个路径。
 在其他 Codex 项目使用这套常驻策略时，将共享文件的实际路径加入相应 AGENTS.md，并保留原有项目规则。
 
-新项目直接用 `/spec` 起步即可。`.scratch/<feat>/FEATURE.md`、三态词汇和 `CODEBASE.md`
-验证命令区懒出生都是默认约定，无需 setup。`/cosmos-setup` 只处理偏离：非默认
+新项目直接用 `/spec` 起步即可。`.scratch/<feat>/FEATURE.md` 和三态词汇是默认约定；项目命令走
+原生入口（`package.json`、`Makefile` 等），入口看不出的前置写进 `AGENTS.md` 的 `## Commands`。无需 setup。`/cosmos-setup` 只处理偏离：非默认
 tracker/路径、遗留规划文件折叠进 FEATURE.md、旧 `docs/agents/domain.md` 折叠。
 
 ---
@@ -172,7 +172,7 @@ HTML bridge 在原生 UI 能保留版本、字段、原始事件及落盘确认�
 | 规划、方法与整理 | [spec](workflow/spec/SKILL.md)、[tdd](workflow/tdd/SKILL.md)、[tidy](workflow/tidy/SKILL.md) |
 | 设计与分析 | [grill](workflow/grill/SKILL.md)、[prototype](workflow/prototype/SKILL.md)、[improve-arch](workflow/improve-arch/SKILL.md)、[codebase-design](workflow/codebase-design/SKILL.md)、[domain-modeling](workflow/domain-modeling/SKILL.md) |
 | 审查与修复 | [code-review](workflow/code-review/SKILL.md)、[atk](workflow/atk/SKILL.md)、[diagnose](workflow/diagnose/SKILL.md)、[conflicts](workflow/conflicts/SKILL.md)、[pr](workflow/pr/SKILL.md) |
-| 阅读与知识 | [map](workflow/map/SKILL.md)、[show](workflow/show/SKILL.md)、[research](workflow/research/SKILL.md) |
+| 阅读与知识 | [show](workflow/show/SKILL.md)、[research](workflow/research/SKILL.md) |
 | 指令维护 | [correct](workflow/correct/SKILL.md)（反复出现的错误落到架构、类型、检查或测试）、[write-skill](workflow/write-skill/SKILL.md)、[lint](workflow/lint/SKILL.md)、[brief](workflow/brief/SKILL.md) |
 | 专项工具 | [verify](tooling/verify/SKILL.md)、[record-gif](workflow/record-gif/SKILL.md)、[cpp-oop-style](workflow/cpp-oop-style/SKILL.md)、[cosmos-setup](workflow/cosmos-setup/SKILL.md) |
 | 项目配置 | [shell-guardrails](tooling/shell-guardrails/SKILL.md)、[setup-pre-commit](tooling/setup-pre-commit/SKILL.md)、[migrate-to-shoehorn](tooling/migrate-to-shoehorn/SKILL.md) |

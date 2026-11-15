@@ -355,7 +355,7 @@ class InstallerTests(unittest.TestCase):
                 "bash=%s\n--- stdout ---\n%s\n--- stderr ---\n%s"
                 % (self.bash_executable(), result.stdout, result.stderr),
             )
-            self.assertIn("Found 30 skills", result.stdout)
+            self.assertIn("Found 29 skills", result.stdout)
             self.assertIn("Link brief", result.stdout)
             self.assertIn("Link conflicts", result.stdout)
             self.assertIn("Recreate link atk", result.stdout)
@@ -401,7 +401,7 @@ class InstallerTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(0, result.returncode, result.stderr)
-            self.assertIn("Found 30 skills", result.stdout)
+            self.assertIn("Found 29 skills", result.stdout)
             self.assertIn("Link brief", result.stdout)
             self.assertIn("Link conflicts", result.stdout)
             self.assertIn("Recreate link atk", result.stdout)
