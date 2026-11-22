@@ -3,7 +3,7 @@
 When a change touches **existing** code, the risk isn't slicing. It's what this change reaches and
 might break. This is the per-language playbook for that.
 
-Load only when `/spec` §3 finds many references, several modules or an invariant area; a new or
+Load only when `/spec` §2 finds many references, several modules or an invariant area; a new or
 small-radius change stays inline.
 
 ## The one principle
@@ -36,8 +36,9 @@ Two kinds of impact, very different confidence:
   *assumes* amount ≥ 0." No import edge, ungreppable. Only reading + reasoning finds it. Look where
   symbol search stops: the called library's source at its pinned version and local patches;
   execution timing (teardown, async ordering); channels without a symbol edge (API JSON, DB
-  columns, wire formats, another language reading the same bytes, feature flags). Persist
-  these so the next run reuses them: up the `/correct` ladder when they pass the two-axis test.
+  columns, wire formats, another language reading the same bytes, feature flags). Record
+  invariants passing the two-axis test in the plan as `/correct` ladder candidates during planning,
+  and move them up the ladder during authorized execution so the next run reuses them.
 
 ## The fact safety rests on
 
@@ -51,9 +52,10 @@ answer, an invented caller is not.
 ## What gets reused on the second run
 
 - **Static reference points** — NOT stored. Re-grep each time; it is cheap and always current.
-- **Semantic invariants (the expensive part)** — when one passes the two-axis test, move it up
-  the `/correct` ladder in the same change, so the next coupled change in this area skips
-  re-deriving it. Write it; don't pause to offer.
+- **Semantic invariants (the expensive part)** — when one passes the two-axis test, record it in
+  the plan as a `/correct` ladder candidate during planning (planning writes no code, tests or repo
+  checks), and move it up the `/correct` ladder during authorized execution in the same change so
+  the next coupled change in this area skips re-deriving it.
 
 The concrete per-language commands live in the project's native entry and `AGENTS.md`
 `## Commands` (see "Where the commands live" below), never in a skill. For browser/Electron work, static reachability is not runtime integrity — the CSP and

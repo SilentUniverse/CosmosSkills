@@ -25,17 +25,20 @@ cp out/chart.mmd chart.mmd && rm -rf out
 
 ## 检查了什么
 
-TLC 探索 80 个状态，以下规则全部成立，且无死锁：
+TLC 探索 76 个状态、112 条迁移，以下规则全部成立，且无死锁（图上隐藏了自循环步 `ReviseIntent`、`PlanDecision`、`UserSaysOk`、`Done`）：
 
 | 规则 | 含义 |
 |---|---|
-| `NoCodeBeforeStart` | 没有「开始实现」或直接实现的请求，不写代码 |
-| `MergeNeedsProofAndCi` | 合并以固定 SHA 上的验证和必过检查都通过为前提 |
+| `NoPlanBeforeIntentConfirmed` | 规划路线里未经用户确认意图，不进入方案对齐或给出计划 |
+| `NoCodeDuringPlan` | 规划各阶段（含确认意图和认可计划后）不启动编码也不写产品代码 |
+| `NoCodeBeforeStart` | 没有「开始实现」或清晰直接实现请求，不写代码 |
+| `MergeNeedsProofAndCi` | 合并以验证和必过检查都通过为前提 |
 | `LandOnlyWhenAsked` | 用户没要求提交，不推送不合并 |
 | `DoneOnlyWhenVerified` | 没验证过，不报告完成 |
 
-负对照：把「你说好」改成会启动实现，`NoCodeBeforeStart` 立即被破坏，最短路径是
-收到请求 → 你要计划 → 你说好 → 实现中 → 提交候选。
+负对照：把「确认意图」或「你说好」改成直接启动实现，`NoCodeDuringPlan` / `NoCodeBeforeStart`
+立即被破坏；把 `GivePlan` 绕过 `ConfirmIntent` 直接连在 `request` 上，`NoPlanBeforeIntentConfirmed`
+立即被破坏。
 
 ## 没覆盖什么
 

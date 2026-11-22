@@ -3,6 +3,7 @@ name: tdd
 description: >-
   Use only when the user invokes /tdd. Implements an accepted plan or feature units test-first and records verification evidence. Never load from /spec, ordinary chat, writing, analysis or direct code requests.
 argument-hint: "Feature slug, feature unit (feat T3), -all, -log, or the current goal"
+disable-model-invocation: true
 ---
 
 # Test-Driven Development
@@ -22,8 +23,8 @@ holds only dependent work. Explicit user implementation/testing instructions ove
   identity, log digest and a decisive excerpt; bound long streams with an explicit stop condition
   and follow the host's device-stream rules.
 
-A new consequential requirement holds only dependent work and is raised with the user; tdd does
-not load `/spec`. Unknown failures use `/diagnose`. Running status, retries, cancellation and resume come from the host; across a host
+A new consequential requirement or contract conflict holds only dependent work and is raised with
+the user; tdd does not load `/spec`. Unknown failures use `/diagnose`. Running status, retries, cancellation and resume come from the host; across a host
 boundary use [handoff](../handoff/SKILL.md)/[resume](../resume/SKILL.md).
 
 ## Implement
@@ -66,13 +67,16 @@ reassurance when CI already runs it.
 
 Apply [test quality](tests.md). Load [mocking.md](mocking.md) only for mocks and
 [UI-TESTING.md](UI-TESTING.md) only for graphical behavior. Agent summaries, screenshots or launcher
-exits cannot replace acceptance predicates. A clear contract conflict records exact evidence and
-routes the affected scope to `/spec`; an ambiguous one uses the
+exits cannot replace acceptance predicates. A clear contract conflict records exact evidence,
+pauses the affected unit and asks the user to revise the contract via `/spec` (tdd does not load
+`/spec`); an ambiguous one uses the
 [classifier](../atk/RECEIPT-CONFLICT.md). Repeated failure without new evidence needs `/diagnose`;
 repeated patches on one seam mean re-deriving its design.
 
 ## Feature units
 
+The `workflow-state.py` admission and closing contract is shared with direct `FEATURE.md` execution
+(see [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md)); `/tdd` adds the test-first loop above.
 `python ../workflow-state.py survey <root> --feature <feat>` lists units as ready, blocked, pending,
 done or invalid with reasons; `start <root> <feat> T<n>` is a read-only admission returning the
 worker packet (unit contract, covered anchors, invariants, resolved commands).

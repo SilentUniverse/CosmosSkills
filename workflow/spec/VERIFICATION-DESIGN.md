@@ -36,11 +36,12 @@ recovery or concurrent writers that example tests cover poorly. Select one prope
 owner, the test gap and the method; do not require a model for every stateful feature. Prefer making
 invalid states impossible through types/ownership when that suffices.
 
-Use an existing project checker when suitable. For a state flow, `/verify`'s bundled
-[statechart](../../tooling/verify/STATECHART.md) TLC runner is the default method; it also returns
-a chart for the user to judge. Otherwise name an execution prerequisite through
-`/verify`; [formal checks](../../tooling/verify/FORMAL.md) defines method selection, source mapping,
-negative controls and maintenance. Planning does not author executable models or tool tests.
+Use an existing project checker when suitable. For a state-flow design question, planning may run
+`/verify`'s bundled [statechart](../../tooling/verify/STATECHART.md) TLC runner in a scratch
+directory outside the repository to produce a chart and shortest bug paths for human judgment.
+Reusable project formal checks, repository-tracked models, and tool tests are never authored during
+planning: name them as execution prerequisites through `/verify` ([formal checks](../../tooling/verify/FORMAL.md)
+defines method selection, source mapping, negative controls and maintenance).
 State assumptions and bounds in the planned evidence: a checked model is not proof that the
 implementation refines it, and generated-input testing is not a formal proof. A counterexample
 needs translation and replay against the real behavior before it establishes a product defect.
@@ -63,10 +64,14 @@ runner, discovering a missing service, or requesting access. A missing capabilit
 code is a planned prerequisite unit, not SPEC implementation; dependent units stay `pending` until
 its observed evidence exists.
 
+**Contract before environment:** do not run environment-mutating `prepare` or preflights on an
+unconfirmed draft or unaccepted gated contract. Keep unready units `pending` with a concrete
+`reason` (e.g. `待合同确认与预检`) until the contract settles, then prepare readiness once:
+
 1. Prepare a durable project environment with repository-declared setup/bootstrap commands, never a
-   temporary one that disappears before execution. Routine local setup implied by the task needs no
-   additional approval; ask only for a new consequential dependency, cost, external mutation or
-   authority. Record the executed setup and result in 共享验证 `prepare`.
+   temporary one that disappears before execution. Routine local setup implied by the confirmed
+   contract needs no additional approval; ask only for a new consequential dependency, cost,
+   external mutation or authority. Record the executed setup and result in 共享验证 `prepare`.
 2. Record `cwd` and the result-affecting `environment` identities (runtime, tools, dependency lock,
    relevant services; secret *names* and access state, never values). These are the identities a
    completion receipt must match; they make drift visible, not impossible.

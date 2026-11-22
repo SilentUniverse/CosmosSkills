@@ -32,14 +32,18 @@ DONE_HEAD = re.compile(r"^####\s+完成(?:[^\w]|$)")
 R_BULLET = re.compile(r"^\s*[-*]\s+(R\d+)\s*[—\-–]\s*(.+)$")
 SUB_LINE = re.compile(r"^\s+(Before|验收)\s*[:：]\s*(.+)$", re.IGNORECASE)
 D_HEAD = re.compile(r"^###\s+(D\d+)\s*[—\-–:>]?\s*(.*)$")
-META_LINE = re.compile(r"^\s*(?:[-*]\s+)?(Refs|Door|Blast\s+radius|Review)\s*[:：]", re.IGNORECASE)
+META_LINE = re.compile(r"^\s*(?:[-*]\s+)?(Refs|Door|Blast\s+radius|Review|Confirmed)\s*[:：]", re.IGNORECASE)
 REFS_LINE = re.compile(r"^\s*(?:[-*]\s+)?Refs\s*[:：]\s*(.*)$", re.IGNORECASE)
 META_DOOR = re.compile(r"Door\s*[:：]\s*(one-way|two-way)", re.IGNORECASE)
 META_BLAST = re.compile(r"Blast\s+radius\s*[:：]\s*([^\s;；]+)", re.IGNORECASE)
 META_HUMAN = re.compile(r"Review\s*[:：]\s*human\b", re.IGNORECASE)
+META_CONFIRMED = re.compile(r"Confirmed\s*[:：]\s*(\S+)", re.IGNORECASE)
 C_BULLET = re.compile(r"^\s*[-*]\s+(C\d+)\s*[—\-–]\s*(.+)$")
+Q_BULLET = re.compile(r"^\s*[-*]\s+(Q\d+)\s*(?:\[(blocking)\]|（(阻断)）)?\s*[—\-–]\s*(.+)$", re.IGNORECASE)
+Q_BLOCKING = re.compile(r"^(?:\[blocking\]\s*|（阻断）\s*|阻断\s*[:：]\s*)", re.IGNORECASE)
 GOAL_LINE = re.compile(r"^\s*[-*]\s+(问题|结果|IN|OUT)\s*[:：]\s*(.+)$", re.IGNORECASE)
 ID_TOKEN = re.compile(r"^(R|D)\d+$")
+NON_GLOBAL_TOKEN = re.compile(r"^(R|D|Q)\d+$")
 STATUSES = ("pending", "ready", "done")
 RUNTIME_KEYS = ("unexpected_console_errors", "uncaught_page_errors", "unexpected_failed_requests",
                 "csp_violations", "decoded_media_failures")
@@ -153,7 +157,8 @@ class Model(object):
         for item in self.decisions:
             table[item["id"]] = "\n".join(line.rstrip() for line in item["lines"]).strip()
         table.update({item["id"]: item["text"] for item in self.contracts})
-        table.update({"Q%d" % n: text for n, text in enumerate(self.questions, 1)})
+        table.update({item["id"]: ("[blocking] " if item["blocking"] else "") + item["text"]
+                      for item in self.questions})
         return table
 
     def hashes(self):
@@ -166,8 +171,16 @@ class Model(object):
         return set()
 
     def review_required_items(self):
-        """Decisions the human must see: direction (`Review: human`) and one-way doors."""
-        return [item for item in self.decisions if item["human"] or item["door"] == "one-way"]
+        """Decisions needing human decision on the review surface: unconfirmed direction decisions and one-way doors."""
+        return [item for item in self.decisions if (item["human"] and not item["confirmed"]) or item["door"] == "one-way"]
+
+    def confirmed_human_items(self):
+        """Direction decisions already confirmed in conversation (shown read-only unless changed in delta)."""
+        return [item for item in self.decisions if item["human"] and item["confirmed"] and item["door"] != "one-way"]
+
+    def blocking_questions(self):
+        """Open questions marked blocking that must be answered before approving the contract."""
+        return [item for item in self.questions if item["blocking"]]
 
     def gate_items(self):
         """Decisions whose acceptance must be recorded before execution: one-way doors only."""
@@ -208,7 +221,7 @@ def parse_model(text):
         head = None if fenced else D_HEAD.match(line)
         if head:
             current = {"id": head.group(1), "title": head.group(2).strip(), "lines": [line.rstrip()],
-                       "refs": [], "door": "", "blast": "", "human": False}
+                       "refs": [], "door": "", "blast": "", "human": False, "confirmed": ""}
             model.decisions.append(current)
             continue
         if current is None:
@@ -228,14 +241,41 @@ def parse_model(text):
             current["blast"] = blast.group(1)
         if META_HUMAN.search(line):
             current["human"] = True
+        confirmed = META_CONFIRMED.search(line)
+        if confirmed:
+            if current["confirmed"]:
+                model.problems.append("%s repeats Confirmed; use one declaration" % current["id"])
+            elif not ISO_DATE.match(confirmed.group(1)):
+                model.problems.append("%s Confirmed must be ISO YYYY-MM-DD" % current["id"])
+            else:
+                current["confirmed"] = confirmed.group(1)
     for line in anchor_lines(section(sections, "不变量") or []):
         match = C_BULLET.match(line)
         if match:
             model.contracts.append({"id": match.group(1), "text": match.group(2).strip()})
-    for line in section(sections, "尚未明确") or []:
+    raw_questions = [line for line in anchor_lines(section(sections, "尚未明确") or []) if line.strip()]
+    used_q = {m.group(1) for line in raw_questions for m in [Q_BULLET.match(line)] if m}
+    next_q = 1
+    for line in raw_questions:
+        match = Q_BULLET.match(line)
+        if match:
+            body = match.group(4).strip()
+            blocking = bool(match.group(2) or match.group(3) or Q_BLOCKING.match(body))
+            if Q_BLOCKING.match(body):
+                body = Q_BLOCKING.sub("", body).strip()
+            model.questions.append({"id": match.group(1), "text": body, "blocking": blocking})
+            continue
         stripped = re.sub(r"^[-*]\s+", "", line.strip())
-        if stripped:
-            model.questions.append(stripped)
+        if not stripped:
+            continue
+        while ("Q%d" % next_q) in used_q:
+            next_q += 1
+        qid = "Q%d" % next_q
+        used_q.add(qid)
+        next_q += 1
+        blocking = bool(Q_BLOCKING.match(stripped))
+        body = Q_BLOCKING.sub("", stripped).strip() if blocking else stripped
+        model.questions.append({"id": qid, "text": body, "blocking": blocking})
     model.acceptance = [line for line in section(sections, "端到端验证") or [] if line.strip()]
     residual = []
     for heading, lines in sections:
@@ -266,7 +306,7 @@ def parse_model(text):
 
 def validate_model(model):
     problems = list(model.problems)
-    for family in (model.requirements, model.decisions, model.contracts):
+    for family in (model.requirements, model.decisions, model.contracts, model.questions):
         seen = set()
         for item in family:
             if item["id"] in seen:
@@ -291,7 +331,7 @@ def design_matches(current, accepted, needed):
             break
         expanded = more
     left, right = current.hashes(), accepted.hashes()
-    globals_ = {key for key in set(left) | set(right) if not ID_TOKEN.fullmatch(key)}
+    globals_ = {key for key in set(left) | set(right) if not NON_GLOBAL_TOKEN.fullmatch(key)}
     return all(left.get(key) == right.get(key) for key in expanded | globals_)
 
 

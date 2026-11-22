@@ -174,6 +174,16 @@ class FeatureStateTests(unittest.TestCase):
         self.repo.accept_spec()
         self.assertEqual("ready", self.states()["T3"][0])
 
+    def test_resolving_unrelated_open_question_does_not_block_accepted_units(self):
+        with_q = feature_text("demo", units=UNITS).replace(
+            "## 共享验证", "## 尚未明确\n- Q1 — 后续阶段配置格式待定。\n\n## 共享验证"
+        )
+        self.repo.accept_spec(with_q)
+        self.path.write_text(with_q.replace("- Q1 — 后续阶段配置格式待定。\n", ""), encoding="utf-8")
+        states = self.states()
+        self.assertEqual("ready", states["T1"][0])
+        self.assertEqual("ready", states["T3"][0])
+
     def test_close_rejects_a_candidate_bound_to_an_outdated_acceptance(self):
         stale = self.repo.candidate()
         receipt = self.receipt(stale)

@@ -66,9 +66,10 @@ Frontmatter: `type: feature`, `feature` equal to the directory name, ISO `create
 |---|---|---|
 | 目标与边界 | `- 问题：/- 结果：/- IN：/- OUT：` lines | reviewed contract |
 | 需求 | `- R<n> — text`, optional indented `Before：` and `验收：` | unique R ids |
-| 决策 | `### D<n> — title` with optional `Refs:` (R only), `Door: one-way\|two-way`, `Blast radius:`, `Review: human` | unique D ids; refs declared |
+| 决策 | `### D<n> — title` with optional `Refs:` (R only), `Door: one-way\|two-way`, `Blast radius:`, `Review: human`, `Confirmed: YYYY-MM-DD` | unique D ids; refs declared; ISO date |
 | 不变量 | `- C<n> — text` | unique C ids |
-| 端到端验证 / 尚未明确 / other sections | prose and questions | reviewed contract |
+| 尚未明确 | `- Q<n> [[blocking]] — text` (plain `- [阻断：]text` also accepted) | unique Q ids; non-global in unit admission; blocking items block `全部确定` |
+| 端到端验证 / other sections | prose and manual checks | reviewed contract |
 | 共享验证 | one fenced JSON block plus `- 预检 <name>：…` lines | see below |
 | 任务 | `### T<n> — title` units | see below |
 | 变更记录 | one dated line per contract change | engineering record |
@@ -76,8 +77,11 @@ Frontmatter: `type: feature`, `feature` equal to the directory name, ISO `create
 **Reviewed contract.** Every H2 section except 共享验证, 任务 and 变更记录, normalized to LF. Its
 SHA-256 is the feature's `spec_digest`. A feature has a **recorded gate** when frontmatter says
 `review: required`, any decision carries `Door: one-way`, or any acceptance was ever recorded;
-`Review: human` alone is confirmed in conversation. Engineering edits (units, verification, change
-log) never invalidate acceptance.
+`Review: human` alone is confirmed in conversation (record `Confirmed: YYYY-MM-DD` once confirmed
+so a gated page shows it read-only instead of re-asking; `Door: one-way` always requires recorded
+bridge acceptance). Engineering edits (units, verification, change log) never invalidate acceptance,
+and editing or resolving non-blocking `Q#` items in 尚未明确 does not invalidate unrelated units.
+Blocking `Q#` items (`[blocking]` / `阻断：`) must be answered and resolved before `全部确定`.
 
 **共享验证 JSON.** Keys: `cwd` (repo-relative existing directory), `environment` (non-empty map of
 identity name → value; every completion receipt's check definition must carry the same pairs),
@@ -111,9 +115,13 @@ digest, optional `- candidate:`, and evidence lines: `- evidence: <run log> sha2
 (written by `close` from a `workflow-state.py run` log) or `- evidence: <receipt>.json; AC <numbers>`. A
 later edit to a done unit's contract invalidates it; changes go to a new `refines:` unit.
 
-**Engineering states** (`workflow-state.py survey`): `done` (record proves every AC), `invalid`
-(done without valid proof), `pending`, `blocked` (structural problem, unfinished or invalid
-dependency, missing acceptance, or covered anchors changed since acceptance) and `ready`.
+**Engineering states & shared execution contract** (`workflow-state.py`): `survey` reports `done`
+(record proves every AC), `invalid` (done without valid proof), `pending`, `blocked` (structural
+problem, unfinished or invalid dependency, missing acceptance, or covered anchors changed since
+acceptance) and `ready`. Whether execution starts via「开始实现」or `/tdd <feat>`, units of a
+`FEATURE.md` always admit via `workflow-state.py start`, close via `workflow-state.py close` (using
+`workflow-state.py run` logs for ungated features, or `evidence.py` fixed receipts for gated
+features), park chronically blocked units via `park`, and commit each closed unit locally.
 
 **Completion proof.** Evidence lines together cover every AC. A run log keeps its pinned SHA-256,
 starts with `$ <the mapped command>`, records `# tree=<git tree of the working files outside

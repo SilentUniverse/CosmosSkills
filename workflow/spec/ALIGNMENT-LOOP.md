@@ -1,9 +1,11 @@
 # spec — Alignment loop（AFK grill）
 
-Loaded by [`/spec`](SKILL.md) for unresolved material decisions. Resolve repository facts and
-reversible implementation choices before asking the human. Ask a concrete missing decision once
-evidence establishes it; continue independent preparation while the current round's focused
-receipt awaits answers.
+Loaded by [`/spec`](SKILL.md) **after Stage 1 intent confirmation** (or by [`/grill`](../grill/SKILL.md)
+when challenging an existing idea or draft) for unresolved material decisions. Resolve repository
+facts and reversible implementation choices before asking the human. Never re-ask intent or
+constraints already confirmed in Stage 1. Ask a concrete missing decision once evidence establishes
+it; continue independent read-only preparation while the current round's focused receipt awaits
+answers.
 
 ## Requirement tree
 
@@ -52,7 +54,7 @@ Ordinary interviews stay in the conversation/native plan, with no interview ledg
 For the affected draft, use at most two autonomous passes. This bounds internal investigation,
 not the number of user dialogue rounds:
 
-1. **Derive** — read the goal, the related code, the live feature document, ADR/CODEBASE/CONTEXT and
+1. **Derive** — read the goal, the related code, the live feature document, ADR/`CONTEXT.md` and
    existing verifiers/tests; build and classify the tree; resolve EVIDENCED nodes, take
    DEFAULTABLE choices, and investigate FOG toward the sharpest state it supports.
 2. **Attack** — run one adversarial pass over the draft: the most likely misread user scenario,
@@ -77,8 +79,8 @@ The convergence predicate determines whether the draft is ready to present:
 
 Present the ready frontier as one focused receipt per round, reusing any already-pending question.
 A failed predicate names the missing evidence and holds its dependent work; two passes do not make
-it complete. With no unresolved decision, finish the plan and stop; convergence creates no
-approval round.
+it complete. With no unresolved downstream decision, finish the plan and stop; convergence creates
+no extra approval round beyond Stage 1's intent gate (and any recorded feature gate).
 
 ## Batched receipt shape
 
@@ -100,8 +102,9 @@ dependency changes do not by themselves require approval; feedback prunes the af
 instead of restarting alignment.
 
 Ask consequential missing information as soon as evidence establishes the question; do not build
-an entire disputed plan or require all preflights to pass before asking, and complete independent
-already-authorized preparation while waiting. Prior user decisions remain valid unless new
+an entire disputed plan or mutate the environment (`prepare`/preflights) before intent and contract
+choices settle, and complete independent read-only preparation while waiting. Prior user decisions
+remain valid unless new
 evidence changes their relevant assumptions; reopen only the affected choice. Silence, timeout,
 and confidence cannot supply a required decision. The receipt is conversation state, not unit
 status; it never weakens the readiness gate in

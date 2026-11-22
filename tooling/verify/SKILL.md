@@ -14,8 +14,10 @@ observe the required seam.
 A missing test or failing business assertion is ordinary RED. An explicit request to build reusable
 verification tools continues here, reusing those existing capabilities.
 
-A planning caller receives the capability-gap proposal without creating or repairing tools or
-tool tests. Build or repair only in an authorized execution phase.
+A planning caller receives the capability-gap proposal without creating or repairing repository
+tools, tracked models or tool tests; the only planning-stage run is a scratch-only statechart
+outside the repository for design judgment. Build or repair tracked verification assets only in an
+authorized execution phase.
 
 ## Scope and discovery
 

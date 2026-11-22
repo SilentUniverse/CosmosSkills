@@ -65,7 +65,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | §2·查证 | 可查事实不问人 | 过程 | 自审 | 未溯源（近邻探针：research-marks-unverified-and-ignores-injection） |
 | §2·摄入 | 结果与约束已定即可推进；实现和验证细节由 agent 补足；文件数不触发规划 | 过程·经济 | 流程 | 仪式性确认税；7be5338 压缩摄入、51a7d4a fast path / spec-alignment-before-write |
 | §2·授权 | 既有授权在接受范围内继承；保留用户明确要求的 review | 权威 | 流程 | 结果分叉未问人；ALIGNMENT-LOOP 回执 / spec-holds-alignment-under-pressure |
-| §2·开工 | /spec 或计划请求止于计划；「好」「可以」等同意只修订或确认计划；明确开工语（开始实现、按计划做）或 /tdd 才实施 | 权威 | 流程 | 含糊同意被当开工，或明确开工仍被挡在计划；用户决定（2026-11-15）；spec-explicit-start-semantics、spec-plans-without-product-writes |
+| §2·开工 | /spec 或计划请求止于计划；确认意图只解锁规划；「好」「可以」只修订或确认计划；明确开工语（开始实现、按计划做）或 /tdd 才实施（FEATURE.md 队列两者共用 workflow-state.py 准入与关闭）；规划期不写产品代码、测试、仓库工具、ADR 或 CONTEXT.md（仅允许内联计划、FEATURE.md 或仓外 scratch statechart） | 权威 | 流程 | 含糊同意被当开工、确认意图串台到开工，或规划期越权写代码/工具/ADR；用户决定（2026-11-15 / 2026-11-23）；TaskFlow.tla NoPlanBeforeIntentConfirmed / NoCodeDuringPlan / NoCodeBeforeStart |
 | §2·修 bug 回归测试 / diagnose / TEST-POLICY | TDD 仍只由 /tdd 触发；修 bug 有便宜本地测试路径（已有框架、无需新工具或外部服务）时补改前失败、改后通过的回归测试，不建单元、不写运行日志、不改 FEATURE.md；否则跑一次相关检查并写明原因；规划不写测试、计划门不变 | 过程 | 流程 | 修 bug 只跑一次检查、同类缺陷复发无测试兜底；借鉴 pstack [tdd](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/skills/tdd/SKILL.md)；用户要求（2026-11-15）；无验收记录数据；降级条件：验收记录中修 bug 返工不再出现 |
 | §4·a | 扩展列表/表格/固定格式前先查 2–3 个同类条目并对齐结构 | 过程 | 自审 | 条目格式漂移；agent-skills AGENTS.md 对标借入；未溯源 |
 | §4·b | 回答插问后继续；纠正与行动请求更新当前目标 | 过程 | 流程 | 顺手扩权修改；dev-skills 对标借入（just-ask）；未溯源 |
@@ -75,8 +75,8 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | §5·d / TEST-POLICY | 纯文案仅结构；模板/schema 定向合同；逻辑按用例；改前运行只用于复现 Bug、钉住重构等价或性能基线，不做安心基线；具体未覆盖风险才扩围；输入与环境未变复用，保留交付门 | 过程·经济 | 流程 | 文案触发整个 regression 与收尾追加消费者整组；原「never as a baseline」挡住修 Bug 复现与性能对比（2026-11-15 审计）；test-policy 的路径选组、test_test_governance 的定向选择回归；workflow-routing 最小证据表 |
 | §5·e | 同因两次修复失败 → 换路或 /diagnose | 过程 | 流程 | 97a7998（anti-thrash）/ diagnose-holds-repro-under-pressure（近邻） |
 | §5·f / correct | 首次错误就地修复，并按类别在 acceptance-log 记一行（只记录、不建规则，不同于记对话轮次）；复盘读 acceptance-log、DECISIONS、ACCEPTANCE，按类别归类返工与回滚；同类错误复发按架构 → 类型 → 报错指明修法的检查 → 测试 → 文字的顺序取最高可行层，新检查须在真实历史错误上失败；纠正改变现有契约才更新，不为一轮对话建工件 | 过程 | 流程 | 纠正只写成文字、无人强制而复发；poteto「slop to gold」演讲与 pstack [correct](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/skills/correct/SKILL.md)；用户要求（2026-11-15）；无验收记录数据 |
-| §2·开场 / §5·完成 | 新请求或意图实质变化时先完整读完点名输入，再简短转述目标、可判定的完成检查、要展示的证据、已知信息与约束，推断项标为假设；不反复复述既定意图，不新增确认门；完成检查无法确定属于须问的实质选择；如实报完成/受阻 | 过程·经济 | 自审 | 用户要求 Restate my intent before continuing；51a7d4a 的防重复意图保留；pstack [prompt 五要素](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/docs/guide/02-poteto-mode.md)，用户要求全部吸收并读完再做（2026-11-15）；行为收益未实测 |
-| §5·无人值守 / unattended | 交出去隔天验收：先写五要素、权限（默认只在隔离分支本地提交）、隔离与止损条件；不放宽完成检查、撤回无效改动、可逆选择记「待确认」、不可逆停住；只追加决策日志；验收报告先列需要人看的地方，逐条给证据与判定（无证据即无法判定），默认独立复核；报告记开始/结束时间，并逐项做原则检查（五要素转述、决策日志、测量先定选法、不变量走 /correct 阶梯、修 bug 补回归测试），无证据即缺陷、记入验收记录类别；可选验收记录供 /correct 与扩权判断 | 权威 | 自审 | 无人值守时偷改测试或放宽标准、越权推送、报告只有自评；原则写了却无人核对；原则检查与耗时记录无验收记录数据；poteto「slop to gold」演讲（审查看验证产物、信任靠回滚率等数据）；用户要求（2026-11-15）；行为收益未实测 |
+| §2·开场 / §5·完成 | 新请求或意图实质变化时先完整读完点名输入，再用自己的话转述五要素并标出推断假设；/spec、规划设计、意图或完成标准模糊、以及无人值守交办须在复述后停下等用户确认再继续（明确跳过除外）；清晰单步直做任务转述后直接推进；不反复复述既定意图、不在执行中编造仪式性审批门；如实报完成/受阻 | 权威 / 过程·经济 | 流程 | 边复述边开干导致理解偏了无法在转述步拦截；用户明确要求先真实拿意图、先复述确认再做后续行为（2026-11-23）；TaskFlow.tla 形式化检查；行为收益未实测 |
+| §5·无人值守 / unattended | 交出去隔天验收：人在场时先复述五要素、权限（默认只在隔离分支本地提交）、隔离与止损条件并停一轮确认（除非显式跳过），确认后写入决策日志再开工；不放宽完成检查、撤回无效改动、可逆选择记「待确认」、不可逆停住；只追加决策日志；验收报告先列需要人看的地方，逐条给证据与判定（无证据即无法判定），默认独立复核；报告记开始/结束时间，并逐项做原则检查（五要素转述、决策日志、测量先定选法、不变量走 /correct 阶梯、修 bug 补回归测试），无证据即缺陷、记入验收记录类别；可选验收记录供 /correct 与扩权判断 | 权威 | 流程 | 无人值守时理解偏差干偏一整晚、偷改测试或放宽标准、越权推送、报告只有自评；用户要求（2026-11-15 / 2026-11-23）；行为收益未实测 |
 | §6 | 点名输入起步，发现依赖再展开，保留已决定上下文 | 过程·经济 | 流程 | 工程阅读纪律保留；宿主拥有 replay/cache/compaction，不保留第二套上下文生命周期 |
 | §7·a | 优先可用工具，遵守实际 hook，不为偏好安装 | 过程 | 机器+流程 | 5ef04aa（modern-cli hook）+ 77baaf7/35adb23（corpus 加固） |
 | §7·b | 破坏性目录操作前枚举隐藏/忽略项 | 权威 | 流程 | 未溯源（安全守则） |
@@ -93,27 +93,29 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 
 | 定位 | 要旨 | 性质 | 层级 | 防什么失败 · 出处 / 探针 |
 |---|---|---|---|---|
-| 头部 / Verify | 规划不实现产品或验证工具、不写测试；缺能力列执行前置，授权执行后回填真实就绪；报告未决义务；必要人审后按既有授权继续 | 权威 | 流程 | Spec/Verify 的缺工具执行归属冲突；spec-plans-without-product-writes；spec AFK grill 方案（docs/cosmosskills_spec_afk_grill_implementation.md）；routing-requirement-to-spec |
-| 头部 | 决策摄入推导后自攻一次；可审阅不等于已接受，剩余人类决定与阻塞证据显式保留 | 过程·经济 | 流程 | 逐节点问答与额外自攻税；原第 10 判据要求 further pass 与两 pass 上限冲突；ALIGNMENT-LOOP.md；行为收益未实测 |
-| 头部 / ALIGNMENT-LOOP | 访谈按已满足前提的关键选择小批推进，目标一至两轮；每问给选项、建议与取舍；追加轮需实质依赖或新证据；人审 Full/Delta 页预算单独适用 | 过程·经济 | 流程 | 一次问完旧判据阻断依赖式访谈；spec-afk-grill-compresses-human-decisions；重复问题与可查细节不得增加轮数 |
-| §4 | 普通计划按明确要求在原生会话审阅；巨型持久队列需正式 review 时先审 FEATURE.md 合同，接受后单元才启动；无新实质决定不二审 | 过程·经济 | 流程 | 内联输出路由；剪枝后单元/依赖/测试映射的连带 churn；AFK grill 方案 §15–16；未溯源 |
-| §4 / REVIEW | 阅读、反馈与接受规则由 REVIEW 定义；Delta 对照最新接受记录并覆盖全局约束、Before、测试观察与传递依赖；准入以 covers 锚点限定未受影响的单元 | 权威+产物 | 机器+流程 | AcceptanceBarrierTests、test_spec_review：独立草案被整特性阻塞、漏标与反复 render 丢基线；非法 schema、小写 Refs、范围标题反转绕过准入；普通无 review 分支不加载模块。语义一致性仍由 Spec 审核 |
+| 头部 / Stage 1 | /spec 必经「轻探锚定 → 可证伪意图复述 → 停下确认」闸门（显式跳过或同会话已确认除外）；复述须含问题动机、现状→期望具体场景、IN/OUT 边界、成功判据与硬约束、显式假设清单；确认意图只解锁 Stage 2 规划 | 权威 | 流程 | 模型跳过意图核对直接脑补 Settled 并产出偏题计划或改环境；用户明确要求（2026-11-23）；TaskFlow.tla NoPlanBeforeIntentConfirmed；行为收益未实测 |
+| 头部 / Verify | 规划不实现产品、测试、仓库跟踪验证工具或未授权原型，不提前改环境 prepare/预检（先定合同后动环境）；允许仓外 scratch statechart 出图辅助判断；缺能力与不变量晋升列为执行前置/候选，授权执行后落地；必要人审后按既有授权继续 | 权威 | 流程 | Spec/Verify/impact-detection/prototype 规划期写入边界冲突；用户审查修复（2026-11-23）；spec-plans-without-product-writes；行为收益未实测 |
+| 头部 | 决策摄入（Stage 2）在意图确认后推导并自攻一次；可审阅不等于已接受，剩余人类决定与阻塞证据显式保留 | 过程·经济 | 流程 | 逐节点问答与额外自攻税；ALIGNMENT-LOOP.md；行为收益未实测 |
+| 头部 / ALIGNMENT-LOOP | 访谈按已满足前提的关键选择小批推进，目标一至两轮；不重问已确认意图；每问给选项、建议与取舍；追加轮需实质依赖或新证据；人审 Full/Delta 页预算单独适用 | 过程·经济 | 流程 | 一次问完旧判据阻断依赖式访谈；spec-afk-grill-compresses-human-decisions；重复问题与可查细节不得增加轮数 |
+| §3 / REVIEW | 普通计划按明确要求在原生会话审阅；巨型持久队列需正式 review 时先审 FEATURE.md 合同再动环境 `prepare`/预检，接受后单元才启动；无新实质决定不二审 | 过程·经济 | 流程 | 内联输出路由；合同未定先改环境与预检返工；AFK grill 方案 §15–16；2026-11-23 优化 |
+| §3 / REVIEW / feature_doc | 阅读、反馈与接受规则由 REVIEW 定义；Delta 对照最新接受记录并覆盖全局约束、Before、测试观察与传递依赖；准入以 covers 锚点限定未受影响的单元；`Q#` 尚未明确不归入全局连坐集合，但 `[blocking]` 阻断项未清除前服务端拒绝 `全部确定`；已在对话确认的 `Review: human`（`Confirmed: YYYY-MM-DD`）只读核对不重复拍板，变更时 Delta 仍恢复反馈框 | 权威+产物 | 机器+流程 | test_spec_review、test_workflow_state：删改 Q# 拖垮无关单元、带阻断问题被「全部确定」放行、对话已确认的 Review: human 重复拍板 |
 | REVIEW / ALIGNMENT-LOOP | 纯文字反馈只做必要结构与展示更新；改变关键决策、契约、依赖、证明或出现具体风险才定向攻击；固定接受身份保留 | 过程·经济 | 流程 | 无条件反馈 ATK 与未变决策复用冲突；不以标题或错字修改触发重审 |
 | REVIEW / 人审投影 | 人审聚焦目标、行为、边界、取舍和验收结果；共享验证、任务与变更记录留在 FEATURE.md；保留所有反馈框，不折叠 | 过程·经济 | 机器+流程 | 完整规划文档直接展示造成原文排版问题；与切片/证明表及 Delta 原文重复，增加人审噪声。RenderDeltaTests 保证人审约束、补充正文与反馈保留，内部接缝/普通工程决策不进入正文 |
-| §5 | 接受后按 task/feature/area 作用域晋升新事实；两轴法 + scope/source/reason；引用漂移即复验 | 过程·经济 | 流程 | 同类需求重复问已答问题；AFK grill 方案 §11–14；未溯源 |
+| §4 | 规划期只列出知识晋升候选（ADR / CONTEXT / /correct 阶梯），接受后或执行期再按 task/feature/area 作用域落地；两轴法 + scope/source/reason；引用漂移即复验 | 过程·经济 | 流程 | 规划未接受先写 ADR/规则的越权冲突；AFK grill 方案 §11–14；2026-11-23 修正 |
 | 输出路由 / Write the feature document | 普通任务内联，不生成 .scratch 规划文件，不跑工件门；只有巨型任务需要持久跨阶段队列才写唯一 FEATURE.md | 过程·经济 | 流程 | 内联无 .scratch 时 feature gate 报不存在；文件数与临时委派不触发持久队列 |
 | FEATURE-TEMPLATE / 工件门 / admission | 每条 AC 恰有一个反引号命令映射；校验与执行共用命令解析 | 产物 | 机器 | v2 模板缺反引号时工件门通过而 start 拒绝；test_verify_artifacts 跨入口回归 |
 | VERIFICATION-DESIGN / FEATURE-TEMPLATE / schema | 预检 要求真实且匹配的代表动作证据；允许复用执行阶段返回的观测，不以阶段名称要求重复运行 | 过程·经济 | 流程 | SPEC 执行者限定与 TDD/Verify 回填就绪证据冲突；TEST-POLICY 以输入、动作、环境判断复用 |
-| 头部 | 仅未解决的实质选择用回执，独立工作继续 | 权威 | 流程 | 7be5338（compressed intake）/ spec-holds-alignment-under-pressure |
+| 头部 | 仅未解决的实质选择用回执，独立只读准备继续 | 权威 | 流程 | 7be5338（compressed intake）/ spec-holds-alignment-under-pressure |
 | 回执·决策点 | 问实际决定并给建议；回答即对齐，不追问口令 | 权威 | 流程 | 应答成本税与越权代答；dev-skills 对标借入（lowband）；未溯源 |
 | §1 | 定位：点名即 rg 单特性；否则 3–5 关键词 | 过程·经济 | 流程 | 未溯源（token 经济） |
 | §2 / impact-detection | 影响探测非审批门；规划只读查询；必要突变仅授权执行阶段的同一隔离副本，不改真实共享源码 | 过程·经济 | 流程 | 10dd737（blast-radius impact）、5f7b1ac（pyright 误报修复）；python-dynamic-verification；规划不写源与临时签名写冲突 |
 | impact-detection / REPORT-FORMAT / unattended | 影响分析点名安全依赖的一两个事实、证据等级与反例检查；不到「脚本」级写「未证实」作假设，进验证计划与验收报告「需要你看的地方」；查 grep 够不到的库源码、时序与无符号通道；确认与已排除风险分列 | 过程·产物 | 自审 | 只列调用方、听起来对的影响分析被当成安全证明；借鉴 [pstack blast-radius](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/skills/blast-radius/SKILL.md)；无验收记录数据 |
-| §2 / ARTIFACT-FORMAT 项目知识 | 过两轴测试的不变量当场按 /correct 阶梯上移，不停顿征询；规则行点名路径，读到时这些路径在该行最后提交后有改动先复验 | 过程 | 流程 | 6b411d8（从失败捕获 invariant）；/map 退役后由阶梯与漂移复验承接 |
-| §2 / prototype | 可运行实验能降低真实不确定性时才 prototype；方案确实拿不准时多候选：先定选法（标准、输入、判定与平局规则）→ 2–3 个子代理各在独立工作树实现 → 逐条评分选底子、手工嫁接他者长处（发散则重定选法重跑）→ 对嫁接结果重新验证；日常单候选 | 过程 | 流程 | prototype skill 立法；多候选借鉴 [pstack arena](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/skills/arena/SKILL.md)；无验收记录数据 |
+| §2 / ARTIFACT-FORMAT 项目知识 | 过两轴测试的不变量规划期记为 `/correct` 阶梯候选，执行期同变更上移；规则行点名路径，读到时这些路径在该行最后提交后有改动先复验 | 过程 | 流程 | 6b411d8（从失败捕获 invariant）；2026-11-23 消除规划期越权写冲突 |
+| §2 / prototype | 可运行实验能降低真实不确定性时才 prototype（规划期写实验代码前先获显式许可）；方案确实拿不准时多候选：先定选法（标准、输入、判定与平局规则）→ 2–3 个子代理各在独立工作树实现 → 逐条评分选底子、手工嫁接他者长处（发散则重定选法重跑）→ 对嫁接结果重新验证；日常单候选 | 过程 | 流程 | prototype skill 立法；2026-11-23 补规划期写权限边界；无验收记录数据 |
 | §2 | NFR 门槛走 VERIFICATION-DESIGN 非功能三则（原 NON-FUNCTIONAL-BARS 并入） | 过程 | 流程 | 未溯源 |
 | FEATURE-TEMPLATE | Spec 只固定跨单元共同约定（承诺、公共接口、共享决策、组合验证、资源安全），单元内部实现结构不提前设计；边界检验句与拆单元判据 | 过程·经济 | 流程 | 规划过深与同步返工税；未溯源 |
-| §3 / codebase-design | 公共接口或状态归属改变时，用真实调用和相关失败路径检查输入、结果、所有权与不变量；比较前定标准，组合后复核 | 过程 | 流程 | 借鉴 [pstack design guide](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/docs/guide/04-design.md) 的调用侧设计；不要求每次设计竞赛，规划不写可执行模型；行为收益未实测 |
+| §2 / codebase-design | 公共接口或状态归属改变时，用真实调用和相关失败路径检查输入、结果、所有权与不变量；比较前定标准，组合后复核 | 过程 | 流程 | 借鉴 [pstack design guide](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/docs/guide/04-design.md) 的调用侧设计；不要求每次设计竞赛，规划不写可执行模型；行为收益未实测 |
+| tdd / validate-skills | `/tdd` 加 `disable-model-invocation: true`；合同冲突只暂停单元并提示用户 `/spec` 修订；`validate-skills.py` 扩展到 `claude/` 并拦截运行时残留 `CODEBASE` 与 /map | 权威+产物 | 机器+流程 | tdd 同文件规则冲突、缺机械调用门，以及退役 map/CODEBASE 残留漏检（2026-11-23）；test_validate_skills 回归 |
 
 ## C. TDD and engineering selection
 

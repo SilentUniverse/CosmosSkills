@@ -44,7 +44,7 @@ def classify_delta(model, old_items):
             result["UNCHANGED"].append(item_id)
     result["REMOVED"] = sorted(set(old_items) - set(fresh))
     changed = set(result["ADDED"] + result["MODIFIED"] + result["REMOVED"])
-    global_change = any(not feature_doc.ID_TOKEN.fullmatch(key) for key in changed)
+    global_change = any(not feature_doc.NON_GLOBAL_TOKEN.fullmatch(key) for key in changed)
     affected = set()
     while True:
         added = {key for key in result["UNCHANGED"] if key not in affected
@@ -92,7 +92,7 @@ h3{font-size:16.5px;margin:18px 0 8px;color:#5a6b7b;font-weight:600}
 .body ul{margin:0 0 12px;padding-left:22px}
 .body li{margin:0 0 6px}
 .body ul:last-child{margin-bottom:0}
-.door{color:#a23b3b;font-weight:600}.risk{color:#8a6d1a}
+.door{color:#a23b3b;font-weight:600}.risk{color:#8a6d1a}.confirmed{color:#2c6e49;font-weight:600}
 a.ref{display:inline-block;font-size:14px;padding:1px 8px;border-radius:9px;background:#dce8f5;color:#2b5c8a;text-decoration:none;margin-right:4px}
 .scopecols{display:grid;grid-template-columns:1fr 1fr;gap:24px}
 .scopecols>div>b{display:block;font-size:13px;color:#5a6b7b;margin-bottom:6px}
@@ -241,6 +241,8 @@ def decision_card(item, mode, delta, hashes, pose=False, number=0, previous=None
     chips = []
     if item["door"] == "one-way":
         chips.append('<span class="door">难以撤回</span>')
+    if item["confirmed"]:
+        chips.append('<span class="confirmed">对话已确认 %s</span>' % html.escape(item["confirmed"]))
     if item["blast"]:
         chips.append('<span class="risk">%s</span>' % html.escape(item["blast"]))
     meta = ""
@@ -253,7 +255,7 @@ def decision_card(item, mode, delta, hashes, pose=False, number=0, previous=None
     if previous is not None and mode == "delta" and item["id"] in delta["MODIFIED"]:
         old_first, old_rest = decision_body(previous)
         previous_body = '<div class="before"><b>已接受的决定</b>%s</div><b>本次决定</b>' % paragraphs_html(old_first + old_rest)
-        if (previous["human"], previous["door"]) != (item["human"], item["door"]):
+        if (previous["human"], previous["door"], previous["confirmed"]) != (item["human"], item["door"], item["confirmed"]):
             previous_body = '<p>人工确认或撤回条件有变化，请核对原有边界是否仍被保留。</p>' + previous_body
     if pose:
         mark = "%s%d. " % (badge, number) if number else badge
@@ -283,15 +285,22 @@ def contract_card(item):
     )
 
 
-def note_card(prefix, number, text, answerable=False):
-    head = "%s%d" % (prefix, number)
+def note_card(item, mode="full", delta=None, answerable=False, previous=None):
+    qid = item["id"]
+    badge = state_badge(mode, delta, qid)
+    chip = ' <span class="door">阻断，须先回答</span>' if item["blocking"] else ""
+    parts = []
+    if previous is not None and mode == "delta" and qid in delta["MODIFIED"]:
+        parts.append('<p class="before">已接受：%s</p>' % html.escape(previous["text"]))
+    parts.append(paragraphs_html([item["text"]]))
     box = ""
     if answerable:
-        box = item_comment(head, "你的回答（可选）")
+        placeholder = "必填：回答后提交反馈以解除阻断" if item["blocking"] else "你的回答（可选）"
+        box = item_comment(qid, placeholder)
     return (
-        '<div class="card note"><div class="title">%s</div>'
+        '<div class="card note"><div class="title">%s%s%s</div>'
         '<div class="body">%s</div>%s</div>'
-        % (head, paragraphs_html([text]), box)
+        % (badge, html.escape(qid), chip, "".join(parts), box)
     )
 
 
@@ -320,6 +329,7 @@ def review_html(feature, digest, model, delta, mode, bridge, token="", url="", b
                          and (item["id"] in reviewed or item["id"] in touched)]
     previous_decisions = {item["id"]: item for item in baseline.decisions} if baseline else {}
     previous_requirements = {item["id"]: item for item in baseline.requirements} if baseline else {}
+    previous_questions = {item["id"]: item for item in baseline.questions} if baseline else {}
     out = []
     add = out.append
     label = "Delta" if mode == "delta" else "Full"
@@ -344,7 +354,7 @@ def review_html(feature, digest, model, delta, mode, bridge, token="", url="", b
     if mode == "delta":
         current_text, previous_text = model.item_texts(), baseline.item_texts()
         boundary = [key for kind in ("ADDED", "MODIFIED", "REMOVED") for key in delta[kind]
-                    if not feature_doc.ID_TOKEN.fullmatch(key)]
+                    if not feature_doc.NON_GLOBAL_TOKEN.fullmatch(key)]
         if boundary:
             add('<h2 id="changes">需要留意的边界变化</h2>')
         for key in boundary:
@@ -352,11 +362,11 @@ def review_html(feature, digest, model, delta, mode, bridge, token="", url="", b
                 % (state_badge(mode, delta, key), html.escape(feature_doc.SECTION_LABELS.get(key, key))))
             add('<div><b>已接受</b><pre class="compare">%s</pre></div>' % html.escape(previous_text.get(key, "")))
             add('<div><b>本次</b><pre class="compare">%s</pre></div></div></div>' % html.escape(current_text.get(key, "")))
-        removed = [key for key in delta["REMOVED"] if feature_doc.ID_TOKEN.fullmatch(key)]
+        removed = [key for key in delta["REMOVED"] if feature_doc.NON_GLOBAL_TOKEN.fullmatch(key)]
         if removed:
             add('<h2>本次移除</h2>')
             for key in removed:
-                old = previous_requirements.get(key) or previous_decisions.get(key)
+                old = previous_requirements.get(key) or previous_decisions.get(key) or previous_questions.get(key)
                 body = [old["text"]] if "text" in old else old["lines"]
                 add('<div class="card"><div class="title">%s</div>%s</div>' % (html.escape(key), paragraphs_html(body)))
         if not any(delta[kind] for kind in ("ADDED", "MODIFIED", "REMOVED", "AFFECTED")):
@@ -383,7 +393,12 @@ def review_html(feature, digest, model, delta, mode, bridge, token="", url="", b
     if model.controls["section:context"]:
         add('<h3>补充说明</h3><div class="card">%s</div>' % paragraphs_html(model.controls["section:context"].split("\n")))
     shown = {item["id"] for item in decide_items}
-    others = [item for item in model.decisions if item["id"] not in shown]
+    confirmed_others = [item for item in model.confirmed_human_items() if item["id"] not in shown]
+    confirmed_ids = {item["id"] for item in confirmed_others}
+    if confirmed_others:
+        add('<h3>对话中已确认的方向决策</h3><div class="cards">%s</div>'
+            % "".join(decision_card(item, mode, delta, hashes) for item in confirmed_others))
+    others = [item for item in model.decisions if item["id"] not in shown and item["id"] not in confirmed_ids]
     if others:
         add('<h3>AI 负责的工程决策</h3><div class="cards">%s</div>'
             % "".join(decision_card(item, mode, delta, hashes) for item in others))
@@ -392,15 +407,21 @@ def review_html(feature, digest, model, delta, mode, bridge, token="", url="", b
         for number, item in enumerate(decide_items, 1):
             add(decision_card(item, mode, delta, hashes, pose=True, number=number,
                               previous=previous_decisions.get(item["id"])))
-        for number, text in enumerate(model.questions, 1):
-            add(note_card("Q", number, text, answerable=True))
+        for item in model.questions:
+            add(note_card(item, mode, delta, answerable=True, previous=previous_questions.get(item["id"])))
         add("</div>")
     add('<h2 id="submit">反馈</h2>')
     add('<div class="card"><textarea id="global-feedback" placeholder="GLOBAL 反馈（可选）"></textarea>')
     data = {"spec": feature, "spec_digest": digest, "items": hashes}
+    blocking_questions = model.blocking_questions()
     if bridge:
         data.update(token=token, url=url)
-        add('<button id="approve" type="button">全部确定</button> ')
+        if blocking_questions:
+            add('<p class="door">存在 %d 条阻断性的尚未明确问题（%s），请先回答并点击「提交反馈」；消除阻断前不能「全部确定」。</p>'
+                % (len(blocking_questions), "、".join(item["id"] for item in blocking_questions)))
+            add('<button id="approve" type="button" disabled title="存在阻断性问题，请先提交反馈">全部确定</button> ')
+        else:
+            add('<button id="approve" type="button">全部确定</button> ')
         add('<button id="feedback" type="button">提交反馈</button><div id="result" class="muted"></div></div>')
         add('<script type="application/json" id="bridge-data">%s</script>'
             % json.dumps(data, ensure_ascii=False).replace("</", "<\\/"))
@@ -666,6 +687,17 @@ def make_handler(spec_name, digest, model, html_text, token, result, persist, cu
             if action == "approve" and (items or global_feedback):
                 action = "feedback"
             if action == "approve":
+                blocking = [item["id"] for item in model.blocking_questions()]
+                if blocking:
+                    self.respond(
+                        400,
+                        {
+                            "status": "error",
+                            "message": "cannot approve while blocking open questions remain: "
+                            + ", ".join(blocking),
+                        },
+                    )
+                    return
                 answer = {"status": "accepted", "spec": spec_name, "spec_digest": digest}
             elif action == "feedback":
                 if not items and not global_feedback:
