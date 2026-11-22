@@ -96,15 +96,18 @@ Agent 动手前会读完你点名的所有材料，再用自己的话转述这�
 
 | 场景 | 怎么说 | 应该看到的证据 |
 |---|---|---|
+| 帮我写好提示词 | `/sharpen <粗想法或草稿>` | 4 维专家补深分析（盲区 / 一手材料 / 方法工具 / 外部判据）+ 可直接发出的中文五要素提示词；不改文件不动工 |
 | 修 bug | 「修一下 X」+ 复现步骤或报错 | 修复前失败、修复后通过的同一条复现命令；有现成测试框架时补一条回归测试，没补会写明原因 |
 | 小改动 | 直接说目标，按上面五行写 | 相关测试或检查的实际输出 |
 | 大功能 | `/spec <需求>`，确认后说「开始实现」 | 每个单元的运行日志与 `close` 记录 |
-| 审查 | `/atk <目标>` 或「审一下这个分支」 | 每条结论附文件位置与验证方式；高风险结论点名它依赖的事实，没跑通的标「未证实」 |
+| 审查 | `/atk <目标>`、`/atk -exec <目标>` 或「审一下这个分支」 | 普通模式附文件位置与验证方式；`-exec` 仅保留隔离环境实跑失败并违背意图的硬缺陷，附 `Dropped` 丢弃账单 |
+| 持续性能优化 | 明确目标指标与最少迭代轮数，走 [Hillclimb](workflow/TEST-POLICY.md#hillclimb-sustained-metric-optimization) | 7 问基准校验、冻结脚本的改前改后对比、逐轮保留/回滚记录（`hillclimb.tsv`） |
 | 问为什么这样设计 | `/show -why <区域>` | 每条理由附 ADR、PR、提交或 blame 出处；查不到写「无记录」 |
 | 交付 | `/pr`；只本地提交用 `/pr -local` | PR 链接、检查结果、合并提交 |
-| 交给它做、明天验收 | 按五行写清需求，再说「我明早看」 | 起止时间、开头的「需要你看的地方」、逐条验收表（已验证 / 未通过 / 无法判定）、原则检查和独立复核结论 |
+| 交给它做、明天验收 | 按五行写清需求，再说「我明早看」 | 起止时间、开头的「需要你看的地方」、逐条验收表、原则检查、以及独立复核对 transcript 与决策日志的真实性审计结论 |
 | 回来补课 | `/tidy since <提交或日期>` | 改了什么、等你决定的、风险与缺口三块；不写文件 |
 | 复盘返工 | `/correct` | 返工与回滚按错误类别归类；第一次只记类别，同类第二次才落到架构、类型、检查或测试 |
+| 配置多模型路由 | `/cosmos-setup -models` | 探测当前宿主可用模型并写入 `~/.cosmos/models.json`（4 档抽象槽位 `deep/fast/panel/cross_judge`，0 常驻字节税） |
 
 交出去做时，默认只在独立分支上本地提交，不推送、不合并；需要更多权限，交代时明说。
 
@@ -185,11 +188,11 @@ verify 自带的[状态图检查](tooling/verify/STATECHART.md)：写一个小 T
 标注的状态图和每条被破坏规则的最短路径，再回放到真实代码。需要 Java 11+ 与 Node 22.18+，
 TLC 随仓库提供，不需要联网。
 
-多 agent 的[分工与验收规则](claude/delegation.md)区分覆盖分工、方案比较和独立找错。
+多 agent 的[分工与验收规则](claude/delegation.md)区分覆盖分工、方案比较和独立找错，跨宿主多模型与跨厂商裁判通过[能力槽位路由](claude/model-routing.md)（`deep` / `fast` / `panel` / `cross_judge`）按需读取 `~/.cosmos/models.json`，技能正文不写死具体模型型号，宿不支持时如实降级并披露实际 `model`/`vendor`/`cross_vendor`。
 测试由子 agent 在后台跑，开发不停下等结果；只有收尾、提交和依赖结果的步骤才等。
 同一条命令最近一次实测不超过 60 秒、手上没有可并行推进的活、且运行期间不写工作树时，也可以直接跑；
 交付检查、测量比较和独立复核仍走后台。
-比快慢先定选法；测量和验证结果必须写明提交 SHA 与方法，缺了作废重派一次，仍缺记为缺口。
+比快慢先定选法并用 7 问基准清单校验；持续指标优化走 [Hillclimb](workflow/TEST-POLICY.md#hillclimb-sustained-metric-optimization)；测量和验证结果必须写明提交 SHA 与方法，缺了作废重派一次，仍缺记为缺口。
 高风险审查可选跨厂商评委，代码发到外部服务前会先问你。
 Cosmos 只定义输入、写入边界和所需证据；实际并发、隔离和恢复沿用宿主与项目工具。
 
@@ -210,6 +213,7 @@ Cosmos 只定义输入、写入边界和所需证据；实际并发、隔离和�
 
 | 场景 | 入口 |
 |---|---|
+| 发指令前把粗想法改深 | `/sharpen <草稿>` |
 | 规划或修改需求 | `/spec <需求>` |
 | 实施一个单元 / feature | `/tdd <feature> [T<n>]` |
 | 跑单元验收命令并留日志 | `python <skills-root>/workflow-state.py run . <feat> T<n> <command>` |
@@ -223,7 +227,8 @@ Cosmos 只定义输入、写入边界和所需证据；实际并发、隔离和�
 | 设计依据 | `/show -why <区域>` |
 | 方案拿不准、要比几个原型 | `prototype` 多候选：先定选法 → 2–3 个独立工作树 → 选底子嫁接 → 重验 |
 | 交付审计用的固定证据 | `python <skills-root>/evidence.py --help` |
-| 对抗审查 / 只读审查 | `/atk <目标>` / `/atk -r <目标>` |
+| 对抗审查 / 只读审查 / 实跑对抗 | `/atk <目标>` / `/atk -r <目标>` / `/atk -exec <目标>` |
+| 配置跨宿主多模型槽位 | `/cosmos-setup -models` |
 | 提交当前已验证范围 | `/pr`；只本地提交用 `-local` |
 
 ## 工件与审核
@@ -244,7 +249,7 @@ HTML bridge 在原生 UI 能保留版本、字段、原始事件及落盘确认�
 | 能力 | 技能 |
 |---|---|
 | 交接与续接 | [handoff](workflow/handoff/SKILL.md)、[resume](workflow/resume/SKILL.md) |
-| 规划、方法与整理 | [spec](workflow/spec/SKILL.md)、[tdd](workflow/tdd/SKILL.md)、[tidy](workflow/tidy/SKILL.md) |
+| 规划、方法与整理 | [sharpen](workflow/sharpen/SKILL.md)（发指令前把提示词改深，不执行任务）、[spec](workflow/spec/SKILL.md)、[tdd](workflow/tdd/SKILL.md)、[tidy](workflow/tidy/SKILL.md) |
 | 设计与分析 | [grill](workflow/grill/SKILL.md)、[prototype](workflow/prototype/SKILL.md)、[improve-arch](workflow/improve-arch/SKILL.md)、[codebase-design](workflow/codebase-design/SKILL.md)、[domain-modeling](workflow/domain-modeling/SKILL.md) |
 | 审查与修复 | [code-review](workflow/code-review/SKILL.md)、[atk](workflow/atk/SKILL.md)、[diagnose](workflow/diagnose/SKILL.md)、[conflicts](workflow/conflicts/SKILL.md)、[pr](workflow/pr/SKILL.md) |
 | 阅读与知识 | [show](workflow/show/SKILL.md)、[research](workflow/research/SKILL.md) |

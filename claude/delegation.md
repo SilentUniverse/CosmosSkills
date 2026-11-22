@@ -34,9 +34,14 @@ same author performs it inline; disclose that fallback.
 - **Measurement and verification returns name the commit SHA and the exact method** (command,
   inputs, environment, sample count). A return missing either is void: re-dispatch once with the
   gap named; if it is still missing, record a verification gap, never a pass.
-- **Cross-vendor judge, optional, for high-risk review.** A model from another vendor may judge
-  the same fixed candidate under the independent-defects contract. Ask the user before sending
-  code or repository content to an outside provider; without approval, review stays in-host.
+- **Cross-vendor judge and capability-slot routing.** Select worker and judge models through the
+  four abstract capability slots (`deep`, `fast`, `panel`, `cross_judge`) and the host's capability
+  tier defined in [model-routing.md](model-routing.md) (`~/.cosmos/models.json` when configured;
+  never hardcode concrete model slugs in skills). A `cross_judge` must use a vendor different from
+  the parent session's vendor; ask the user before sending code or repository content to an outside
+  provider or external bridge. When the host cannot provide a cross-vendor model, degrade honestly
+  per `model-routing.md` and record the actual `model`, `vendor`, `isolation` and `cross_vendor`
+  status beside the verdict.
 
 ## Before and after the split
 

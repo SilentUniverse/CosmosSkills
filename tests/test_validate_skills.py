@@ -217,11 +217,13 @@ class ValidateSkillsTests(unittest.TestCase):
             self.write_skill(root / "workflow", "fixture-skill")
             (root / "tooling").mkdir()
             (root / "workflow" / "fixture-skill" / "reference.md").write_text(
-                "# Reference\n\nRead ADR/CODEBASE/CONTEXT first.\n", encoding="utf-8"
+                "# Reference\n\nRead ADR/CODEBASE/CONTEXT first.\nUse claude-opus-5-5-xhigh-fast.\n",
+                encoding="utf-8",
             )
             (root / "claude").mkdir()
             (root / "claude" / "workflow-routing.md").write_text(
-                "# Routing\n\nUse grilling or /map here.\n", encoding="utf-8"
+                "# Routing\n\nUse grilling or /map here.\nRoute to gemini-4-neon-xhigh.\n",
+                encoding="utf-8",
             )
             (root / "workflow" / "ARTIFACT-FORMAT.md").write_text(
                 "# Format\n\nA retired `CODEBASE.md` only hints.\n", encoding="utf-8"
@@ -230,6 +232,8 @@ class ValidateSkillsTests(unittest.TestCase):
             self.assertTrue(any("retired map/CODEBASE reference 'CODEBASE'" in e for e in errors), errors)
             self.assertTrue(any("retired map/CODEBASE reference '/map'" in e for e in errors), errors)
             self.assertTrue(any("retired skill reference 'grilling'" in e for e in errors), errors)
+            self.assertTrue(any("hardcoded model slug 'claude-opus-5-5-xhigh-fast'" in e for e in errors), errors)
+            self.assertTrue(any("hardcoded model slug 'gemini-4-neon-xhigh'" in e for e in errors), errors)
             self.assertFalse(any("ARTIFACT-FORMAT.md" in e for e in errors), errors)
 
     def test_rejects_unknown_skill_call(self):
@@ -261,7 +265,7 @@ class ValidateSkillsTests(unittest.TestCase):
     def test_repository_catalog_and_public_names(self):
         errors, skill_count, _ = validate_skills.run([], ROOT)
         self.assertEqual([], errors)
-        self.assertEqual(29, skill_count)
+        self.assertEqual(30, skill_count)
         self.assertTrue((ROOT / "workflow").is_dir())
         self.assertTrue((ROOT / "tooling").is_dir())
         self.assertFalse(
@@ -278,6 +282,7 @@ class ValidateSkillsTests(unittest.TestCase):
                 "atk",
                 "pr",
                 "show",
+                "sharpen",
                 "lint",
                 "tidy",
                 "handoff",

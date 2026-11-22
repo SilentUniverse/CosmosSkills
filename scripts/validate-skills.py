@@ -59,6 +59,10 @@ RETIRED_SKILL_NAMES = {
 RETIRED_RUNTIME_RE = re.compile(
     r"(?:(?<![A-Za-z0-9_/-])/map\b|(?<![A-Za-z0-9_-])CODEBASE(?:\.md)?\b)"
 )
+HARDCODED_MODEL_SLUG_RE = re.compile(
+    r"\b(?:claude-(?:opus|sonnet|haiku|fable)|gemini-\d|gpt-\d|grok-\d|o[134]-(?:mini|pro|preview))[a-z0-9.-]*\b",
+    re.IGNORECASE,
+)
 NON_SKILL_SLASH_TOKENS = {"backticks", "c", "clear", "compact", "pattern", "settings", "tmp"}
 # Coarse ceilings for always-resident surfaces (every turn pays them); growth beyond
 # current headroom is a visible metric first, a red line only at these outer bounds.
@@ -393,6 +397,12 @@ def validate_retired_runtime_artifacts(markdown_file: Path) -> list[str]:
             errors.append(
                 f"{markdown_file}:{line_number}: retired map/CODEBASE reference {match.group(0)!r}; "
                 "read code directly or use /show and native command entries"
+            )
+        model_match = HARDCODED_MODEL_SLUG_RE.search(line)
+        if model_match:
+            errors.append(
+                f"{markdown_file}:{line_number}: hardcoded model slug {model_match.group(0)!r}; "
+                "use abstract capability slots (deep/fast/panel/cross_judge) in model-routing.md"
             )
     return errors
 

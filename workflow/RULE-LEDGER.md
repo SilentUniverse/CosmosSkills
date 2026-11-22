@@ -76,13 +76,13 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | §5·e | 同因两次修复失败 → 换路或 /diagnose | 过程 | 流程 | 97a7998（anti-thrash）/ diagnose-holds-repro-under-pressure（近邻） |
 | §5·f / correct | 首次错误就地修复，并按类别在 acceptance-log 记一行（只记录、不建规则，不同于记对话轮次）；复盘读 acceptance-log、DECISIONS、ACCEPTANCE，按类别归类返工与回滚；同类错误复发按架构 → 类型 → 报错指明修法的检查 → 测试 → 文字的顺序取最高可行层，新检查须在真实历史错误上失败；纠正改变现有契约才更新，不为一轮对话建工件 | 过程 | 流程 | 纠正只写成文字、无人强制而复发；poteto「slop to gold」演讲与 pstack [correct](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/skills/correct/SKILL.md)；用户要求（2026-11-15）；无验收记录数据 |
 | §2·开场 / §5·完成 | 新请求或意图实质变化时先完整读完点名输入，再用自己的话转述五要素并标出推断假设；/spec、规划设计、意图或完成标准模糊、以及无人值守交办须在复述后停下等用户确认再继续（明确跳过除外）；清晰单步直做任务转述后直接推进；不反复复述既定意图、不在执行中编造仪式性审批门；如实报完成/受阻 | 权威 / 过程·经济 | 流程 | 边复述边开干导致理解偏了无法在转述步拦截；用户明确要求先真实拿意图、先复述确认再做后续行为（2026-11-23）；TaskFlow.tla 形式化检查；行为收益未实测 |
-| §5·无人值守 / unattended | 交出去隔天验收：人在场时先复述五要素、权限（默认只在隔离分支本地提交）、隔离与止损条件并停一轮确认（除非显式跳过），确认后写入决策日志再开工；不放宽完成检查、撤回无效改动、可逆选择记「待确认」、不可逆停住；只追加决策日志；验收报告先列需要人看的地方，逐条给证据与判定（无证据即无法判定），默认独立复核；报告记开始/结束时间，并逐项做原则检查（五要素转述、决策日志、测量先定选法、不变量走 /correct 阶梯、修 bug 补回归测试），无证据即缺陷、记入验收记录类别；可选验收记录供 /correct 与扩权判断 | 权威 | 流程 | 无人值守时理解偏差干偏一整晚、偷改测试或放宽标准、越权推送、报告只有自评；用户要求（2026-11-15 / 2026-11-23）；行为收益未实测 |
+| §5·无人值守 / unattended | 交出去隔天验收：人在场时先复述五要素、权限（默认只在隔离分支本地提交）、隔离与止损条件并停一轮确认（除非显式跳过），确认后写入决策日志再开工；不放宽完成检查、撤回无效改动、可逆选择记「待确认」、不可逆停住；只追加决策日志；验收报告先列需要人看的地方，逐条给证据与判定（无证据即无法判定），默认独立复核（经 `cross_judge` 槽位）并对照本工作区运行 transcript/原始日志做真实性审计（防日志撒谎，缺口追加更正行并降级未证实项，披露实际模型与降级状态）；报告记开始/结束时间，并逐项做原则检查，无证据即缺陷、记入验收记录类别；可选验收记录供 /correct 与扩权判断 | 权威 | 流程 | 无人值守时理解偏差、偷改测试、报告自评或日志写了已验证但实际没跑；借鉴 pstack show-me-your-work transcript 审计；用户确认（2026-11-23）；行为收益未实测 |
 | §6 | 点名输入起步，发现依赖再展开，保留已决定上下文 | 过程·经济 | 流程 | 工程阅读纪律保留；宿主拥有 replay/cache/compaction，不保留第二套上下文生命周期 |
 | §7·a | 优先可用工具，遵守实际 hook，不为偏好安装 | 过程 | 机器+流程 | 5ef04aa（modern-cli hook）+ 77baaf7/35adb23（corpus 加固） |
 | §7·b | 破坏性目录操作前枚举隐藏/忽略项 | 权威 | 流程 | 未溯源（安全守则） |
 | §7·c | PS 设 UTF-8；PS/cmd 不写文本文件 | 过程 | 流程 | 38b2c6a（UTF-8 note）、94aea23（PS5.1/cmd 规则） |
 | §8·后台测试 / delegation / TEST-POLICY | 测试由后台子代理在固定候选（提交 SHA 或不再写入的工作树）上跑，开发继续，只有完成、提交和依赖结果的步骤等待；无子代理时用宿主后台执行；例外：无可并行推进的活、同命令最近一次实测 ≤60 s（无实测按后台）、运行期间不写工作树时，可在当前工作树直接跑，仍写明 SHA（工作树脏时标注未提交改动）与方法，/pr 交付检查、测量比较与独立复核仍走后台固定 SHA | 过程·经济 | 流程 | 测试串行阻塞开发进度；用户要求（2026-11-15）；本会话实测后台复测从派出到回报 63.3 s、其中 pytest 24 s，仅作设计依据；无验收记录数据。降级：验收记录中出现因直接跑而漏检或结果不可复现的情况，则撤销例外 |
-| delegation·测量与评委 | 比快慢先定选法（指标、输入、环境、样本数、判定与平局规则）；测量/验证回报须写明 SHA 与方法，缺则作废重派一次，再缺记验证缺口；高风险审查可选跨厂商评委，代码外发前先问用户 | 过程·经济 / 权威 | 自审 | 看结果后再挑指标、来源不明的数字被当证据、代码未经同意外发；用户要求（2026-11-15）；行为收益未实测 |
+| delegation·测量、多模型路由与评委 | 比快慢先定选法并用 7 问基准清单校验；持续指标优化走 TEST-POLICY Hillclimb（冻结基线、单假设、测量保留/回滚、破平台期）；测量/验证回报须写明 SHA 与方法，缺则作废重派一次，再缺记验证缺口；多模型委派与跨厂商评委统一走 `claude/model-routing.md` 4 档抽象槽位（`deep`/`fast`/`panel`/`cross_judge`）与 `~/.cosmos/models.json`（`/cosmos-setup -models` 配置，0 常驻税），按 L3–L0 宿主分级降级并披露实际 `model`/`vendor`/`cross_vendor`，代码外发前先问用户；`validate-skills.py` 机器门禁禁止技能正文写死具体模型 slug | 过程·经济 / 权威 | 机器+流程 | 看结果后再挑指标、模型名写死腐烂、假装跨厂商独立评审、代码未经同意外发；借鉴 pstack setup-pstack / benchmark-checklist / hillclimb 并改为抽象能力槽位；用户确认（2026-11-23）；test_validate_skills 回归；行为收益未实测 |
 | §8 / delegation | 独立工作或判断才委派；覆盖分工、方案比较、独立找错各有输入与验收；预算约束尝试而非完成条件，整合检查实际候选 | 过程·经济 | 自审 | 65f1318、51a7d4a；借鉴 pstack [swarm](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/skills/swarm/SKILL.md) / [arena](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/skills/arena/SKILL.md) 的证据契约，不迁入调度、worker 数量或模型分配；行为收益未实测 |
 | §9 | 宿主特有假设先对运行中的宿主核实再复述 | 过程 | 自审 | 单宿主观察被当跨宿主要求；未溯源 |
 | §10 | ADB 前加载设备规则参考 | 过程 | 流程 | 7f56614（android-adb reference） |
@@ -115,7 +115,8 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | §2 | NFR 门槛走 VERIFICATION-DESIGN 非功能三则（原 NON-FUNCTIONAL-BARS 并入） | 过程 | 流程 | 未溯源 |
 | FEATURE-TEMPLATE | Spec 只固定跨单元共同约定（承诺、公共接口、共享决策、组合验证、资源安全），单元内部实现结构不提前设计；边界检验句与拆单元判据 | 过程·经济 | 流程 | 规划过深与同步返工税；未溯源 |
 | §2 / codebase-design | 公共接口或状态归属改变时，用真实调用和相关失败路径检查输入、结果、所有权与不变量；比较前定标准，组合后复核 | 过程 | 流程 | 借鉴 [pstack design guide](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/docs/guide/04-design.md) 的调用侧设计；不要求每次设计竞赛，规划不写可执行模型；行为收益未实测 |
-| tdd / validate-skills | `/tdd` 加 `disable-model-invocation: true`；合同冲突只暂停单元并提示用户 `/spec` 修订；`validate-skills.py` 扩展到 `claude/` 并拦截运行时残留 `CODEBASE` 与 /map | 权威+产物 | 机器+流程 | tdd 同文件规则冲突、缺机械调用门，以及退役 map/CODEBASE 残留漏检（2026-11-23）；test_validate_skills 回归 |
+| tdd / validate-skills | `/tdd` 加 `disable-model-invocation: true`；合同冲突只暂停单元并提示用户 `/spec` 修订；`validate-skills.py` 扩展到 `claude/`，拦截运行时残留 `CODEBASE` 与 /map 及硬编码模型 slug | 权威+产物 | 机器+流程 | tdd 同文件规则冲突、缺机械调用门、退役残留漏检与模型名硬编码腐烂（2026-11-23）；test_validate_skills 回归 |
+| sharpen / atk -exec | 新增显式技能 `/sharpen`（`disable-model-invocation: true`，4 维深度提问 + 输出可直接发出的中文五要素提示词，绝不执行任务）；`/atk -exec` 在隔离副本用 `panel` 槽位实跑对抗，仅保留真实失败且破坏意图的缺陷并附 `Dropped` 账单与模型来源 | 过程·产物 | 流程 | 浅提示词直接开干导致返工、静态代码审查误报噪音高；借鉴 pstack sharpen 与 interrogate；用户确认（2026-11-23）；技能数 29→30；行为收益未实测 |
 
 ## C. TDD and engineering selection
 

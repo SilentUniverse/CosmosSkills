@@ -97,6 +97,9 @@ Use a **feature document** only for a giant task: independently deliverable stag
 persistent queue across delivery rounds or sessions, with dependencies and readiness the native
 plan cannot retain. Temporary delegation, internal steps or file count do not qualify. A feature
 has exactly one `.scratch/<feat>/FEATURE.md` written from [FEATURE-TEMPLATE.md](FEATURE-TEMPLATE.md).
+For ambitious cross-cutting migrations where no preset fits, quantify blast radius and units up
+front, sequence riskiest-unknown-first, and declare the pre-change baseline verification harness
+before product units.
 
 On the feature-document route, **settle the contract before mutating the environment**:
 

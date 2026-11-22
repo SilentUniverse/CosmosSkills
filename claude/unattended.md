@@ -41,7 +41,8 @@ depends on a newly discovered missing decision.
 
 Append-only `.scratch/<task>/DECISIONS.md`, one line per decision:
 `<time> | <decision> | <reason> | <evidence pointer> | <result>`. Record choices, reverts, stops and
-`待确认` items as they happen; correct an entry with a new line, never by rewriting old ones.
+`待确认` items as they happen; correct an entry—including any discrepancy found by the end-of-run
+audit—only by appending a superseding line (`更正 <原条目>`), never by editing or deleting history.
 
 ## Acceptance report
 
@@ -50,8 +51,9 @@ Write `.scratch/<task>/ACCEPTANCE.md` and send its summary as the final reply. I
 a speed claim. Then, in this order:
 
 1. **需要你看的地方**: every `待确认` choice, failed or undeterminable requirement, 未证实 safety
-   fact, principle-check defect, stop reason, deviation from the contract and disagreement with the
-   independent review. Empty only when none exist.
+   fact, principle-check or transcript-audit defect, stop reason, deviation from the contract,
+   disagreement with the independent review, and any degradation of review independence. Empty only
+   when none exist.
 2. **逐条验收**: one row per requirement in the user's words, with evidence (command and output
    path, screenshot, recording) and a verdict: 已验证, 未通过 or 无法判定. A requirement without
    observed evidence is 无法判定, never 已验证.
@@ -61,19 +63,30 @@ a speed claim. Then, in this order:
 `STATECHART.md` when the flow was model-checked). Add a recording when the
    contract asks for one; it never replaces the assertions.
 4. **原则检查**: one line each, with an evidence pointer: the five-element restatement written at
-   the start; the decision log kept; each measurement's selection rule fixed before it ran; each
-   new invariant taken through the `/correct` ladder; each bug fix given a regression test that
-   fails before and passes after where a cheap local test path existed, or the reason why not. An
-   item without evidence is a defect: list it in 需要你看的地方 and record its class in the
-   acceptance record for `/correct`.
+   the start; the decision log kept and audited against the run transcript/logs; each measurement's
+   selection rule fixed before it ran; each new invariant taken through the `/correct` ladder; each
+   bug fix given a regression test that fails before and passes after where a cheap local test path
+   existed, or the reason why not. An item without evidence is a defect: list it in 需要你看的地方
+   and record its class in the acceptance record for `/correct`.
 5. **怎么复核**: the commands or steps that reproduce the evidence, and the branch and commits.
 
-Independent review is on by default: a fresh read-only subagent receives only the original
-request, the contract, the diff and the raw evidence, without this report's verdicts, and returns
-its own verdict per requirement ([delegation](delegation.md), independent defects). For the user
-view it checks state coverage against the same feature-map fields, and it answers each 原则检查
-item from the raw evidence. Without
-subagents, disclose that the review was done inline.
+Independent review is on by default: route it via the `cross_judge` slot in
+[model-routing.md](model-routing.md) (degrading honestly to a fresh read-only subagent on the same
+host when cross-vendor is unavailable; never `fork`). Pass only the original request, the contract,
+the diff, raw evidence, `DECISIONS.md`, and this run's active-workspace transcript/log path (never
+cross workspace boundaries to read unrelated chats), without this report's verdicts. The reviewer:
+
+- Returns its own verdict per requirement ([delegation](delegation.md), independent defects);
+- Checks user-view state coverage against the same feature-map fields and answers each 原则检查 item
+  from raw evidence;
+- **Audits log truthfulness against the run transcript and raw logs**: flags any claimed decision or
+  `已验证` check with no matching execution, any raw failure/skip reported as passed, and any
+  material fork/revert omitted from `DECISIONS.md`. Unsupported `已验证` rows downgrade to `无法判定`
+  or `未通过`, and `DECISIONS.md` gets an appended correction row. If the host exposes no readable
+  transcript, disclose `无可读 transcript，仅核对磁盘原始日志与 diff`.
+
+Record the reviewer's actual `model`, `vendor`, `isolation`, and `cross_vendor` status at the top of
+the review summary. Without subagents, disclose that the review was done inline.
 
 ## Acceptance record
 

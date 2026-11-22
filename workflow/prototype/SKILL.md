@@ -38,10 +38,13 @@ ordinary prototype stays single. This applies the compare-designs contract of th
 
 1. **Fix the selection first.** Before any candidate exists, write the criteria or metric, the
    inputs, how each candidate is judged and the tie rule. Candidates see only the task.
-2. **Fan out.** Two or three subagents, each in its own worktree with the same task text, each
+2. **Fan out.** Two or three subagents using the `panel` capability slot from
+   `~/.claude/references/model-routing.md`, each in its own worktree with the same task text, each
    returning its prototype and a short note on the alternatives it rejected. A candidate that
    produces nothing drops out and is noted.
-3. **Pick a base and graft.** Judge every candidate criterion by criterion. Take as the base the one
+3. **Pick a base and graft.** Optionally score candidates with a read-only `cross_judge` slot
+   (`model-routing.md`; disclose degradation if single-vendor/inline), then read every candidate end
+   to end and judge criterion by criterion. Take as the base the one
    easiest to extend without breaking invariants, then port by hand the one or two strengths of the
    others worth keeping. Converging candidates need no graft; wildly diverging ones mean step 1 was
    underspecified, so reframe and rerun instead of averaging.

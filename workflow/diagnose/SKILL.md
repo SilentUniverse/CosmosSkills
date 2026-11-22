@@ -73,7 +73,11 @@ Tool preference:
 
 **Tag every debug log** with a unique prefix, e.g. `[DEBUG-a4f2]`. Cleanup at the end becomes a single `rg '\[DEBUG-a4f2\]'`. Untagged logs survive; tagged logs die.
 
-**Perf branch.** Establish a measured baseline with a timing harness, profiler, or query plan; bisect only when history helps isolate the regression. Measure first, fix second.
+**Perf branch.** Establish a measured baseline with a timing harness, profiler, or query plan;
+bisect only when history helps isolate the regression. Vet numbers against the seven benchmark
+questions in [TEST-POLICY.md](../TEST-POLICY.md#measure) before reporting; for sustained
+multi-round optimization against a target, follow [Hillclimb](../TEST-POLICY.md#hillclimb-sustained-metric-optimization).
+Measure first, fix second.
 
 ## Phase 5 — Fix + regression test
 
