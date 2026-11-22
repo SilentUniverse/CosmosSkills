@@ -56,6 +56,9 @@ RETIRED_SKILL_NAMES = {
     "merge-conflicts": "conflicts",
     "modern-cli-guardrails": "shell-guardrails",
 }
+RETIRED_RUNTIME_RE = re.compile(
+    r"(?:(?<![A-Za-z0-9_/-])/map\b|(?<![A-Za-z0-9_-])CODEBASE(?:\.md)?\b)"
+)
 NON_SKILL_SLASH_TOKENS = {"backticks", "c", "clear", "compact", "pattern", "settings", "tmp"}
 # Coarse ceilings for always-resident surfaces (every turn pays them); growth beyond
 # current headroom is a visible metric first, a red line only at these outer bounds.
@@ -376,6 +379,24 @@ def validate_retired_references(markdown_file: Path) -> list[str]:
     return errors
 
 
+def validate_retired_runtime_artifacts(markdown_file: Path) -> list[str]:
+    errors: list[str] = []
+    in_fence = False
+    for line_number, line in enumerate(markdown_file.read_text(encoding="utf-8").splitlines(), 1):
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        match = RETIRED_RUNTIME_RE.search(line)
+        if match:
+            errors.append(
+                f"{markdown_file}:{line_number}: retired map/CODEBASE reference {match.group(0)!r}; "
+                "read code directly or use /show and native command entries"
+            )
+    return errors
+
+
 def validate_skill_calls(markdown_file: Path, skill_names: set[str]) -> list[str]:
     errors: list[str] = []
     text = markdown_file.read_text(encoding="utf-8")
@@ -430,6 +451,7 @@ def run(inputs: Iterable[str], cwd: Path) -> tuple[list[str], int, int]:
     errors: list[str] = []
     markdown_files: set[Path] = set()
     catalog_markdown_files: set[Path] = set()
+    runtime_markdown_files: set[Path] = set()
     names: dict[str, Path] = {}
     for skill_file in skill_files:
         errors.extend(validate_skill(skill_file))
@@ -442,17 +464,19 @@ def run(inputs: Iterable[str], cwd: Path) -> tuple[list[str], int, int]:
             if name in names and names[name] != skill_file:
                 errors.append(f"{skill_file}: duplicate skill name {name!r}; first seen at {names[name]}")
             names[name] = skill_file
-        package_files = set(skill_file.parent.rglob("*.md"))
+        package_files = {p.resolve() for p in skill_file.parent.rglob("*.md")}
         markdown_files.update(package_files)
         catalog_markdown_files.update(package_files)
+        runtime_markdown_files.update(package_files)
 
     known_names = set(names)
     for root_name in DEFAULT_ROOTS:
         root = cwd / root_name
         if not root.is_dir():
             continue
-        catalog_markdown_files.update(root.rglob("*.md"))
+        catalog_markdown_files.update(p.resolve() for p in root.rglob("*.md"))
         for catalog_skill in root.rglob("SKILL.md"):
+            runtime_markdown_files.update(p.resolve() for p in catalog_skill.parent.rglob("*.md"))
             try:
                 catalog_values, _ = parse_frontmatter(catalog_skill)
             except (OSError, UnicodeError, SkillError):
@@ -460,6 +484,12 @@ def run(inputs: Iterable[str], cwd: Path) -> tuple[list[str], int, int]:
             catalog_name = catalog_values.get("name")
             if isinstance(catalog_name, str):
                 known_names.add(catalog_name)
+
+    claude_dir = cwd / "claude"
+    if claude_dir.is_dir():
+        claude_files = {p.resolve() for p in claude_dir.rglob("*.md")}
+        catalog_markdown_files.update(claude_files)
+        runtime_markdown_files.update(claude_files)
 
     for scope in [cwd / item for item in requested] if requested else [cwd]:
         if not scope.is_dir():
@@ -476,6 +506,8 @@ def run(inputs: Iterable[str], cwd: Path) -> tuple[list[str], int, int]:
             errors.extend(validate_links(markdown_file, slug_cache))
             if markdown_file in catalog_markdown_files:
                 errors.extend(validate_retired_references(markdown_file))
+            if markdown_file in runtime_markdown_files:
+                errors.extend(validate_retired_runtime_artifacts(markdown_file))
             errors.extend(validate_skill_calls(markdown_file, known_names))
             errors.extend(validate_shared_refs(markdown_file, cwd))
         except (OSError, UnicodeError) as exc:

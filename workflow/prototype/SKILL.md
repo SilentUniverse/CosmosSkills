@@ -18,6 +18,8 @@ Infer the question from the user's prompt, prior decisions, and relevant code:
 
 Use the branch supported by that evidence and state reversible assumptions. Ask only if the
 unresolved choice would materially change the result; prepare independent fixtures or setup meanwhile.
+When called during `/spec` planning, ask explicit user permission before writing throwaway code
+into the repository.
 
 ## Rules that apply to both
 

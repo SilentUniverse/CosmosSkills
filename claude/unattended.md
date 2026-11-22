@@ -6,7 +6,10 @@ and recovery; this reference only defines the contract, the record and the repor
 
 ## Contract before the user leaves
 
-Write the contract at the top of the decision log and in the reply, then start:
+Before starting autonomous work, present the contract below in the reply and **stop for one
+confirmation round** while the user is still present (skip the pause only when the user explicitly
+waives confirmation, e.g.「不用确认直接开干」). Once confirmed, write the finalized contract at the
+top of `.scratch/<task>/DECISIONS.md` and start:
 
 - **Five elements** (`CLAUDE.md` §2): goal, pass/fail done check, evidence to show, known facts,
   constraints. Inferred items are marked as assumptions.
@@ -19,8 +22,9 @@ Write the contract at the top of the decision log and in the reply, then start:
   an unresolved choice changes the outcome, done check, public contract or scope; two failed fixes
   on one cause after `/diagnose`; the host's budget ends.
 
-If the done check cannot be stated as pass/fail while the user is still present, ask once before
-starting. Once the user is gone, hold only work that depends on the missing answer.
+If the done check cannot be stated as pass/fail while the user is still present, resolve it in that
+confirmation round before starting. Once confirmed and the user is gone, hold only work that
+depends on a newly discovered missing decision.
 
 ## Execution discipline
 

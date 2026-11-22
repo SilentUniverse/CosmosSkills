@@ -161,6 +161,44 @@ class ParseValidateTests(unittest.TestCase):
         self.assertIn("section:context", delta["MODIFIED"])
         self.assertEqual(["D1", "D2", "R1", "R2"], delta["AFFECTED"])
 
+    def test_open_questions_parse_stable_ids_and_do_not_globally_invalidate(self):
+        with_q = FEATURE.replace(
+            "## 共享验证",
+            "## 尚未明确\n- Q1 — 阶段二重试上限待定。\n- Q2 [blocking] — 取消后是否通知外部回调？\n\n## 共享验证",
+        )
+        model = feature_doc.parse_model(with_q)
+        self.assertEqual([("Q1", False), ("Q2", True)], [(q["id"], q["blocking"]) for q in model.questions])
+        self.assertEqual(["Q2"], [q["id"] for q in model.blocking_questions()])
+        self.assertEqual([], feature_doc.validate_model(model))
+        dup = with_q.replace("- Q2 [blocking] —", "- Q1 —")
+        self.assertTrue(any("duplicate id Q1" in p for p in feature_doc.validate_model(feature_doc.parse_model(dup))))
+        resolved_q1 = with_q.replace("- Q1 — 阶段二重试上限待定。\n", "")
+        delta = spec_review.classify_delta(feature_doc.parse_model(resolved_q1), model.hashes())
+        self.assertEqual(["Q1"], delta["REMOVED"])
+        self.assertEqual([], delta["AFFECTED"])
+        self.assertTrue(feature_doc.design_matches(feature_doc.parse_model(resolved_q1), model, {"R1", "D1"}))
+
+    def test_confirmed_human_decision_is_readonly_and_cannot_bypass_one_way_gate(self):
+        text = FEATURE.replace("Refs: R2\n", "Refs: R2\nReview: human\nConfirmed: 2026-11-23\n")
+        model = feature_doc.parse_model(text)
+        self.assertEqual([], feature_doc.validate_model(model))
+        self.assertEqual(["D1"], [item["id"] for item in model.review_required_items()])
+        self.assertEqual(["D2"], [item["id"] for item in model.confirmed_human_items()])
+        page = spec_review.review_html("import", "a" * 64, model, None, "full", False)
+        self.assertIn("对话中已确认的方向决策", page)
+        self.assertIn("对话已确认 2026-11-23", page)
+        self.assertEqual({"D1"}, set(re.findall(r'class="comment" data-id="([^"]+)"', page)))
+        one_way_confirmed = feature_doc.parse_model(
+            FEATURE.replace("Door: one-way\n", "Door: one-way\nConfirmed: 2026-11-23\n")
+        )
+        self.assertEqual(["D1"], [item["id"] for item in one_way_confirmed.review_required_items()])
+        bad_date = feature_doc.parse_model(FEATURE.replace("Refs: R2\n", "Refs: R2\nReview: human\nConfirmed: soon\n"))
+        self.assertTrue(any("Confirmed must be ISO" in p for p in feature_doc.validate_model(bad_date)))
+        changed = feature_doc.parse_model(text.replace("日志记录取消原因。", "日志记录取消原因和调用方。"))
+        delta = spec_review.classify_delta(changed, model.hashes())
+        delta_page = spec_review.review_html("import", "a" * 64, changed, delta, "delta", False, baseline=model)
+        self.assertEqual({"D1", "D2"}, set(re.findall(r'class="comment" data-id="([^"]+)"', delta_page)))
+
 
 class RenderTests(unittest.TestCase):
     def test_first_render_is_full_static_preview(self):
@@ -474,6 +512,31 @@ class BridgeTests(unittest.TestCase):
             thread.join(5)
             self.assertEqual({"status": "timeout", "spec": "import", "spec_digest": prepared["digest"]}, outcome[0])
             self.assertEqual([], records(directory))
+
+    def test_blocking_open_questions_reject_approve_and_accept_feedback(self):
+        blocking_feature = FEATURE.replace(
+            "## 共享验证",
+            "## 尚未明确\n- Q1 [blocking] — 取消后是否通知外部回调？\n\n## 共享验证",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            plant(directory, blocking_feature)
+            prepared = spec_review.prepare_review(directory, "import")
+            page = spec_review.page(prepared, True, token="tok", url="http://127.0.0.1:1/")
+            self.assertIn("阻断，须先回答", page)
+            self.assertIn('id="approve" type="button" disabled', page)
+            prepared, url, token, thread, outcome = start(directory, timeout=3.0)
+            status, body = post(url, approve_payload(token, prepared))
+            self.assertEqual(400, status)
+            self.assertIn("blocking open questions remain: Q1", body["message"])
+            self.assertEqual([], records(directory))
+            status, body = post(url, {"token": token, "spec_digest": prepared["digest"], "action": "feedback",
+                                      "items": [{"id": "Q1", "action": "answer", "comment": "不通知"}],
+                                      "global_feedback": ""})
+            thread.join(5)
+            self.assertEqual((200, "feedback"), (status, body["status"]))
+            self.assertEqual("feedback", outcome[0]["status"])
+            self.assertEqual(1, len(records(directory)))
+            self.assertFalse(records(directory)[0]["accepted"])
 
 
 class CandidatePageTests(unittest.TestCase):

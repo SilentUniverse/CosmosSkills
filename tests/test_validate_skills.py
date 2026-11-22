@@ -211,6 +211,27 @@ class ValidateSkillsTests(unittest.TestCase):
             errors, _, _ = validate_skills.run(["fixture-skill"], root)
             self.assertTrue(any("retired skill reference" in error for error in errors))
 
+    def test_rejects_retired_references_in_claude_and_codebase_in_skills(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_skill(root / "workflow", "fixture-skill")
+            (root / "tooling").mkdir()
+            (root / "workflow" / "fixture-skill" / "reference.md").write_text(
+                "# Reference\n\nRead ADR/CODEBASE/CONTEXT first.\n", encoding="utf-8"
+            )
+            (root / "claude").mkdir()
+            (root / "claude" / "workflow-routing.md").write_text(
+                "# Routing\n\nUse grilling or /map here.\n", encoding="utf-8"
+            )
+            (root / "workflow" / "ARTIFACT-FORMAT.md").write_text(
+                "# Format\n\nA retired `CODEBASE.md` only hints.\n", encoding="utf-8"
+            )
+            errors, _, _ = validate_skills.run([], root)
+            self.assertTrue(any("retired map/CODEBASE reference 'CODEBASE'" in e for e in errors), errors)
+            self.assertTrue(any("retired map/CODEBASE reference '/map'" in e for e in errors), errors)
+            self.assertTrue(any("retired skill reference 'grilling'" in e for e in errors), errors)
+            self.assertFalse(any("ARTIFACT-FORMAT.md" in e for e in errors), errors)
+
     def test_rejects_unknown_skill_call(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

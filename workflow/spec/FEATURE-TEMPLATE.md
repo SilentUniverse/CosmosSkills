@@ -29,6 +29,7 @@ created: YYYY-MM-DD
 Refs: R1
 Door: one-way              # public API/ABI/schema/protocol or irreversible migration
 Review: human              # direction, boundary, product behavior or red line: confirm in conversation
+# Confirmed: YYYY-MM-DD    # add on Review: human (non-one-way) once confirmed in conversation
 <recommendation, trade-off, effect on users/compatibility/rollback>
 
 ## 不变量
@@ -46,7 +47,8 @@ Review: human              # direction, boundary, product behavior or red line: 
 <setup → action → expected observation → evidence path; agent-inaccessible checks with steps and owner>
 
 ## 尚未明确
-- <in-scope question not yet sharp enough to slice>
+- Q1 — <deferred in-scope question not blocking ready units>
+- Q2 [blocking] — <unresolved question blocking contract approval; must be answered before 全部确定>
 
 ## 任务
 ### T1 — <title>
