@@ -1,8 +1,8 @@
 ---
 name: atk
 description: >-
-  Use when the user asks for atk, 对抗式审查, 再审一轮, a first-principles recheck, or an explanation of recent changes. Audits a diff, design, plan, skill, or decision for load-bearing choices and failure modes; use code-review for ordinary review.
-argument-hint: "[-r] [target | -all]; empty target = changes since the last review"
+  Use when the user asks for atk, 对抗式审查, 再审一轮, a first-principles recheck, executable adversarial testing (-exec), or an explanation of recent changes. Audits a diff, design, plan, skill, or decision for load-bearing choices and failure modes; use code-review for ordinary review.
+argument-hint: "[-r | -exec] [target | -all]; empty target = changes since the last review"
 ---
 
 # ATK
@@ -13,16 +13,30 @@ which judges a diff against standards and spec; this judges any output against i
 
 ## Target
 
-- User-typed `/atk` — manual mode. An optional leading `-r` selects pure read-only review.
-  `/atk -r`, `/atk -r -all`, and `/atk -r <target>` use the same scopes as their unflagged
-  forms but return findings only. For the whole invocation, including delegated passes, do not
-  edit, create, delete, rename, stage, or commit files; do not run formatters, fixers, migrations,
-  generators, or checks that may mutate the filesystem. Name a useful check as not run when its
-  read-only behavior cannot be guaranteed. Bare: the changes since this session's last `/atk` run
-  (first run in a session: this conversation's latest round). `-all`: the entire uncommitted
-  working tree — `git status` + per-file `git diff HEAD`. A named target: that target only. A
-  file target covers both its current state and its uncommitted diff. Caller-invoked acceptance
-  checks return findings to that caller; they do not require a separate user command.
+- User-typed `/atk` — manual mode. Leading `-r` selects pure read-only review: `/atk -r`,
+  `/atk -r -all`, and `/atk -r <target>` use the same scopes as their unflagged forms but return
+  findings only. For the whole `-r` invocation, including delegated passes, do not edit, create,
+  delete, rename, stage, or commit files; do not run formatters, fixers, migrations, generators, or
+  checks that may mutate the filesystem. Name a useful check as not run when its read-only behavior
+  cannot be guaranteed.
+- User-typed `/atk -exec [target | -all]` — executable adversarial mode (report-only; never edits
+  product files). Frame the change's intended behavior first (from the user's request, spec/PR or
+  commits; ask if intent is unclear), materialize the target diff/uncommitted scope into an
+  isolated checkout or worktree, and fan out adversaries via the `panel` capability slot in
+  `~/.claude/references/model-routing.md` (degrading honestly when single-vendor or inline). Each
+  adversary tries to break the change against the stated intent and may keep **only** findings
+  proven by an actual run against the real code (failing test, minimal repro script, or wrong
+  command output); static guesses, style, naming, and hypothetical future risks are dropped. Re-run
+  every reported command on the real fixed candidate: keep only failures that reproduce and violate
+  the intent, merge shared root causes, and report two blocks — **已实跑证实的缺陷** (location,
+  exact command, observed output, broken intent, adversary provenance) and **已丢弃（Dropped）**
+  (per adversary: count and reasons, so the user can override), plus provenance (`model`, `vendor`,
+  `isolation`, `cross_vendor`, candidate SHA).
+- Bare: the changes since this session's last `/atk` run (first run in a session: this
+  conversation's latest round). `-all`: the entire uncommitted working tree — `git status` +
+  per-file `git diff HEAD`. A named target: that target only. A file target covers both its current
+  state and its uncommitted diff. Caller-invoked acceptance checks return findings to that caller;
+  they do not require a separate user command.
 - Invoked by spec acceptance — audit-only: attack the artifacts it names, return
   findings, nothing else.
 - Invoked by `/tdd` to classify a possible receipt conflict — blind classifier: return only the
@@ -61,8 +75,9 @@ rather than risk a write.
 ## Output
 
 Mode is fixed by the invocation source and flag: user-typed → audit + 讲解; user-typed `-r` →
-findings only, read-only; spec acceptance → findings only; tdd blind classifier → the response
-shape in [RECEIPT-CONFLICT.md](RECEIPT-CONFLICT.md).
+findings only, read-only; user-typed `-exec` → intent + verified executable findings + Dropped
+ledger + provenance (no fixes applied); spec acceptance → findings only; tdd blind classifier → the
+response shape in [RECEIPT-CONFLICT.md](RECEIPT-CONFLICT.md).
 
 Lead with scope, actionable findings, and checks actually run. A clean review is valid. A caller
 may integrate this result into its own report instead of repeating a full skill report.

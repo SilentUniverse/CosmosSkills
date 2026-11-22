@@ -78,11 +78,19 @@ Summed test wall time is not CPU time or parallel critical path. Compare p50/p95
 samples and matching hardware/runtime/dependency/cache/concurrency context. A timeout is not a
 performance baseline; increasing it cannot cure regression. Missing context means unmeasured.
 
-Before a performance experiment, name the result that would change the decision. Confirm that the
-timed region actually performs the work; validate outputs and exclude errors, skipped work and
-unequal tuning/cache conditions. Use repeated comparable samples, interleaving baseline and candidate
-when practical. Explain the observed limit from a profile or counters and check the effect on the
-path the user waits for. A small or noisy effect, or an unknown limiter, limits the conclusion.
+Before a performance experiment, name the result that would change the decision. Vet every measured
+claim against seven evidence-backed questions before reporting or acting on it:
+
+1. **Limiter:** what bounds the number, and why is it not 2x better (profile or counters)?
+2. **Equal tuning:** did baseline and candidate run under production-like tuning and cache state?
+3. **Physical sanity:** does the number stay within physical bounds (CPU cores, disk/network bandwidth)?
+4. **Correctness:** did both sides finish with zero errors, skips, or wrong outputs?
+5. **Repeatability:** does it hold over alternating repeated samples with median and range?
+6. **End-to-end relevance:** does it improve the path the user actually waits on?
+7. **Work inside timed region:** did the target work actually execute inside the measured span?
+
+Classify the result strictly as `faster`, `slower`, `no measurable difference`, or `inconclusive`
+(missing limiter, unequal tuning, or errors means `inconclusive`, never a win).
 
 Use native per-case timings when needed. This repository supports
 `scripts/run-tests.py --durations-file NEW_FILE`. Sampling needs an explicit measurement purpose;
@@ -97,6 +105,29 @@ python ../test-governance.py compare --report CANDIDATE.json --baseline BASELINE
 Pin baselines first and preserve source reports. Deduplicate copied receipts, retain real failed
 attempts and group comparable environments. Comparison requires valid identity and sufficient passing
 samples; choose tolerances from project evidence. Native model usage is not test-performance evidence.
+
+## Hillclimb (sustained metric optimization)
+
+Use for iterative, multi-round improvement of one measurable metric against a target (a one-off
+regression is ordinary `/diagnose`). One change, one measurement, keep or revert — never stack
+untested tweaks or claim a win from code inspection:
+
+1. **Ground workload and stop predicate.** Trace the architecture, select a realistic workload that
+   reproduces the complaint, fix one metric and direction, and pair the target threshold with a
+   minimum-attempt floor (e.g. "≥30% lower p95 and ≥5 attempts") so an early lucky tweak does not
+   end the loop prematurely.
+2. **Freeze the harness.** Prove sensitivity on contrasting workloads, vet the harness with the
+   seven questions above, record the pre-change baseline and a green regression gate, then freeze
+   the harness.
+3. **Log every iteration.** Append one row per attempt to `.scratch/<task>/hillclimb.tsv` (or
+   `DECISIONS.md`): `id | hypothesis | change | before | after | delta | tests | verdict(kept|reverted)`.
+4. **Loop on mechanistic hypotheses.** Each iteration tests one concrete mechanism (disjoint
+   hypotheses may run in parallel worktrees via `delegation.md`). Measure before/after on the frozen
+   harness plus the regression gate: commit only when signal clears noise and correctness holds;
+   otherwise revert completely ("might help" changes never stay).
+5. **Push past the first plateau.** After consecutive rejects, pivot mechanism category, combine
+   near-misses, or re-read profiles before concluding. Stop when the predicate is met, remaining
+   ideas are marginal, or a real dead end is hit — never relax the stop predicate.
 
 ## Quality and retirement
 

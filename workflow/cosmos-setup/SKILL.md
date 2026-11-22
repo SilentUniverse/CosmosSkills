@@ -1,7 +1,8 @@
 ---
 name: cosmos-setup
 description: >-
-  Use only when the user invokes /cosmos-setup for non-default tracker or path configuration, legacy planning-file folding, domain.md migration, or a read-only inventory of installed MCP servers and verification drivers. Configures deviations and migrations; default local Markdown repositories need no setup.
+  Use only when the user invokes /cosmos-setup for non-default tracker or path configuration, legacy planning-file folding, domain.md migration, a read-only inventory of MCP servers and drivers, or user-level multi-model routing (-models). Configures deviations and migrations; default local Markdown repositories need no setup.
+argument-hint: "[-models]"
 disable-model-invocation: true
 ---
 
@@ -74,6 +75,25 @@ configure anything, never grant or prompt for an OS permission, and write nothin
   probe command with its output line. Installing a missing driver is the user's decision, outside
   this skill. `/verify` adapters still print their own capability report at run time.
 
+**Case 7 — User-level multi-model routing (`/cosmos-setup -models`).** Configure the four abstract
+capability slots (`deep`, `fast`, `panel`, `cross_judge`) in `~/.cosmos/models.json` per
+`~/.claude/references/model-routing.md` (zero resident prompt cost; never writes into project
+`CLAUDE.md`/`AGENTS.md` or `~/.codex/AGENTS.md`):
+
+1. **Detect.** Inspect the active host's subagent/swarm tool schema or model-list action to find
+   confirmed available models and its tier (`L3` multi-vendor, `L2` single-vendor tiered, `L1`
+   inherit-parent, `L0` no subagents). Never write an unconfirmed model slug. On L2 hosts, also note
+   whether the user wants an optional read-only external CLI/MCP bridge for `cross_judge` (disabled
+   by default; always requires consent before sending repository code externally).
+2. **Choose budget and slots.** Ask the user for reasoning budget (`large` / `medium` / `small`)
+   and confirm the per-slot mappings (`deep`, `fast`, `panel`, `cross_judge`, allowing
+   `inherit-parent` / `auto`). Load existing `~/.cosmos/models.json` first so reruns preserve
+   explicit overrides.
+3. **Validate and write.** Confirm every concrete slug is in the detected set (or an explicitly
+   configured external bridge), then overwrite `~/.cosmos/models.json` idempotently. Report the
+   written path, host tier (`L3`–`L0`), active slots, and any cross-vendor limits. Do not touch
+   repository files.
+
 
 ### 3. The decisions (deviation cases only)
 
@@ -110,5 +130,6 @@ Native entry + AGENTS.md `## Commands`. Optional: CONTEXT.md, docs/adr/.
 
 ### 5. Done
 
-Verify: exactly one block (Case 1 and Case 6: no writes), and any Case 2 fold left no `domain.md` or a backup.
+Verify: exactly one block (Case 1, Case 6 and Case 7 touch no repository files; Case 7 validates
+`~/.cosmos/models.json` JSON), and any Case 2 fold left no `domain.md` or a backup.
 Name consumers and unresolved deviations; resume the authorized task that setup unblocked.
