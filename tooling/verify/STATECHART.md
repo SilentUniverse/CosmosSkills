@@ -72,7 +72,8 @@ hide all or none of one arrow's steps, and say in the hand-off which steps are h
 ## Show and hand off
 
 Show `chart.mmd` as a `mermaid` block; GitHub and the acceptance report render it directly. For an
-image or a chart too large to read as text, render SVG with Pele per [render](statechart/render.md).
+image or a chart too large to read as text, run `node <verify skill dir>/statechart/scripts/render.mjs
+chart.mmd [--out FILE.svg]`; [render](statechart/render.md) covers Pele, colors and the source stamp.
 
 Give the person deciding: the chart, one line per bug (rule, the reader's sentence for it, the path as
 numbered in the report), what the model leaves out, the hidden steps, and the command that regenerates
@@ -91,4 +92,4 @@ implementation.
 release v1.7.4 (MIT, with bundled EPL-2.0 components; license texts inside the jar). Local changes:
 `run.ts` locates Java and uses the bundled or downloaded pinned TLC jar instead of installing both
 with mise; `package.json` drops the test-only
-dependency. The checks in `tests/test_statechart.py` run real TLC on a known bug and its fix.
+dependency; `render.mjs` is local and replaces the hand-run Pele step. The checks in `tests/test_statechart.py` run real TLC on a known bug and its fix.

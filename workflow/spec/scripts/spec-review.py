@@ -7,6 +7,7 @@
 # python3 after a non-zero exit (that is a contract violation).
 #
 import argparse
+import base64
 import hashlib
 import hmac
 import html
@@ -70,12 +71,13 @@ main{padding:0 28px 48px}
 h1{font-size:26px;margin:16px 0 2px;display:flex;align-items:center}
 h2{font-size:19.5px;margin:36px 0 14px;padding-bottom:6px;border-bottom:2px solid #d5dde5}
 h3{font-size:16.5px;margin:18px 0 8px;color:#5a6b7b;font-weight:600}
-.badge{display:inline-block;font-size:13px;padding:2px 10px;border-radius:10px;background:#dce8f5;margin-left:8px;font-weight:400}
-.badge.delta{background:#f5e3c8}
 .hero{background:#fff;border:1px solid #d5dde5;border-radius:10px;padding:16px 18px;margin-top:14px}
-.counts{margin:4px 0 0;color:#345;font-size:16px}
-.counts.delta{color:#8a6d1a}
-.card.contract{border-left:4px solid #2b5c8a}
+.lead{margin:4px 0 0;font-size:18px;font-weight:600;color:#a23b3b}
+.rows{background:#fff;border:1px solid #d5dde5;border-radius:10px;margin:0;padding:10px 20px 10px 40px}
+.rows li{margin:6px 0;line-height:1.7}
+.rows li span{font-size:15.5px}
+.reference{margin-top:36px;border-top:2px solid #d5dde5;padding-top:12px}
+.reference summary{cursor:pointer;color:#5a6b7b;font-size:16.5px}
 .card.note{border-left:4px solid #8a6d1a}
 .cards{display:grid;gap:16px;grid-template-columns:1fr;align-items:stretch}
 @media(min-width:1000px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -109,11 +111,11 @@ textarea{width:100%;min-height:72px;font-family:ui-monospace,monospace;font-size
 #feedback-text{min-height:110px}
 button{margin-top:10px;padding:7px 20px;border-radius:8px;border:1px solid #2b5c8a;background:#2b5c8a;color:#fff;cursor:pointer;font-size:14px}
 button:disabled{opacity:.5}
-.foot{margin-top:30px;font-size:13.5px;color:#5a6b7b}
 .state{font-size:13px;padding:1px 7px;border-radius:9px;margin-right:6px}
 .state.MODIFIED,.state.AFFECTED{background:#f5e3c8}.state.ADDED{background:#d9ecd9}
 .state.REMOVED{background:#f2d4d4}.state.UNCHANGED{background:#e8edf2}
 .muted{color:#5a6b7b;font-size:15px}
+.chart img{max-width:100%;height:auto;align-self:center}
 """
 
 
@@ -245,9 +247,7 @@ def decision_card(item, mode, delta, hashes, pose=False, number=0, previous=None
         chips.append('<span class="confirmed">对话已确认 %s</span>' % html.escape(item["confirmed"]))
     if item["blast"]:
         chips.append('<span class="risk">%s</span>' % html.escape(item["blast"]))
-    meta = ""
-    if refs or chips:
-        meta = '<div class="meta">%s</div>' % " ".join([refs] + chips)
+    meta = '<div class="meta">%s</div>' % refs if refs else ""
     head = "%s%s %s" % (badge, html.escape(item["id"]), html.escape(item["title"]))
     anchor = "%s · %s" % (item["id"], hashes.get(item["id"], "")[:12])
     first, rest = decision_body(item)
@@ -259,29 +259,21 @@ def decision_card(item, mode, delta, hashes, pose=False, number=0, previous=None
             previous_body = '<p>人工确认或撤回条件有变化，请核对原有边界是否仍被保留。</p>' + previous_body
     if pose:
         mark = "%s%d. " % (badge, number) if number else badge
+        body = previous_body + paragraphs_html(first + rest)
+        if mode == "delta" and item["id"] in delta["UNCHANGED"]:
+            body = '<details><summary>沿用已接受的决定，展开查看</summary>%s</details>' % body
         return (
             '<div class="card decide" title="%s">'
             '<div class="q">%s%s %s %s</div>'
             '<div class="body">%s</div>%s%s</div>'
             % (anchor, mark, html.escape(item["id"]), html.escape(item["title"]),
-               " ".join(chips), previous_body + paragraphs_html(first + rest), meta,
-               item_comment(item["id"]))
+               " ".join(chips), body, meta, item_comment(item["id"]))
         )
     summary_chips = (" " + " ".join(chips)) if chips else ""
     return (
         '<div class="card" title="%s"><div class="title">%s%s</div>'
         '<div class="body">%s</div>%s</div>'
         % (anchor, head, summary_chips, paragraphs_html(first + rest), meta)
-    )
-
-
-
-
-def contract_card(item):
-    return (
-        '<div class="card contract"><div class="title">%s</div>'
-        '<div class="body">%s</div></div>'
-        % (html.escape(item["id"]), paragraphs_html([item["text"]]))
     )
 
 
@@ -304,22 +296,78 @@ def note_card(item, mode="full", delta=None, answerable=False, previous=None):
     )
 
 
-def requirement_card(item, mode, delta, previous=None):
-    parts = []
+def requirement_row(item, mode, delta, previous=None):
+    notes = []
     if previous is not None and mode == "delta" and item["id"] in delta["MODIFIED"]:
-        parts.append('<p class="before">已接受：%s</p>' % html.escape(previous["text"]))
+        notes.append('<span class="before">已接受：%s</span>' % html.escape(previous["text"]))
         if previous["check"] != item["check"]:
-            parts.append('<p class="before">原验收观察：%s</p>' % html.escape(previous["check"] or "未记录"))
+            notes.append('<span class="before">原验收观察：%s</span>' % html.escape(previous["check"] or "未记录"))
     if item["before"]:
-        parts.append('<p class="before">现状：%s</p>' % html.escape(item["before"]))
-    parts.append('<p class="after">预期：%s</p>' % html.escape(item["text"]))
+        notes.append('<span class="before">现状：%s</span>' % html.escape(item["before"]))
     if item["check"]:
-        parts.append('<p>验收观察：%s</p>' % html.escape(item["check"]))
-    return ('<div class="card" id="%s"><div class="title">%s%s</div><div class="body">%s</div></div>'
-            % (item["id"], state_badge(mode, delta, item["id"]), html.escape(item["id"]), "".join(parts)))
+        notes.append('<span class="muted">验收观察：%s</span>' % html.escape(item["check"]))
+    return ('<li id="%s">%s<b>%s</b> %s%s</li>'
+            % (item["id"], state_badge(mode, delta, item["id"]), html.escape(item["id"]),
+               html.escape(item["text"]), "".join('<br>' + note for note in notes)))
 
 
-def review_html(feature, digest, model, delta, mode, bridge, token="", url="", baseline=None):
+def contract_row(item, mode, delta):
+    return ('<li id="%s">%s<b>%s</b> %s</li>'
+            % (item["id"], state_badge(mode, delta, item["id"]), html.escape(item["id"]),
+               html.escape(item["text"])))
+
+
+def goal_html(model):
+    parts = []
+    for title, lines in (("问题", model.problem), ("预期结果", model.outcome)):
+        if lines:
+            parts.append('<div class="card"><div class="title">%s</div><div class="body">%s</div></div>'
+                         % (title, paragraphs_html(lines)))
+    if model.scope_in or model.scope_out:
+        parts.append('<div class="card scopecard"><div class="scopecols"><div><b>做</b>%s</div><div><b>不做</b>%s</div></div></div>' % (
+            "".join('<div class="in">✓ %s</div>' % html.escape(line) for line in model.scope_in),
+            "".join('<div class="out">— %s</div>' % html.escape(line) for line in model.scope_out)))
+    return "".join(parts)
+
+
+CHART_STAMP = re.compile(r"<!-- statechart-source sha256:([0-9a-f]{64}) -->")
+
+
+def chart_image(directory, model):
+    if not model.statechart or not model.statechart["mermaid"]:
+        return None
+    try:
+        svg = (Path(directory) / "statechart.svg").read_text(encoding="utf-8")
+    except OSError:
+        return None
+    stamp = CHART_STAMP.search(svg)
+    if not stamp or stamp.group(1) != feature_doc.statechart_digest(model.statechart["mermaid"]):
+        return None
+    return svg
+
+
+def texts_without_chart(model):
+    texts = model.item_texts()
+    texts["section:context"] = "\n".join(model.context_lines)
+    return texts
+
+
+def chart_html(model, chart_svg):
+    if not model.statechart:
+        return ""
+    parts = ['<h3 id="statechart">状态是否正确</h3><div class="card chart">']
+    if chart_svg:
+        parts.append('<img alt="状态图" src="data:image/svg+xml;base64,%s">'
+                     % base64.b64encode(chart_svg.encode("utf-8")).decode("ascii"))
+    else:
+        parts.append('<p class="door">状态图图片缺失或与图文不一致，下面是图的原文；重新渲染后再审。</p>'
+                     '<pre class="compare">%s</pre>' % html.escape(model.statechart["mermaid"]))
+    if model.statechart["notes"]:
+        parts.append('<div class="body">%s</div>' % paragraphs_html(model.statechart["notes"]))
+    return "".join(parts) + "</div>"
+
+
+def review_html(feature, digest, model, delta, mode, bridge, token="", url="", baseline=None, chart_svg=None):
     hashes = model.hashes()
     decide_items = review_items(model)
     if mode == "delta":
@@ -327,93 +375,82 @@ def review_html(feature, digest, model, delta, mode, bridge, token="", url="", b
         touched = set(delta["ADDED"] + delta["MODIFIED"] + delta["AFFECTED"])
         decide_items += [item for item in model.decisions if item not in decide_items
                          and (item["id"] in reviewed or item["id"] in touched)]
+    changed = (set(delta["ADDED"] + delta["MODIFIED"] + delta["AFFECTED"]) if mode == "delta" else None)
     previous_decisions = {item["id"]: item for item in baseline.decisions} if baseline else {}
     previous_requirements = {item["id"]: item for item in baseline.requirements} if baseline else {}
     previous_questions = {item["id"]: item for item in baseline.questions} if baseline else {}
+    blocking_questions = model.blocking_questions()
+    questions = blocking_questions + [item for item in model.questions if not item["blocking"]]
+    pending = len(decide_items) + len(questions)
     out = []
     add = out.append
-    label = "Delta" if mode == "delta" else "Full"
     add('<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">')
-    add("<title>%s — feature review</title><style>%s</style></head><body><main>" % (html.escape(feature), CSS))
-    add('<nav class="topnav"><span class="brand">%s · %s Review</span>' % (html.escape(feature), label))
-    for anchor, text, show in (("goal", "目标", True), ("behavior", "需求 %d" % len(model.requirements), model.requirements),
-                               ("contracts", "不变量 %d" % len(model.contracts), model.contracts),
-                               ("acceptance", "验收", model.acceptance)):
-        if show:
-            add('<a href="#%s">%s</a>' % (anchor, text))
-    if decide_items or model.questions:
-        add('<a href="#decide"><b>填写 %d</b></a>' % (len(decide_items) + len(model.questions)))
-    add('<a href="#submit"><b>提交</b></a></nav>')
-    add('<section class="hero"><h1>%s<span class="badge %s">%s Review</span></h1>'
-        % (html.escape(feature), "delta" if mode == "delta" else "", label))
-    add('<p class="counts">%d 项决策 · %d 项需求 · %d 条不变量 · %d 条疑问</p>'
-        % (len(decide_items), len(model.requirements), len(model.contracts), len(model.questions)))
+    add("<title>%s — 人审</title><style>%s</style></head><body><main>" % (html.escape(feature), CSS))
+    add('<nav class="topnav"><span class="brand">%s</span>' % html.escape(feature))
+    if pending:
+        add('<a href="#decide"><b>需要你决定 %d</b></a>' % pending)
+    add('<a href="#%s">%s</a>' % (("changes", "本次变化") if mode == "delta" else ("check", "核对")))
+    add('<a href="#submit"><b>提交</b></a><a href="#reference">参考</a></nav>')
+    add('<section class="hero"><h1>%s</h1>' % html.escape(feature))
+    if pending:
+        summary = "需要你决定 %d 项" % pending
+        if blocking_questions:
+            summary += "，其中 %d 项阻断，须先回答" % len(blocking_questions)
+        add('<p class="lead">%s。</p>' % summary)
+    else:
+        add('<p class="lead">没有需要你拍板的取舍；核对下方内容后提交。</p>')
     if mode == "delta":
-        add('<p class="muted">对照已接受的版本：先看变化与影响，再到页尾集中填写意见。</p>')
+        add('<p class="muted">对照已接受的版本，只展开变化的部分；沿用内容在页底参考区。</p>')
     add("</section>")
+    if pending:
+        add('<h2 id="decide">需要你决定 · %d</h2><div class="cards">' % pending)
+        for item in blocking_questions:
+            add(note_card(item, mode, delta, answerable=True, previous=previous_questions.get(item["id"])))
+        for number, item in enumerate(decide_items, 1):
+            add(decision_card(item, mode, delta, hashes, pose=True, number=number,
+                              previous=previous_decisions.get(item["id"])))
+        for item in questions[len(blocking_questions):]:
+            add(note_card(item, mode, delta, answerable=True, previous=previous_questions.get(item["id"])))
+        add("</div>")
+    requirements = [item for item in model.requirements if changed is None or item["id"] in changed]
+    contracts = [item for item in model.contracts if changed is None or item["id"] in changed]
+    chart_changed = mode != "delta" or (model.statechart != baseline.statechart)
     if mode == "delta":
-        current_text, previous_text = model.item_texts(), baseline.item_texts()
-        boundary = [key for kind in ("ADDED", "MODIFIED", "REMOVED") for key in delta[kind]
-                    if not feature_doc.NON_GLOBAL_TOKEN.fullmatch(key)]
-        if boundary:
-            add('<h2 id="changes">需要留意的边界变化</h2>')
-        for key in boundary:
+        add('<h2 id="changes">本次变化</h2>')
+        current_text, previous_text = texts_without_chart(model), texts_without_chart(baseline)
+        for key in (key for kind in ("ADDED", "MODIFIED", "REMOVED") for key in delta[kind]
+                    if not feature_doc.NON_GLOBAL_TOKEN.fullmatch(key)
+                    and current_text.get(key) != previous_text.get(key)):
             add('<div class="card"><div class="title">%s%s</div><div class="scopecols">'
                 % (state_badge(mode, delta, key), html.escape(feature_doc.SECTION_LABELS.get(key, key))))
             add('<div><b>已接受</b><pre class="compare">%s</pre></div>' % html.escape(previous_text.get(key, "")))
             add('<div><b>本次</b><pre class="compare">%s</pre></div></div></div>' % html.escape(current_text.get(key, "")))
         removed = [key for key in delta["REMOVED"] if feature_doc.NON_GLOBAL_TOKEN.fullmatch(key)]
         if removed:
-            add('<h2>本次移除</h2>')
+            add('<h3>本次移除</h3>')
             for key in removed:
                 old = previous_requirements.get(key) or previous_decisions.get(key) or previous_questions.get(key)
                 body = [old["text"]] if "text" in old else old["lines"]
                 add('<div class="card"><div class="title">%s</div>%s</div>' % (html.escape(key), paragraphs_html(body)))
         if not any(delta[kind] for kind in ("ADDED", "MODIFIED", "REMOVED", "AFFECTED")):
             add('<p>没有待审内容变化。</p>')
-    add('<h2 id="goal">目标与边界</h2>')
-    for title, lines in (("问题", model.problem), ("预期结果", model.outcome)):
-        if lines:
-            add('<div class="card"><div class="title">%s</div><div class="body">%s</div></div>' % (title, paragraphs_html(lines)))
-    if model.scope_in or model.scope_out:
-        add('<div class="card scopecard"><div class="scopecols"><div><b>IN</b>%s</div><div><b>OUT</b>%s</div></div></div>' % (
-            "".join('<div class="in">✓ %s</div>' % html.escape(line) for line in model.scope_in),
-            "".join('<div class="out">— %s</div>' % html.escape(line) for line in model.scope_out)))
-    if model.requirements:
-        add('<h2 id="behavior">需求 · %d</h2><div class="cards">' % len(model.requirements))
-        for item in model.requirements:
-            add(requirement_card(item, mode, delta, previous_requirements.get(item["id"])))
-        add("</div>")
-    if model.contracts:
-        add('<h2 id="contracts">必须守住的边界 · %d</h2><div class="cards">' % len(model.contracts))
-        add("".join(contract_card(item) for item in model.contracts) + "</div>")
-    if model.acceptance:
-        add('<h2 id="acceptance">如何判断交付合格</h2><div class="card"><div class="body">%s</div></div>'
+    else:
+        add('<h2 id="check">核对：做的是不是你要的</h2>')
+        add(goal_html(model))
+    if requirements:
+        add('<h3>需求 · %d</h3><ul class="rows">%s</ul>' % (len(requirements), "".join(
+            requirement_row(item, mode, delta, previous_requirements.get(item["id"])) for item in requirements)))
+    if contracts:
+        add('<h3>不能破坏 · %d</h3><ul class="rows">%s</ul>'
+            % (len(contracts), "".join(contract_row(item, mode, delta) for item in contracts)))
+    if chart_changed:
+        add(chart_html(model, chart_svg))
+    if model.acceptance and mode != "delta":
+        add('<h3>如何判断交付合格</h3><div class="card"><div class="body">%s</div></div>'
             % paragraphs_html(model.acceptance, by_line=True))
-    if model.controls["section:context"]:
-        add('<h3>补充说明</h3><div class="card">%s</div>' % paragraphs_html(model.controls["section:context"].split("\n")))
-    shown = {item["id"] for item in decide_items}
-    confirmed_others = [item for item in model.confirmed_human_items() if item["id"] not in shown]
-    confirmed_ids = {item["id"] for item in confirmed_others}
-    if confirmed_others:
-        add('<h3>对话中已确认的方向决策</h3><div class="cards">%s</div>'
-            % "".join(decision_card(item, mode, delta, hashes) for item in confirmed_others))
-    others = [item for item in model.decisions if item["id"] not in shown and item["id"] not in confirmed_ids]
-    if others:
-        add('<h3>AI 负责的工程决策</h3><div class="cards">%s</div>'
-            % "".join(decision_card(item, mode, delta, hashes) for item in others))
-    if decide_items or model.questions:
-        add('<h2 id="decide">需要你拍板 · %d</h2><div class="cards">' % (len(decide_items) + len(model.questions)))
-        for number, item in enumerate(decide_items, 1):
-            add(decision_card(item, mode, delta, hashes, pose=True, number=number,
-                              previous=previous_decisions.get(item["id"])))
-        for item in model.questions:
-            add(note_card(item, mode, delta, answerable=True, previous=previous_questions.get(item["id"])))
-        add("</div>")
-    add('<h2 id="submit">反馈</h2>')
-    add('<div class="card"><textarea id="global-feedback" placeholder="GLOBAL 反馈（可选）"></textarea>')
+    add('<h2 id="submit">提交</h2>')
+    add('<div class="card"><textarea id="global-feedback" placeholder="整体意见（可选）"></textarea>')
     data = {"spec": feature, "spec_digest": digest, "items": hashes}
-    blocking_questions = model.blocking_questions()
     if bridge:
         data.update(token=token, url=url)
         if blocking_questions:
@@ -433,8 +470,35 @@ def review_html(feature, digest, model, delta, mode, bridge, token="", url="", b
         add('<script type="application/json" id="feedback-data">%s</script>'
             % json.dumps(data, ensure_ascii=False).replace("</", "<\\/"))
         add("<script>%s</script>" % STATIC_JS)
-    add('<div class="foot">feature %s · contract digest %s · %s</div>'
-        % (html.escape(feature), digest[:12], "one-shot bridge" if bridge else "static render"))
+    add('<details id="reference" class="reference"><summary>参考，无需审</summary>')
+    if mode == "delta":
+        add(goal_html(model))
+        rest = [item for item in model.requirements if item not in requirements]
+        if rest:
+            add('<h3>沿用的需求</h3><ul class="rows">%s</ul>' % "".join(
+                requirement_row(item, mode, delta) for item in rest))
+        rest = [item for item in model.contracts if item not in contracts]
+        if rest:
+            add('<h3>沿用的不变量</h3><ul class="rows">%s</ul>'
+                % "".join(contract_row(item, mode, delta) for item in rest))
+        if model.acceptance:
+            add('<h3>如何判断交付合格</h3><div class="card"><div class="body">%s</div></div>'
+                % paragraphs_html(model.acceptance, by_line=True))
+        if not chart_changed:
+            add(chart_html(model, chart_svg))
+    shown = {item["id"] for item in decide_items}
+    confirmed_others = [item for item in model.confirmed_human_items() if item["id"] not in shown]
+    confirmed_ids = {item["id"] for item in confirmed_others}
+    if confirmed_others:
+        add('<h3>对话中已确认的方向决策</h3><div class="cards">%s</div>'
+            % "".join(decision_card(item, mode, delta, hashes) for item in confirmed_others))
+    others = [item for item in model.decisions if item["id"] not in shown and item["id"] not in confirmed_ids]
+    if others:
+        add('<h3>AI 负责的工程决策</h3><div class="cards">%s</div>'
+            % "".join(decision_card(item, mode, delta, hashes) for item in others))
+    if model.context_lines:
+        add('<h3>补充说明</h3><div class="card">%s</div>' % paragraphs_html(model.context_lines))
+    add('<p class="muted">合同摘要 %s</p></details>' % digest[:12])
     add("</main></body></html>")
     return "".join(out)
 
@@ -538,7 +602,8 @@ def prepare_review(root, name, force_full=False):
 
 def page(prepared, bridge, token="", url=""):
     return review_html(prepared["feature"].name, prepared["digest"], prepared["model"], prepared["delta"],
-                       prepared["mode"], bridge, token, url, prepared["baseline"])
+                       prepared["mode"], bridge, token, url, prepared["baseline"],
+                       chart_image(prepared["feature"].directory, prepared["model"]))
 
 
 def write_review_page(feature_dir, text, requested=None):

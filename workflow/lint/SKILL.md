@@ -2,7 +2,7 @@
 name: lint
 description: >-
   Use only when the user invokes /lint or another skill's acceptance step names it, to audit agent-authored prose, documentation, or comments for session leakage. Removes dead design citations, change narration, review vantage, reviewer-addressed justification, control-flow transcripts, hedging, and decorative symbol clutter.
-argument-hint: "Scope (dir/file/glob); empty = all modified files"
+argument-hint: "[-comments] Scope (dir/file/glob); empty = all modified files"
 ---
 
 # Trim Leakage
@@ -99,6 +99,23 @@ calibration or example vocabulary.
    fix touched; a clean prior pass does not carry over. Confirm every remaining citation resolves
    at HEAD.
 
+## `-comments` mode
+
+`/lint -comments [scope]` runs the [strict comment pass](references/code-comments.md#strict-pass)
+instead of the prose audit. Empty scope means the diff against `main`, working tree included;
+only its added or changed comment lines are judged.
+
+1. **Audit independently:** one fresh read-only subagent gets the scope and the strict-pass file,
+   not a restatement of its rules. It returns each deletion, keep (with its kind), refactor target,
+   and constraint comment as `file:line` plus a one-line reason. Without a subagent, run the pass
+   yourself and disclose the missing independence.
+2. **Review the report:** reject application-code edits, scope escapes, deletions a keep kind
+   protects, and refactor targets with a false reason; a keep without proof of its kind is deleted.
+   Rerun once with the failure named. A second rejected report is listed open and the mode fails.
+3. **Apply:** make the accepted deletions and in-scope fixes; constraint comments follow the
+   strict pass.
+4. **Report:** deletion count, refactor targets with their fix or open status, encoding proposals
+   and outcomes, keeps by kind, and open items.
 ## Output
 
 Lead line: 范围（N 文件 M 行新增）· 发现 X · 检查（探针 + 语义扫）. One finding, one block:

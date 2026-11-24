@@ -16,7 +16,7 @@ from pathlib import Path
 FILE = "FEATURE.md"
 REVIEWS = "reviews"
 ENGINEERING_SECTIONS = ("共享验证", "任务", "变更记录")
-KNOWN_SECTIONS = ("目标与边界", "需求", "决策", "不变量", "端到端验证", "尚未明确") + ENGINEERING_SECTIONS
+KNOWN_SECTIONS = ("目标与边界", "需求", "决策", "不变量", "状态图", "端到端验证", "尚未明确") + ENGINEERING_SECTIONS
 FENCE = re.compile(r"^\s*(```|~~~)")
 ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 FM_KEY = re.compile(r"^([A-Za-z][A-Za-z0-9_-]*):\s*(.*)$")
@@ -136,6 +136,12 @@ def contract_text(text):
     return "\n".join(kept).strip() + "\n"
 
 
+def statechart_digest(text):
+    """Digest of Mermaid text ignoring blank lines and trailing spaces."""
+    lines = [line.rstrip() for line in normalize(text).split("\n") if line.strip()]
+    return sha256_text("\n".join(lines))
+
+
 def item_hash(item_id, canonical):
     return sha256_text("%s\n%s" % (item_id, canonical))
 
@@ -148,6 +154,8 @@ class Model(object):
         self.requirements, self.decisions, self.contracts, self.questions = [], [], [], []
         self.controls = {key: "" for key in SECTION_LABELS}
         self.acceptance = []
+        self.statechart = None
+        self.context_lines = []
         self.problems = []
 
     def item_texts(self):
@@ -277,6 +285,22 @@ def parse_model(text):
         body = Q_BLOCKING.sub("", stripped).strip() if blocking else stripped
         model.questions.append({"id": qid, "text": body, "blocking": blocking})
     model.acceptance = [line for line in section(sections, "端到端验证") or [] if line.strip()]
+    chart = section(sections, "状态图")
+    if chart is not None:
+        flags = fenced_flags(chart)
+        opens = [n for n, line in enumerate(chart) if flags[n] and line.strip().startswith(("```mermaid", "~~~mermaid"))]
+        mermaid = []
+        if opens:
+            for line, fenced in zip(chart[opens[0] + 1:], flags[opens[0] + 1:]):
+                if not fenced or FENCE.match(line):
+                    break
+                mermaid.append(line.rstrip())
+        else:
+            model.problems.append("状态图 needs one ```mermaid block")
+        inside = set(range(opens[0], opens[0] + len(mermaid) + 2)) if opens else set()
+        model.statechart = {"mermaid": "\n".join(line for line in mermaid if line.strip()),
+                            "notes": [line.rstrip() for n, line in enumerate(chart)
+                                      if n not in inside and line.strip()]}
     residual = []
     for heading, lines in sections:
         if lines is goal:
@@ -298,6 +322,8 @@ def parse_model(text):
         lines = [line.rstrip() for line in lines if line.strip()]
         if lines:
             residual.extend([heading] + lines)
+            if section_kind(heading) != "状态图":
+                model.context_lines.extend([heading] + lines)
     model.controls["section:context"] = "\n".join(residual)
     # Section headings are reviewed text that no other item carries.
     model.controls["section:layout"] = "\n".join(heading for heading, _ in sections)

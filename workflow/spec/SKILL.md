@@ -25,8 +25,8 @@ policy (`CLAUDE.md` §2); this skill enforces two hard gates and one planning wr
 **Planning write boundary:**
 
 - *Allowed:* inline plan in conversation/native plan; `.scratch/<feat>/FEATURE.md` (only on the
-  giant-task route, after intent is confirmed); scratch-only `statechart` models outside the
-  repository to draw a state diagram for human judgment.
+  giant-task route, after intent is confirmed) and its rendered `statechart.svg`; scratch-only
+  `statechart` models outside the repository to draw a state diagram for human judgment.
 - *Forbidden:* product code, tests, tracked verification tools/models, environment-mutating
   `prepare` before contract confirmation, `/correct` edits, unapproved `/prototype` code writes,
   and unaccepted `ADR`/`CONTEXT.md` writes. Record discovered invariants, missing verification
@@ -43,14 +43,21 @@ keywords over `.scratch/*/FEATURE.md`, direct target code/contracts, and `CONTEX
 ADR titles. Absence from `.scratch` is not absence from the product. A hit in another feature
 changes it only when ownership and the requested outcome say so.
 
-Restate the user's intent in one concise, **falsifiable** Chinese screen — never parrot the prompt:
+Restate the user's intent in Chinese, in your own words; never parrot the prompt. Pin one meaning
+the user can confirm or reject:
 
-1. **核心问题与动机（Why）**：剥离表层解法，点出要解决的真实痛点（检查 X-Y 问题）。
-2. **现状 → 期望变化（Before → After）**：锚定到刚读到的真实模块/行为，举至少 1 个具体场景例子。
-3. **范围边界（IN / OUT）**：明确做什么，以及**容易顺手改动但本次不碰**的相邻区域。
-4. **成功判据与硬约束（Done Check & Invariants）**：如何判定做对、什么绝不能破坏。
-5. **我补上的关键假设（Assumptions，请重点纠偏）**：逐条标出推断内容及「若猜错会改变什么」。
-6. *（仅当大方向本身分叉时）*附 ≤2 个阻断理解的根本方向问题，给选项与建议；下游架构与实现取舍留到 Stage 2。
+1. **你要什么、为什么**：two to four plain sentences on what the user wants to achieve and the real
+   problem behind it, not the solution they named (check for an X-Y problem). Anchor it in one
+   concrete before → after example from the module or behavior just read.
+2. Then list only what could send the plan the wrong way; omit an item with nothing to say:
+   - **假设**：each inference, and what changes if it is wrong.
+   - **不碰**：adjacent areas that are easy to change by accident but stay out of scope.
+   - **完成判据**：the pass/fail check and the invariant that must not break, when the goal does not
+     already make them obvious.
+   - **方向问题**：at most two, only when the overall direction forks, each with options and a
+     recommendation. Downstream architecture and implementation choices wait for Stage 2.
+
+Never fill a slot for its own sake; a short, accurate restatement is the target.
 
 Stop and wait for confirmation or correction. Corrections prune only affected items; re-confirm
 briefly only when the goal or boundary shifted materially.

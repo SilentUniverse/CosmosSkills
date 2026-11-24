@@ -185,7 +185,7 @@ class ParseValidateTests(unittest.TestCase):
         self.assertEqual(["D1"], [item["id"] for item in model.review_required_items()])
         self.assertEqual(["D2"], [item["id"] for item in model.confirmed_human_items()])
         page = spec_review.review_html("import", "a" * 64, model, None, "full", False)
-        self.assertIn("对话中已确认的方向决策", page)
+        self.assertGreater(page.index("对话中已确认的方向决策"), page.index('<details id="reference"'))
         self.assertIn("对话已确认 2026-11-23", page)
         self.assertEqual({"D1"}, set(re.findall(r'class="comment" data-id="([^"]+)"', page)))
         one_way_confirmed = feature_doc.parse_model(
@@ -198,6 +198,7 @@ class ParseValidateTests(unittest.TestCase):
         delta = spec_review.classify_delta(changed, model.hashes())
         delta_page = spec_review.review_html("import", "a" * 64, changed, delta, "delta", False, baseline=model)
         self.assertEqual({"D1", "D2"}, set(re.findall(r'class="comment" data-id="([^"]+)"', delta_page)))
+        self.assertEqual(1, delta_page.count("沿用已接受的决定，展开查看"))
 
 
 class RenderTests(unittest.TestCase):
@@ -208,7 +209,10 @@ class RenderTests(unittest.TestCase):
             self.assertEqual(0, code, page)
             self.assertEqual("full", payload["mode"])
             self.assertEqual({"items": len(CONTRACT_KEYS)}, payload["counts"])
-            self.assertIn("Full Review", page)
+            self.assertIn("需要你决定 1 项", page)
+            order = [page.index(mark) for mark in ('id="decide"', 'id="check"', 'id="submit"',
+                                                    '<details id="reference"', "AI 负责的工程决策")]
+            self.assertEqual(sorted(order), order)
             self.assertIn("SPEC FEEDBACK", page)
             self.assertNotIn("bridge-data", page)
             self.assertEqual({"D1"}, set(re.findall(r'class="comment" data-id="([^"]+)"', page)))
@@ -231,7 +235,10 @@ class RenderTests(unittest.TestCase):
             self.assertEqual((["R3"], ["D1", "D2", "R1"], ["R2"]), (delta["ADDED"], delta["MODIFIED"], delta["REMOVED"]))
             self.assertEqual({"ADDED": 1, "MODIFIED": 3, "REMOVED": 1, "AFFECTED": 0, "UNCHANGED": 5},
                              payload["counts"])
-            self.assertIn("Delta Review", page)
+            self.assertIn("对照已接受的版本", page)
+            reference = page.index('<details id="reference"')
+            self.assertLess(page.index('<li id="R1">'), page.index('id="submit"'))
+            self.assertGreater(page.index('<li id="C1">'), reference)
             self.assertIn('class="state MODIFIED"', page)
             self.assertIn("本次移除", page)
             for evidence in ("cancel 后迟到 success 不得覆盖 cancelled。", "已接受：导入取消后必须进入 cancelled。",
@@ -303,6 +310,52 @@ class RenderTests(unittest.TestCase):
             self.assertIn("immutable", errors)
             self.assertEqual(page, first.read_text(encoding="utf-8"))
 
+
+CHART = "stateDiagram-v2\n  s0: 导入中\n  s1: 已取消\n  s0 --> s1: 你点取消"
+WITH_CHART = FEATURE.replace("## 共享验证", "## 状态图\n```mermaid\n%s\n```\n- 规则「取消后不留数据」成立。\n\n## 共享验证" % CHART)
+
+
+class StatechartPageTests(unittest.TestCase):
+    def stamped(self, text):
+        return '<svg class="pele"><!-- statechart-source sha256:%s --><text>图</text></svg>' % feature_doc.statechart_digest(text)
+
+    def test_chart_parses_into_the_context_hash_but_not_the_context_display(self):
+        model = feature_doc.parse_model(WITH_CHART)
+        self.assertEqual(CHART, model.statechart["mermaid"])
+        self.assertEqual(["- 规则「取消后不留数据」成立。"], model.statechart["notes"])
+        self.assertEqual([], model.context_lines)
+        self.assertIn("stateDiagram-v2", model.item_texts()["section:context"])
+        self.assertEqual(set(feature_doc.parse_model(FEATURE).hashes()), set(model.hashes()))
+        broken = feature_doc.parse_model(FEATURE.replace("## 共享验证", "## 状态图\n只有文字。\n\n## 共享验证"))
+        self.assertTrue(any("needs one ```mermaid block" in p for p in feature_doc.validate_model(broken)))
+
+    def test_matching_svg_is_embedded_before_submit_and_stale_svg_falls_back_to_text(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = plant(directory, WITH_CHART)
+            svg = path.parent / "statechart.svg"
+            svg.write_text(self.stamped(CHART), encoding="utf-8")
+            _, _, page = render(directory)
+            self.assertIn('<img alt="状态图" src="data:image/svg+xml;base64,', page)
+            self.assertLess(page.index('id="statechart"'), page.index('id="submit"'))
+            self.assertNotIn("状态图图片缺失", page)
+            svg.write_text(self.stamped(CHART + "\n  s1 --> s0: 你点重试"), encoding="utf-8")
+            _, _, page = render(directory)
+            self.assertNotIn("data:image/svg+xml", page)
+            self.assertIn("状态图图片缺失或与图文不一致", page)
+            self.assertIn("s0 --&gt; s1: 你点取消", page)
+
+    def test_delta_shows_a_changed_chart_without_a_raw_context_comparison(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = plant(directory, WITH_CHART)
+            accept(directory)
+            path.write_text(WITH_CHART.replace("你点取消", "你点撤销"), encoding="utf-8")
+            _, payload, page = render(directory)
+            self.assertEqual("delta", payload["mode"])
+            self.assertLess(page.index('id="statechart"'), page.index('id="submit"'))
+            self.assertNotIn("补充约束与正文", page)
+            path.write_text(WITH_CHART.replace("- status: pending", "- status: ready"), encoding="utf-8")
+            _, _, page = render(directory)
+            self.assertGreater(page.index('id="statechart"'), page.index('<details id="reference"'))
 
 class ValidateTests(unittest.TestCase):
     def test_require_accepted_gates_on_the_latest_acceptance(self):

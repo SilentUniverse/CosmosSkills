@@ -93,7 +93,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 
 | 定位 | 要旨 | 性质 | 层级 | 防什么失败 · 出处 / 探针 |
 |---|---|---|---|---|
-| 头部 / Stage 1 | /spec 必经「轻探锚定 → 可证伪意图复述 → 停下确认」闸门（显式跳过或同会话已确认除外）；复述须含问题动机、现状→期望具体场景、IN/OUT 边界、成功判据与硬约束、显式假设清单；确认意图只解锁 Stage 2 规划 | 权威 | 流程 | 模型跳过意图核对直接脑补 Settled 并产出偏题计划或改环境；用户明确要求（2026-11-23）；TaskFlow.tla NoPlanBeforeIntentConfirmed；行为收益未实测 |
+| 头部 / Stage 1 | /spec 必经「轻探锚定 → 可证伪意图复述 → 停下确认」闸门（显式跳过或同会话已确认除外）；复述先用 2–4 句大白话写目标与真实问题并锚定一个真实改前/改后例子，再只列会让计划走偏的假设、不碰区域、不明显的完成判据与方向问题，无则不写；确认意图只解锁 Stage 2 规划 | 权威 | 流程 | 模型跳过意图核对直接脑补 Settled 并产出偏题计划或改环境；六格模板逐格填写导致复述冗长；用户明确要求（2026-11-23）；精简借鉴 [pstack in-your-own-words](https://github.com/cursor/plugins/blob/ca782ed8b3c2c521cead8e1720d55c3a5dbf2347/pstack/skills/in-your-own-words/SKILL.md)；TaskFlow.tla NoPlanBeforeIntentConfirmed；无验收记录数据 |
 | 头部 / Verify | 规划不实现产品、测试、仓库跟踪验证工具或未授权原型，不提前改环境 prepare/预检（先定合同后动环境）；允许仓外 scratch statechart 出图辅助判断；缺能力与不变量晋升列为执行前置/候选，授权执行后落地；必要人审后按既有授权继续 | 权威 | 流程 | Spec/Verify/impact-detection/prototype 规划期写入边界冲突；用户审查修复（2026-11-23）；spec-plans-without-product-writes；行为收益未实测 |
 | 头部 | 决策摄入（Stage 2）在意图确认后推导并自攻一次；可审阅不等于已接受，剩余人类决定与阻塞证据显式保留 | 过程·经济 | 流程 | 逐节点问答与额外自攻税；ALIGNMENT-LOOP.md；行为收益未实测 |
 | 头部 / ALIGNMENT-LOOP | 访谈按已满足前提的关键选择小批推进，目标一至两轮；不重问已确认意图；每问给选项、建议与取舍；追加轮需实质依赖或新证据；人审 Full/Delta 页预算单独适用 | 过程·经济 | 流程 | 一次问完旧判据阻断依赖式访谈；spec-afk-grill-compresses-human-decisions；重复问题与可查细节不得增加轮数 |
@@ -156,6 +156,8 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | Tidy registry and recovery journal | Split | Retention policy stays; storage owner guarantees atomic safe deletion |
 | Show -why rationale | Add | show/SKILL `-why`：按 ADR → PR 正文与讨论 → 提交消息 → git blame 找设计依据，每条结论标出处，找不到写「无记录」，推断单独标注，不落文件；借鉴 [pstack why](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/skills/why/SKILL.md)；无验收记录数据 |
 | Tidy since catch-up | Add | tidy/SKILL Since：只读汇总某提交或日期以来的 Git 记录、未更正的「待确认」与未决人审，输出改了什么 / 等我决定的 / 风险与缺口，不建文件或状态；借鉴 [pstack ketchup](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/skills/ketchup/SKILL.md)；无验收记录数据 |
+| Strict comment pass | Add | lint/SKILL `-comments`：独立只读子代理按 code-comments.md Strict pass 审范围内全部注释，只留许可证/生成标记、公开 API 契约、外部强加行为、规则有误的抑制四类，拿不准即删；本项目意外行为标重构目标，范围外删注释并列未决；约束注释先提议编码、经批准再删；主 agent 复核驳回越界，第二次驳回即失败；借鉴 [pstack no-comments](https://github.com/cursor/plugins/blob/ca782ed8b3c2c521cead8e1720d55c3a5dbf2347/pstack/skills/no-comments/SKILL.md) 与 [comment-sicko](https://github.com/cursor/plugins/blob/ca782ed8b3c2c521cead8e1720d55c3a5dbf2347/pstack/agents/comment-sicko.md)，不搬角色；无验收记录数据 |
+| Lean review page | Clarify | spec-review 人审页顺序为需要你决定 → 核对（Delta 只列变化项）→ 提交 → 折叠参考；合同、hash、批准与反馈格式不变；无验收记录数据 |
 
 ## D. pr — workflow/pr/SKILL.md（每次提交付费）
 
@@ -174,7 +176,7 @@ verify-artifacts.py 自证；接口行（四件套、一屏报告、双语提交
 | FORMAL / Select and coverage | 先按用户损害与测试缺口选性质；按问题选状态模型、代码验证或生成输入测试，声明假设、范围与源映射 | 过程·产物 | 流程 | 借鉴 [pstack create-formal-verification-skill](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/skills/create-formal-verification-skill/SKILL.md)；只建立授权范围内的项目能力；无行为评估 |
 | FORMAL / Negative control | 区分代码突变与手写模型突变；破坏版本必须因目标性质失败，模型反例需真实代码回放才算产品失败 | 过程·产物 | 流程 | 防止把模型绿灯当实现证明、把模型突变当自动代码漂移检测；结构校验不验证证明的充分性 |
 | FORMAL / Maintain | 从上次对应源版本检查新写入者、移动与假设变化；区分模型漂移、产品缺陷与承诺变化，禁止为绿灯削弱性质 | 过程·产物 | 流程 | 借鉴 [pstack maintain-formal-verification-skill](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/skills/maintain-formal-verification-skill/SKILL.md)；复用规则仍由 TEST-POLICY 唯一负责 |
-| STATECHART / spec / prototype / diagnose / unattended | 状态流转、重试、取消与并发问题用小 TLA+ 模型跑真实 TLC，规则写成 INVARIANT，标签用读者语言出 Mermaid 状态图与最短 bug 路径；未检查规则如实列出；每条 bug 路径回放到真实代码，有界检查不当实现证明；设计问题模型留 scratch，入项目检查走 FORMAL | 过程·产物 | 流程 | 手推状态机漏掉事件交错、TUI 原型只能点出走过的路径；运行代码照搬 [pstack statechart](https://github.com/cursor/plugins/tree/bf0c7cd80abdbf7fe47b634978a7d1b4071f71a7/pstack/skills/statechart)（MIT），改为 Java 自备；TLC jar 随仓库分发并校验 sha256，离线可用（用户要求，无外网环境），缺失时才下载；用户要求（2026-11-16）；`tests/test_statechart.py`；任务流模型在 `docs/taskflow/`，改工作流规则时同变更更新模型并重跑出图；无验收记录数据 |
+| STATECHART / spec / prototype / diagnose / unattended | 状态流转、重试、取消与并发问题用小 TLA+ 模型跑真实 TLC，规则写成 INVARIANT，标签用读者语言出 Mermaid 状态图与最短 bug 路径；未检查规则如实列出；每条 bug 路径回放到真实代码，有界检查不当实现证明；设计问题模型留 scratch，入项目检查走 FORMAL | 过程·产物 | 流程 | 手推状态机漏掉事件交错、TUI 原型只能点出走过的路径；运行代码照搬 [pstack statechart](https://github.com/cursor/plugins/tree/bf0c7cd80abdbf7fe47b634978a7d1b4071f71a7/pstack/skills/statechart)（MIT），改为 Java 自备；TLC jar 随仓库分发并校验 sha256，离线可用（用户要求，无外网环境），缺失时才下载；用户要求（2026-11-16）；`tests/test_statechart.py`；任务流模型在 `docs/taskflow/`，改工作流规则时同变更更新模型并重跑出图；规划遇重试、取消、恢复、并发写或约四个以上用户可见状态时出图给人审：内联计划放对话，FEATURE.md 放 `## 状态图` 段（属人审合同），`render.mjs` 用 Pele 出带源摘要的 SVG，人审页仅在摘要匹配时嵌图否则退回原文；用户要求（2026-11-25）；无验收记录数据 |
 | FEATURE-MAP / UI-TESTING / unattended | 用户视角功能地图逐功能写到达路径、适配器操作与复位、稳定选择器、要覆盖的状态、前置数据、截图与交叉核对、易错处；不写内部代码路径，运行时现场发现；UI 场景、验收报告「用户视角」与独立复核按同一字段 | 过程·产物 | 自审 | 验收报告只截几张图、漏 loading/empty/error 等状态，复核无据可依；借鉴 [pstack benny feature-map](https://github.com/cursor/plugins/blob/236e5481d05cbadc315b374a5de54971858c27bb/pstack/automations/benny/skills/reproduce-and-fix-issues/references/feature-map.example.md)；无验收记录数据 |
 
 ## 已知攻法与兜底
