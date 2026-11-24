@@ -5,12 +5,14 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 STATECHART = ROOT / "tooling/verify/statechart/scripts/statechart"
+RENDER = ROOT / "tooling/verify/statechart/scripts/render.mjs"
 FIXTURE = ROOT / "tests/statechart_fixture"
 BUNDLED_JAR = ROOT / "tooling/verify/statechart/tla2tools.jar"
 TLC_SHA256 = "936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88"
@@ -82,6 +84,32 @@ class StatechartTest(unittest.TestCase):
         self.assertNotIn("breaks", report)
         self.assertRegex(report, r"## Rules that hold\n.*AtMostOneCharge")
         self.assertIn("对账发现已扣款", (out / "chart.mmd").read_text(encoding="utf-8"))
+
+
+def _pele_dir():
+    cache = os.environ.get("XDG_CACHE_HOME") or str(Path.home() / ".cache")
+    return Path(os.environ.get("PELE_DIR") or Path(cache) / "cosmos/pele/1.9.0")
+
+
+@unittest.skipUnless(shutil.which("node"), "render.mjs needs Node")
+@unittest.skipUnless((_pele_dir() / "node_modules/pele/package.json").exists(),
+                     "pele@1.9.0 is not installed; the first render.mjs run installs it")
+class RenderTest(unittest.TestCase):
+    def test_svg_carries_the_digest_feature_doc_expects(self):
+        sys.path.insert(0, str(ROOT / "workflow"))
+        import feature_doc
+        scratch = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, scratch, ignore_errors=True)
+        chart = scratch / "chart.mmd"
+        chart.write_text("stateDiagram-v2\n  s0: 购物车  \n\n  [*] --> s0\n", encoding="utf-8")
+        process = subprocess.run(["node", str(RENDER), str(chart)], capture_output=True, text=True, timeout=120,
+                                 env=dict(os.environ, PELE_DIR=str(_pele_dir())))
+        self.assertEqual(process.returncode, 0, process.stderr)
+        svg = (scratch / "chart.svg").read_text(encoding="utf-8")
+        stamp = re.search(r"statechart-source sha256:([0-9a-f]{64})", svg).group(1)
+        self.assertEqual(feature_doc.statechart_digest("stateDiagram-v2\n  s0: 购物车\n  [*] --> s0"), stamp)
+        self.assertIn("购物车", svg)
+        self.assertIn(".pele .breaks rect", svg)
 
 
 if __name__ == "__main__":

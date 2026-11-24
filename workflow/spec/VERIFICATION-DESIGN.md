@@ -36,9 +36,15 @@ recovery or concurrent writers that example tests cover poorly. Select one prope
 owner, the test gap and the method; do not require a model for every stateful feature. Prefer making
 invalid states impossible through types/ownership when that suffices.
 
-Use an existing project checker when suitable. For a state-flow design question, planning may run
-`/verify`'s bundled [statechart](../../tooling/verify/STATECHART.md) TLC runner in a scratch
-directory outside the repository to produce a chart and shortest bug paths for human judgment.
+Use an existing project checker when suitable. Draw a state chart for the human whenever the
+behavior they must judge moves between states: retry, cancellation, recovery, concurrent writers,
+or about four or more states the user can see. Skip it for a linear flow and say so in the plan.
+Planning runs `/verify`'s bundled [statechart](../../tooling/verify/STATECHART.md) TLC runner in a
+scratch directory outside the repository, with rules the user can read. An inline plan shows the
+chart and one line per broken rule in the conversation. A feature document copies `chart.mmd` into
+its `## 状态图` section, adds the rule lines, what the model leaves out and the regenerate command,
+and renders `.scratch/<feat>/statechart.svg` with `statechart/scripts/render.mjs` so the review page
+shows the picture; the page falls back to the Mermaid text when the image is missing or stale.
 Reusable project formal checks, repository-tracked models, and tool tests are never authored during
 planning: name them as execution prerequisites through `/verify` ([formal checks](../../tooling/verify/FORMAL.md)
 defines method selection, source mapping, negative controls and maintenance).

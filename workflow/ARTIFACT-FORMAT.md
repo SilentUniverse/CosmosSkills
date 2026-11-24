@@ -69,6 +69,7 @@ Frontmatter: `type: feature`, `feature` equal to the directory name, ISO `create
 | 决策 | `### D<n> — title` with optional `Refs:` (R only), `Door: one-way\|two-way`, `Blast radius:`, `Review: human`, `Confirmed: YYYY-MM-DD` | unique D ids; refs declared; ISO date |
 | 不变量 | `- C<n> — text` | unique C ids |
 | 尚未明确 | `- Q<n> [[blocking]] — text` (plain `- [阻断：]text` also accepted) | unique Q ids; non-global in unit admission; blocking items block `全部确定` |
+| 状态图 | one ` ```mermaid ` block from the statechart runner plus rule lines | reviewed contract; `statechart.svg` beside FEATURE.md shows only while its stamp matches the block |
 | 端到端验证 / other sections | prose and manual checks | reviewed contract |
 | 共享验证 | one fenced JSON block plus `- 预检 <name>：…` lines | see below |
 | 任务 | `### T<n> — title` units | see below |

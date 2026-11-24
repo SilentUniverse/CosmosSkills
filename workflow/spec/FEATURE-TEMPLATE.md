@@ -30,10 +30,18 @@ Refs: R1
 Door: one-way              # public API/ABI/schema/protocol or irreversible migration
 Review: human              # direction, boundary, product behavior or red line: confirm in conversation
 # Confirmed: YYYY-MM-DD    # add on Review: human (non-one-way) once confirmed in conversation
-<recommendation, trade-off, effect on users/compatibility/rollback>
+<≤3 sentences: recommendation first, then the trade-off and its effect on users/compatibility/rollback>
 
 ## 不变量
 - C1 — <must never break>
+
+## 状态图
+```mermaid
+<chart.mmd from the statechart runner, unedited>
+```
+- <rule in the reader's words> → 成立 | 被打破：<shortest path as numbered in report.md>
+- 未建模：<what the model leaves out; hidden steps>
+- 重新生成：`<statechart command>`, then `render.mjs chart.mmd --out .scratch/<feat>/statechart.svg`
 
 ## 共享验证
 ```json
@@ -74,6 +82,9 @@ shared root files named explicitly. `resources` lists only observed exclusive ru
 carry no trailing comments.
 
 ## Writing rules
+
+- **状态图** appears only when [verification design](VERIFICATION-DESIGN.md#state-and-concurrency-properties)
+  calls for a chart. It is reviewed contract: editing it re-triggers review.
 
 - **One owner per fact.** Goals, scenarios, decisions and invariants live in their sections; the
   environment, setup and commands live in 共享验证. A unit never copies them; `covers:` points to

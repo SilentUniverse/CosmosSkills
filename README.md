@@ -186,7 +186,8 @@ stateDiagram-v2
 通过 verify 建立或维护检查器，保留反例、代码对应关系和证明边界。状态流转、重试、取消这类问题可用
 verify 自带的[状态图检查](tooling/verify/STATECHART.md)：写一个小 TLA+ 模型跑 TLC，得到用读者语言
 标注的状态图和每条被破坏规则的最短路径，再回放到真实代码。需要 Java 11+ 与 Node 22.18+，
-TLC 随仓库提供，不需要联网。
+TLC 随仓库提供，不需要联网。规划遇到重试、取消、恢复、并发写或较多用户可见状态时会出图给你审：
+内联计划放在对话里，大功能写进 FEATURE.md 的 `## 状态图`，审核页嵌入 Pele 渲染的图（首次渲染需联网安装 Pele）。
 
 多 agent 的[分工与验收规则](claude/delegation.md)区分覆盖分工、方案比较和独立找错，跨宿主多模型与跨厂商裁判通过[能力槽位路由](claude/model-routing.md)（`deep` / `fast` / `panel` / `cross_judge`）按需读取 `~/.cosmos/models.json`，技能正文不写死具体模型型号，宿不支持时如实降级并披露实际 `model`/`vendor`/`cross_vendor`。
 测试由子 agent 在后台跑，开发不停下等结果；只有收尾、提交和依赖结果的步骤才等。
@@ -203,8 +204,9 @@ Cosmos 只定义输入、写入边界和所需证据；实际并发、隔离和�
 3. **跨多个会话的大功能**：`/spec` 先复述确认意图，再写唯一的 `.scratch/<feat>/FEATURE.md`（先定合同与人审，再做环境 `prepare` 与预检）。
    无论说「开始实现」还是 `/tdd <feat>`，单元都经 `workflow-state.py start` 准入与 `close` 收口后本地 commit：无记录门特性用 `workflow-state.py run` 日志，含 `Door: one-way` 或 `review: required` 的人审特性用 `evidence.py` 固定候选回执（见 [FULL-SUITE.md](workflow/tdd/FULL-SUITE.md)）。由执行 Agent 根据依赖、写入范围和资源自行决定是否并行。
 
-人审：`Review: human` 的方向性决策在对话里确认（落 `Confirmed: YYYY-MM-DD` 后在审核页只作核对展示）；只有 `Door: one-way`（公共接口、不可逆迁移）或
+人审：`Review: human` 的方向性决策在对话里确认（落 `Confirmed: YYYY-MM-DD` 后在审核页折叠到页底参考区）；只有 `Door: one-way`（公共接口、不可逆迁移）或
 `review: required` 才走确定性审核页并记录接受，未接受前相关单元不能开工。`## 尚未明确` 中的 `[blocking]` 阻断项未清除前禁止「全部确定」，非阻断 `Q#` 变更不连坐无关已批准单元。
+审核页顺序：需要你决定的放最上，其次核对目标、需求、不变量与状态图，然后提交；已确认决策和 AI 工程决策折叠在页底。
 
 上下文用尽时：在单元边界 `/handoff`（单元已 close 并提交，再写一张指针卡片），新会话 `/resume`
 （读卡片、`git log`、`survey` 核对状态，只在工作区与最后检查点不一致时重跑验证）。
@@ -253,7 +255,7 @@ HTML bridge 在原生 UI 能保留版本、字段、原始事件及落盘确认�
 | 设计与分析 | [grill](workflow/grill/SKILL.md)、[prototype](workflow/prototype/SKILL.md)、[improve-arch](workflow/improve-arch/SKILL.md)、[codebase-design](workflow/codebase-design/SKILL.md)、[domain-modeling](workflow/domain-modeling/SKILL.md) |
 | 审查与修复 | [code-review](workflow/code-review/SKILL.md)、[atk](workflow/atk/SKILL.md)、[diagnose](workflow/diagnose/SKILL.md)、[conflicts](workflow/conflicts/SKILL.md)、[pr](workflow/pr/SKILL.md) |
 | 阅读与知识 | [show](workflow/show/SKILL.md)、[research](workflow/research/SKILL.md) |
-| 指令维护 | [correct](workflow/correct/SKILL.md)（复盘验收产物；错误第一次只记类别，第二次落到架构、类型、检查或测试）、[write-skill](workflow/write-skill/SKILL.md)、[lint](workflow/lint/SKILL.md)、[brief](workflow/brief/SKILL.md) |
+| 指令维护 | [correct](workflow/correct/SKILL.md)（复盘验收产物；错误第一次只记类别，第二次落到架构、类型、检查或测试）、[write-skill](workflow/write-skill/SKILL.md)、[lint](workflow/lint/SKILL.md)（`-comments` 严格清理代码注释）、[brief](workflow/brief/SKILL.md) |
 | 专项工具 | [verify](tooling/verify/SKILL.md)、[record-gif](workflow/record-gif/SKILL.md)、[cpp-oop-style](workflow/cpp-oop-style/SKILL.md)、[cosmos-setup](workflow/cosmos-setup/SKILL.md) |
 | 项目配置 | [shell-guardrails](tooling/shell-guardrails/SKILL.md)、[setup-pre-commit](tooling/setup-pre-commit/SKILL.md)、[migrate-to-shoehorn](tooling/migrate-to-shoehorn/SKILL.md) |
 | 工程之外 | [teach](workflow/teach/SKILL.md)（多会话学习工作区，只显式调用） |
