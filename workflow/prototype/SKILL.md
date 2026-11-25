@@ -39,7 +39,7 @@ ordinary prototype stays single. This applies the compare-designs contract of th
 1. **Fix the selection first.** Before any candidate exists, write the criteria or metric, the
    inputs, how each candidate is judged and the tie rule. Candidates see only the task.
 2. **Fan out.** Two or three subagents using the `panel` capability slot from
-   `~/.claude/references/model-routing.md`, each in its own worktree with the same task text, each
+   `model-routing.md` (`~/.claude/references/model-routing.md` or `claude/model-routing.md`), each in its own worktree with the same task text, each
    returning its prototype and a short note on the alternatives it rejected. A candidate that
    produces nothing drops out and is noted.
 3. **Pick a base and graft.** Optionally score candidates with a read-only `cross_judge` slot

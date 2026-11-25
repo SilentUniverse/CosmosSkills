@@ -1,7 +1,7 @@
 ---
 name: setup-pre-commit
 description: >-
-  Use only when the user invokes /setup-pre-commit to add or repair pre-commit hooks, staged-file formatting, or commit-time type-check and test runs. Extends the repository's existing hook manager or ecosystem-native tool, and verifies the local commit gate.
+  Use only when the user invokes /setup-pre-commit to add or repair pre-commit hooks, staged formatting, or commit-time checks using the repo's hook manager or ecosystem tool.
 disable-model-invocation: true
 ---
 

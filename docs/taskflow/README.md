@@ -14,7 +14,7 @@ README「日常流程」开头那张状态图的来源：一个 TLA+ 小模型�
 
 ```sh
 cd docs/taskflow
-../../tooling/verify/statechart/scripts/statechart TaskFlow.tla --view view.mjs --out out
+../../workflow/verify/statechart/scripts/statechart TaskFlow.tla --view view.mjs --out out
 cp out/chart.mmd chart.mmd && rm -rf out
 ```
 
@@ -25,14 +25,14 @@ cp out/chart.mmd chart.mmd && rm -rf out
 
 ## 检查了什么
 
-TLC 探索 76 个状态、112 条迁移，以下规则全部成立，且无死锁（图上隐藏了自循环步 `ReviseIntent`、`PlanDecision`、`UserSaysOk`、`Done`）：
+TLC 探索 138 个状态、202 条迁移，以下规则全部成立，且无死锁（图上隐藏了自循环步 `ReviseIntent`、`PlanDecision`、`UserSaysOk`、`Done`）：
 
 | 规则 | 含义 |
 |---|---|
 | `NoPlanBeforeIntentConfirmed` | 规划路线里未经用户确认意图，不进入方案对齐或给出计划 |
 | `NoCodeDuringPlan` | 规划各阶段（含确认意图和认可计划后）不启动编码也不写产品代码 |
 | `NoCodeBeforeStart` | 没有「开始实现」或清晰直接实现请求，不写代码 |
-| `MergeNeedsProofAndCi` | 合并以验证和必过检查都通过为前提 |
+| `MergeNeedsProofAndCi` | 合并以已验证为前提；当前提交报告了外部/必过检查时还须检查通过，无报告检查时凭上游本地验证合并 |
 | `LandOnlyWhenAsked` | 用户没要求提交，不推送不合并 |
 | `DoneOnlyWhenVerified` | 没验证过，不报告完成 |
 

@@ -44,10 +44,19 @@ def work_tree(root):
     root = str(Path(root).resolve())
     if subprocess.run(["git", "-C", root, "rev-parse", "--git-dir"], capture_output=True).returncode:
         return "no-vcs"
+    listed = subprocess.run(
+        ["git", "-C", root, "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+        capture_output=True, check=True,
+    ).stdout
+    paths = [p for p in listed.split(b"\0") if p and not p.startswith(b".scratch/")]
     with tempfile.TemporaryDirectory() as directory:
         env = dict(os.environ, GIT_INDEX_FILE=str(Path(directory) / "index"))
-        for argv in (["read-tree", "--empty"], ["add", "-A", "--", ".", ":(exclude).scratch"]):
-            subprocess.run(["git", "-C", root, *argv], env=env, capture_output=True, check=True)
+        subprocess.run(["git", "-C", root, "read-tree", "--empty"], env=env, capture_output=True, check=True)
+        if paths:
+            subprocess.run(
+                ["git", "-C", root, "update-index", "--add", "--remove", "-z", "--stdin"],
+                input=b"\0".join(paths) + b"\0", env=env, capture_output=True, check=True,
+            )
         return subprocess.run(["git", "-C", root, "write-tree"], env=env, capture_output=True,
                               check=True, text=True).stdout.strip()
 
@@ -78,7 +87,7 @@ def run(root, name, unit_id, command_name):
     import os
     import subprocess
     import time
-    from evidence import local, reference, sha
+    from evidence import local, reference
     feature = feature_doc.load(root, name)
     unit = feature.unit(unit_id)
     verifier = feature.effective(unit)

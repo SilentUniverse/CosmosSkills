@@ -42,9 +42,11 @@ permission during planning).
 
 ## Domain persistence
 
-If `CONTEXT.md` or `docs/adr/` already exists **and** domain-document updates are within current
-authorization, use `/domain-modeling` to write resolved glossary terms and qualifying ADRs.
-Otherwise remain stateless: return candidate terms/ADRs in the summary without creating files.
+During `/spec` or plan-only requests, never write `CONTEXT.md` or `docs/adr/` (`CLAUDE.md` §2
+planning write boundary): return candidate terms and ADRs in the summary only. When called inside
+an active implementation or documentation task where `CONTEXT.md` or `docs/adr/` already exists and
+domain-document updates are within authorization, use `/domain-modeling` to write resolved glossary
+terms and qualifying ADRs; otherwise remain stateless.
 
 The interview writes no production code, execution plan, `FEATURE.md`, or submissions. A plan-only
 or `/spec` caller keeps its planning boundary and still stops at the plan.

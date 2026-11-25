@@ -16,7 +16,7 @@ Same-task context compaction and session recovery stay native. Neither skill man
 
 SPEC and TDD use the project's existing test and driver entrypoints. SPEC records a missing
 operation or observation capability as an execution prerequisite. The `/tdd` execution phase
-uses [/verify](../tooling/verify/SKILL.md) to build that capability, exercise a representative
+uses [/verify](verify/SKILL.md) to build that capability, exercise a representative
 scenario and retain evidence before dependent behavior. Ordinary prerequisites stay inline;
 queued behavior units remain pending until readiness is proven. DIAGNOSE uses the same capability
 route when a reproduction cannot be driven or observed within its authorized repair scope.

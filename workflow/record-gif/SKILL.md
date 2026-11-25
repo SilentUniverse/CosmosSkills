@@ -1,7 +1,7 @@
 ---
 name: record-gif
 description: >-
-  Use only when the user invokes /record-gif for a verified browser or Web UI demonstration GIF, before-and-after evidence, or a regression baseline. Captures state-based frames, verifies completion predicates, and encodes deterministically.
+  Use only when the user invokes /record-gif to capture a state-driven Web/UI demonstration GIF with verified completion predicates and deterministic encoding.
 argument-hint: "The flow to record"
 disable-model-invocation: true
 ---

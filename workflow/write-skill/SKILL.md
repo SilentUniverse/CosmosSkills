@@ -82,7 +82,7 @@ After the final edit:
    machine templates or schemas use only their affected cases under [test policy](../TEST-POLICY.md).
 2. Run `/atk <scope>` for necessity, semantic consistency, runtime paths, and cost.
    For a large corpus, add one independent read-only review when an agent slot is available.
-3. Run `/lint <scope>` and inspect `wc -l`; line count alone never fails acceptance.
+3. Apply [lint](../lint/SKILL.md) to `<scope>` and inspect `wc -l`; line count alone never fails acceptance.
 4. Confirm every renamed skill has no stale command, path, catalog, installer, test, or generated-doc
    consumer.
 5. Report deterministic evidence exactly. Without acceptance-record data, do not claim a measured

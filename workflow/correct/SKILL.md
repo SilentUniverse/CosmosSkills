@@ -1,7 +1,7 @@
 ---
 name: correct
 description: >-
-  Use only when the user invokes /correct, or a correction repeats a mistake agents already made in this project. Groups repeated agent mistakes into classes and makes each impossible at the highest level that works: architecture, types, a lint or check whose error names the fix, a test, and prose last.
+  Use only when the user invokes /correct to mine rework/rollback classes and promote repeated agent mistakes up the enforcement ladder (architecture, types, check, test, prose last).
 argument-hint: "[mistake or area] (optional; no args = mine recent history)"
 disable-model-invocation: true
 ---

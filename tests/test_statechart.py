@@ -11,10 +11,10 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-STATECHART = ROOT / "tooling/verify/statechart/scripts/statechart"
-RENDER = ROOT / "tooling/verify/statechart/scripts/render.mjs"
+STATECHART = ROOT / "workflow/verify/statechart/scripts/statechart"
+RENDER = ROOT / "workflow/verify/statechart/scripts/render.mjs"
 FIXTURE = ROOT / "tests/statechart_fixture"
-BUNDLED_JAR = ROOT / "tooling/verify/statechart/tla2tools.jar"
+BUNDLED_JAR = ROOT / "workflow/verify/statechart/tla2tools.jar"
 TLC_SHA256 = "936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88"
 
 

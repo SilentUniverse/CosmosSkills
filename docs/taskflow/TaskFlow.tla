@@ -1,16 +1,17 @@
 ---- MODULE TaskFlow ----
 EXTENDS Naturals
-VARIABLES phase, mode, submit, intentConfirmed, started, coded, verified, ci, fails
-vars == <<phase, mode, submit, intentConfirmed, started, coded, verified, ci, fails>>
+VARIABLES phase, mode, submit, hasChecks, intentConfirmed, started, coded, verified, ci, fails
+vars == <<phase, mode, submit, hasChecks, intentConfirmed, started, coded, verified, ci, fails>>
 
 Init ==
   /\ phase = "request"
   /\ mode \in {"plan", "direct"}
   /\ submit \in BOOLEAN
+  /\ hasChecks \in BOOLEAN
   /\ intentConfirmed = FALSE
   /\ started = FALSE /\ coded = FALSE /\ verified = FALSE /\ ci = FALSE /\ fails = 0
 
-Same == UNCHANGED <<mode, submit>>
+Same == UNCHANGED <<mode, submit, hasChecks>>
 
 RestateForPlan == phase = "request" /\ mode = "plan"
   /\ phase' = "confirming_intent"
@@ -66,7 +67,10 @@ Rethink == phase = "blocked" /\ phase' = "coding" /\ fails' = 0
 StopLocal == phase = "verified" /\ ~submit /\ phase' = "stopped"
   /\ Same /\ UNCHANGED <<intentConfirmed, started, coded, verified, ci, fails>>
 
-Land == phase = "verified" /\ submit /\ phase' = "landing"
+Land == phase = "verified" /\ submit /\ hasChecks /\ phase' = "landing"
+  /\ Same /\ UNCHANGED <<intentConfirmed, started, coded, verified, ci, fails>>
+
+LandNoChecks == phase = "verified" /\ submit /\ ~hasChecks /\ phase' = "merged"
   /\ Same /\ UNCHANGED <<intentConfirmed, started, coded, verified, ci, fails>>
 
 CiPass == phase = "landing" /\ phase' = "merged" /\ ci' = TRUE
@@ -79,12 +83,12 @@ Done == phase \in {"stopped", "merged"} /\ UNCHANGED vars
 Next == RestateForPlan \/ ReviseIntent \/ ConfirmIntent \/ PlanDecision \/ GivePlan
   \/ UserSaysOk \/ UserRevisesPlan \/ UserSaysStart \/ StartDirect
   \/ NeedDecision \/ UserDecides \/ ReadyCheck \/ VerifyPass \/ VerifyFail
-  \/ Rethink \/ StopLocal \/ Land \/ CiPass \/ CiFail \/ Done
+  \/ Rethink \/ StopLocal \/ Land \/ LandNoChecks \/ CiPass \/ CiFail \/ Done
 
 NoPlanBeforeIntentConfirmed == (mode = "plan" /\ phase \in {"aligning", "planned"}) => intentConfirmed
 NoCodeDuringPlan == (mode = "plan" /\ phase \in {"request", "confirming_intent", "aligning", "planned"}) => ~started /\ ~coded
 NoCodeBeforeStart == coded => started
-MergeNeedsProofAndCi == phase = "merged" => verified /\ ci
+MergeNeedsProofAndCi == phase = "merged" => verified /\ (hasChecks => ci)
 LandOnlyWhenAsked == phase \in {"landing", "merged"} => submit
 DoneOnlyWhenVerified == phase \in {"stopped", "merged"} => verified
 ====

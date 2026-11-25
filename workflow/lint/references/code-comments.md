@@ -1,56 +1,50 @@
 # Code-comment gate
 
-Apply only to new or changed source comments.
+Default zero comments. Let names, types, module seams, and tests explain the code.
 
-**Deletion test:** if removing the comment loses no public contract, non-obvious invariant, reason,
-external constraint, or provenance that the code, its types, and its tests cannot recover, delete
-it. Let names, types, structure, and tests carry behavior.
+## Four-kind survival whitelist
 
-**Placement:** a human reads the interface, not the implementation. A contract or invariant sits at
-the declaration it constrains; a workaround, measured bound, or suppression reason stays at the site
-it explains.
+Across writing, diff review, and explicit cleanup, **only four kinds of source comments may exist**,
+and each surviving block is **at most 3 lines and 240 characters** (exempting only mandatory
+SPDX/copyright/generated file banners or an external workaround naming its removal condition):
 
-Keep:
+1. **License, copyright, SPDX, and generated-file markers.**
+2. **Public API contract doc comments** stating invariants, ordering, ownership, or error semantics
+   a caller cannot recover from the name and types, placed at the declaration.
+3. **Behavior forced by an unchangeable external party** (third-party dependency, OS/hardware
+   platform, vendor SDK, or wire protocol). Cite the issue, RFC, or version and when it can go.
+4. **Formatter, lint, or type suppressions** whose rule is genuinely faulty, pedantic, or
+   style-only at that exact site, carrying a concrete reason.
 
-- API behavior and non-obvious concurrency, security, or ordering reasons.
-- Versioned workarounds with a source and removal condition.
-- Suppression reasons, generated/tool markers, and licenses.
-- Measured bounds with provenance and resolvable TODOs.
+**When unsure whether a keep applies, delete.** Everything else is forbidden and deleted — code
+translation, "why" narration on our own implementation, branch/session history, tutorials, section
+dividers, `TODO`s, and inline benchmark notes (move load-bearing numbers or deferred items into a
+named constant, a test assertion, or the issue tracker).
 
-Delete code translation, branch narration, session history, tutorials, section dividers, and
-speculation. Rewrite hard-to-read code instead of explaining it. Do not enforce a comment ratio.
+## Convert bad comments into code or checks
 
-**Length cap:** a surviving comment block is at most 3 lines and 240 characters; anything longer
-belongs in a name, a test, or the knowledge surface. Enforce the cap in diff review of added
-comments; a block over it needs a banner marker (SPDX/copyright/generated) or a workaround naming
-its removal condition. The exemptions are mechanical, so the deletion test above still governs
-semantics.
+Never delete a warning or workaround blindly when our own code is broken — fix or surface what the
+comment was hiding:
+
+- **Surprising behavior in our own code** (ordering hacks, sleeps, retries, broad catches, subtle
+  side effects): delete the comment and treat the symbol as a **refactor target** (rename, extract,
+  tighten types, or fix the root cause until no comment is needed). Fix it when in scope; out of
+  scope, delete the comment in `/lint -comments` (or flag it in review) and list the target open.
+  Never add a symptom guard.
+- **Suppressions** (`eslint-disable`, `@ts-ignore`, `noqa`, `type: ignore`, `NOLINT`): inspect the
+  suppressed rule. If it guards correctness or safety, the suppressed code is a **refactor target**:
+  fix it in scope, or keep the suppression temporarily and list the defect open so lint stays green.
+- **Constraint comments** (`IMPORTANT`, `do not remove`, `must call X before Y`): trace the symbol.
+  External unchangeable behavior is kind 3; otherwise push the constraint up the `/correct` ladder
+  (type, lint/check, or test). During ordinary implementation, encode it in scope and omit the
+  comment; during `/lint -comments`, propose the encoding for approval (unattended runs need prior
+  grant), then encode and delete, or delete and list open.
 
 ## Strict pass
 
-`/lint -comments` applies this pass to every comment in scope: the added or changed comment lines
-of a diff scope, or every comment of an explicit file or directory scope. Only four kinds survive,
-and each still obeys the length cap:
+Inline writing, `/tdd` completion checks, and `/code-review` (`Standards`) enforce the whitelist and
+refactor rules above on **added or changed comments** in the active diff.
 
-1. License, copyright, SPDX, and generated-file markers.
-2. Doc comments that define a public API contract.
-3. Behavior forced by something the project cannot reshape: an external dependency, platform,
-   vendor, or protocol. Keep its issue or RFC link when one exists.
-4. Formatter or lint suppressions whose rule is faulty, pedantic, or style-only at that site.
-
-When unsure whether a keep applies, delete. Everything else goes, measured bounds and TODOs
-included; move a load-bearing one into a test, a named constant, or an issue, or list it open.
-
-- **Surprising behavior in our own code:** delete the comment and name the exact symbol as a
-  refactor target (rename, extract, type, or redesign until the behavior is obvious). Fix it in
-  scope with the smallest root-cause change. Out of scope, the comment stays deleted and the target
-  is listed open. Never add a symptom guard.
-- **Suppressions** such as `eslint-disable`, `@ts-ignore`, `noqa`, or `type: ignore`: look up the
-  rule. When it protects correctness or safety, the suppressed code is a refactor target. Fix it in
-  scope; otherwise keep the suppression and list it open, because deleting it alone only breaks
-  the lint run.
-- **Constraint comments** such as `IMPORTANT`, `do not remove`, or `ask X before changing`: trace
-  the named symbol before judging. A claim about something the project cannot change is kind 3.
-  Otherwise propose the cheapest in-scope encoding on the `/correct` ladder (type, check, or test)
-  and wait for approval; unattended runs need it granted in advance. Approved: encode, then delete.
-  Not approved: delete and list the constraint open.
+Explicit `/lint -comments [scope]` runs a dedicated cold-reader pass over all added/changed comments
+in a diff (default) or **every comment** in an explicit file/directory scope, spawning a fresh
+read-only subagent (`lint/SKILL.md`) so author blindness cannot excuse surviving comments.

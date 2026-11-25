@@ -404,6 +404,63 @@ class ValidateSkillsTests(unittest.TestCase):
         self.assertEqual([], errors)
         self.assertIn("claude/CLAUDE.md", summary)
 
+    def test_merged_installed_topology_requires_both_source_and_installed_reachability(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = self.write_skill(root / "workflow", "spec-like")
+            self.write_skill(root / "workflow", "verify-like")
+            self.write_skill(root / "tooling", "tool-only")
+            (root / "workflow" / "verify-like" / "STATECHART.md").write_text(
+                "# Statechart\n", encoding="utf-8"
+            )
+            (root / "tooling" / "tool-only" / "GUIDE.md").write_text("# Guide\n", encoding="utf-8")
+            (root / "workflow" / "TEST-POLICY.md").write_text("# Policy\n", encoding="utf-8")
+            (root / "workflow" / "README.md").write_text("# Uninstalled\n", encoding="utf-8")
+
+            base = source.read_text(encoding="utf-8")
+            source.write_text(
+                base + "\nSee [chart](../verify-like/STATECHART.md) and [policy](../TEST-POLICY.md).\n",
+                encoding="utf-8",
+            )
+            self.assertEqual([], validate_skills.run([], root)[0])
+
+            source.write_text(
+                base
+                + "\nCross-tree source miss [bad](../tool-only/GUIDE.md).\n"
+                + "Catalog escape [escape](../../tooling/tool-only/GUIDE.md).\n"
+                + "Uninstalled [readme](../README.md).\n",
+                encoding="utf-8",
+            )
+            errors, _, _ = validate_skills.run([], root)
+            self.assertTrue(any("local link target does not exist: ../tool-only/GUIDE.md" in e for e in errors), errors)
+            self.assertTrue(any("escapes installed skills root" in e for e in errors), errors)
+            self.assertTrue(any("not distributed by the installer" in e for e in errors), errors)
+
+    def test_rejects_explicit_only_description_without_disable_model_invocation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            skill = self.write_skill(root, "lint-like")
+            skill.write_text(
+                "---\n"
+                "name: lint-like\n"
+                "description: >-\n"
+                "  Use only when the user invokes /lint-like to audit prose.\n"
+                "---\n\n# Lint\n",
+                encoding="utf-8",
+            )
+            errors, _, _ = validate_skills.run(["lint-like"], root)
+            self.assertTrue(any("disable-model-invocation: true" in e for e in errors), errors)
+
+            skill.write_text(
+                "---\n"
+                "name: lint-like\n"
+                "description: >-\n"
+                "  Use only when the user invokes /lint-like or explicitly asks for a plan.\n"
+                "---\n\n# Plan\n",
+                encoding="utf-8",
+            )
+            self.assertEqual([], validate_skills.run(["lint-like"], root)[0])
+
 
 if __name__ == "__main__":
     unittest.main()

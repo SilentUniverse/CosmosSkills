@@ -1,7 +1,7 @@
 ---
 name: pr
 description: >-
-  Use when the user asks to commit, submit, push, merge, or land the current change, including a local-only commit. Creates one scoped Git commit, preserves unrelated work, and either stops locally or lands through a pull request with a Chinese title and 摘要/证据/合并风险 body, or a verified native merge.
+  Use when the user asks to commit, submit, push, merge, or land changes (including -local). Creates one scoped Chinese Conventional Commit and either stops locally or lands via a 摘要/证据/合并风险 PR or verified native merge.
 argument-hint: "[-local]"
 ---
 

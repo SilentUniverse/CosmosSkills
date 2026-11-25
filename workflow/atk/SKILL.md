@@ -1,7 +1,7 @@
 ---
 name: atk
 description: >-
-  Use when the user asks for atk, 对抗式审查, 再审一轮, a first-principles recheck, executable adversarial testing (-exec), or an explanation of recent changes. Audits a diff, design, plan, skill, or decision for load-bearing choices and failure modes; use code-review for ordinary review.
+  Use when the user asks for atk, 对抗式审查, 再审一轮, a first-principles stress-test, or executable adversarial testing (-exec). Audits a diff, design, plan, skill, or decision for load-bearing choices and failure modes; use code-review for standards/spec compliance and show for explanations.
 argument-hint: "[-r | -exec] [target | -all]; empty target = changes since the last review"
 ---
 
@@ -23,7 +23,7 @@ which judges a diff against standards and spec; this judges any output against i
   product files). Frame the change's intended behavior first (from the user's request, spec/PR or
   commits; ask if intent is unclear), materialize the target diff/uncommitted scope into an
   isolated checkout or worktree, and fan out adversaries via the `panel` capability slot in
-  `~/.claude/references/model-routing.md` (degrading honestly when single-vendor or inline). Each
+  `model-routing.md` (`~/.claude/references/model-routing.md` or `claude/model-routing.md`; degrading honestly when single-vendor or inline). Each
   adversary tries to break the change against the stated intent and may keep **only** findings
   proven by an actual run against the real code (failing test, minimal repro script, or wrong
   command output); static guesses, style, naming, and hypothetical future risks are dropped. Re-run

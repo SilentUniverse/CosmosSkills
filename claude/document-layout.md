@@ -14,8 +14,8 @@ Start with named inputs. For unfamiliar nontrivial work, use relevant `CONTEXT.m
 titles and open only decisions governing the affected area. Feature-unit or explicit task pointers
 are the initial read set, not a ban on investigating a discovered dependency. Skip missing
 orientation files. Structure the named inputs do not carry (layering, data flow, how an area works)
-is read from the code when the task needs it: `/show` for one area, a read-only subagent for a
-broad one. It is not persisted.
+is read from the code when the task needs it: read directly inline for one area (explicit `/show`
+when the user asks for an area walkthrough), or a read-only subagent for a broad one. It is not persisted.
 At a unit boundary use the Cosmos `handoff` skill; a fresh session uses `resume`. A host's
 same-name native command is not these skills.
 

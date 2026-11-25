@@ -104,7 +104,7 @@ Before closing, trace owned diffs to AC, record actual `test_paths`, review chan
 [tests.md](tests.md), apply the [comment deletion test](../lint/references/code-comments.md) to
 changed comment blocks, and challenge the most plausible failure against the evidence. Then:
 
-    python ../workflow-state.py run <root> <feat> T<n> <command>      # GREEN; prints the evidence line
+    python ../workflow-state.py run <root> <feat> T<n> <command>
     python ../workflow-state.py close <root> <feat> T<n> --evidence "<log>; AC 1,2"
 
 `run` executes the named command from 共享验证 `cwd` and keeps `.scratch/<feat>/runs/<unit>-<command>-<id>.log`
