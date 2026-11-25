@@ -44,9 +44,11 @@ def work_tree(root):
     root = str(Path(root).resolve())
     if subprocess.run(["git", "-C", root, "rev-parse", "--git-dir"], capture_output=True).returncode:
         return "no-vcs"
+    has_head = subprocess.run(["git", "-C", root, "rev-parse", "--verify", "HEAD"], capture_output=True).returncode == 0
     with tempfile.TemporaryDirectory() as directory:
         env = dict(os.environ, GIT_INDEX_FILE=str(Path(directory) / "index"))
-        for argv in (["read-tree", "--empty"], ["add", "-A", "--", ".", ":(exclude).scratch"]):
+        init_argv = ["read-tree", "HEAD"] if has_head else ["read-tree", "--empty"]
+        for argv in (init_argv, ["add", "-A", "--", "."], ["rm", "-r", "--cached", "--ignore-unmatch", "--", ".scratch"]):
             subprocess.run(["git", "-C", root, *argv], env=env, capture_output=True, check=True)
         return subprocess.run(["git", "-C", root, "write-tree"], env=env, capture_output=True,
                               check=True, text=True).stdout.strip()
@@ -78,7 +80,7 @@ def run(root, name, unit_id, command_name):
     import os
     import subprocess
     import time
-    from evidence import local, reference, sha
+    from evidence import local, reference
     feature = feature_doc.load(root, name)
     unit = feature.unit(unit_id)
     verifier = feature.effective(unit)

@@ -22,12 +22,13 @@ same author performs it inline; disclose that fallback.
   candidate: an isolated checkout at a commit SHA, or the current worktree left unwritten until
   the result returns. Only completion, commits and steps that depend on the result wait. Without
   subagents, use the host's background execution. Waiting on tests is never the critical path.
-  Exception: run in the current worktree when all three hold: nothing else can advance in
-  parallel; the same command's last measured run took ≤60 s (no measurement counts as slow); and
-  nothing writes the worktree while it runs. The exception saves only the subagent: the result
-  still names the SHA (`HEAD <SHA> + uncommitted changes` when dirty) and method, and pre-`/pr`
-  delivery checks, measurement comparisons and independent review still run in a background
-  subagent on a fixed SHA.
+  Exception: run inline in the current worktree when nothing else can advance in parallel, nothing
+  writes the worktree while it runs, and **either** the command targets a narrow single test file/case
+  (record its measured duration for later runs) **or** the same command's last measured run took
+  ≤60 s. The exception saves only the subagent: the result still names the SHA
+  (`HEAD <SHA> + uncommitted changes` when dirty) and method, and full suites, commands known >60 s,
+  pre-`/pr` delivery checks, measurement comparisons and independent review still run in a
+  background subagent on a fixed SHA.
 - **Speed comparisons fix the selection rule first.** Before any candidate runs, state the metric,
   inputs, environment, sample count and the decision rule, including what difference counts as a
   tie. A rule chosen after seeing results is not a comparison.

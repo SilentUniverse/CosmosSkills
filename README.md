@@ -89,8 +89,10 @@ tracker/路径、遗留规划文件折叠进 FEATURE.md、旧 `docs/agents/domai
 约束：<不能改的文件、接口或行为；先复现；不改代码只调查>
 ```
 
-Agent 动手前会读完你点名的所有材料，再用自己的话转述这五项，自己补的部分标成「假设」。
-凡是 `/spec`、要方案、意图或完成标准模糊、或「我明早看」无人值守交办，都会**先停在复述这一轮等你确认**再继续；目标与边界已明确的单步小改动/修 bug 则转述后直接推进。理解偏了在转述这一步纠正，代价只是一条消息。报告很模糊时，先让它转述，再说你猜的原因。
+Agent 动手前会读完你点名的所有材料，并按风险和跨会话依赖分流：
+- **单点明确小改动 / 查事实（S 档）**：零复述寒暄，一句话交代行动与检查后直接执行；
+- **单会话多步改动 / 常规修 Bug（M 档）**：2–3 句锚定目标与改前→改后检查点，有需要时用宿主原生步骤列表辅助推进（不建 `.scratch` 文件；若含不可逆决策则先在内联计划确认）；
+- **`/spec`、要方案、意图或完成标准模糊、或「我明早看」无人值守**：先检查是否存在 X-Y 伪需求或更窄的可交付切面，结合代码例子复述并**停在这一轮等你确认**后再继续；仅跨多个会话的持久队列才创建 `FEATURE.md`。理解偏了在确认这一步纠正，代价只是一条消息。
 
 常见场景：
 
@@ -141,14 +143,14 @@ stateDiagram-v2
   s6: 已给计划#65292;等你说开始
   s7: 已验证
   s8: PR 等必过检查
-  s9: 停在本地#65292;已报告
-  s10: 两次修复失败#65292;停下换思路
-  s11: 已合并并收尾
+  s9: 已合并并收尾
+  s10: 停在本地#65292;已报告
+  s11: 两次修复失败#65292;停下换思路
   [*] --> s0
-  s0 --> s1: 清晰小改动#65292;转述后直接实现
+  s0 --> s1: 清晰直做任务#65292;按需锚定后直接实现
   s0 --> s2: 你要计划#12289;/spec 或意图模糊#65292;先复述意图
   s1 --> s4: 遇到实质选择
-  s1 --> s5: 改完并按范围验证#65288;后台/固定候选#65289;
+  s1 --> s5: 改完并按范围验证#65288;窄单测内联 / 套件后台固定候选#65289;
   s2 --> s3: 你确认意图#65288;仅解锁规划#65289;
   s3 --> s6: 完成调研与对齐#65292;给出计划
   s4 --> s1: 你选定
@@ -156,13 +158,14 @@ stateDiagram-v2
   s5 --> s7: 对应范围检查通过#65288;交付门含全量#65289;
   s6 --> s3: 你要求修订计划
   s6 --> s1: 你说#12300;开始实现#12301;或 /tdd
-  s7 --> s9: 没要求提交
-  s7 --> s8: 你要求提交#65292;/pr 推送
+  s7 --> s10: 没要求提交
+  s7 --> s9: 要求提交[无报告检查]#65292;凭本地证据合并
+  s7 --> s8: 要求提交[有报告检查]#65292;/pr 等检查
   s8 --> s1: 必过检查失败#65292;修复
-  s8 --> s11: 必过检查通过并合并
-  s5 --> s10: 修复后又失败
-  s10 --> s1: /diagnose 或新子代理复查后再改
-  s8 --> s10: 修复后又失败
+  s8 --> s9: 必过检查通过并合并
+  s5 --> s11: 修复后又失败
+  s11 --> s1: /diagnose 或新子代理复查后再改
+  s8 --> s11: 修复后又失败
   class s0 blue
   class s1 orange
   class s2 blue
@@ -173,26 +176,26 @@ stateDiagram-v2
   class s7 purple
   class s8 teal
   class s9 teal
-  class s10 orange
-  class s11 teal
+  class s10 teal
+  class s11 orange
 ```
 
 入口仍是当前任务。需要判断下一步时，按[工作流路由](claude/workflow-routing.md)选择缺失的能力，
 得到结果后回到原任务；不要求依次调用所有 skill。规划先检查真实调用方式、状态归属和验收证据。
 改动现有代码时，[影响分析](workflow/spec/impact-detection.md)要点名「这样改是安全的」依赖的一两个事实；
 规划阶段证明不了的记为假设，执行阶段再用真实运行证明。UI 与多步流程按
-[功能地图字段](tooling/verify/FEATURE-MAP.md)选要覆盖的状态和每个状态的证据。
-高风险时序问题可选用[形式化检查](tooling/verify/FORMAL.md)：规划确定性质与范围，授权执行时再
+[功能地图字段](workflow/verify/FEATURE-MAP.md)选要覆盖的状态和每个状态的证据。
+高风险时序问题可选用[形式化检查](workflow/verify/FORMAL.md)：规划确定性质与范围，授权执行时再
 通过 verify 建立或维护检查器，保留反例、代码对应关系和证明边界。状态流转、重试、取消这类问题可用
-verify 自带的[状态图检查](tooling/verify/STATECHART.md)：写一个小 TLA+ 模型跑 TLC，得到用读者语言
+verify 自带的[状态图检查](workflow/verify/STATECHART.md)：写一个小 TLA+ 模型跑 TLC，得到用读者语言
 标注的状态图和每条被破坏规则的最短路径，再回放到真实代码。需要 Java 11+ 与 Node 22.18+，
 TLC 随仓库提供，不需要联网。规划遇到重试、取消、恢复、并发写或较多用户可见状态时会出图给你审：
 内联计划放在对话里，大功能写进 FEATURE.md 的 `## 状态图`，审核页嵌入 Pele 渲染的图（首次渲染需联网安装 Pele）。
 
 多 agent 的[分工与验收规则](claude/delegation.md)区分覆盖分工、方案比较和独立找错，跨宿主多模型与跨厂商裁判通过[能力槽位路由](claude/model-routing.md)（`deep` / `fast` / `panel` / `cross_judge`）按需读取 `~/.cosmos/models.json`，技能正文不写死具体模型型号，宿不支持时如实降级并披露实际 `model`/`vendor`/`cross_vendor`。
-测试由子 agent 在后台跑，开发不停下等结果；只有收尾、提交和依赖结果的步骤才等。
-同一条命令最近一次实测不超过 60 秒、手上没有可并行推进的活、且运行期间不写工作树时，也可以直接跑；
-交付检查、测量比较和独立复核仍走后台。
+测试默认由子 agent 在后台跑，开发不停下等结果；只有收尾、提交和依赖结果的步骤才等。
+当命令明确指向单测试文件/单用例（首跑同时记下耗时）或同一条命令最近一次实测不超过 60 秒、手上没有可并行推进的活、且运行期间不写工作树时，可以直接内联跑；
+全量套件、交付检查、测量比较和独立复核仍走后台固定候选。
 比快慢先定选法并用 7 问基准清单校验；持续指标优化走 [Hillclimb](workflow/TEST-POLICY.md#hillclimb-sustained-metric-optimization)；测量和验证结果必须写明提交 SHA 与方法，缺了作废重派一次，仍缺记为缺口。
 高风险审查可选跨厂商评委，代码发到外部服务前会先问你。
 Cosmos 只定义输入、写入边界和所需证据；实际并发、隔离和恢复沿用宿主与项目工具。
@@ -256,7 +259,7 @@ HTML bridge 在原生 UI 能保留版本、字段、原始事件及落盘确认�
 | 审查与修复 | [code-review](workflow/code-review/SKILL.md)、[atk](workflow/atk/SKILL.md)、[diagnose](workflow/diagnose/SKILL.md)、[conflicts](workflow/conflicts/SKILL.md)、[pr](workflow/pr/SKILL.md) |
 | 阅读与知识 | [show](workflow/show/SKILL.md)、[research](workflow/research/SKILL.md) |
 | 指令维护 | [correct](workflow/correct/SKILL.md)（复盘验收产物；错误第一次只记类别，第二次落到架构、类型、检查或测试）、[write-skill](workflow/write-skill/SKILL.md)、[lint](workflow/lint/SKILL.md)（`-comments` 严格清理代码注释）、[brief](workflow/brief/SKILL.md) |
-| 专项工具 | [verify](tooling/verify/SKILL.md)、[record-gif](workflow/record-gif/SKILL.md)、[cpp-oop-style](workflow/cpp-oop-style/SKILL.md)、[cosmos-setup](workflow/cosmos-setup/SKILL.md) |
+| 专项工具 | [verify](workflow/verify/SKILL.md)、[record-gif](workflow/record-gif/SKILL.md)、[cpp-oop-style](workflow/cpp-oop-style/SKILL.md)、[cosmos-setup](workflow/cosmos-setup/SKILL.md) |
 | 项目配置 | [shell-guardrails](tooling/shell-guardrails/SKILL.md)、[setup-pre-commit](tooling/setup-pre-commit/SKILL.md)、[migrate-to-shoehorn](tooling/migrate-to-shoehorn/SKILL.md) |
 | 工程之外 | [teach](workflow/teach/SKILL.md)（多会话学习工作区，只显式调用） |
 

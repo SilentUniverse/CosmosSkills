@@ -1,9 +1,20 @@
 # Engineering workflow routing
 
-Load when choosing the next engineering step is unclear. Resolve skills through the active host's
+Load when choosing task scale or the next engineering step. Resolve skills through the active host's
 catalog and read only the selected entry. This map adds no invocation permission: explicit-only
-skills keep their triggers, and a planning request stays within its write limit. Known, bounded
-work proceeds directly; neither this map nor the full skill chain is a required opening ritual.
+skills keep their triggers, and a planning request stays within its write limit. Neither this map
+nor the full skill chain is a required opening ritual.
+
+## Sort by task scale and risk (S / M / L)
+
+Risk decides whether to pause for confirmation; cross-session dependency decides whether to write
+`FEATURE.md`:
+
+| Tier | Shape | Intake & orchestration | Artifact & verification |
+|---|---|---|---|
+| **S · Direct** | Single-point clear edit, obvious fix, or fact lookup | Zero restatement preamble; 1-line action + check, then execute | No `.scratch` file; targeted check (plus inline regression test for cheap local bugfixes) |
+| **M · Single-session** | Bounded multi-step work within one session (if `Door: one-way` or ambiguous, pause at `/spec` inline plan for confirmation first) | 2–3 sentence anchor (goal + before→after check); use the host's native step/todo UI when ordering helps | Inline plan only (no `.scratch` file, no artifact gate); batch related edits, run affected cases once |
+| **L · Persistent queue** | Giant cross-session or multi-stage delivery whose unit graph outlives one session | `/spec` Stage 1 intent gate (X-Y & narrow-wedge check + example, stop for confirmation) → Stage 2 alignment | Single `.scratch/<feat>/FEATURE.md`; units admit/close via `workflow-state.py` |
 
 ## Choose by the missing result
 
@@ -15,7 +26,7 @@ work proceeds directly; neither this map nor the full skill chain is a required 
 | Implement a settled request | Work directly within the accepted contract (a `FEATURE.md` queue still admits and closes units via `workflow-state.py`). TDD is a user-selected method, not an automatic stage after planning. Reuse existing checks; build a missing reusable verification capability through verify before dependent work. |
 | Explain, repair, or hillclimb performance/failures | Diagnose owns symptom → distinguishing probe → cause → verified repair. Sustained multi-round metric optimization follows [TEST-POLICY.md](../workflow/TEST-POLICY.md#hillclimb-sustained-metric-optimization) (frozen harness, 7-question vet, one hypothesis per commit/revert). A model counterexample helps choose a concrete replay; it does not alone establish a product bug. Return unresolved requirement changes to planning. |
 | Check a difficult state or concurrency property | Use spec's verification design to select the claim and method; planning may run scratch-only statecharts for design judgment, while verify builds or maintains tracked repo checkers during authorized execution. Existing checkers run through normal project commands. Keep model bounds and code coverage with the result. |
-| Assess correctness before accepting work | Code-review checks a fixed diff against standards and requirements; atk challenges load-bearing decisions (`/atk -exec` runs isolated executable adversaries and drops unproven claims). Route multi-model panels and judges via [model-routing.md](model-routing.md). Return confirmed findings and gaps. |
+| Assess correctness before accepting work | Escalate by need: `code-review` checks a fixed diff against repo standards and spec; `atk` challenges load-bearing logic from first principles (`/atk -r` read-only; `/atk -exec` isolated executable adversaries, keeping only reproduced intent-breaking failures); explicit `/lint` cleans session leakage or `-comments` comment slop. Route multi-model panels and judges via [model-routing.md](model-routing.md). Return confirmed findings and gaps. |
 | Hand off work to review later | The user leaves and reviews next day (「我明早看」): [unattended](unattended.md) confirms the contract, authority and stop conditions before the user leaves, keeps an append-only decision log, and ends with a per-requirement acceptance report whose independent reviewer also audits log truthfulness against the run transcript. |
 | Deliver an authorized change | Pr owns submission and landing evidence; conflicts resolves an encountered merge/rebase conflict within that operation. Passing review does not itself request submission. |
 | Continue, retain knowledge or clean up | Handoff/resume preserve the next action through Git and existing artifacts; tidy derives obligations and disposable outputs. Domain-modeling, ADRs and the `/correct` ladder retain only facts with future consumers. These do not own runtime recovery. |

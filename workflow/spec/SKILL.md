@@ -43,19 +43,22 @@ keywords over `.scratch/*/FEATURE.md`, direct target code/contracts, and `CONTEX
 ADR titles. Absence from `.scratch` is not absence from the product. A hit in another feature
 changes it only when ownership and the requested outcome say so.
 
-Restate the user's intent in Chinese, in your own words; never parrot the prompt. Pin one meaning
-the user can confirm or reject:
+Restate the user's intent in Chinese, in your own words; never parrot the prompt. Settle any ≤30 s
+read-only code/command probe before speaking so you never ask the user a checkable fact. Pin one
+meaning the user can confirm or reject:
 
-1. **你要什么、为什么**：two to four plain sentences on what the user wants to achieve and the real
-   problem behind it, not the solution they named (check for an X-Y problem). Anchor it in one
-   concrete before → after example from the module or behavior just read.
+1. **你要什么、为什么（含更窄切法检查）**：two to four plain sentences on what the user wants to
+   achieve and the real problem behind it — actively check for an X-Y problem, and if a 10x simpler
+   or narrower deliverable wedge solves the core pain, name it upfront. Anchor it in one concrete
+   before → after example from the module or behavior just read.
 2. Then list only what could send the plan the wrong way; omit an item with nothing to say:
    - **假设**：each inference, and what changes if it is wrong.
    - **不碰**：adjacent areas that are easy to change by accident but stay out of scope.
    - **完成判据**：the pass/fail check and the invariant that must not break, when the goal does not
      already make them obvious.
-   - **方向问题**：at most two, only when the overall direction forks, each with options and a
-     recommendation. Downstream architecture and implementation choices wait for Stage 2.
+   - **方向问题**：at most two product, boundary or irreversible forks (never empirical details a
+     probe can answer), each with options and a concrete recommendation. Downstream architecture and
+     implementation choices wait for Stage 2.
 
 Never fill a slot for its own sake; a short, accurate restatement is the target.
 

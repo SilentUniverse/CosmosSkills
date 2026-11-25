@@ -1,7 +1,7 @@
 ---
 name: sharpen
 description: >-
-  Use only when the user invokes /sharpen to deepen a rough request or prompt before sending it. Surfaces what a domain expert would do, primary sources, methods/tools, and external verification criteria, then returns a ready-to-send Chinese prompt without executing the task.
+  Use only when the user invokes /sharpen to deepen a rough idea or draft prompt before sending. Surfaces expert blind spots, primary sources, tools, and falsifiable checks, returning a ready-to-send Chinese prompt without executing.
 argument-hint: "Your rough idea, task, or draft prompt"
 disable-model-invocation: true
 ---

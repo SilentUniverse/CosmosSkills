@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import posixpath
 import re
 import sys
 from pathlib import Path
@@ -48,6 +49,21 @@ CURSOR_COLORS = {
     "brand",
 }
 DEFAULT_ROOTS = ("workflow", "tooling")
+INSTALLED_SHARED_FILES = {
+    "ARTIFACT-FORMAT.md",
+    "REPORT-FORMAT.md",
+    "TEST-POLICY.md",
+    "verify-artifacts.py",
+    "workflow-state.py",
+    "feature_doc.py",
+    "evidence.py",
+    "test_governance.py",
+    "test-governance.py",
+    "workflow_ui.py",
+}
+EXPLICIT_SLASH_ONLY_RE = re.compile(
+    r"^Use only when the user invokes /[a-z0-9-]+(?![a-z0-9-])(?!\s+or\s+(?:explicitly\s+)?asks\b)"
+)
 MARKDOWN_EXCLUDED_PARTS = {".eval-runs", ".git", ".scratch", ".venv", "node_modules"}
 RETIRED_SKILL_NAMES = {
     "caveman": "brief",
@@ -222,6 +238,15 @@ def validate_skill(skill_file: Path) -> list[str]:
     invocation = values.get("disable-model-invocation")
     if invocation is not None and not isinstance(invocation, bool):
         errors.append(f"{skill_file}: disable-model-invocation must be true or false")
+    elif (
+        isinstance(description, str)
+        and EXPLICIT_SLASH_ONLY_RE.search(description)
+        and invocation is not True
+    ):
+        errors.append(
+            f"{skill_file}: description restricts trigger to explicit slash invocation; "
+            "set disable-model-invocation: true"
+        )
     hint = values.get("argument-hint")
     if hint is not None and not isinstance(hint, str):
         errors.append(f"{skill_file}: argument-hint must be a string")
@@ -319,7 +344,50 @@ def heading_slugs(markdown_path: Path) -> set[str]:
     return slugs
 
 
-def validate_links(markdown_file: Path, slug_cache: dict | None = None) -> list[str]:
+def _resolve_installed_skill_path(
+    markdown_file: Path, path_text: str, cwd: Path | None
+) -> tuple[Path | None, str | None]:
+    """When markdown_file lives inside <cwd>/<catalog>/<skill>/..., resolve relative links
+    against the merged installed skills root (workflow/ + tooling/ flattened together)."""
+    if cwd is None:
+        return None, None
+    try:
+        rel_file = markdown_file.resolve().relative_to(cwd.resolve())
+    except ValueError:
+        return None, None
+    if len(rel_file.parts) < 3 or rel_file.parts[0] not in DEFAULT_ROOTS:
+        return None, None
+    catalog_root = (cwd / rel_file.parts[0]).resolve()
+    skill_dir = catalog_root / rel_file.parts[1]
+    if not (skill_dir / "SKILL.md").is_file():
+        return None, None
+    rel_parent = markdown_file.resolve().parent.relative_to(catalog_root).as_posix()
+    normalized = posixpath.normpath(f"{rel_parent}/{path_text}")
+    if normalized == ".." or normalized.startswith("../"):
+        return None, (
+            f"link escapes installed skills root (use ../<skill-or-contract> instead of "
+            f"traversing catalog directories): {path_text}"
+        )
+    parts = normalized.split("/")
+    if len(parts) == 1:
+        if parts[0] not in INSTALLED_SHARED_FILES:
+            return None, (
+                f"shared skill-root target {parts[0]!r} is not distributed by the installer: {path_text}"
+            )
+        candidate = (cwd / "workflow" / parts[0]).resolve()
+        return (candidate if candidate.exists() else None), (
+            None if candidate.exists() else f"local link target does not exist: {path_text}"
+        )
+    for root_name in DEFAULT_ROOTS:
+        candidate = (cwd / root_name / normalized).resolve()
+        if candidate.exists():
+            return candidate, None
+    return None, f"local link target does not exist in merged skills root: {path_text}"
+
+
+def validate_links(
+    markdown_file: Path, slug_cache: dict | None = None, cwd: Path | None = None
+) -> list[str]:
     errors: list[str] = []
     cache = slug_cache if slug_cache is not None else {}
 
@@ -353,12 +421,20 @@ def validate_links(markdown_file: Path, slug_cache: dict | None = None) -> list[
                 continue
             if any(token in path_text for token in ("<", ">", "{", "}")):
                 continue
-            target = (markdown_file.parent / path_text).resolve()
-            if not target.exists():
+            source_target = (markdown_file.parent / path_text).resolve()
+            if not source_target.exists():
                 errors.append(
                     f"{markdown_file}:{line_number}: local link target does not exist: {destination}"
                 )
-            elif (
+                continue
+            installed_target, installed_err = _resolve_installed_skill_path(
+                markdown_file, path_text, cwd
+            )
+            if installed_err is not None:
+                errors.append(f"{markdown_file}:{line_number}: {installed_err}")
+                continue
+            target = installed_target if installed_target is not None else source_target
+            if (
                 anchor
                 and target.suffix == ".md"
                 and "/" not in anchor
@@ -459,6 +535,7 @@ def run(inputs: Iterable[str], cwd: Path) -> tuple[list[str], int, int]:
     requested = list(inputs)
     skill_files = collect_skills(requested, cwd)
     errors: list[str] = []
+    scopes = [cwd / item for item in requested] if requested else [cwd]
     markdown_files: set[Path] = set()
     catalog_markdown_files: set[Path] = set()
     runtime_markdown_files: set[Path] = set()
@@ -501,7 +578,7 @@ def run(inputs: Iterable[str], cwd: Path) -> tuple[list[str], int, int]:
         catalog_markdown_files.update(claude_files)
         runtime_markdown_files.update(claude_files)
 
-    for scope in [cwd / item for item in requested] if requested else [cwd]:
+    for scope in scopes:
         if not scope.is_dir():
             continue
         markdown_files.update(
@@ -513,7 +590,7 @@ def run(inputs: Iterable[str], cwd: Path) -> tuple[list[str], int, int]:
     slug_cache: dict[Path, set[str]] = {}
     for markdown_file in sorted(markdown_files):
         try:
-            errors.extend(validate_links(markdown_file, slug_cache))
+            errors.extend(validate_links(markdown_file, slug_cache, cwd))
             if markdown_file in catalog_markdown_files:
                 errors.extend(validate_retired_references(markdown_file))
             if markdown_file in runtime_markdown_files:
@@ -529,17 +606,13 @@ SHARED_REF_RE = re.compile(r"`(\.\./[A-Za-z0-9_./-]+)`")
 
 
 def validate_shared_refs(markdown_file: Path, cwd: Path) -> list[str]:
-    """Backticked `../<name>` references must resolve. They name the shared contracts one
-    directory above the skill (ARTIFACT-FORMAT.md pins the layout): textual resolution against
-    the file's own directory for workflow skills; a tooling skill maps them to the sibling
-    workflow tree, matching the merged installed roots."""
+    """Backticked `../<name>` references must resolve in the merged installed skills root."""
     try:
-        relative = markdown_file.relative_to(cwd)
+        relative = markdown_file.resolve().relative_to(cwd.resolve())
     except ValueError:
         return []
     if len(relative.parts) < 3 or relative.parts[0] not in DEFAULT_ROOTS:
         return []
-    tooling = relative.parts[0] == "tooling"
     errors: list[str] = []
     in_fence = False
     for line_number, line in enumerate(markdown_file.read_text(encoding="utf-8").splitlines(), 1):
@@ -550,8 +623,9 @@ def validate_shared_refs(markdown_file: Path, cwd: Path) -> list[str]:
             continue
         for match in SHARED_REF_RE.finditer(line):
             ref = match.group(1)
-            target = (cwd / "workflow" / ref[3:]) if tooling else (markdown_file.parent / ref)
-            if not target.exists():
+            source_ref = (markdown_file.parent / ref).resolve()
+            target, err = _resolve_installed_skill_path(markdown_file, ref, cwd)
+            if not source_ref.exists() or err is not None or target is None or not target.exists():
                 errors.append(
                     f"{markdown_file}:{line_number}: shared reference does not resolve: {ref}"
                 )

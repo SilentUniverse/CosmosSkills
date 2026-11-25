@@ -44,10 +44,11 @@ plus each `ACCEPTANCE.md` 需要你看的地方). It reports three blocks:
 ## Retain or delete
 
 Keep pending reviews, accepted snapshots, delivered versions, proof dependencies, referenced logs
-(every `runs/` log or receipt a done unit's 完成 record names), failed `runs/` logs and receipts
-while the feature has units not yet done (`close` rejects a pass that a known failed attempt
-contradicts), regression tests/fixtures and useful tools/experience. Other unreferenced `runs/` logs
-and `*.lock` files are disposable. If native storage lacks sufficient retention,
+(every `runs/` log or receipt a done unit's 完成 record names), `.scratch/acceptance-log.md`, failed
+`runs/` logs and receipts while the feature has units not yet done (`close` rejects a pass that a
+known failed attempt contradicts), regression tests/fixtures and useful tools/experience. Other
+unreferenced `runs/` logs, `.scratch/tmp/` scratch previews/probes, legacy `.scratch/show-*.html`
+files, and `*.lock` files are disposable. If native storage lacks sufficient retention,
 export required bytes to project evidence and verify hash/reference closure; do not copy sessions.
 
 Delete only proven disposable output with no retention reference and no active user/producer. The

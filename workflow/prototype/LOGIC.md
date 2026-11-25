@@ -12,7 +12,7 @@ A tiny interactive terminal app that lets the user drive a state model by hand. 
 If the question is "what should this look like", that's the wrong branch. Use [UI.md](UI.md).
 
 When the question is whether every ordering of events (retry, cancel, timeout) keeps a rule, a small
-model checked by `/verify`'s [statechart](../../tooling/verify/STATECHART.md) runner explores all
+model checked by `/verify`'s [statechart](../verify/STATECHART.md) runner explores all
 paths and returns the shortest bad one plus a chart. Driving a TUI by hand shows how the flow feels;
 it cannot show that no bad path exists.
 
@@ -20,7 +20,7 @@ it cannot show that no bad path exists.
 
 ### 1. State the question
 
-Before writing code, write down what state model and what question you're prototyping. One paragraph, in the prototype's README or a comment at the top of the file. A logic prototype that answers the wrong question is pure waste. Make the question explicit so it can be checked later, whether the user is watching now or returning to it AFK.
+Before writing code, write down what state model and what question you're prototyping — one paragraph in the prototype's README or in your reply, never as a prose block comment inside source code. A logic prototype that answers the wrong question is pure waste. Make the question explicit so it can be checked later, whether the user is watching now or returning to it AFK.
 
 ### 2. Pick the language
 

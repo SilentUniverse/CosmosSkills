@@ -21,6 +21,7 @@ Chinese, per CLAUDE.md §1.
 | **Project-level singletons** | repo **root** | `CONTEXT.md` | one per repo, true project-wide |
 | **Long-lived series docs** | `docs/` | `adr/`, `agents/` | kept long-term, humans read them, grows file-by-file |
 | **Feature-local work state** | `.scratch/<feat>/` | `FEATURE.md`, `runs/`, `reviews/`, receipts, candidates, evidence | tracked in Git with the code; referenced evidence is retained; `*.lock` files are disposable |
+| **Repo-local logs & scratch** | `.scratch/` | `acceptance-log.md` (durable rework/acceptance log); `tmp/` (gitignored throwaway files & HTML previews) | `acceptance-log.md` is retained; `.scratch/tmp/` is disposable |
 
 The more project-wide and long-lived an artifact is, the closer to root it lives. ALL-CAPS names a
 singleton landmark (`CONTEXT.md`, `FEATURE.md`); kebab-case names a series member
@@ -30,14 +31,17 @@ disposable.
 ## Project knowledge — no map file
 
 Structure (layering, data flow, how an area works) is read from the code when the task needs it:
-`/show` for one area, a read-only subagent for a broad one. It is not persisted.
+inline for one area (explicit `/show` when the user asks for a walkthrough), or a read-only
+subagent for a broad one. It is not persisted.
 
 **Two-axis test (what earns a persisted line).** A fact earns a durable line only when both hold:
 it cannot be recovered by `rg` or reading the configuration, and it bites when missed (a past
 incident or a plausible next mistake). Locations, exports, caller lists and import graphs fail the
 first axis. A fact that passes moves to the highest rung that enforces it: architecture → types →
 a check whose error names the fix → a test → an `AGENTS.md` rule line; `/correct` owns the ladder
-and records scope, source and reason with the line.
+and records scope, source and reason with the line. First-time rework or correction classes append
+one line to `.scratch/acceptance-log.md` (`<YYYY-MM-DD> | <task> | 接受|返工|回滚 | <class or -> | <pointer>`);
+a recurring class moves up the ladder in place.
 
 **Drift re-verification.** A persisted rule line names the paths it covers. When such a line is
 read and a named path changed after the line's last commit, re-verify it before relying on it;

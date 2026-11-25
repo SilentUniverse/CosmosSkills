@@ -1,7 +1,7 @@
 ---
 name: cosmos-setup
 description: >-
-  Use only when the user invokes /cosmos-setup for non-default tracker or path configuration, legacy planning-file folding, domain.md migration, a read-only inventory of MCP servers and drivers, or user-level multi-model routing (-models). Configures deviations and migrations; default local Markdown repositories need no setup.
+  Use only when the user invokes /cosmos-setup for non-default tracker/path setup, legacy artifact folding, MCP/driver inventory, or multi-model slot routing (-models). Default repos need no setup.
 argument-hint: "[-models]"
 disable-model-invocation: true
 ---
@@ -66,7 +66,7 @@ configure anything, never grant or prompt for an OS permission, and write nothin
   user configuration). Report server names and transport only, never environment values, headers or
   tokens. A configured server is not proof that it connects. A host listing that health-checks
   servers (for example `claude mcp list`) starts them, so run it only when the user accepts that.
-- Drivers: check presence and version of the drivers [verify's recipes](../../tooling/verify/DRIVERS.md)
+- Drivers: check presence and version of the drivers [verify's recipes](../verify/DRIVERS.md)
   name, for example `xcrun simctl help`, `xcodebuild -version`, `idb --help`, `appium --version`,
   `ffmpeg -version`, and the project's own `playwright` or `electron` dependency. Use only probes that
   start no browser, device or application. A permission that cannot be read without a prompt is
@@ -77,7 +77,8 @@ configure anything, never grant or prompt for an OS permission, and write nothin
 
 **Case 7 — User-level multi-model routing (`/cosmos-setup -models`).** Configure the four abstract
 capability slots (`deep`, `fast`, `panel`, `cross_judge`) in `~/.cosmos/models.json` per
-`~/.claude/references/model-routing.md` (zero resident prompt cost; never writes into project
+`model-routing.md` (`~/.claude/references/model-routing.md` when installed, `claude/model-routing.md`
+in a source checkout; zero resident prompt cost; never writes into project
 `CLAUDE.md`/`AGENTS.md` or `~/.codex/AGENTS.md`):
 
 1. **Detect.** Inspect the active host's subagent/swarm tool schema or model-list action to find

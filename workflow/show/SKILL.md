@@ -30,7 +30,8 @@ One screen, this shape:
 
 The four parts as one self-contained HTML page, with real typography and the traced flow as a
 visual sequence, for reading away from the terminal or handing to someone. Write to
-`.scratch/show-<area>.html` (kebab-case slug, overwrite on re-run) and open it in the
+`.scratch/tmp/show-<area>.html` (gitignored kebab-case slug; `$TMPDIR/show-<area>.html` outside a
+repository; overwrite on re-run) and open it in the
 browser when available; otherwise return the file path and state the preview gap. Nothing else is
 written. Verify cited paths and the traced flow; distinguish static tracing from executed behavior.
 

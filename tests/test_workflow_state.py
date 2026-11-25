@@ -342,3 +342,14 @@ class LightweightEvidenceTests(unittest.TestCase):
         fixed = self.run_unit()
         self.assertEqual(0, fixed["exit"])
         workflow_state.close(self.root, "demo", "T1", [fixed["evidence"]])
+
+    def test_work_tree_and_run_succeed_when_scratch_is_gitignored(self):
+        import subprocess
+        subprocess.run(["git", "init", "-q", str(self.root)], check=True)
+        (self.root / ".gitignore").write_text(".scratch/\n", encoding="utf-8")
+        (self.root / "src.py").write_text("VALUE = 1\n", encoding="utf-8")
+        result = self.run_unit()
+        self.assertEqual(0, result["exit"])
+        self.assertTrue(result["stable"])
+        workflow_state.close(self.root, "demo", "T1", [result["evidence"]])
+        self.assertIn("T1", [item["unit"] for item in workflow_state.survey(self.root)[0]["done"]])

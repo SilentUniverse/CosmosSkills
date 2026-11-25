@@ -14,7 +14,7 @@ assertions or reporting, or the actual browser/extension/desktop host. Do not in
 Playwright merely to duplicate native browser actions. Native system UI needs its matching driver;
 a browser viewport does not stand in for a native device or desktop application. Browser-use,
 computer-use and MCP sessions explore and diagnose; final proof is a repository script that follows
-the [control adapter contract](../../tooling/verify/ADAPTER.md).
+the [control adapter contract](../verify/ADAPTER.md).
 
 Probe capabilities only after choosing a UI verifier. Do not infer DOM/CDP, network interception,
 traces, console access, extensions, or process control from a tool's name. Missing capabilities
@@ -27,7 +27,7 @@ Record one scenario in the existing verification design: requirement, target bui
 fixture and initial state, actions, independently expected observations, actual result, and evidence
 locations. Reuse that scenario and its stable ID across native operation and a retained regression;
 do not copy it into a second contract. Each feature the scenario drives is described with the
-fields of the [feature map](../../tooling/verify/FEATURE-MAP.md). A passed exploratory run does not
+fields of the [feature map](../verify/FEATURE-MAP.md). A passed exploratory run does not
 supply a missing CI test.
 A native replay can satisfy a replay requirement only if the next executor can actually rerun its
 actions and assertions; a transcript that only says “looks good” is not replayable proof.

@@ -57,7 +57,10 @@ repeat) or which lifecycle or state risk it makes impossible; a candidate that n
 Use a concise text report for a small scope. Use HTML when requested or when multiple candidates
 benefit from diagrams; load [HTML-REPORT.md](HTML-REPORT.md) only for that output.
 
-For HTML output, write one file to the OS temp directory: `$env:TEMP` on Windows, `$TMPDIR` or `/tmp` on Unix. Use `<tmpdir>/architecture-review-<timestamp>.html`, open it with an available viewer, and return its absolute path. If viewing is unavailable, report that verification gap.
+For HTML output, write one file to `.scratch/tmp/architecture-review-<timestamp>.html` when inside a
+repository whose `.scratch/tmp/` is gitignored, else the OS temp directory (`$env:TEMP` on Windows,
+`$TMPDIR` or `/tmp` on Unix). Open it with an available viewer and return its absolute path. If
+viewing is unavailable, report that verification gap.
 
 For HTML output, use the styling and before/after cards in [HTML-REPORT.md](HTML-REPORT.md).
 The CDN assets require network access; use plain text when offline. In a text report, give each
